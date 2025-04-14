@@ -17,6 +17,12 @@
 #   pragma GCC diagnostic pop
 #endif
 
+class QDotNetEventArgs : public QDotNetObject
+{
+public:
+    Q_DOTNET_OBJECT_INLINE(QDotNetEventArgs, "System.EventArgs");
+};
+
 class QDotNetPropertyEvent : public QDotNetObject
 {
 public:
