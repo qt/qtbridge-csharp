@@ -76,7 +76,7 @@ ADAPTER::FreeObjectRef: WARNING Invalid object reference: 0x{objRefPtr:x16}");
             var liveObjects = ObjectRefs.Values.Select(x => x.Target).ToList();
             var isLive = liveObjects.Any(x => x.Equals(objRef.Target));
             if (!isLive) {
-                var deadMethods = DelegatesByMethod
+                var deadMethods = DelegatesByMember
                     .Where(x => x.Key.Target.Equals(objRef.Target))
                     .Select(x => x.Value.FuncPtr)
                     .ToList();
@@ -106,7 +106,7 @@ ADAPTER::FreeObjectRef: WARNING Invalid object reference: 0x{objRefPtr:x16}");
             foreach (var typeRef in typeRefs)
                 FreeObjectRef(typeRef.Key);
 
-            var deadMethods = DelegatesByMethod
+            var deadMethods = DelegatesByMember
                 .Where(x => x.Key.Target.Equals(type))
                 .Select(x => x.Value.FuncPtr)
                 .ToList();
@@ -121,7 +121,11 @@ ADAPTER::FreeObjectRef: WARNING Invalid object reference: 0x{objRefPtr:x16}");
 #endif
             if (!DelegateRefs.TryRemove(delRefPtr, out var delegateRef))
                 return;
-            DelegatesByMethod.TryRemove((delegateRef.Target, delegateRef.Method), out _);
+            DelegatesByMember
+                .Where(x => x.Key.Target == delegateRef.Target
+                    && x.Key.Member == delegateRef.Member)
+                .ToList()
+                .ForEach(x => DelegatesByMember.TryRemove(x));
             delegateRef.Ref.Handle.Free();
         }
 

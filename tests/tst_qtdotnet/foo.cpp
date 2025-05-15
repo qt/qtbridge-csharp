@@ -17,6 +17,9 @@ struct FooPrivate final : QDotNetEventHandler
     QDotNetFunction<QString> bar;
     QDotNetFunction<void, QString> setBar;
 
+    QDotNetFunction<int, QDotNetRef> fnFooField = nullptr;
+    QDotNetFunction<void, QDotNetRef, int> fnSetFooField = nullptr;
+
     QDotNetType typePropertyEvent = nullptr;
 
     void handleEvent(const QString &eventName, QDotNetObject &sender, QDotNetObject &args) override
@@ -63,6 +66,54 @@ QString Foo::bar() const
 void Foo::setBar(const QString &value)
 {
     method("set_Bar", d->setBar).invoke(*this, value);
+}
+
+int Foo::fooNumberConst()
+{
+    static QDotNetFunction<int> fnFieldGet = nullptr;
+    static int fieldValue;
+    if (!fnFieldGet.isValid()) {
+        fieldValue = QDotNetType::typeOf<Foo>()
+            .staticFieldGet("FooNumber", fnFieldGet)
+            .invoke(nullptr);
+    }
+    return fieldValue;
+}
+
+QString Foo::fooStringConst()
+{
+    static QDotNetFunction<QString> fnFieldGet = nullptr;
+    static QString fieldValue;
+    if (!fnFieldGet.isValid()) {
+        fieldValue = QDotNetType::typeOf<Foo>()
+            .staticFieldGet("FooString", fnFieldGet)
+            .invoke(nullptr);
+    }
+    return fieldValue;
+}
+
+int Foo::fooStaticField()
+{
+    static QDotNetFunction<int> fnFieldGet = nullptr;
+    QDotNetType::staticFieldGet(AssemblyQualifiedName, "FooStaticField", fnFieldGet);
+    return fnFieldGet();
+}
+
+void Foo::setFooStaticField(int value)
+{
+    static QDotNetFunction<void, int> fnFieldSet = nullptr;
+    QDotNetType::staticFieldSet(AssemblyQualifiedName, "FooStaticField", fnFieldSet);
+    fnFieldSet(value);
+}
+
+int Foo::fooField()
+{
+    return fieldGet<int>("FooField", d->fnFooField).invoke(nullptr, *this);
+}
+
+void Foo::setFooField(int value)
+{
+    return fieldSet<int>("FooField", d->fnSetFooField).invoke(nullptr, *this, value);
 }
 
 IBarTransformation::IBarTransformation() : QDotNetInterface(AssemblyQualifiedName, nullptr)

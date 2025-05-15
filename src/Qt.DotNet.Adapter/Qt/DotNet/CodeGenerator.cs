@@ -8,14 +8,16 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 
 namespace Qt.DotNet
 {
-    using DelegateIndex = ConcurrentDictionary<(MethodBase, Parameter[]), Type>;
-    using ProxyIndex = ConcurrentDictionary<(MethodBase, Parameter[]), MethodInfo>;
-    using IIndexer = IEqualityComparer<(MethodBase method, Parameter[] parameters)>;
+    using DelegateIndex = ConcurrentDictionary<(MemberInfo, Parameter[]), Type>;
+    using ProxyIndex = ConcurrentDictionary<(MemberInfo, Parameter[]), MethodInfo>;
+    using IIndexer = IEqualityComparer<(MemberInfo member, Parameter[] parameters)>;
 
     public class SafeReturn<T>
     {
@@ -377,6 +379,93 @@ namespace Qt.DotNet
             return delegateType;
         }
 
+        public static MethodInfo CreateProxyMethodForField(
+            FieldInfo field, bool isFieldSet, Parameter[] parameters)
+        {
+#if TESTS || DEBUG
+            Debug.Assert(field is not null);
+#endif
+            // Check if already in cache
+            if (Proxies.TryGetValue((field, parameters), out MethodInfo proxy))
+                return proxy;
+
+            var className = UniqueName(
+                field.DeclaringType.Name, isFieldSet ? "FieldSet" : "FieldGet", field.Name);
+            var methodName = isFieldSet ? "Set" : "Get";
+            var methodType = isFieldSet ? typeof(void) : field.FieldType;
+            Type[] methodParams =
+                (isFieldSet, field.IsStatic) switch
+                {
+                    (true, true) => [field.FieldType],
+                    (true, false) => [typeof(object), field.FieldType],
+                    (false, true) => [],
+                    (false, false) => [typeof(object)]
+                };
+
+            // Generate placeholder type for proxy method
+            var typeGen = ModuleGen.DefineType(className,
+                TypeAttributes.Sealed | TypeAttributes.Public, typeof(object));
+            FieldBuilder fieldInfo = null;
+            if (field.IsLiteral) {
+                fieldInfo = typeGen.DefineField("FieldInfo", typeof(FieldInfo),
+                    FieldAttributes.Public | FieldAttributes.Static);
+            }
+
+            // Generate proxy method
+            var proxyGen = typeGen.DefineMethod(methodName,
+                MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static,
+                methodType, methodParams);
+
+            // Get code generator for proxy method
+            var code = proxyGen.GetILGenerator();
+
+            // Implement method
+            if (isFieldSet) {
+                if (field.IsStatic) {
+                    if (!field.IsLiteral) {
+                        code.Emit(OpCodes.Ldarg_0);
+                        code.Emit(OpCodes.Stsfld, field);
+                    }
+                } else {
+                    code.Emit(OpCodes.Ldarg_0);
+                    code.Emit(OpCodes.Ldarg_1);
+                    code.Emit(OpCodes.Stfld, field);
+                }
+            } else {
+                if (field.IsStatic) {
+                    if (field.IsLiteral) {
+                        code.Emit(OpCodes.Ldsfld, fieldInfo);
+                        code.Emit(OpCodes.Ldnull);
+                        code.Emit(OpCodes.Callvirt,
+                            typeof(FieldInfo).GetMethod(nameof(FieldInfo.GetValue)));
+                        if (field.FieldType.IsValueType)
+                            code.Emit(OpCodes.Unbox_Any, field.FieldType);
+                        else
+                            code.Emit(OpCodes.Castclass, field.FieldType);
+                    } else {
+                        code.Emit(OpCodes.Ldsfld, field);
+                    }
+                } else {
+                    code.Emit(OpCodes.Ldarg_0);
+                    code.Emit(OpCodes.Ldfld, field);
+                }
+            }
+            code.Emit(OpCodes.Ret);
+
+            // Get generated type
+            var proxyType = typeGen.CreateType()
+                ?? throw new TypeAccessException("Error creating dynamic get_field proxy");
+            if (field.IsLiteral)
+                proxyType.GetField("FieldInfo")?.SetValue(null, field);
+
+            // Get generated method
+            proxy = proxyType.GetMethod(methodName);
+
+            // Add to cache and return
+            Proxies.TryAdd((field, parameters), proxy);
+            return proxy;
+        }
+
         /// <summary>
         /// Generate static method that encapsulates a call to a given constructor.
         /// </summary>
@@ -652,10 +741,10 @@ namespace Qt.DotNet
         private class Indexer : IIndexer
         {
             public bool Equals(
-                (MethodBase method, Parameter[] parameters) x,
-                (MethodBase method, Parameter[] parameters) y)
+                (MemberInfo member, Parameter[] parameters) x,
+                (MemberInfo member, Parameter[] parameters) y)
             {
-                if (x.method != y.method)
+                if (x.member != y.member)
                     return false;
                 if (x.parameters.Length != y.parameters.Length)
                     return false;
@@ -665,9 +754,9 @@ namespace Qt.DotNet
                 return xyParameters.All(xy => xy.First.TypeName == xy.Second.TypeName);
             }
 
-            public int GetHashCode([DisallowNull] (MethodBase method, Parameter[] parameters) obj)
+            public int GetHashCode([DisallowNull] (MemberInfo member, Parameter[] parameters) obj)
             {
-                int hashCode = obj.method.GetHashCode();
+                int hashCode = obj.member.GetHashCode();
                 foreach (var parameter in obj.parameters)
                     hashCode = HashCode.Combine(hashCode, parameter.GetHashCode());
                 return hashCode;

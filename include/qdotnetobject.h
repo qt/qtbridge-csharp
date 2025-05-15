@@ -237,6 +237,49 @@ public:
         return QDotNetType::constructor(typeName, ctor);
     }
 
+    template<typename T>
+    QDotNetFunction<T, QDotNetRef> fieldGet(const QString &fieldName)
+    {
+        const QList<QDotNetParameter> parameters
+        {
+            QDotNetInbound<T>::Parameter,
+            QDotNetOutbound<QDotNetRef>::Parameter
+        };
+
+        return adapter().resolveInstanceFieldGet(*this, fieldName, parameters);
+    }
+
+    template<typename T>
+    QDotNetFunction<T, QDotNetRef> fieldGet(const QString &fieldName,
+        QDotNetFunction<T, QDotNetRef> &func)
+    {
+        if (!func.isValid())
+            func = fieldGet<T>(fieldName);
+        return func;
+    }
+
+    template<typename T>
+    QDotNetFunction<void, QDotNetRef, T> fieldSet(const QString &fieldName)
+    {
+        const QList<QDotNetParameter> parameters
+        {
+            QDotNetInbound<void>::Parameter,
+            QDotNetOutbound<QDotNetRef>::Parameter,
+            QDotNetOutbound<T>::Parameter,
+        };
+
+        return adapter().resolveInstanceFieldSet(*this, fieldName, parameters);
+    }
+
+    template<typename T>
+    QDotNetFunction<void, QDotNetRef, T> fieldSet(const QString &fieldName,
+        QDotNetFunction<void, QDotNetRef, T> &func)
+    {
+        if (!func.isValid())
+            func = fieldSet<T>(fieldName);
+        return func;
+    }
+
     void subscribe(const QString &eventName, QDotNetEventHandler *eventHandler)
     {
         adapter().addEventHandler(*this, eventName, eventHandler, eventCallback);

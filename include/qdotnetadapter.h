@@ -94,6 +94,10 @@ public:
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(ResolveStaticMethod));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(ResolveConstructor));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(ResolveInstanceMethod));
+        host->resolveFunction(QDOTNETADAPTER_DELEGATE(ResolveStaticFieldGet));
+        host->resolveFunction(QDOTNETADAPTER_DELEGATE(ResolveStaticFieldSet));
+        host->resolveFunction(QDOTNETADAPTER_DELEGATE(ResolveInstanceFieldGet));
+        host->resolveFunction(QDOTNETADAPTER_DELEGATE(ResolveInstanceFieldSet));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(ResolveSafeMethod));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(AddEventHandler));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(RemoveEventHandler));
@@ -159,6 +163,46 @@ public:
             return nullptr;
         return fnResolveInstanceMethod(
             objectRef, methodName, static_cast<qint32>(params.size()), params);
+    }
+
+    void *resolveStaticFieldGet(const QString &typeName, const QString &fieldName,
+        const QList<QDotNetParameter> &params)
+    {
+        init();
+        if (typeName.isEmpty() || fieldName.isEmpty())
+            return nullptr;
+        return fnResolveStaticFieldGet(
+            typeName, fieldName, static_cast<qint32>(params.size()), params);
+    }
+
+    void *resolveStaticFieldSet(const QString &typeName, const QString &fieldName,
+        const QList<QDotNetParameter> &params)
+    {
+        init();
+        if (typeName.isEmpty() || fieldName.isEmpty())
+            return nullptr;
+        return fnResolveStaticFieldSet(
+            typeName, fieldName, static_cast<qint32>(params.size()), params);
+    }
+
+    void *resolveInstanceFieldGet(const QDotNetRef &objectRef, const QString &fieldName,
+        const QList<QDotNetParameter> &params)
+    {
+        init();
+        if (QtDotNet::isNull(objectRef) || fieldName.isEmpty())
+            return nullptr;
+        return fnResolveInstanceFieldGet(
+            objectRef, fieldName, static_cast<qint32>(params.size()), params);
+    }
+
+    void *resolveInstanceFieldSet(const QDotNetRef &objectRef, const QString &fieldName,
+        const QList<QDotNetParameter> &params)
+    {
+        init();
+        if (QtDotNet::isNull(objectRef) || fieldName.isEmpty())
+            return nullptr;
+        return fnResolveInstanceFieldSet(
+            objectRef, fieldName, static_cast<qint32>(params.size()), params);
     }
 
     using EventCallback = void(QDOTNETFUNCTION_CALLTYPE *)(void *, void *, void *, void *);
@@ -303,6 +347,14 @@ private:
     mutable QDotNetFunction<void *, qint32, QList<QDotNetParameter>> fnResolveConstructor;
     mutable QDotNetFunction<void *, QDotNetRef, QString, qint32, QList<QDotNetParameter>>
         fnResolveInstanceMethod;
+    mutable QDotNetFunction<void *, QString, QString, qint32, QList<QDotNetParameter>>
+        fnResolveStaticFieldGet;
+    mutable QDotNetFunction<void *, QString, QString, qint32, QList<QDotNetParameter>>
+        fnResolveStaticFieldSet;
+    mutable QDotNetFunction<void *, QDotNetRef, QString, qint32, QList<QDotNetParameter>>
+        fnResolveInstanceFieldGet;
+    mutable QDotNetFunction<void *, QDotNetRef, QString, qint32, QList<QDotNetParameter>>
+        fnResolveInstanceFieldSet;
     mutable QDotNetFunction<void *, void *, qint32, QList<QDotNetParameter>> fnResolveSafeMethod;
     mutable QDotNetFunction<void, QDotNetRef, QString, void *, EventCallback> fnAddEventHandler;
     mutable QDotNetFunction<void, QDotNetRef, QString, void *> fnRemoveEventHandler;

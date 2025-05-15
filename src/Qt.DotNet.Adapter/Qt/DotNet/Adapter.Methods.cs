@@ -36,7 +36,7 @@ namespace Qt.DotNet
                 ?? throw new ArgumentException(
                     $"Method '{methodName}' not found", nameof(methodName));
 
-            if (DelegatesByMethod.TryGetValue((type, method), out var objMethod))
+            if (TryGetDelegateForMethod(type, method, out var objMethod))
                 return objMethod.FuncPtr;
 
             var delegateType = CodeGenerator.CreateDelegateTypeForMethod(method, parameters)
@@ -49,8 +49,7 @@ namespace Qt.DotNet
             var methodFuncPtr = Marshal.GetFunctionPointerForDelegate(methodDelegate);
 
             var delegateRef = new DelegateRef(methodHandle, methodFuncPtr);
-            DelegateRefs.TryAdd(methodFuncPtr, (type, method, delegateRef));
-            DelegatesByMethod.TryAdd((type, method), delegateRef);
+            AddMethodDelegateToCache(methodFuncPtr, type, method, delegateRef);
             return methodFuncPtr;
         }
 
@@ -93,8 +92,7 @@ namespace Qt.DotNet
             var methodFuncPtr = Marshal.GetFunctionPointerForDelegate(methodDelegate);
 
             var delegateRef = new DelegateRef(methodHandle, methodFuncPtr);
-            DelegateRefs.TryAdd(methodFuncPtr, (type, ctor, delegateRef));
-            DelegatesByMethod.TryAdd((type, ctor), delegateRef);
+            AddCtorDelegateToCache(methodFuncPtr, type, ctor, delegateRef);
             return methodFuncPtr;
         }
 
@@ -125,7 +123,7 @@ namespace Qt.DotNet
                 ?? throw new ArgumentException(
                     $"Method '{methodName}' not found", nameof(methodName));
 
-            if (DelegatesByMethod.TryGetValue((obj, method), out var objMethod))
+            if (TryGetDelegateForMethod(obj, method, out var objMethod))
                 return objMethod.FuncPtr;
 
             var delegateType = CodeGenerator.CreateDelegateTypeForMethod(method, parameters)
@@ -138,8 +136,7 @@ namespace Qt.DotNet
             var methodFuncPtr = Marshal.GetFunctionPointerForDelegate(methodDelegate);
 
             var delegateRef = new DelegateRef(methodHandle, methodFuncPtr);
-            DelegateRefs.TryAdd(methodFuncPtr, (obj, method, delegateRef));
-            DelegatesByMethod.TryAdd((obj, method), delegateRef);
+            AddMethodDelegateToCache(methodFuncPtr, obj, method, delegateRef);
             return methodFuncPtr;
         }
 

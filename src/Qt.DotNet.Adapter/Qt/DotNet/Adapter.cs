@@ -123,7 +123,7 @@ namespace Qt.DotNet
 #endif
             ObjectRefs.Clear();
             DelegateRefs.Clear();
-            DelegatesByMethod.Clear();
+            DelegatesByMember.Clear();
             Events.Clear();
         }
 
@@ -151,20 +151,66 @@ namespace Qt.DotNet
             }
         }
 
+        private enum MemberAccess
+        {
+            Constructor = MemberTypes.Constructor,
+            Method = MemberTypes.Method,
+            FieldGet = MemberTypes.Field,
+            FieldSet = -MemberTypes.Field
+        }
+
         private static ConcurrentDictionary
             <IntPtr, ObjectRef> ObjectRefs
         { get; } = new();
 
         private static ConcurrentDictionary
-            <IntPtr, (object Target, MethodBase Method, DelegateRef Ref)> DelegateRefs
+            <IntPtr, (object Target, MemberInfo Member, MemberAccess Access, DelegateRef Ref)>
+            DelegateRefs
         { get; } = new();
 
         private static ConcurrentDictionary
-            <(object Target, MethodBase Method), DelegateRef> DelegatesByMethod
+            <(object Target, MemberInfo Member, MemberAccess Access), DelegateRef> DelegatesByMember
         { get; } = new();
 
         private static ConcurrentDictionary
             <(ObjectRef Source, string Name, IntPtr Context), EventRelay> Events
         { get; } = new();
+
+        private static void AddDelegateToCache(
+            IntPtr ptr, object obj, MemberInfo member, MemberAccess access, DelegateRef delegateRef)
+        {
+            DelegateRefs.TryAdd(ptr, (obj, member, access, delegateRef));
+            DelegatesByMember.TryAdd((obj, member, access), delegateRef);
+        }
+
+        private static bool TryGetDelegate(
+            object obj, MemberInfo member, MemberAccess access, out DelegateRef delegateRef)
+        {
+            return DelegatesByMember.TryGetValue((obj, member, access), out delegateRef);
+        }
+
+        private static void AddMethodDelegateToCache(
+            IntPtr ptr, object obj, MethodInfo method, DelegateRef delegateRef)
+        {
+            AddDelegateToCache(ptr, obj, method, MemberAccess.Method, delegateRef);
+        }
+
+        private static bool TryGetDelegateForMethod(
+            object obj, MethodInfo method, out DelegateRef delegateRef)
+        {
+            return TryGetDelegate(obj, method, MemberAccess.Method, out delegateRef);
+        }
+
+        private static void AddCtorDelegateToCache(
+            IntPtr ptr, object obj, ConstructorInfo ctor, DelegateRef delegateRef)
+        {
+            AddDelegateToCache(ptr, obj, ctor, MemberAccess.Constructor, delegateRef);
+        }
+
+        private static bool TryGetDelegateForCtor(
+            object obj, ConstructorInfo ctor, out DelegateRef delegateRef)
+        {
+            return TryGetDelegate(obj, ctor, MemberAccess.Constructor, out delegateRef);
+        }
     }
 }

@@ -45,6 +45,44 @@ namespace Qt.DotNet
                 [In] Parameter[] parameters);
 
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+            public delegate IntPtr ResolveStaticFieldGet(
+                [MarshalAs(UnmanagedType.LPWStr)]
+                [In] string typeName,
+                [MarshalAs(UnmanagedType.LPWStr)]
+                [In] string fieldName,
+                [In] int parameterCount,
+                [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
+                [In] Parameter[] parameters);
+
+            [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+            public delegate IntPtr ResolveStaticFieldSet(
+                [MarshalAs(UnmanagedType.LPWStr)]
+                [In] string typeName,
+                [MarshalAs(UnmanagedType.LPWStr)]
+                [In] string fieldName,
+                [In] int parameterCount,
+                [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
+                [In] Parameter[] parameters);
+
+            [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+            public delegate IntPtr ResolveInstanceFieldGet(
+                [In] IntPtr objRefPtr,
+                [MarshalAs(UnmanagedType.LPWStr)]
+                [In] string fieldName,
+                [In] int parameterCount,
+                [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
+                [In] Parameter[] parameters);
+
+            [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+            public delegate IntPtr ResolveInstanceFieldSet(
+                [In] IntPtr objRefPtr,
+                [MarshalAs(UnmanagedType.LPWStr)]
+                [In] string fieldName,
+                [In] int parameterCount,
+                [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
+                [In] Parameter[] parameters);
+
+            [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             public delegate IntPtr ResolveSafeMethod(
                 [In] IntPtr funcPtr,
                 [In] int parameterCount,

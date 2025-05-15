@@ -33,7 +33,7 @@ namespace Qt.DotNet
         {
             var ctorPtr = ResolveConstructor(1, new[] { new Parameter("FooLib.Foo, FooLib") });
 
-            var ctor = GetMethod(ctorPtr) as ConstructorInfo;
+            var ctor = GetMember(ctorPtr) as ConstructorInfo;
             Debug.Assert(ctor != null, nameof(ctor) + " is null");
             var objRef = GetRefPtrToObject(ctor.Invoke(Array.Empty<object>()));
 
@@ -51,11 +51,11 @@ namespace Qt.DotNet
                 TestNativeEventHandler);
 
             for (int i = 0; i < 1000; ++i) {
-                var str = GetMethod(getBarPtr)
-                    .Invoke(GetObjectRefFromPtr(objRef).Target, Array.Empty<object>()) as string;
+                var str = (GetMember(getBarPtr) as MethodBase)
+                    ?.Invoke(GetObjectRefFromPtr(objRef).Target, Array.Empty<object>()) as string;
                 str += "hello";
-                GetMethod(setBarPtr)
-                    .Invoke(GetObjectRefFromPtr(objRef).Target, new object[] { str });
+                (GetMember(setBarPtr) as MethodBase)
+                    ?.Invoke(GetObjectRefFromPtr(objRef).Target, new object[] { str });
             }
 
             RemoveAllEventHandlers(objRef);
@@ -80,14 +80,14 @@ namespace Qt.DotNet
             var getTypePtr = ResolveInstanceMethod(
                 argsRef, "GetType", 1, new[] { new Parameter("System.Type") });
             if (eventName == "PropertyChanged") {
-                var typeObj = GetMethod(getTypePtr)
-                    .Invoke(GetObjectRefFromPtr(argsRef).Target, Array.Empty<object>());
+                var typeObj = (GetMember(getTypePtr) as MethodBase)
+                    ?.Invoke(GetObjectRefFromPtr(argsRef).Target, Array.Empty<object>());
                 var typeRef = GetRefPtrToObject(typeObj);
 
                 var getFullNamePtr = ResolveInstanceMethod(
                     typeRef, "get_FullName", 1, new[] { new Parameter(UnmanagedType.LPWStr) });
-                var argsTypeName = GetMethod(getFullNamePtr)
-                    .Invoke(GetObjectRefFromPtr(typeRef).Target, Array.Empty<object>())
+                var argsTypeName = (GetMember(getFullNamePtr) as MethodBase)
+                    ?.Invoke(GetObjectRefFromPtr(typeRef).Target, Array.Empty<object>())
                     as string;
 
                 if (argsTypeName == "System.ComponentModel.PropertyChangedEventArgs") {
@@ -100,15 +100,15 @@ namespace Qt.DotNet
                         {
                             new Parameter(UnmanagedType.LPWStr)
                         });
-                    var propName = GetMethod(getPropertyNamePtr)
-                        .Invoke(GetObjectRefFromPtr(propChangeRef).Target, Array.Empty<object>())
+                    var propName = (GetMember(getPropertyNamePtr) as MethodBase)
+                        ?.Invoke(GetObjectRefFromPtr(propChangeRef).Target, Array.Empty<object>())
                         as string;
 
                     if (propName == "Bar") {
                         var getBarPtr = ResolveInstanceMethod(
                             senderRef, "get_Bar", 1, new[] { new Parameter(UnmanagedType.LPWStr) });
-                        var str = GetMethod(getBarPtr)
-                            .Invoke(GetObjectRefFromPtr(senderRef).Target, Array.Empty<object>())
+                        var str = (GetMember(getBarPtr) as MethodBase)
+                            ?.Invoke(GetObjectRefFromPtr(senderRef).Target, Array.Empty<object>())
                             as string;
                         Debug.Assert(str != null, nameof(str) + " is null");
                         Console.WriteLine($"BAR CHANGED!!! [{str.Length / "hello".Length}x hello]");
@@ -121,12 +121,12 @@ namespace Qt.DotNet
             FreeObjectRef(senderRef);
         }
 
-        private static MethodBase GetMethod(IntPtr funcPtr)
+        private static MemberInfo GetMember(IntPtr funcPtr)
         {
-            var methods = DelegateRefs
+            var members = DelegateRefs
                 .Where(x => x.Value.Ref.FuncPtr == funcPtr)
-                .Select(x => x.Value.Method);
-            return methods.First();
+                .Select(x => x.Value.Member);
+            return members.First();
 
         }
 #endif

@@ -137,6 +137,7 @@ private slots:
     void models();
     void delegates();
     void signalConverters();
+    void fieldAccess();
 #endif //TEST_FUNCTION_CALLS
 #ifdef TEST_APP_SHUTDOWN
     void appShutdown();
@@ -763,6 +764,26 @@ void tst_qtdotnet::signalConverters()
     QVERIFY(spyTheEagleHasLanded_OK.first().at(1) == "23° 25' 59'' E");
 
     skipCleanup = true; // TODO: figure out why refs are still pending here
+}
+
+void tst_qtdotnet::fieldAccess()
+{
+    // Value-type constant
+    QVERIFY(Foo::fooNumberConst() == 42);
+
+    // Ref-type constant
+    QVERIFY(Foo::fooStringConst() == "FOO");
+
+    // Static field
+    QVERIFY(Foo::fooStaticField() == -42);
+    Foo::setFooStaticField(123);
+    QVERIFY(Foo::fooStaticField() == 123);
+
+    // Instance field
+    Foo foo;
+    QVERIFY(foo.fooField() == 42);
+    foo.setFooField(123);
+    QVERIFY(foo.fooField() == 123);
 }
 
 #endif //TEST_FUNCTION_CALLS

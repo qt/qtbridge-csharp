@@ -81,6 +81,62 @@ public:
         return typeOf(T::AssemblyQualifiedName);
     }
 
+    template<typename T>
+    static QDotNetFunction<T> staticFieldGet(const QString &typeName,
+        const QString &fieldName)
+    {
+        const QList<QDotNetParameter> parameters
+        {
+            QDotNetInbound<T>::Parameter
+        };
+        return adapter().resolveStaticFieldGet(typeName, fieldName, parameters);
+    }
+
+    template<typename T>
+    static QDotNetFunction<T> &staticFieldGet(const QString &typeName,
+        const QString &fieldName, QDotNetFunction<T> &func)
+    {
+        if (!func.isValid())
+            func = staticFieldGet<T>(typeName, fieldName);
+        return func;
+    }
+
+    template<typename T>
+    QDotNetFunction<T> staticFieldGet(const QString &fieldName) const
+    {
+        return staticFieldGet<T>(assemblyQualifiedName(), fieldName);
+    }
+
+    template<typename T>
+    QDotNetFunction<T> &staticFieldGet(
+        const QString &fieldName, QDotNetFunction<T> &func) const
+    {
+        if (!func.isValid())
+            func = staticFieldGet<T>(fieldName);
+        return func;
+    }
+
+    template<typename T>
+    static QDotNetFunction<void, T> staticFieldSet(const QString &typeName,
+        const QString &fieldName)
+    {
+        const QList<QDotNetParameter> parameters
+        {
+            QDotNetInbound<void>::Parameter,
+            QDotNetOutbound<T>::Parameter
+        };
+        return adapter().resolveStaticFieldSet(typeName, fieldName, parameters);
+    }
+
+    template<typename T>
+    static QDotNetFunction<void, T> &staticFieldSet(const QString &typeName,
+        const QString &fieldName, QDotNetFunction<void, T> &func)
+    {
+        if (!func.isValid())
+            func = staticFieldSet<T>(typeName, fieldName);
+        return func;
+    }
+
     template<typename TResult, typename ...TArg>
     static QDotNetFunction<TResult, TArg...> staticMethod(const QString &typeName,
         const QString &methodName)

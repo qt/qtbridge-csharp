@@ -32,6 +32,10 @@ namespace FooLib
 
     public class Foo : INotifyPropertyChanged
     {
+        public const int FooNumber = 42;
+        public const string FooString = "FOO";
+        public int FooField = FooNumber;
+        public static int FooStaticField = -FooNumber;
         public Foo(IBarTransformation barTransformation)
         {
             BarTransformation = barTransformation;

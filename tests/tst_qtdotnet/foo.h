@@ -53,6 +53,14 @@ public:
     [[nodiscard]] QString bar() const;
     void setBar(const QString &value);
 
+    static int fooNumberConst();
+    static QString fooStringConst();
+    static int fooStaticField();
+    static void setFooStaticField(int value);
+
+    int fooField();
+    void setFooField(int value);
+
 signals:
     void barChanged();
 
