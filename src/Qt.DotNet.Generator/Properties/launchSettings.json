@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Qt.DotNet.Generator": {
+      "commandName": "Project",
+      "commandLineArgs": "--source FooLib.dll --graphviz dependency_graph.pdf"
+    }
+  }
+}
