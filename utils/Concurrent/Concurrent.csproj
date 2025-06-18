@@ -8,4 +8,8 @@
     <AssemblyName>$(RootNamespace).$(MSBuildProjectName)</AssemblyName>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\LazyFactory\LazyFactory.csproj" />
+  </ItemGroup>
+
 </Project>

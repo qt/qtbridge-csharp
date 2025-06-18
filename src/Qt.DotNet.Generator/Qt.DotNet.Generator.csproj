@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\tests\FooLib\FooLib.csproj" />
     <ProjectReference Include="..\..\utils\Collections\Collections.csproj" />
+    <ProjectReference Include="..\..\utils\Concurrent\Concurrent.csproj" />
     <ProjectReference Include="..\..\utils\LazyFactory\LazyFactory.csproj" />
     <ProjectReference Include="..\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
   </ItemGroup>
