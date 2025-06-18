@@ -11,7 +11,10 @@ using System.Runtime.InteropServices;
 
 namespace Qt.DotNet.CodeGeneration
 {
-    internal class Generator
+    using Extensions;
+    using System.Runtime.Loader;
+
+    internal static class Generator
     {
         private enum ExitCode
         {
@@ -26,15 +29,20 @@ namespace Qt.DotNet.CodeGeneration
 #endif
         }
 
-        private static ExitCode Error(InvocationContext ctx, ExitCode err, string msg = null)
+        private static void Error(string msg)
         {
-            ctx.ExitCode = (int)err;
-            if (msg == null)
-                return err;
+            if (msg is not { Length: > 0 })
+                return;
             var oldForeground = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Error.WriteLine(msg);
             Console.ForegroundColor = oldForeground;
+        }
+
+        private static ExitCode Error(InvocationContext ctx, ExitCode err, string msg = null)
+        {
+            ctx.ExitCode = (int)err;
+            Error(msg);
             return err;
         }
 
@@ -131,6 +139,41 @@ namespace Qt.DotNet.CodeGeneration
                 }
             }
 #endif
+            if (!ctx.TryGetValue(Options.Target, out string targetPath))
+                return ExitCode.Ok;
+
+            ctx.TryGetValue(Options.Rules, out string[] ruleFiles);
+            foreach (var ruleFile in ruleFiles) {
+                Assembly assembly;
+                try {
+                    assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(ruleFile);
+                } catch (Exception ex) {
+                    return Error(ctx, ExitCode.GenerationError,
+                        $"Error loading rules assembly '{ruleFile}': {ex.Message}");
+                }
+                foreach (var type in assembly.ExportedTypes)
+                    _ = type.TryRegisterAsRule() || type.TryRegisterAsMetaFunction();
+            }
+
+            var rulesOk = await Rules.RunAllAsync(graph, targetPath);
+            foreach (var res in Rules.Results.Where(r => !r.Succeeded))
+                Error(res.Output);
+            if (!rulesOk)
+                return Error(ctx, ExitCode.GenerationError, $@"Error running generation rules");
+
+            foreach (var attrib in graph.Root.QtAttributeData()) {
+                if (!attrib.AttributeType.Is<Qt.GenerateAttribute>())
+                    continue;
+                foreach (var genArg in attrib.NamedArguments) {
+                    graph.Root.GetPlaceholder($"Placeholders.{genArg.MemberName}")
+                        ?.AddText(genArg.TypedValue.Value as string);
+                }
+            }
+
+            var result = await Files.WriteAllAsync();
+            if (result.Any(x => x.Updated == null || !File.Exists(x.File.FullName)))
+                return Error(ctx, ExitCode.OutputError, $@"Error writing generated files");
+
             return ExitCode.Ok;
         }
     }
@@ -141,7 +184,6 @@ namespace Qt.DotNet.CodeGeneration
         {
             if (!typeof(T).IsArray)
                 return default;
-            Array.Empty<object>();
             return (T)Convert.ChangeType(
                 Array.CreateInstance(typeof(T).GetElementType(), 0), typeof(T));
         }
@@ -152,7 +194,7 @@ namespace Qt.DotNet.CodeGeneration
             value = Default<T>();
             if (Generator.CommandOptions[opt] is not Option<T> option)
                 return false;
-            if (ctx.ParseResult?.HasOption(option) != true)
+            if (ctx.ParseResult.HasOption(option) != true)
                 return false;
             value = ctx.ParseResult.GetValueForOption(option);
             return true;

@@ -34,4 +34,11 @@ namespace Qt
             | AttributeTargets.Field
             | AttributeTargets.Event;
     }
+
+    [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+    public class GenerateAttribute : Attribute
+    {
+        public string MainIncludes { get; set; }
+        public string MainBeforeAppExec { get; set; }
+    }
 }
