@@ -17,6 +17,7 @@
 #include <qdotnettype.h>
 #include <qdotnetstatic.h>
 #include <qdotnetdelegate.h>
+#include <qdotnetsignal.h>
 
 #include <iqvariant.h>
 #include <iqmodelindex.h>
@@ -135,6 +136,7 @@ private slots:
     void modelIndexGet();
     void models();
     void delegates();
+    void signalConverters();
 #endif //TEST_FUNCTION_CALLS
 #ifdef TEST_APP_SHUTDOWN
     void appShutdown();
@@ -665,6 +667,102 @@ void tst_qtdotnet::delegates()
 {
     auto plus42 = QtDotNet::call<QDotNetDelegate<int, int>>("FooLib.Foo, FooLib", "get_Plus42");
     QVERIFY(plus42(3) == 45);
+}
+
+class ApolloXI : public QDotNetObject
+{
+public:
+    Q_DOTNET_OBJECT_INLINE(ApolloXI, "FooLib.Apollo11, FooLib");
+
+    ApolloXI()
+        : QDotNetObject(QDotNetSafeMethod(constructor<ApolloXI>()).invoke(nullptr))
+    {
+    }
+    ~ApolloXI() override = default;
+
+    void land(double x, double y, double z)
+    {
+        return method<void, double, double, double>("Land").invoke(*this, x, y, z);
+    }
+};
+
+class MissionControl final : public QObject, public QDotNetEventHandler
+{
+    Q_OBJECT
+signals:
+    void eagleLanded();
+    void theEagleHasLanded();
+    void theEagleHasLanded_WRONG_PARAMS(const QString&, const QString&);
+    void theEagleHasLanded_WRONG_ORDER(const QString&, const QString&);
+    void theEagleHasLanded_OK(const QString&, const QString&);
+
+private:
+    void handleEvent(const QString& name, QDotNetObject& sender, QDotNetObject& args) override
+    {
+        if (!args.type().isAssignableTo<QDotNetEventArgs>())
+            return;
+        auto eventArgs = args.cast<QDotNetEventArgs>();
+        if (!eventArgs.isValid())
+            return;
+
+        auto eventSignals = QDotNetSignal::fromEvent(name, sender);
+
+        for (auto& eventSignal : eventSignals) {
+            if (!QDotNetSignal::convert(eventSignal, sender, eventArgs))
+                continue;
+            auto signalName = eventSignal.name();
+            if (signalName == "EagleLanded") {
+                emit eagleLanded();
+            } else if (signalName == "TheEagleHasLanded") {
+                emit theEagleHasLanded();
+            } else if (signalName == "TheEagleHasLanded_WRONG_PARAMS") {
+                emit theEagleHasLanded_WRONG_PARAMS(eventSignal.arg<QString>(0), eventSignal.arg<QString>(1));
+            } else if (signalName == "TheEagleHasLanded_WRONG_ORDER") {
+                emit theEagleHasLanded_WRONG_ORDER(eventSignal.arg<QString>(0), eventSignal.arg<QString>(1));
+            } else if (signalName == "TheEagleHasLanded_OK") {
+                emit theEagleHasLanded_OK(eventSignal.arg<QString>(0), eventSignal.arg<QString>(1));
+            }
+        }
+    }
+};
+
+void tst_qtdotnet::signalConverters()
+{
+    MissionControl houston;
+    ApolloXI eagle;
+    eagle.subscribe("EagleLanded", &houston);
+
+    const QSignalSpy spyEagleLanded(&houston, &MissionControl::eagleLanded);
+    const QSignalSpy spyTheEagleHasLanded(&houston, &MissionControl::theEagleHasLanded);
+    const QSignalSpy spyTheEagleHasLanded_WRONG_PARAMS(&houston, &MissionControl::theEagleHasLanded_WRONG_PARAMS);
+    const QSignalSpy spyTheEagleHasLanded_WRONG_ORDER(&houston, &MissionControl::theEagleHasLanded_WRONG_ORDER);
+    const QSignalSpy spyTheEagleHasLanded_OK(&houston, &MissionControl::theEagleHasLanded_OK);
+
+    eagle.land(23.433333, 0.6875, 30);
+    eagle.unsubscribe("EagleLanded", &houston);
+
+    QVERIFY(!spyEagleLanded.isEmpty());
+    QVERIFY(spyEagleLanded.first().isEmpty());
+
+    QVERIFY(!spyTheEagleHasLanded.isEmpty());
+    QVERIFY(spyTheEagleHasLanded.first().isEmpty());
+
+    QVERIFY(!spyTheEagleHasLanded_WRONG_PARAMS.isEmpty());
+    QVERIFY(spyTheEagleHasLanded_WRONG_PARAMS.first().count() == 2);
+    QVERIFY(spyTheEagleHasLanded_WRONG_PARAMS.first().at(0) == "30");
+    QVERIFY(spyTheEagleHasLanded_WRONG_PARAMS.first().at(1) == "23.433333");
+
+    QVERIFY(!spyTheEagleHasLanded_WRONG_ORDER.isEmpty());
+    QVERIFY(spyTheEagleHasLanded_WRONG_ORDER.first().count() == 2);
+    QVERIFY(spyTheEagleHasLanded_WRONG_ORDER.first().at(0) == "23.433333");
+    QVERIFY(spyTheEagleHasLanded_WRONG_ORDER.first().at(1) == "0.6875");
+
+    QVERIFY(!spyTheEagleHasLanded_OK.isEmpty());
+    QVERIFY(spyTheEagleHasLanded_OK.first().count() == 2);
+    QVERIFY(spyTheEagleHasLanded_OK.first().at(0) == "0° 41' 15'' N");
+    QVERIFY(spyTheEagleHasLanded_OK.first().at(1) == "23° 25' 59'' E");
+
+    skipCleanup = true; // TODO: figure out why refs are still pending here
 }
 
 #endif //TEST_FUNCTION_CALLS

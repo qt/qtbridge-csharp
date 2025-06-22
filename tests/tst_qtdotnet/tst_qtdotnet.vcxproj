@@ -223,6 +223,7 @@
     <ClInclude Include="..\..\include\qdotnetparameter.h" />
     <ClInclude Include="..\..\include\qdotnetref.h" />
     <ClInclude Include="..\..\include\qdotnetsafemethod.h" />
+    <ClInclude Include="..\..\include\qdotnetsignal.h" />
     <ClInclude Include="..\..\include\qdotnetstatic.h" />
     <ClInclude Include="..\..\include\qdotnettype.h" />
     <ClInclude Include="uri.h" />

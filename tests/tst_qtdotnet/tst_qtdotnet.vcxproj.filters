@@ -111,5 +111,8 @@
     <ClInclude Include="..\..\include\qdotnetdelegate.h">
       <Filter>qtdotnet</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetsignal.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
