@@ -18,6 +18,19 @@
 
 #include <functional>
 
+template<typename T>
+struct QDotNetCallbackArg : public QDotNetInbound<T> {};
+
+template<typename T>
+struct QDotNetCallbackReturn : public QDotNetOutbound<T> {};
+
+template<>
+struct QDotNetCallbackReturn<QString> : public QDotNetOutbound<QString>
+{
+    using SourceType = QString;
+    static inline const QDotNetParameter Parameter = QDotNetParameter::String;
+};
+
 class QDotNetCallbackBase
 {
 protected:
@@ -30,18 +43,18 @@ template<typename TResult, typename... TArg>
 class QDotNetCallback : public QDotNetCallbackBase
 {
 public:
-    using ReturnType = typename QDotNetInbound<TResult>::TargetType;
-    using FunctionType = std::function<ReturnType(
-        typename QDotNetInbound<TArg>::TargetType... arg)>;
+    using FunctionType = std::function<TResult(void *, TArg... arg)>;
+    using CleanUpType = std::function<void(TResult *)>;
 
-    using OutboundType = typename QDotNetOutbound<TResult>::OutboundType;
+    using OutboundType = typename QDotNetCallbackReturn<TResult>::OutboundType;
     using Delegate = OutboundType(QDOTNETFUNCTION_CALLTYPE *)(
-        QDotNetCallback *callback, quint64 key, typename QDotNetInbound<TArg>::InboundType...);
+        QDotNetCallback *callback, quint64 key,
+        void *data, typename QDotNetCallbackArg<TArg>::InboundType...);
 
     using CleanUp = void(QDOTNETFUNCTION_CALLTYPE *)(QDotNetCallback *callback, quint64 key);
 
-    QDotNetCallback(FunctionType function)
-        : function(function)
+    QDotNetCallback(FunctionType fnCallback, CleanUpType fnCleanUp = nullptr)
+        : fnCallback(fnCallback), fnCleanUp(fnCleanUp)
     {}
 
     ~QDotNetCallback() override = default;
@@ -59,64 +72,69 @@ public:
 private:
     struct Box
     {
-        ReturnType returnValue;
+        TResult returnValue;
+        Box(TResult &&ret) : returnValue(std::move(ret)) {}
     };
     QMap<quint64, Box *> boxes;
 
     static OutboundType QDOTNETFUNCTION_CALLTYPE callbackDelegate(
-        QDotNetCallback *callback, quint64 key, typename QDotNetInbound<TArg>::InboundType... arg)
+        QDotNetCallback *callback, quint64 key,
+        void *data, typename QDotNetCallbackArg<TArg>::InboundType... arg)
     {
-        Box *box = callback->boxes[key] = new Box
-        {
-            callback->function(QDotNetInbound<TArg>::convert(arg)...)
-        };
-        const auto result = QDotNetOutbound<TResult>::convert(box->returnValue);
-        return result;
+        Box *box = callback->boxes[key] = new Box(
+            callback->fnCallback(data, QDotNetCallbackArg<TArg>::convert(arg)...));
+        return QDotNetCallbackReturn<TResult>::convert(box->returnValue);
     }
 
     static void QDOTNETFUNCTION_CALLTYPE callbackCleanUp(QDotNetCallback *callback, quint64 key)
     {
-        if (const Box *box = callback->boxes.take(key))
+        if (const Box *box = callback->boxes.take(key)) {
+            if (callback->fnCleanUp)
+                callback->fnCleanUp(const_cast<std::remove_const_t<TResult*>>(&(box->returnValue)));
             delete box;
+        }
     }
 
-    FunctionType function = nullptr;
+    FunctionType fnCallback = nullptr;
+    CleanUpType fnCleanUp = nullptr;
 };
 
 template<typename... TArg>
 class QDotNetCallback<void, TArg...> : public QDotNetCallbackBase
 {
 public:
-    using FunctionType = std::function<void(typename QDotNetOutbound<TArg>::SourceType... arg)>;
+    using FunctionType = std::function<void(void *, TArg... arg)>;
+    using CleanUpType = nullptr_t;
 
-    QDotNetCallback(FunctionType function)
-        : function(function)
+    using Delegate = void(QDOTNETFUNCTION_CALLTYPE *)(
+        QDotNetCallback *callback, quint64 key,
+        void *data, typename QDotNetCallbackArg<TArg>::InboundType...);
+
+    using CleanUp = nullptr_t;
+
+    QDotNetCallback(FunctionType fnCallback, CleanUpType fnCleanUp = nullptr)
+        : fnCallback(fnCallback)
     {}
 
     ~QDotNetCallback() override = default;
 
-    using Delegate = void(QDOTNETFUNCTION_CALLTYPE *)(
-        QDotNetCallback *callback, quint64 key, typename QDotNetInbound<TArg>::InboundType...);
     static Delegate delegate()
     {
         return callbackDelegate;
     }
 
-    using CleanUp = void(QDOTNETFUNCTION_CALLTYPE *)(QDotNetCallback *callback, quint64 key);
     static CleanUp cleanUp()
     {
-        return callbackCleanUp;
+        return nullptr;
     }
 
 private:
-    static void QDOTNETFUNCTION_CALLTYPE callbackDelegate(QDotNetCallback *callback, quint64 key,
-        typename QDotNetInbound<TArg>::InboundType... arg)
+    static void QDOTNETFUNCTION_CALLTYPE callbackDelegate(
+        QDotNetCallback *callback, quint64 key,
+        void *data, typename QDotNetCallbackArg<TArg>::InboundType... arg)
     {
-        callback->function(QDotNetInbound<TArg>::convert(arg)...);
+        callback->fnCallback(data, QDotNetCallbackArg<TArg>::convert(arg)...);
     }
 
-    static void QDOTNETFUNCTION_CALLTYPE callbackCleanUp(QDotNetCallback *callback, quint64 key)
-    {}
-
-    FunctionType function = nullptr;
+    FunctionType fnCallback = nullptr;
 };

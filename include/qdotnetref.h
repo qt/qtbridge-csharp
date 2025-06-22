@@ -10,7 +10,7 @@
 class QDotNetRef
 {
 public:
-    static inline const QString &FullyQualifiedTypeName = QStringLiteral("System.Object");
+    static inline const QString &AssemblyQualifiedName = QStringLiteral("System.Object");
 
     const void *gcHandle() const { return objectRef; }
     bool isValid() const { return gcHandle() != nullptr; }
@@ -59,6 +59,32 @@ public:
     class Null
     {};
 
+    QString toString() const
+    {
+        if (!fnToString.isValid()) {
+            const QList<QDotNetParameter> parameters
+            {
+                QDotNetInbound<QString>::Parameter
+            };
+            fnToString = adapter().resolveInstanceMethod(*this, "ToString", parameters);
+        }
+        return fnToString();
+    }
+
+    bool equals(const QDotNetRef &obj) const
+    {
+        if (!fnEquals.isValid()) {
+            const QList<QDotNetParameter> parameters
+            {
+                QDotNetInbound<bool>::Parameter,
+                QDotNetOutbound<QDotNetRef>::Parameter
+            };
+            fnEquals = adapter().resolveInstanceMethod(*this, "Equals", parameters);
+        }
+        return fnEquals(obj);
+    }
+
+
 protected:
     static QDotNetAdapter &adapter() { return QDotNetAdapter::instance(); }
 
@@ -93,6 +119,9 @@ private:
     }
 
     const void *objectRef = nullptr;
+
+    mutable QDotNetFunction<QString> fnToString = nullptr;
+    mutable QDotNetFunction<bool, QDotNetRef> fnEquals = nullptr;
 };
 
 template<typename T>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Target Name="QtDotNetBuildNative" AfterTargets="CoreCompile" BeforeTargets="_CreateAppHost">
+    <PropertyGroup>
+      <QtDir Condition="'$(QtDir)' == ''">C:\lib\qt\6.8.0\msvc2022_64</QtDir>
+      <QtDotNetDir Condition="'$(QtDotNetDir)' == ''">$(ProjectDir)\qtdotnet</QtDotNetDir>
+      <QtNativeSource>$(TargetDir)\native_source</QtNativeSource>
+      <QtNativeBuild>$(TargetDir)\native_build</QtNativeBuild>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <QtDotNetBin Include="$(QtDotNetDir)\adapter\*" />
+      <QtDotNetGenerated Include="$(QtDotNetDir)\generated_files\*" />
+      <Qml Include="$(ProjectDir)\*.qml" />
+    </ItemGroup>
+
+    <MakeDir Directories="$(QtNativeSource);$(QtNativeBuild)" />
+    <Copy SkipUnchangedFiles="true" SourceFiles="@(QtDotNetGenerated);@(Qml)" DestinationFolder="$(QtNativeSource)" />
+    <Copy SkipUnchangedFiles="true" SourceFiles="@(QtDotNetBin)" DestinationFolder="$(TargetDir)" />
+
+    <Message Importance="high" Text="Qt/.NET: building native code..." />
+    <PropertyGroup>
+      <BuildNative>
+        CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
+        SET QtDir=$(QtDir)
+        SET QtDotNetDir=$(QtDotNetDir)
+        CD "$(QtNativeBuild)"
+        cmake "-DCMAKE_PREFIX_PATH=$(QtDir)" -G Ninja -S ..\native_source
+        cmake --build .
+      </BuildNative>
+    </PropertyGroup>
+    <Exec Command="$(BuildNative)" />
+    <Copy SkipUnchangedFiles="true" SourceFiles="$(QtNativeBuild)\qmlapp.exe" DestinationFolder="$(TargetDir)" />
+
+    <Message Importance="high" Text="Deploying QML app..." />
+    <PropertyGroup>
+      <RunWinDeployQt>
+        CD "$(TargetDir)"
+        "$(QtDir)\bin\windeployqt.exe" --no-translations --no-compiler-runtime qmlapp.exe &gt; NUL
+      </RunWinDeployQt>
+    </PropertyGroup>
+    <Exec Command="$(RunWinDeployQt)" />
+
+    <PropertyGroup>
+      <AppHostSourcePath>$(TargetDir)qmlapp.exe</AppHostSourcePath>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="CleanNative" AfterTargets="Clean">
+    <PropertyGroup>
+      <CleanNative>
+        CD "$(TargetDir)" &amp;&amp; RD /S /Q "$(TargetDir)" &gt; NUL 2&gt;&amp;1
+      </CleanNative>
+    </PropertyGroup>
+    <Exec Command="$(CleanNative)" />
+  </Target>
+</Project>

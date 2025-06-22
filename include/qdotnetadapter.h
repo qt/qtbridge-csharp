@@ -33,6 +33,14 @@ private:
 
     ~QDotNetAdapter()
     {
+        if (staticInterface && dtor_staticInterface) {
+            dtor_staticInterface(staticInterface);
+            staticInterface = nullptr;
+        }
+        fnReset();
+        //gcCollect();
+        //gcWaitForPendingFinalizers();
+
         defaultHost.unload();
     }
 
@@ -51,6 +59,12 @@ public:
             return;
         init(QDir(QCoreApplication::applicationDirPath())
             .filePath(defaultDllName), defaultAssemblyName, defaultTypeName, externalHost);
+    }
+
+    static void init(const QString &assemblyPath, const QString &typeAndAssemblyName,
+        QDotNetHost *externalHost = nullptr)
+    {
+        init(assemblyPath, typeAndAssemblyName, typeAndAssemblyName, externalHost);
     }
 
     static void init(const QString &assemblyPath, const QString &assemblyName,
@@ -92,10 +106,18 @@ public:
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(SetInterfaceMethod));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(Stats));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(GetObject));
+        host->resolveFunction(QDOTNETADAPTER_DELEGATE(Reset));
 
 #undef QDOTNETADAPTER_DELEGATE
 
         instance().host = host;
+
+        if (ctor_staticInterface)
+            instance().staticInterface = ctor_staticInterface();
+        gcCollect = instance().resolveStaticMethod("System.GC, System.Runtime",
+            "Collect", { QDotNetInbound<void>::Parameter });
+        gcWaitForPendingFinalizers = instance().resolveStaticMethod("System.GC, System.Runtime",
+            "WaitForPendingFinalizers", { QDotNetInbound<void>::Parameter });
     }
 
     static QDotNetAdapter &instance()
@@ -225,12 +247,12 @@ public:
         fnFreeTypeRef(typeName);
     }
 
-    void *addInterfaceProxy(const QString &interfaceName) const
+    void *addInterfaceProxy(const QString &interfaceName, void *data, void *cleanUp) const
     {
         init();
         if (interfaceName.isEmpty())
             return nullptr;
-        return fnAddInterfaceProxy(interfaceName);
+        return fnAddInterfaceProxy(interfaceName, data, cleanUp);
     }
 
     void setInterfaceMethod(const QDotNetRef &obj, const QString &methodName,
@@ -261,6 +283,8 @@ public:
         Stats s{ };
         init();
         fnStats(&s.refCount, &s.staticCount, &s.eventCount);
+        if (staticInterface && s.refCount > 0)
+            --s.refCount;
         return s;
     }
 
@@ -287,13 +311,22 @@ private:
     mutable QDotNetFunction<void, void *> fnFreeDelegateRef;
     mutable QDotNetFunction<void, QDotNetRef> fnFreeObjectRef;
     mutable QDotNetFunction<void, QString> fnFreeTypeRef;
-    mutable QDotNetFunction<void *, QString> fnAddInterfaceProxy;
+    mutable QDotNetFunction<void *, QString, void *, void *> fnAddInterfaceProxy;
     mutable QDotNetFunction<void, QDotNetRef, QString, qint32, QList<QDotNetParameter>,
         void *, void *, void *> fnSetInterfaceMethod;
     mutable QDotNetFunction<void, qint32 *, qint32 *, qint32 *> fnStats;
     mutable QDotNetFunction<void *, QDotNetRef, QString> fnGetObject;
+    mutable QDotNetFunction<void> fnReset;
 
     static inline const QString defaultDllName = QLatin1String("Qt.DotNet.Adapter.dll");
     static inline const QString defaultAssemblyName = QLatin1String("Qt.DotNet.Adapter");
     static inline const QString defaultTypeName = QLatin1String("Qt.DotNet.Adapter");
+
+    mutable void *staticInterface = nullptr;
+
+public:
+    inline static std::function<void *()> ctor_staticInterface = nullptr;
+    inline static std::function<void(void *)> dtor_staticInterface = nullptr;
+    inline static QDotNetFunction<void> gcCollect = nullptr;
+    inline static QDotNetFunction<void> gcWaitForPendingFinalizers = nullptr;
 };

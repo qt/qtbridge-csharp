@@ -19,7 +19,7 @@
 class QDotNetType : public QDotNetRef
 {
 public:
-    static inline const QString &FullyQualifiedTypeName = QStringLiteral("System.Type");
+    static inline const QString &AssemblyQualifiedName = QStringLiteral("System.Type");
 
     QDotNetType(const void *typeRef = nullptr)
         : QDotNetRef(typeRef)
@@ -45,6 +45,18 @@ public:
         return *this;
     }
 
+    QString assemblyQualifiedName() const
+    {
+        if (!isValid())
+            return QStringLiteral("");
+        if (!fnAssemblyQualifiedName.isValid()) {
+            fnAssemblyQualifiedName = adapter().resolveInstanceMethod(*this,
+                "get_AssemblyQualifiedName", { UnmanagedType::LPWStr });
+            strFullName = fnAssemblyQualifiedName();
+        }
+        return strFullName;
+    }
+
     QString fullName() const
     {
         if (!isValid())
@@ -57,16 +69,16 @@ public:
         return strFullName;
     }
 
-    static QDotNetType find(const QString &typeName)
+    static QDotNetType typeOf(const QString &typeName)
     {
         QDotNetFunction<QDotNetType, QString> fnGetType;
-        return staticMethod(FullyQualifiedTypeName, "GetType", fnGetType).invoke(nullptr, typeName);
+        return staticMethod(AssemblyQualifiedName, "GetType", fnGetType).invoke(nullptr, typeName);
     }
 
     template<typename T>
-    static QDotNetType find()
+    static QDotNetType typeOf()
     {
-        return find(T::FullyQualifiedTypeName);
+        return typeOf(T::AssemblyQualifiedName);
     }
 
     template<typename TResult, typename ...TArg>
@@ -102,7 +114,7 @@ public:
     template<typename TResult, typename ...TArg>
     QDotNetFunction<TResult, TArg...> staticMethod(const QString &methodName) const
     {
-        return staticMethod<TResult, TArg...>(fullName(), methodName);
+        return staticMethod<TResult, TArg...>(assemblyQualifiedName(), methodName);
     }
 
     template<typename TResult, typename ...TArg>
@@ -155,24 +167,24 @@ public:
     template<typename T, typename ...TArg>
     QDotNetFunction<T, TArg...> constructor() const
     {
-        return constructor<T, TArg...>(fullName());
+        return constructor<T, TArg...>(assemblyQualifiedName());
     }
 
     template<typename T, typename ...TArg>
     QDotNetFunction<T, TArg...> &constructor(QDotNetFunction<T, TArg...> &ctor) const
     {
-        return constructor(fullName(), ctor);
+        return constructor(assemblyQualifiedName(), ctor);
     }
 
     template<typename T, typename ...TArg>
     QDotNetFunction<T, TArg...> &constructor(QDotNetSafeMethod<T, TArg...> &ctor) const
     {
-        return constructor(fullName(), ctor);
+        return constructor(assemblyQualifiedName(), ctor);
     }
 
     void freeTypeRef()
     {
-        freeTypeRef(fullName());
+        freeTypeRef(assemblyQualifiedName());
     }
 
     static void freeTypeRef(const QString &typeName)
@@ -183,12 +195,53 @@ public:
     template<typename T>
     static void freeTypeRef()
     {
-        freeTypeRef(T::FullyQualifiedTypeName);
+        freeTypeRef(T::AssemblyQualifiedName);
+    }
+
+    bool isAssignableFrom(QDotNetType c) const
+    {
+        if (!c.isValid())
+            return false;
+        if (!fnIsAssignableFrom.isValid()) {
+            fnIsAssignableFrom = adapter().resolveInstanceMethod(*this, "IsAssignableFrom",
+                { UnmanagedType::Bool, QStringLiteral("System.Type") });
+            if (!fnIsAssignableFrom.isValid())
+                return false;
+        }
+        return fnIsAssignableFrom(c);
+    }
+
+    template<typename T>
+    bool isAssignableFrom() const
+    {
+        return isAssignableFrom(typeOf<T>());
+    }
+
+    bool isAssignableTo(QDotNetType c) const
+    {
+        if (!c.isValid())
+            return false;
+        if (!fnIsAssignableTo.isValid()) {
+            fnIsAssignableTo = adapter().resolveInstanceMethod(*this, "IsAssignableTo",
+                { UnmanagedType::Bool, QStringLiteral("System.Type") });
+            if (!fnIsAssignableTo.isValid())
+                return false;
+        }
+        return fnIsAssignableTo(c);
+    }
+
+    template<typename T>
+    bool isAssignableTo() const
+    {
+        return isAssignableTo(typeOf<T>());
     }
 
 private:
+    mutable QDotNetFunction<QString> fnAssemblyQualifiedName;
     mutable QDotNetFunction<QString> fnFullName;
     mutable QString strFullName;
+    mutable QDotNetFunction<bool, QDotNetRef> fnIsAssignableFrom;
+    mutable QDotNetFunction<bool, QDotNetRef> fnIsAssignableTo;
 };
 
 namespace QtDotNet

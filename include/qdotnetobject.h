@@ -17,6 +17,8 @@
 #   pragma GCC diagnostic pop
 #endif
 
+struct QDotNetEventHandler;
+
 class QDotNetObject : public QDotNetRef
 {
 private:
@@ -37,7 +39,7 @@ private:
 
     // Fully qualified .NET class name
 #define Q_DOTNET_OBJECT_TYPE(T,type_name)\
-    static inline const QString &FullyQualifiedTypeName = QString(type_name)
+    static inline const QString &AssemblyQualifiedName = QString(type_name)
 
     // All required declarations
 #define Q_DOTNET_OBJECT(T,type_name)\
@@ -125,7 +127,7 @@ private:
 #define Q_DOTNET_OBJECT_INIT(...) , __VA_ARGS__
 
 public:
-    static inline const QString &FullyQualifiedTypeName = QStringLiteral("System.Object");
+    static inline const QString &AssemblyQualifiedName = QStringLiteral("System.Object");
 
     QDotNetObject(const void *objectRef = nullptr)
         : QDotNetRef(objectRef)
@@ -151,6 +153,8 @@ public:
         return *this;
     }
 
+    virtual ~QDotNetObject() override = default;
+
     const QDotNetType &type() const
     {
         if (!fnGetType.isValid()) {
@@ -158,16 +162,6 @@ public:
             objType = fnGetType.invoke(*this);
         }
         return objType;
-    }
-
-    QString toString() const
-    {
-        return method("ToString", fnToString).invoke(*this);
-    }
-
-    bool equals(const QDotNetRef &obj) const
-    {
-        return method("Equals", fnEquals).invoke(*this, obj);
     }
 
     template<typename TResult, typename ...TArg>
@@ -243,19 +237,12 @@ public:
         return QDotNetType::constructor(typeName, ctor);
     }
 
-    struct IEventHandler
-    {
-        virtual ~IEventHandler() = default;
-        virtual void handleEvent(const QString &eventName, QDotNetObject &eventSource,
-            QDotNetObject &eventArgs) = 0;
-    };
-
-    void subscribeEvent(const QString &eventName, IEventHandler *eventHandler)
+    void subscribe(const QString &eventName, QDotNetEventHandler *eventHandler)
     {
         adapter().addEventHandler(*this, eventName, eventHandler, eventCallback);
     }
 
-    void unsubscribeEvent(const QString &eventName, IEventHandler *eventHandler)
+    void unsubscribe(const QString &eventName, QDotNetEventHandler *eventHandler)
     {
         adapter().removeEventHandler(*this, eventName, eventHandler);
     }
@@ -281,31 +268,24 @@ protected:
     template<typename T, typename ...TArg>
     static QDotNetFunction<T, TArg...> constructor()
     {
-        return QDotNetType::constructor<T, TArg...>(T::FullyQualifiedTypeName);
+        return QDotNetType::constructor<T, TArg...>(T::AssemblyQualifiedName);
     }
 
     template<typename T, typename ...TArg>
     static QDotNetFunction<T, TArg...> &constructor(QDotNetFunction<T, TArg...> &ctor)
     {
-        return QDotNetType::constructor(T::FullyQualifiedTypeName, ctor);
+        return QDotNetType::constructor(T::AssemblyQualifiedName, ctor);
     }
 
     template<typename T, typename ...TArg>
     static QDotNetSafeMethod<T, TArg...> &constructor(QDotNetSafeMethod<T, TArg...> &ctor)
     {
-        return QDotNetType::constructor(T::FullyQualifiedTypeName, ctor);
+        return QDotNetType::constructor(T::AssemblyQualifiedName, ctor);
     }
 
 private:
-    static void QDOTNETFUNCTION_CALLTYPE eventCallback(void *context, void *eventNameChars,
-        void *eventSourceRef, void *eventArgsRef)
-    {
-        auto *receiver = static_cast<IEventHandler *>(context);
-        const QString eventName(static_cast<const QChar *>(eventNameChars));
-        QDotNetObject eventSource(eventSourceRef);
-        QDotNetObject eventArgs(eventArgsRef);
-        receiver->handleEvent(eventName, eventSource, eventArgs);
-    }
+    static inline void QDOTNETFUNCTION_CALLTYPE eventCallback(void *context, void *eventNameChars,
+        void *eventSourceRef, void *eventArgsRef);
 
     mutable QDotNetFunction<QDotNetType> fnGetType;
     mutable QDotNetType objType = nullptr;
@@ -313,9 +293,26 @@ private:
     mutable QDotNetFunction<bool, QDotNetRef> fnEquals;
 };
 
+struct QDotNetEventHandler
+{
+    virtual ~QDotNetEventHandler() = default;
+    virtual void handleEvent(const QString &eventName, QDotNetObject &eventSource,
+        QDotNetObject &eventArgs) = 0;
+};
+
+inline void QDOTNETFUNCTION_CALLTYPE QDotNetObject::eventCallback(void *context, void *eventNameChars,
+    void *eventSourceRef, void *eventArgsRef)
+{
+    auto *receiver = static_cast<QDotNetEventHandler *>(context);
+    const QString eventName(static_cast<const QChar *>(eventNameChars));
+    QDotNetObject eventSource(eventSourceRef);
+    QDotNetObject eventArgs(eventArgsRef);
+    receiver->handleEvent(eventName, eventSource, eventArgs);
+}
+
 template<typename T>
 struct QDotNetTypeOf<T, std::enable_if_t<std::is_base_of_v<QDotNetObject, T>>>
 {
-    static inline const QString TypeName = T::FullyQualifiedTypeName;
+    static inline const QString TypeName = T::AssemblyQualifiedName;
     static inline UnmanagedType MarshalAs = UnmanagedType::ObjectRef;
 };

@@ -1,5 +1,5 @@
 /***************************************************************************************************
- Copyright (C) 2023 The Qt Company Ltd.
+ Copyright (C) 2025 The Qt Company Ltd.
  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 ***************************************************************************************************/
 
@@ -11,23 +11,27 @@
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wconversion"
 #endif
-#include <QList>
 #include <QString>
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop
 #endif
 
-class QDotNetPropertyEvent : public QDotNetObject
+template<typename T, typename... TArg>
+class QDotNetDelegate : public QDotNetObject
 {
 public:
-    Q_DOTNET_OBJECT_INLINE(QDotNetPropertyEvent,
-        "System.ComponentModel.PropertyChangedEventArgs, System.ObjectModel");
+    Q_DOTNET_OBJECT_INLINE(QDotNetDelegate, "System.Delegate");
 
-    QString propertyName() const
+    T invoke(TArg... arg) const
     {
-        return method("get_PropertyName", fnPropertyName).invoke(*this);
+        return method("Invoke", fnInvoke).invoke(*this, arg...);
+    }
+
+    T operator()(TArg... arg) const
+    {
+        return invoke(arg...);
     }
 
 private:
-    mutable QDotNetSafeMethod<QString> fnPropertyName;
+    mutable QDotNetFunction<T, TArg...> fnInvoke;
 };

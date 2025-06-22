@@ -35,7 +35,7 @@ public:
         unload();
     }
 
-    bool load(const QString& runtimeConfig = defaultRuntimeConfig, const QString &runtimePath = {})
+    bool load(const QString &runtimeConfig = defaultRuntimeConfig, const QString &runtimePath = {})
     {
         if (isLoaded())
             return true;
@@ -46,6 +46,57 @@ public:
             return false;
         }
         return true;
+    }
+
+    bool appMain(const QString &appHostPath, const QString &appLibPath)
+    {
+        if (isLoaded())
+            return false;
+
+        if (!loadRuntime({}))
+            return false;
+        const char_t *host_path = STR(appHostPath);
+        const char_t *app_path = STR(appLibPath);
+        const char_t *dotnet_root = (char_t *)L"C:\\Program Files\\dotnet\\";
+
+        int argc = 1;
+        const char_t *argv[] = { host_path, nullptr };
+
+        return fnMainStartup(argc, argv, host_path, dotnet_root, app_path) == 0;
+    }
+
+    bool loadApp(const QString &appPath, const QStringList &args = {}, const QString &runtimePath = {})
+    {
+        if (isLoaded())
+            return false;
+
+        if (!loadRuntime(runtimePath))
+            return false;
+
+        int argc = 1;
+        const char_t *argv[] = { STR(appPath), nullptr };
+
+        auto result = fnInitApp(argc, argv, nullptr, &hostContext);
+        if (HOSTFN_FAILED(result) || hostContext == nullptr) {
+            qCritical() << "Error calling function: hostfxr_initialize_for_dotnet_command_line";
+            unloadRuntime();
+            return false;
+        }
+
+        setRuntimeProperty("STARTUP_HOOKS",
+            QDir(QCoreApplication::applicationDirPath()).filePath("Qt.DotNet.Adapter.dll"));
+
+        setRuntimeProperty("QT_DOTNET_RESOLVE_FN", QString("%1")
+            .arg((qulonglong)(&fnLoadAssemblyAndGetFunctionPointer), 16, 16, QChar('0')));
+
+        return true;
+    }
+
+    int runApp()
+    {
+        if (!isLoaded() || fnLoadAssemblyAndGetFunctionPointer != nullptr)
+            return false;
+        return fnRunApp(hostContext);
     }
 
     void unload()
@@ -59,6 +110,11 @@ public:
     bool isLoaded() const
     {
         return (hostContext != nullptr);
+    }
+
+    bool isReady() const
+    {
+        return (fnLoadAssemblyAndGetFunctionPointer != nullptr);
     }
 
     bool resolveFunction(QDotNetFunction<quint32, void *, qint32> &outFunc,
@@ -172,51 +228,49 @@ private:
         }
         const QString dotNetInfo(procDotNetInfo.readAllStandardOutput());
 
-        QString runtimeDirPath = {};
-        QString hostVersion = {};
-        QVersionNumber maxVersion;
+        QVersionNumber selectedVersion = {};
+        QString selectedRuntimePath = {};
         const QRegularExpression dotNetInfoParser(regexParseDotNetInfo,
             QRegularExpression::MultilineOption | QRegularExpression::DotMatchesEverythingOption);
         for (const auto &match : dotNetInfoParser.globalMatch(dotNetInfo)) {
-            const auto version = QVersionNumber::fromString(match.captured("version"));
-            if (version > maxVersion) {
-                maxVersion = version;
-                hostVersion = match.captured("version");
-                runtimeDirPath = match.captured("path");
-            }
-        }
 
-        if (runtimeDirPath.isEmpty()) {
-            qCritical() << "Error parsing dotnet info";
-            return {};
-        }
+            const auto hostVersion = match.captured("version");
+            const auto version = QVersionNumber::fromString(hostVersion);
+            if (version <= selectedVersion)
+                continue;
 
-        QDir runtimeDir(runtimeDirPath);
-        if (!runtimeDir.exists()) {
-            qCritical() << "Error dotnet runtime directory not found";
-            return {};
-        }
-
-        runtimeDir.cd(QString("../../host/fxr/%1").arg(hostVersion));
-        if (!runtimeDir.exists()) {
-            qCritical() << "Error dotnet host fxr directory not found";
-            return {};
-        }
+            const auto runtimeDirPath = match.captured("path");
+            if (runtimeDirPath.isEmpty())
+                continue;
+            QDir runtimeDir(runtimeDirPath);
+            if (!runtimeDir.exists())
+                continue;
+            runtimeDir.cd(QString("../../host/fxr/%1").arg(hostVersion));
+            if (!runtimeDir.exists())
+                continue;
 #ifdef Q_OS_WINDOWS
-        QString runtimePath = runtimeDir.absoluteFilePath("hostfxr.dll");
+            const auto runtimePath = runtimeDir.absoluteFilePath("hostfxr.dll");
 #else
-        QString runtimePath = runtimeDir.absoluteFilePath("libhostfxr.so");
+            const auto runtimePath = runtimeDir.absoluteFilePath("libhostfxr.so");
 #endif
-        if (!QFile::exists(runtimePath)) {
-            qCritical() << "Error dotnet host fxr dll not found";
+            if (!QFile::exists(runtimePath))
+                continue;
+
+            selectedVersion = version;
+            selectedRuntimePath = runtimePath;
+        }
+
+        if (selectedVersion.isNull()) {
+            qCritical() << "Error locating runtime host library.";
             return {};
         }
-        return runtimePath;
+
+        return selectedRuntimePath;
     }
 
     bool loadRuntime(const QString & runtimePath)
     {
-        if (fnInitHost != nullptr)
+        if (fnCloseHost != nullptr)
             return true;
 
         if (!runtimePath.isEmpty()) {
@@ -235,45 +289,53 @@ private:
             return false;
         }
 
-        fnInitHost = GET_FN(runtime, hostfxr_initialize_for_runtime_config_fn);
-        if (!fnInitHost) {
-            qCritical() << "Error loading function: hostfxr_initialize_for_runtime_config";
+        if (!(fnMainStartup = GET_FN(runtime, hostfxr_main_startupinfo_fn))) {
+            qCritical() << "Error loading function: hostfxr_main_startupinfo";
             return false;
         }
 
-        fnGetRuntimeDelegate = GET_FN(runtime, hostfxr_get_runtime_delegate_fn);
-        if (!fnGetRuntimeDelegate) {
-            qCritical() << "Error loading function: hostfxr_get_runtime_delegate";
-            return false;
-        }
-
-        fnCloseHost = GET_FN(runtime, hostfxr_close_fn);
-        if (!fnCloseHost) {
-            qCritical() << "Error loading function: hostfxr_close";
-            return false;
-        }
-
-        fnSetErrorWriter = GET_FN(runtime, hostfxr_set_error_writer_fn);
-        if (!fnSetErrorWriter) {
+        if (!(fnSetErrorWriter = GET_FN(runtime, hostfxr_set_error_writer_fn))) {
             qCritical() << "Error loading function: hostfxr_set_error_writer";
             return false;
         }
 
-        fnAllRuntimeProperties = GET_FN(runtime, hostfxr_get_runtime_properties_fn);
-        if (!fnAllRuntimeProperties) {
-            qCritical() << "Error loading function: hostfxr_get_runtime_properties_fn";
+        if (!(fnInitApp = GET_FN(runtime, hostfxr_initialize_for_dotnet_command_line_fn))) {
+            qCritical() << "Error loading function: hostfxr_initialize_for_dotnet_command_line";
             return false;
         }
 
-        fnRuntimeProperty = GET_FN(runtime, hostfxr_get_runtime_property_value_fn);
-        if (!fnRuntimeProperty) {
+        if (!(fnInitHost = GET_FN(runtime, hostfxr_initialize_for_runtime_config_fn))) {
+            qCritical() << "Error loading function: hostfxr_initialize_for_runtime_config";
+            return false;
+        }
+
+        if (!(fnRuntimeProperty = GET_FN(runtime, hostfxr_get_runtime_property_value_fn))) {
             qCritical() << "Error loading function: hostfxr_get_runtime_property_value_fn";
             return false;
         }
 
-        fnSetRuntimeProperty = GET_FN(runtime, hostfxr_set_runtime_property_value_fn);
-        if (!fnSetRuntimeProperty) {
+        if (!(fnSetRuntimeProperty = GET_FN(runtime, hostfxr_set_runtime_property_value_fn))) {
             qCritical() << "Error loading function: hostfxr_set_runtime_property_value_fn";
+            return false;
+        }
+
+        if (!(fnAllRuntimeProperties = GET_FN(runtime, hostfxr_get_runtime_properties_fn))) {
+            qCritical() << "Error loading function: hostfxr_get_runtime_properties_fn";
+            return false;
+        }
+
+        if (!(fnRunApp = GET_FN(runtime, hostfxr_run_app_fn))) {
+            qCritical() << "Error loading function: hostfxr_run_app";
+            return false;
+        }
+
+        if (!(fnGetRuntimeDelegate = GET_FN(runtime, hostfxr_get_runtime_delegate_fn))) {
+            qCritical() << "Error loading function: hostfxr_get_runtime_delegate";
+            return false;
+        }
+
+        if (!(fnCloseHost = GET_FN(runtime, hostfxr_close_fn))) {
+            qCritical() << "Error loading function: hostfxr_close";
             return false;
         }
 
@@ -283,17 +345,26 @@ private:
 
     void unloadRuntime()
     {
-        runtime.unload();
+        fnSetErrorWriter = nullptr;
+        fnInitApp = nullptr;
         fnInitHost = nullptr;
-        fnGetRuntimeDelegate = nullptr;
-        fnCloseHost = nullptr;
-        fnAllRuntimeProperties = nullptr;
         fnRuntimeProperty = nullptr;
         fnSetRuntimeProperty = nullptr;
+        fnAllRuntimeProperties = nullptr;
+        fnRunApp = nullptr;
+        fnGetRuntimeDelegate = nullptr;
+        fnCloseHost = nullptr;
+        fnLoadAssemblyAndGetFunctionPointer = nullptr;
+        fnLoadAssembly = nullptr;
+        fnGetFunctionPointer = nullptr;
+        runtime.unload();
     }
 
     bool init(const QString &runtimeConfig)
     {
+        if (fnLoadAssemblyAndGetFunctionPointer)
+            return true;
+
         if (fnInitHost == nullptr)
             return false;
 
@@ -365,11 +436,11 @@ private:
     static inline const QString defaultRuntimeConfig = QStringLiteral(R"[json](
 {
   "runtimeOptions": {
-    "tfm": "net6.0",
+    "tfm": "net8.0",
     "rollForward": "LatestMinor",
     "framework": {
       "name": "Microsoft.NETCore.App",
-      "version": "6.0.0"
+      "version": "8.0.0"
     }
   }
 }
@@ -379,16 +450,24 @@ private:
 \bMicrosoft\.NETCore\.App[^0-9]*(?<version>[0-9\.]+)[^\[]*\[(?<path>[^\]]+)\]
 )[regex]").remove('\r').remove('\n');
 
+    static inline const QString regexParseDotNetRoot = QStringLiteral(R"[regex](
+^(?:(?![\\\/]host[\\\/]).)*[\\\/]
+)[regex]").remove('\r').remove('\n');
 
     QLibrary runtime;
-    hostfxr_initialize_for_runtime_config_fn fnInitHost = nullptr;
-    hostfxr_get_runtime_delegate_fn fnGetRuntimeDelegate = nullptr;
-    hostfxr_close_fn fnCloseHost = nullptr;
+    hostfxr_main_startupinfo_fn fnMainStartup = nullptr;
     hostfxr_set_error_writer_fn fnSetErrorWriter = nullptr;
-    hostfxr_get_runtime_properties_fn fnAllRuntimeProperties = nullptr;
+    hostfxr_initialize_for_dotnet_command_line_fn fnInitApp = nullptr;
+    hostfxr_initialize_for_runtime_config_fn fnInitHost = nullptr;
     hostfxr_get_runtime_property_value_fn fnRuntimeProperty = nullptr;
     hostfxr_set_runtime_property_value_fn fnSetRuntimeProperty = nullptr;
+    hostfxr_get_runtime_properties_fn fnAllRuntimeProperties = nullptr;
+    hostfxr_run_app_fn fnRunApp = nullptr;
+    hostfxr_get_runtime_delegate_fn fnGetRuntimeDelegate = nullptr;
+    hostfxr_close_fn fnCloseHost = nullptr;
     hostfxr_handle hostContext = nullptr;
 
     load_assembly_and_get_function_pointer_fn fnLoadAssemblyAndGetFunctionPointer = nullptr;
+    load_assembly_fn fnLoadAssembly = nullptr;
+    get_function_pointer_fn fnGetFunctionPointer = nullptr;
 };

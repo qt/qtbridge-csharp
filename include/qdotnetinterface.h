@@ -21,44 +21,71 @@
 class QDotNetInterface : public QDotNetRef
 {
 public:
-    QDotNetInterface(const QString &interfaceName)
-        : QDotNetRef(adapter().addInterfaceProxy(interfaceName))
+    QDotNetInterface(const QString &interfaceName, void *data = nullptr, void *cleanUp = nullptr)
+        : QDotNetRef(adapter().addInterfaceProxy(interfaceName, data, cleanUp))
     {}
 
-    template<typename TResult, typename... TArg>
-    void setCallback(const QString &methodName, const QList<QDotNetParameter> &params,
-        typename QDotNetCallback<TResult, TArg...>::FunctionType function)
+    QDotNetInterface(const void *objectRef = nullptr)
+        : QDotNetRef(objectRef)
+    {}
+
+    QDotNetInterface(const QDotNetInterface &cpySrc)
+        : QDotNetRef(cpySrc)
+    {}
+
+    QDotNetInterface &operator =(const QDotNetInterface &cpySrc)
     {
-        auto *callback = new QDotNetCallback<TResult, TArg...>(function);
-        callbacks.append(callback);
+        QDotNetRef::operator=(cpySrc);
+        return *this;
+    }
 
-        QList<QDotNetParameter> modifiedParams
-        {
-            params[0],
-            UnmanagedType::SysInt,
-            UnmanagedType::U8
-        };
-        for (qsizetype i = 1; i < params.size(); ++i)
-            modifiedParams.append(params[i]);
+    QDotNetInterface(QDotNetInterface &&movSrc) noexcept
+        : QDotNetRef(std::move(movSrc))
+    {}
 
-        adapter().setInterfaceMethod(*this, methodName, modifiedParams,
-            reinterpret_cast<void *>(callback->delegate()),
-            reinterpret_cast<void *>(callback->cleanUp()), callback);
+    QDotNetInterface &operator=(QDotNetInterface &&movSrc) noexcept
+    {
+        QDotNetRef::operator=(std::move(movSrc));
+        return *this;
+    }
+
+    template<typename T>
+    T *dataAs()
+    {
+        if (!fnDataPtr.isValid()) {
+            const QList<QDotNetParameter> parameters
+            {
+                QDotNetInbound<void *>::Parameter
+            };
+            fnDataPtr = adapter().resolveInstanceMethod(*this, "get_Data", parameters);
+        }
+        return reinterpret_cast<T *>(fnDataPtr());
+    }
+
+    virtual ~QDotNetInterface() override
+    {
+        if (!isValid())
+            return;
+        for (const QDotNetCallbackBase *callback : callbacks)
+            delete callback;
+        callbacks.clear();
     }
 
     template<typename TResult, typename... TArg>
     void setCallback(const QString &methodName,
-        typename QDotNetCallback<TResult, TArg...>::FunctionType function)
+        typename QDotNetCallback<TResult, TArg...>::FunctionType function,
+        typename QDotNetCallback<TResult, TArg...>::CleanUpType cleanUp = nullptr)
     {
-        auto *callback = new QDotNetCallback<TResult, TArg...>(function);
+        auto *callback = new QDotNetCallback<TResult, TArg...>(function, cleanUp);
         callbacks.append(callback);
 
         const QList<QDotNetParameter> parameters
         {
-            QDotNetInbound<TResult>::Parameter,
+            QDotNetCallbackReturn<TResult>::Parameter,
             UnmanagedType::SysInt,
             UnmanagedType::U8,
-            QDotNetInbound<TArg>::Parameter...
+            UnmanagedType::SysInt,
+            QDotNetCallbackArg<TArg>::Parameter...
         };
 
         adapter().setInterfaceMethod(
@@ -66,20 +93,44 @@ public:
             callback->delegate(), callback->cleanUp(), callback);
     }
 
-    ~QDotNetInterface() override
-    {
-        for (const QDotNetCallbackBase *callback : callbacks)
-            delete callback;
-        callbacks.clear();
-    }
-
 private:
     QList<QDotNetCallbackBase *> callbacks;
+    QDotNetFunction<void *> fnDataPtr = nullptr;
 };
 
 template<typename T>
 struct QDotNetTypeOf<T, std::enable_if_t<std::is_base_of_v<QDotNetInterface, T>>>
 {
-    static inline const QString TypeName = T::FullyQualifiedTypeName;
+    static inline const QString TypeName = T::AssemblyQualifiedName;
     static inline UnmanagedType MarshalAs = UnmanagedType::ObjectRef;
+};
+
+template<typename T>
+struct QDotNetNativeInterface : public QDotNetInterface
+{
+    QDotNetNativeInterface(const void *objectRef = nullptr)
+        : QDotNetInterface(objectRef)
+    {
+    }
+
+    QDotNetNativeInterface(const QString &interfaceName, T *data, bool doCleanUp = true)
+        : QDotNetInterface(interfaceName, data, doCleanUp ? cleanUp : nullptr)
+    {
+    }
+
+    T *data()
+    {
+        return dataAs<T>();
+    }
+
+    operator T&()
+    {
+        return *data();
+    }
+
+    static void QDOTNETFUNCTION_CALLTYPE cleanUp(void *data)
+    {
+        if (data)
+            delete reinterpret_cast<T *>(data);
+    }
 };

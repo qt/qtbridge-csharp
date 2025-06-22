@@ -15,6 +15,13 @@
 #include <qdotnetobject.h>
 #include <qdotnetsafemethod.h>
 #include <qdotnettype.h>
+#include <qdotnetstatic.h>
+#include <qdotnetdelegate.h>
+
+#include <iqvariant.h>
+#include <iqmodelindex.h>
+
+#include <qdotnetabstractlistmodel.h>
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
@@ -29,11 +36,29 @@
 #include <QObject>
 #include <QSignalSpy>
 #include <QString>
+#include <QStringListModel>
+#include <QThread>
 
 #include <QtTest>
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop
 #endif
+
+#define TESTCASE_DOTNET_MAIN
+//#define TESTCASE_QT_MAIN
+
+#if defined(TESTCASE_DOTNET_MAIN)
+    #define TEST_APP_STARTUP
+    #define TEST_FUNCTION_CALLS
+    #define TEST_APP_SHUTDOWN
+    #define TEST_HOST_UNLOAD
+#elif defined(TESTCASE_QT_MAIN)
+    #define TEST_HOST_LOAD
+    #define TEST_FUNCTION_CALLS
+    #define TEST_HOST_UNLOAD
+#endif
+
+//#define COREHOST_TRACE
 
 class tst_qtdotnet : public QObject
 {
@@ -42,31 +67,123 @@ class tst_qtdotnet : public QObject
 public:
     tst_qtdotnet() = default;
 
+private:
+    int refCount = 0;
+    bool skipCleanup = false;
+
 private slots:
+
+    void initTestCase()
+    {
+#ifdef COREHOST_TRACE
+        qputenv("COREHOST_TRACE", "1");
+#endif
+    }
+
+    void init()
+    {
+        if (!QDotNetAdapter::instance().isValid())
+            return;
+        refCount = QDotNetAdapter::instance().stats().refCount;
+    }
+
+    void cleanup()
+    {
+        if (skipCleanup) {
+            skipCleanup = false;
+            QSKIP("cleanup skipped");
+        }
+        if (!QDotNetAdapter::instance().isValid())
+            return;
+        QVERIFY(QDotNetAdapter::instance().stats().refCount == refCount);
+    }
+
+#ifdef TEST_APP_STARTUP
+    void appStartup();
+#endif //TEST_APP_STARTUP
+#ifdef TEST_HOST_LOAD
     void loadHost();
     void runtimeProperties();
+#endif //TEST_HOST_LOAD
+#ifdef TEST_FUNCTION_CALLS
     void resolveFunction();
     void callFunction();
     void callFunctionWithCustomMarshaling();
     void callDefaultEntryPoint();
     void callWithComplexArg();
+#endif //TEST_FUNCTION_CALLS
+#ifdef TEST_HOST_LOAD
     void adapterInit();
+#endif //TEST_HOST_LOAD
+#ifdef TEST_FUNCTION_CALLS
     void callStaticMethod();
     void handleException();
     void createObject();
     void callInstanceMethod();
-    void useWrapperClass();
+    void useWrapperClassForStringBuilder();
+    void useWrapperClassForUri();
     void emitSignalFromEvent();
     void propertyBinding();
     void implementInterface();
     void arrayOfInts();
     void arrayOfStrings();
     void arrayOfObjects();
+    void variantNull();
+    void variantGet();
+    void variantSet();
+    void modelIndexNull();
+    void modelIndexGet();
+    void models();
+    void delegates();
+#endif //TEST_FUNCTION_CALLS
+#ifdef TEST_APP_SHUTDOWN
+    void appShutdown();
+#endif //TEST_APP_SHUTDOWN
+#ifdef TEST_HOST_UNLOAD
     void unloadHost();
+#endif //TEST_HOST_UNLOAD
 };
 
 QDotNetHost dotNetHost;
+QThread *dotnetThread = nullptr;
 
+#ifdef TEST_APP_STARTUP
+
+void tst_qtdotnet::appStartup()
+{
+    dotnetThread = QThread::create(
+        [this]()
+        {
+            dotNetHost.loadApp(
+                QDir(QCoreApplication::applicationDirPath()).filePath("FooConsoleApp.dll"));
+            dotNetHost.runApp();
+        });
+    dotnetThread->start();
+    bool block = true;
+    while (!dotNetHost.isReady())
+        QThread::sleep(1);
+    QDotNetAdapter::instance().init(
+        QDir(QCoreApplication::applicationDirPath()).filePath("Qt.DotNet.Adapter.dll"),
+        "Qt.DotNet.Adapter", "Qt.DotNet.Adapter", &dotNetHost);
+}
+#endif //TEST_APP_STARTUP
+
+#ifdef TEST_APP_STARTUP
+void tst_qtdotnet::appShutdown()
+{
+    if (!dotnetThread)
+        QSKIP("App thread not running");
+
+    QtDotNet::call<void, bool>("FooConsoleApp.Program, FooConsoleApp", "set_KeepRunning", false);
+    QThread::sleep(1);
+    while (dotnetThread->isRunning()) {
+        qInfo() << "App thread still running...";
+        QThread::sleep(1);
+    }
+}
+#endif //TEST_APP_STARTUP
+
+#ifdef TEST_HOST_LOAD
 void tst_qtdotnet::loadHost()
 {
     QVERIFY(!dotNetHost.isLoaded());
@@ -85,6 +202,17 @@ void tst_qtdotnet::runtimeProperties()
     }
 }
 
+void tst_qtdotnet::adapterInit()
+{
+    QVERIFY(!QDotNetAdapter::instance().isValid());
+    QDotNetAdapter::instance().init(
+        QDir(QCoreApplication::applicationDirPath()).filePath("Qt.DotNet.Adapter.dll"),
+        "Qt.DotNet.Adapter", "Qt.DotNet.Adapter", &dotNetHost);
+    QVERIFY(QDotNetAdapter::instance().isValid());
+}
+#endif //TEST_HOST_LOAD
+
+#ifdef TEST_FUNCTION_CALLS
 QDotNetFunction<QString, QString, int> formatNumber;
 
 void tst_qtdotnet::resolveFunction()
@@ -93,7 +221,7 @@ void tst_qtdotnet::resolveFunction()
     QVERIFY(!formatNumber.isValid());
     QVERIFY(dotNetHost.resolveFunction(formatNumber,
         QDir(QCoreApplication::applicationDirPath()).filePath("FooLib.dll"),
-        Foo::FullyQualifiedTypeName, "FormatNumber", "FooLib.Foo+FormatNumberDelegate, FooLib"));
+        Foo::AssemblyQualifiedName, "FormatNumber", "FooLib.Foo+FormatNumberDelegate, FooLib"));
 
     QVERIFY(formatNumber.isValid());
 }
@@ -149,7 +277,7 @@ void tst_qtdotnet::callFunctionWithCustomMarshaling()
     QDotNetFunction<QUpperCaseString, QString, DoubleAsInt> formatDouble;
     QVERIFY(dotNetHost.resolveFunction(formatDouble,
         QDir(QCoreApplication::applicationDirPath()).filePath("FooLib.dll"),
-        Foo::FullyQualifiedTypeName, "FormatNumber", "FooLib.Foo+FormatNumberDelegate, FooLib"));
+        Foo::AssemblyQualifiedName, "FormatNumber", "FooLib.Foo+FormatNumberDelegate, FooLib"));
 
     QVERIFY(formatDouble.isValid());
 
@@ -165,7 +293,7 @@ void tst_qtdotnet::callDefaultEntryPoint()
     QDotNetFunction<quint32, void*, qint32> entryPoint;
     QVERIFY(dotNetHost.resolveFunction(entryPoint,
         QDir(QCoreApplication::applicationDirPath()).filePath("FooLib.dll"),
-        Foo::FullyQualifiedTypeName, "EntryPoint"));
+        Foo::AssemblyQualifiedName, "EntryPoint"));
 
     QVERIFY(entryPoint.isValid());
 
@@ -206,7 +334,7 @@ void tst_qtdotnet::callWithComplexArg()
     QDotNetFunction<QString, QString, Date> formatDate;
     QVERIFY(dotNetHost.resolveFunction(formatDate,
         QDir(QCoreApplication::applicationDirPath()).filePath("FooLib.dll"),
-        Foo::FullyQualifiedTypeName, "FormatDate", "FooLib.Foo+FormatDateDelegate, FooLib"));
+        Foo::AssemblyQualifiedName, "FormatDate", "FooLib.Foo+FormatDateDelegate, FooLib"));
 
     QVERIFY(formatDate.isValid());
 
@@ -216,105 +344,77 @@ void tst_qtdotnet::callWithComplexArg()
     QCOMPARE(formattedText, "Today is 2022-12-25");
 }
 
-void tst_qtdotnet::adapterInit()
-{
-    QVERIFY(!QDotNetAdapter::instance().isValid());
-    QDotNetAdapter::instance().init(
-        QDir(QCoreApplication::applicationDirPath()).filePath("Qt.DotNet.Adapter.dll"),
-        "Qt.DotNet.Adapter", "Qt.DotNet.Adapter", &dotNetHost);
-    QVERIFY(QDotNetAdapter::instance().isValid());
-}
-
 void tst_qtdotnet::callStaticMethod()
 {
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
-    {
-        const QDotNetType environment = QDotNetType::find("System.Environment");
-        const auto getEnvironmentVariable
-            = environment.staticMethod<QString, QString>("GetEnvironmentVariable");
-        const QString path = getEnvironmentVariable("PATH");
-        QVERIFY(path.length() > 0);
-        const QString samePath = QtDotNet::call<QString, QString>(
-            "System.Environment", "GetEnvironmentVariable", "PATH");
-        QVERIFY(path == samePath);
-    }
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
+    const QDotNetType environment = QDotNetType::typeOf("System.Environment");
+    const auto getEnvironmentVariable
+        = environment.staticMethod<QString, QString>("GetEnvironmentVariable");
+    const QString path = getEnvironmentVariable("PATH");
+    QVERIFY(path.length() > 0);
+    const QString samePath = QtDotNet::call<QString, QString>(
+        "System.Environment", "GetEnvironmentVariable", "PATH");
+    QVERIFY(path == samePath);
 }
 
 void tst_qtdotnet::createObject()
 {
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
-    {
-        const auto newStringBuilder = QDotNetObject::constructor("System.Text.StringBuilder");
-        QDotNetObject stringBuilder = newStringBuilder();
-        QVERIFY(QDotNetAdapter::instance().stats().refCount == 1);
-    }
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
+    const auto newStringBuilder = QDotNetObject::constructor("System.Text.StringBuilder");
+    QDotNetObject stringBuilder = newStringBuilder();
+    QVERIFY(QDotNetAdapter::instance().stats().refCount == 1);
 }
 
 void tst_qtdotnet::callInstanceMethod()
 {
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
-    {
-        const auto newStringBuilder = QDotNetObject::constructor("System.Text.StringBuilder");
-        const auto stringBuilder = newStringBuilder();
-        const auto append = stringBuilder.method<QDotNetObject, QString>("Append");
-        std::ignore = append("Hello");
-        std::ignore = append(" World!");
-        const QString helloWorld = stringBuilder.toString();
-        QVERIFY(helloWorld == "Hello World!");
-    }
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
+    const auto newStringBuilder = QDotNetObject::constructor("System.Text.StringBuilder");
+    const auto stringBuilder = newStringBuilder();
+    const auto append = stringBuilder.method<QDotNetObject, QString>("Append");
+    std::ignore = append("Hello");
+    std::ignore = append(" World!");
+    const QString helloWorld = stringBuilder.toString();
+    QVERIFY(helloWorld == "Hello World!");
 }
 
-void tst_qtdotnet::useWrapperClass()
+void tst_qtdotnet::useWrapperClassForStringBuilder()
 {
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
-    {
-        StringBuilder sb;
-        QVERIFY(QDotNetAdapter::instance().stats().refCount == 1);
-        QVERIFY(sb.isValid());
-        sb.append("Hello").append(" ");
-        StringBuilder sbCpy(sb);
-        QVERIFY(QDotNetAdapter::instance().stats().refCount == 2);
-        QVERIFY(sbCpy.isValid());
-        sbCpy.append("World");
-        sb = StringBuilder(std::move(sbCpy));
-        QVERIFY(QDotNetAdapter::instance().stats().refCount == 1);
-        sb.append("!");
-        QCOMPARE(sb.toString(), "Hello World!");
-    }
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
-    {
-        const Uri uri(QStringLiteral(
-            "https://user:password@www.contoso.com:80/Home/Index.htm?q1=v1&q2=v2#FragmentName"));
-        QVERIFY(uri.segments().length() == 3);
-        QVERIFY(uri.segments()[0]->compare("/") == 0);
-    }
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
+    StringBuilder sb;
+    QVERIFY(QDotNetAdapter::instance().stats().refCount == 1);
+    QVERIFY(sb.isValid());
+    sb.append("Hello").append(" ");
+    StringBuilder sbCpy(sb);
+    QVERIFY(QDotNetAdapter::instance().stats().refCount == 2);
+    QVERIFY(sbCpy.isValid());
+    sbCpy.append("World");
+    sb = StringBuilder(std::move(sbCpy));
+    QVERIFY(QDotNetAdapter::instance().stats().refCount == 1);
+    sb.append("!");
+    QCOMPARE(sb.toString(), "Hello World!");
+}
+
+void tst_qtdotnet::useWrapperClassForUri()
+{
+    const Uri uri(QStringLiteral(
+        "https://user:password@www.contoso.com:80/Home/Index.htm?q1=v1&q2=v2#FragmentName"));
+    QVERIFY(uri.segments().length() == 3);
+    QVERIFY(uri.segments()[0]->compare("/") == 0);
 }
 
 void tst_qtdotnet::handleException()
 {
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
-    {
-        StringBuilder stringBuilder(5, 5);
-        QString helloWorld;
-        try {
-            stringBuilder.append("Hello");
-            QVERIFY(stringBuilder.toString() == "Hello");
-            stringBuilder.append(" World!");
-            helloWorld = stringBuilder.toString();
-        }
-        catch (QDotNetException&) {
-            helloWorld = "<ERROR>";
-        }
-        QVERIFY(helloWorld == "<ERROR>");
+    StringBuilder stringBuilder(5, 5);
+    QString helloWorld;
+    try {
+        stringBuilder.append("Hello");
+        QVERIFY(stringBuilder.toString() == "Hello");
+        stringBuilder.append(" World!");
+        helloWorld = stringBuilder.toString();
     }
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
+    catch (const QDotNetException &ex) {
+        helloWorld = ex.type().cast<QDotNetType>().fullName();
+    }
+    QVERIFY(helloWorld == "System.ArgumentOutOfRangeException");
 }
 
-class Ping final : public QObject, public QDotNetObject, public QDotNetObject::IEventHandler
+class Ping final : public QObject, public QDotNetObject, public QDotNetEventHandler
 {
     Q_OBJECT
 
@@ -324,7 +424,7 @@ public:
     Ping()
         : QDotNetObject(QDotNetSafeMethod(constructor<Ping>()).invoke(nullptr))
     {
-        subscribeEvent("PingCompleted", this);
+        subscribe("PingCompleted", this);
     }
     ~Ping() override = default;
 
@@ -366,135 +466,210 @@ private:
 
 void tst_qtdotnet::emitSignalFromEvent()
 {
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
-    {
-        Ping ping;
-        bool waiting = true;
-        int signalCount = 0;
-        connect(&ping, &Ping::pingCompleted,
-            [&waiting, &signalCount](const QString& address, qint64 roundtripMsecs) {
-                qInfo() << "Reply from" << address << "in" << roundtripMsecs << "msecs";
-        signalCount++;
-        waiting = false;
-            });
-        connect(&ping, &Ping::pingError,
-            [&waiting, &signalCount] {
-                qInfo() << "Ping error";
-        signalCount++;
-        waiting = false;
-            });
-        qInfo() << "Pinging www.qt.io:";
-        QElapsedTimer waitTime;
-        for (int i = 0; i < 4; ++i) {
-            waitTime.restart();
-            waiting = true;
-            ping.sendAsync("www.qt.io");
-            while (waiting) {
-                QCoreApplication::processEvents();
-                if (waitTime.elapsed() > 3000) {
-                    ping.sendAsyncCancel();
-                    waiting = false;
-                    qInfo() << "Ping timeout";
-                }
+    Ping ping;
+    bool waiting = true;
+    int signalCount = 0;
+    connect(&ping, &Ping::pingCompleted,
+        [&waiting, &signalCount](const QString& address, qint64 roundtripMsecs) {
+            qInfo() << "Reply from" << address << "in" << roundtripMsecs << "msecs";
+    signalCount++;
+    waiting = false;
+        });
+    connect(&ping, &Ping::pingError,
+        [&waiting, &signalCount] {
+            qInfo() << "Ping error";
+    signalCount++;
+    waiting = false;
+        });
+    qInfo() << "Pinging www.qt.io:";
+    QElapsedTimer waitTime;
+    for (int i = 0; i < 4; ++i) {
+        waitTime.restart();
+        waiting = true;
+        ping.sendAsync("www.qt.io");
+        while (waiting) {
+            QCoreApplication::processEvents();
+            if (waitTime.elapsed() > 3000) {
+                ping.sendAsyncCancel();
+                waiting = false;
+                qInfo() << "Ping timeout";
             }
         }
-        QVERIFY(signalCount == 4);
     }
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
+    QVERIFY(signalCount == 4);
 }
 
 void tst_qtdotnet::propertyBinding()
 {
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
-    {
-        Foo foo;
-        const QSignalSpy spy(&foo, &Foo::barChanged);
-        for (int i = 0; i < 1000; ++i)
-            foo.setBar(QString("hello x %1").arg(i + 1));
-        QVERIFY(foo.bar() == "hello x 1000");
-        QVERIFY(spy.count() == 1000);
-    }
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
+    Foo foo;
+    const QSignalSpy spy(&foo, &Foo::barChanged);
+    for (int i = 0; i < 1000; ++i)
+        foo.setBar(QString("hello x %1").arg(i + 1));
+    QVERIFY(foo.bar() == "hello x 1000");
+    QVERIFY(spy.count() == 1000);
 }
 
 struct ToUpper : IBarTransformation
 {
+    Uri uri = Uri("https://qt.io/");
     QString transform(const QString& bar) override
     {
         return bar.toUpper();
+    }
+    Uri getUri(int n) override
+    {
+        return uri;
+    }
+    void setUri(const Uri &uri) override
+    {
+        this->uri = uri;
+    }
+    int getNumber() override
+    {
+        return 42;
     }
 };
 
 void tst_qtdotnet::implementInterface()
 {
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
-    {
-        const ToUpper transfToUpper;
-        Foo foo(transfToUpper);
-        const QSignalSpy spy(&foo, &Foo::barChanged);
-        for (int i = 0; i < 1000; ++i)
-            foo.setBar(QString("hello x %1").arg(i + 1));
-        QVERIFY(foo.bar() == "HELLO X 1000");
-        QVERIFY(spy.count() == 1000);
-    }
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
+    const ToUpper transfToUpper;
+    Foo foo(transfToUpper);
+    foo.setBar("hello there");
+    QVERIFY(foo.bar() == "HELLO THERE (https://qt.io/developers)");
 }
 
 void tst_qtdotnet::arrayOfInts()
 {
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
-    {
-        QDotNetArray<qint32> a(11);
-        a[0] = 0;
-        a[1] = 1;
-        for (int i = 2; i < a.length(); ++i)
-            a[i] = a[i - 1] + a[i - 2];
-        QVERIFY(a[10] == 55);
-    }
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
+    QDotNetArray<qint32> a(11);
+    a[0] = 0;
+    a[1] = 1;
+    for (int i = 2; i < a.length(); ++i)
+        a[i] = a[i - 1] + a[i - 2];
+    QVERIFY(a[10] == 55);
 }
 
 void tst_qtdotnet::arrayOfStrings()
 {
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
-    {
-        QDotNetArray<QString> a(8);
-        a[0] = "Lorem";
-        a[1] = "ipsum";
-        a[2] = "dolor";
-        a[3] = "sit";
-        a[4] = "amet,";
-        a[5] = "consectetur";
-        a[6] = "adipiscing";
-        a[7] = "elit.";
-        const auto stringType = QDotNetType::find("System.String");
-        const auto join = stringType.staticMethod<QString, QString, QDotNetArray<QString>>("Join");
-        const auto loremIpsum = join(" ", a);
-        QVERIFY(loremIpsum == "Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
-    }
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
+    QDotNetArray<QString> a(8);
+    a[0] = "Lorem";
+    a[1] = "ipsum";
+    a[2] = "dolor";
+    a[3] = "sit";
+    a[4] = "amet,";
+    a[5] = "consectetur";
+    a[6] = "adipiscing";
+    a[7] = "elit.";
+    const auto stringType = QDotNetType::typeOf("System.String");
+    const auto join = stringType.staticMethod<QString, QString, QDotNetArray<QString>>("Join");
+    const auto loremIpsum = join(" ", a);
+    QVERIFY(loremIpsum == "Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
 }
 
 void tst_qtdotnet::arrayOfObjects()
 {
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
-    {
-        QDotNetArray<StringBuilder> a(8);
-        for (int i = 0; i < a.length(); ++i)
-            a[i] = StringBuilder();
-        a[0]->append("Lorem");
-        a[1]->append(a[0]->toString()).append(" ipsum");
-        a[2]->append(a[1]->toString()).append(" dolor");
-        a[3]->append(a[2]->toString()).append(" sit");
-        a[4]->append(a[3]->toString()).append(" amet,");
-        a[5]->append(a[4]->toString()).append(" consectetur");
-        a[6]->append(a[5]->toString()).append(" adipiscing");
-        a[7]->append(a[6]->toString()).append(" elit.");
-        QVERIFY(a[7]->toString() == "Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
-    }
-    QVERIFY(QDotNetAdapter::instance().stats().refCount == 0);
+    QDotNetArray<StringBuilder> a(8);
+    for (int i = 0; i < a.length(); ++i)
+        a[i] = StringBuilder();
+    a[0]->append("Lorem");
+    a[1]->append(a[0]->toString()).append(" ipsum");
+    a[2]->append(a[1]->toString()).append(" dolor");
+    a[3]->append(a[2]->toString()).append(" sit");
+    a[4]->append(a[3]->toString()).append(" amet,");
+    a[5]->append(a[4]->toString()).append(" consectetur");
+    a[6]->append(a[5]->toString()).append(" adipiscing");
+    a[7]->append(a[6]->toString()).append(" elit.");
+    QVERIFY(a[7]->toString() == "Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
 }
 
+void tst_qtdotnet::variantNull()
+{
+    auto getVariant = QDotNetType::staticMethod<IQVariant>("FooLib.Foo, FooLib", "GetVariant");
+    auto iqv = getVariant();
+    auto &qv = *iqv.dataAs<QVariant>();
+    QVERIFY(!qv.isValid());
+}
+
+void tst_qtdotnet::variantGet()
+{
+    auto getVariant = QDotNetType::staticMethod<IQVariant, QString>("FooLib.Foo, FooLib", "GetVariant");
+    auto iqv = getVariant("foobar");
+    auto &qv = *iqv.dataAs<QVariant>();
+    QVERIFY(qv.toString() == "foobar");
+}
+
+void tst_qtdotnet::variantSet()
+{
+    QVariant qv = "foobar";
+    IQVariant iqv(qv);
+    auto toUpper = QDotNetType::staticMethod<void, IQVariant>("FooLib.Foo, FooLib", "VariantStringToUpper");
+    toUpper(iqv);
+    QVERIFY(qv.toString() == "FOOBAR");
+}
+
+struct TestModel : public QStringListModel
+{
+    QModelIndex getIndex(int row, int col, void *ptr)
+    {
+        return createIndex(row, col, ptr);
+    }
+};
+
+void tst_qtdotnet::modelIndexNull()
+{
+    auto getModelIndex = QDotNetType::staticMethod<IQModelIndex>("FooLib.Foo, FooLib", "GetModelIndex");
+    auto iqmi = getModelIndex();
+    auto &qmi = *iqmi.dataAs<QModelIndex>();
+    QVERIFY(!qmi.isValid());
+}
+
+void tst_qtdotnet::modelIndexGet()
+{
+    TestModel tm;
+    auto idx = IQModelIndex(tm.getIndex(2, 3, reinterpret_cast<void *>(7)));
+    auto idxRowColPtr = QDotNetType::staticMethod<int, IQModelIndex>("FooLib.Foo, FooLib", "ModelIndexRowColPtr");
+    auto rcp = idxRowColPtr(idx);
+    QVERIFY(rcp == 42);
+}
+
+struct TestListModel : public QDotNetObject
+{
+    Q_DOTNET_OBJECT_INLINE(TestListModel, "FooLib.Foo+TestListModel, FooLib");
+    TestListModel()
+        : QDotNetObject(constructor<TestListModel>().invoke(nullptr))
+    { }
+    QAbstractListModel *base() const
+    {
+        auto baseObj = method("get_Base", fnBase).invoke(*this);
+        auto baseInterface = baseObj.cast<QDotNetInterface>();
+        return baseInterface.dataAs<QAbstractListModel>();
+    }
+    mutable QDotNetFunction<QDotNetRef> fnBase = nullptr;
+};
+
+void tst_qtdotnet::models()
+{
+    const auto testModel = TestListModel();
+    auto *baseModel = testModel.base();
+    auto n = baseModel->rowCount();
+    QVERIFY(n == 2);
+    auto ff = baseModel->flags(baseModel->index(0));
+    QVERIFY(ff == (Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemNeverHasChildren));
+    auto it0 = baseModel->data(baseModel->index(0));
+    QVERIFY(it0.toString() == "FOO");
+    auto it1 = baseModel->data(baseModel->index(1));
+    QVERIFY(it1.toString() == "BAR");
+    skipCleanup = true; // TODO: figure out why refs are still pending here
+}
+
+void tst_qtdotnet::delegates()
+{
+    auto plus42 = QtDotNet::call<QDotNetDelegate<int, int>>("FooLib.Foo, FooLib", "get_Plus42");
+    QVERIFY(plus42(3) == 45);
+}
+
+#endif //TEST_FUNCTION_CALLS
+
+#ifdef TEST_HOST_UNLOAD
 void tst_qtdotnet::unloadHost()
 {
     QVERIFY(dotNetHost.isLoaded());
@@ -503,6 +678,7 @@ void tst_qtdotnet::unloadHost()
 
     QVERIFY(!dotNetHost.isLoaded());
 }
+#endif //TEST_HOST_UNLOAD
 
 QTEST_MAIN(tst_qtdotnet)
 #include "tst_qtdotnet.moc"

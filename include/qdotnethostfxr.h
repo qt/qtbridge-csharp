@@ -116,6 +116,13 @@ using get_hostfxr_path_fn = quint32(NETHOST_CALLTYPE *)(
 #   define HOSTFXR_CALLTYPE
 #endif
 
+using hostfxr_main_startupinfo_fn = int(HOSTFXR_CALLTYPE *)(
+    const int argc,
+    const char_t **argv,
+    const char_t *host_path,
+    const char_t *dotnet_root,
+    const char_t *app_path);
+
 enum hostfxr_delegate_type
 {
     hdt_com_activation,
@@ -124,7 +131,9 @@ enum hostfxr_delegate_type
     hdt_com_register,
     hdt_com_unregister,
     hdt_load_assembly_and_get_function_pointer,
-    hdt_get_function_pointer
+    hdt_get_function_pointer,
+    hdt_load_assembly,
+    hdt_load_assembly_bytes
 };
 
 using hostfxr_error_writer_fn = void(HOSTFXR_CALLTYPE *)(const char_t *message);
@@ -139,6 +148,13 @@ struct hostfxr_initialize_parameters
     const char_t *host_path;
     const char_t *dotnet_root;
 };
+
+using hostfxr_initialize_for_dotnet_command_line_fn = int(HOSTFXR_CALLTYPE *)(
+    int argc,
+    const char_t *argv[],
+    const hostfxr_initialize_parameters *parameters,
+    /*out*/ hostfxr_handle *host_context_handle
+);
 
 using hostfxr_initialize_for_runtime_config_fn = quint32(HOSTFXR_CALLTYPE *)(
     const char_t *runtime_config_path,
@@ -161,13 +177,14 @@ using hostfxr_get_runtime_properties_fn = quint32(HOSTFXR_CALLTYPE *)(
     /*out*/ const char_t **keys,
     /*out*/ const char_t **values);
 
+using hostfxr_run_app_fn = int (HOSTFXR_CALLTYPE *)(const hostfxr_handle host_context_handle);
+
 using hostfxr_get_runtime_delegate_fn = quint32(HOSTFXR_CALLTYPE *)(
     hostfxr_handle host_context_handle,
     hostfxr_delegate_type type,
     /*out*/ void **delegate);
 
 using hostfxr_close_fn = quint32(HOSTFXR_CALLTYPE *)(hostfxr_handle host_context_handle);
-
 
 /*
     adapted from:
@@ -179,25 +196,26 @@ using hostfxr_close_fn = quint32(HOSTFXR_CALLTYPE *)(hostfxr_handle host_context
 #   define CORECLR_DELEGATE_CALLTYPE
 #endif
 
-using component_entry_point_fn = quint32(CORECLR_DELEGATE_CALLTYPE *)(
-    void *arg, qint32 arg_size_in_bytes);
-
 using load_assembly_and_get_function_pointer_fn = quint32(CORECLR_DELEGATE_CALLTYPE *)(
     const char_t *assembly_path ,
     const char_t *type_name ,
     const char_t *method_name ,
     const char_t *delegate_type_name,
-    void *reserved,
+    nullptr_t reserved,
     /*out*/ void **delegate );
 
 using get_function_pointer_fn = quint32(CORECLR_DELEGATE_CALLTYPE *)(
     const char_t *type_name,
     const char_t *method_name,
     const char_t *delegate_type_name,
-    void *load_context,
-    void *reserved,
+    nullptr_t load_context,
+    nullptr_t reserved,
     /*out*/ void **delegate);
 
+using load_assembly_fn = int (CORECLR_DELEGATE_CALLTYPE *)(
+    const char_t *assembly_path,
+    nullptr_t load_context,
+    nullptr_t reserved);
 
 /*
     adapted from:

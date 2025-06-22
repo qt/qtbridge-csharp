@@ -8,6 +8,8 @@
 #include <qdotnetinterface.h>
 #include <qdotnetobject.h>
 
+#include "uri.h"
+
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wconversion"
@@ -23,10 +25,13 @@ struct FooPrivate;
 class IBarTransformation : public QDotNetInterface
 {
 public:
-    static inline const QString &FullyQualifiedTypeName =
+    static inline const QString &AssemblyQualifiedName =
         QStringLiteral("FooLib.IBarTransformation, FooLib");
 
     virtual QString transform(const QString &) = 0;
+    virtual Uri getUri(int) = 0;
+    virtual void setUri(const Uri &uri) = 0;
+    virtual int getNumber() = 0;
 
 protected:
     IBarTransformation();

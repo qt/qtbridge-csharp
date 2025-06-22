@@ -30,7 +30,7 @@
     <RootNamespace>tst_qtdotnet</RootNamespace>
     <WindowsTargetPlatformVersion Condition="'$(VisualStudioVersion)'=='15.0'">10.0.17763.0</WindowsTargetPlatformVersion>
     <WindowsTargetPlatformVersion Condition="'$(VisualStudioVersion)'=='16.0'">10.0</WindowsTargetPlatformVersion>
-    <WindowsTargetPlatformVersion Condition="'$(VisualStudioVersion)'=='17.0'">10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion Condition="'$(VisualStudioVersion)'=='17.0'">10.0.19041.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup>
@@ -205,6 +205,26 @@
     <QtMoc Include="foo.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\include\iqmodelindex.h" />
+    <ClInclude Include="..\..\include\iqvariant.h" />
+    <ClInclude Include="..\..\include\qdotnetabstractlistmodel.h" />
+    <ClInclude Include="..\..\include\qdotnetadapter.h" />
+    <ClInclude Include="..\..\include\qdotnetarray.h" />
+    <ClInclude Include="..\..\include\qdotnetcallback.h" />
+    <ClInclude Include="..\..\include\qdotnetdelegate.h" />
+    <ClInclude Include="..\..\include\qdotnetevent.h" />
+    <ClInclude Include="..\..\include\qdotnetexception.h" />
+    <ClInclude Include="..\..\include\qdotnetfunction.h" />
+    <ClInclude Include="..\..\include\qdotnethost.h" />
+    <ClInclude Include="..\..\include\qdotnethostfxr.h" />
+    <ClInclude Include="..\..\include\qdotnetinterface.h" />
+    <ClInclude Include="..\..\include\qdotnetmarshal.h" />
+    <ClInclude Include="..\..\include\qdotnetobject.h" />
+    <ClInclude Include="..\..\include\qdotnetparameter.h" />
+    <ClInclude Include="..\..\include\qdotnetref.h" />
+    <ClInclude Include="..\..\include\qdotnetsafemethod.h" />
+    <ClInclude Include="..\..\include\qdotnetstatic.h" />
+    <ClInclude Include="..\..\include\qdotnettype.h" />
     <ClInclude Include="uri.h" />
     <ClInclude Include="stringbuilder.h" />
   </ItemGroup>
@@ -214,6 +234,9 @@
     </ProjectReference>
     <ProjectReference Include="..\FooLib\FooLib.csproj">
       <Project>{45d3ddf3-135b-46ca-b3ee-3537fcfffbeb}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\FooConsoleApp\FooConsoleApp.csproj">
+      <Project>{72ca8eda-c9cf-40c2-b7fe-4a529204eec2}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

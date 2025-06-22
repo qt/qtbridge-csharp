@@ -36,9 +36,9 @@ public:
     QDotNetArray(qint32 length)
     {
         const QString elementTypeName = QDotNetTypeOf<T>::TypeName;
-        const QDotNetType elementType = QDotNetType::find(elementTypeName);
+        const QDotNetType elementType = QDotNetType::typeOf(elementTypeName);
 
-        QDotNetType arrayType = QDotNetType::find(QDotNetArray::FullyQualifiedTypeName);
+        QDotNetType arrayType = QDotNetType::typeOf(QDotNetArray::AssemblyQualifiedName);
         auto ctor = constructor<QDotNetArray, qint32>();
         *this = ctor(length);
     }

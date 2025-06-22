@@ -188,7 +188,7 @@ public:
     ...
 };
 
-class SensorData : public QObject, public QDotNetObject, public QDotNetObject::IEventHandler
+class SensorData : public QObject, public QDotNetObject, public QDotNetEventHandler
 {
     Q_OBJECT
         Q_PROPERTY(double temperature READ temperature NOTIFY temperatureChanged)
@@ -197,7 +197,7 @@ public:
     Q_DOTNET_OBJECT_INLINE(SensorData, "QtAzureIoT.Device.SensorData, SensorData");
     SensorData() : QDotNetObject(getConstructor<SensorData>().invoke(nullptr))
     {
-        subscribeEvent("PropertyChanged", this);
+        subscribe("PropertyChanged", this);
     }
     double temperature() const
     {
@@ -331,14 +331,14 @@ objects in a Qt application. This includes receiving notifications of .NET event
 corresponding Qt signals.
 
 ```cpp
-class Ping : public QObject, public QDotNetObject, public QDotNetObject::IEventHandler
+class Ping : public QObject, public QDotNetObject, public QDotNetEventHandler
 {
     Q_OBJECT
 public:
     Q_DOTNET_OBJECT_INLINE(Ping, "System.Net.NetworkInformation.Ping, System");
     Ping() : QDotNetObject(constructor<Ping>().invoke(nullptr))
     {
-        subscribeEvent("PingCompleted", this);
+        subscribe("PingCompleted", this);
     }
     void sendAsync(const QString &hostNameOrAddress)
     {
@@ -430,7 +430,7 @@ signals:
     ...
 };
 ...
-struct QChronometerPrivate : public QDotNetObject::IEventHandler
+struct QChronometerPrivate : public QDotNetEventHandler
 {
     ...
 void handleEvent(const QString &eventName, QDotNetObject &sender, QDotNetObject &args) override

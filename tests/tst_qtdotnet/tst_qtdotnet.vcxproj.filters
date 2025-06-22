@@ -21,6 +21,9 @@
       <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
       <Extensions>ts</Extensions>
     </Filter>
+    <Filter Include="qtdotnet">
+      <UniqueIdentifier>{3c233e4d-a97c-47c6-b8bb-5f97e38b5090}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="tst_qtdotnet.cpp">
@@ -47,6 +50,66 @@
     </ClInclude>
     <ClInclude Include="uri.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\iqvariant.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetadapter.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetarray.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetcallback.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetevent.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetexception.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetfunction.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnethost.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnethostfxr.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetinterface.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetmarshal.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetobject.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetparameter.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetref.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetsafemethod.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnettype.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\iqmodelindex.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetabstractlistmodel.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetstatic.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\qdotnetdelegate.h">
+      <Filter>qtdotnet</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
