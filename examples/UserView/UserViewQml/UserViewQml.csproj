@@ -1,0 +1,70 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\utils\LazyFactory\LazyFactory.csproj" />
+    <ProjectReference Include="..\UserViewLib\UserViewLib.csproj" />
+    <ProjectReference Include="..\..\..\src\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
+  </ItemGroup>
+
+  <Target Name="BuildNative" AfterTargets="CoreCompile" BeforeTargets="_CreateAppHost">
+    <PropertyGroup>
+      <QtDir Condition="'$(QtDir)' == ''">C:\lib\qt\6.8.0\msvc2022_64</QtDir>
+      <QtDotNetDir Condition="'$(QtDotNetDir)' == ''">$(ProjectDir)\qtdotnet</QtDotNetDir>
+      <QtNativeSource>$(TargetDir)\native_source</QtNativeSource>
+      <QtNativeBuild>$(TargetDir)\native_build</QtNativeBuild>
+      <QtDotNetInclude>$([System.IO.Path]::GetFullPath('$(ProjectDir)\..\..\..\include'))</QtDotNetInclude>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <QtDotNetGenerated Include="$(QtDotNetDir)\generated_files\*" />
+      <Qml Include="$(ProjectDir)\*.qml" />
+    </ItemGroup>
+
+    <MakeDir Directories="$(QtNativeSource);$(QtNativeBuild)" />
+    <Copy SkipUnchangedFiles="true" SourceFiles="@(QtDotNetGenerated);@(Qml)" DestinationFolder="$(QtNativeSource)" />
+
+    <Message Importance="high" Text="Building native code..." />
+    <PropertyGroup>
+      <BuildNative>
+        CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
+        SET CMAKE_PREFIX_PATH=$(QtDir);$(CMAKE_PREFIX_PATH)
+        SET CXXFLAGS="-I$(QtDotNetInclude)" $(CXXFLAGS)
+        CD "$(QtNativeBuild)"
+        cmake -G Ninja -S ..\native_source
+        cmake --build .
+      </BuildNative>
+    </PropertyGroup>
+    <Exec Command="$(BuildNative)" />
+    <Copy SkipUnchangedFiles="true" SourceFiles="$(QtNativeBuild)\qmlapp.exe" DestinationFolder="$(TargetDir)" />
+
+    <Message Importance="high" Text="Deploying QML app..." />
+    <PropertyGroup>
+      <RunWinDeployQt>
+        CD "$(TargetDir)"
+        "$(QtDir)\bin\windeployqt.exe" --no-translations --no-compiler-runtime qmlapp.exe &gt; NUL
+      </RunWinDeployQt>
+    </PropertyGroup>
+    <Exec Command="$(RunWinDeployQt)" />
+
+    <PropertyGroup>
+      <AppHostSourcePath>$(TargetDir)qmlapp.exe</AppHostSourcePath>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="CleanNative" AfterTargets="Clean">
+    <PropertyGroup>
+      <CleanNative>
+        CD "$(TargetDir)" &amp;&amp; RD /S /Q "$(TargetDir)" &gt; NUL 2&gt;&amp;1
+      </CleanNative>
+    </PropertyGroup>
+    <Exec Command="$(CleanNative)" />
+  </Target>
+
+</Project>
