@@ -1,7 +1,5 @@
-/***************************************************************************************************
- Copyright (C) 2023 The Qt Company Ltd.
- SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
-***************************************************************************************************/
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 using System.ComponentModel;
 using System.Diagnostics;
@@ -215,11 +213,11 @@ namespace FooLib
         {
             var lat = TimeSpan.FromHours(Math.Abs(args.Y));
             char latNS = args.Y >= 0 ? 'N' : 'S';
-            Param1 = $"{lat.Hours}° {lat.Minutes}' {lat.Seconds}'' {latNS}";
+            Param1 = $"{lat.Hours}\u00B0 {lat.Minutes}' {lat.Seconds}'' {latNS}";
 
             var lon = TimeSpan.FromHours(Math.Abs(args.X));
             char lonEW = args.X >= 0 ? 'E' : 'W';
-            Param2 = $"{lon.Hours}° {lon.Minutes}' {lon.Seconds}'' {lonEW}";
+            Param2 = $"{lon.Hours}\u00B0 {lon.Minutes}' {lon.Seconds}'' {lonEW}";
 
             return true;
         }
