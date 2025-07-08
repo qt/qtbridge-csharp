@@ -1,0 +1,68 @@
+/***************************************************************************************************
+ Copyright (C) 2025 The Qt Company Ltd.
+ SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+***************************************************************************************************/
+
+using System.Reflection;
+
+namespace Qt.DotNet.CodeGeneration.Rules.Delegates
+{
+    using MetaFunctions;
+    using Extensions;
+    using static Placeholders;
+    using static Traits;
+
+    public class GenerateDelegate : GenerateDelegateHeader
+    {
+        public override int Priority => base.Priority + 1;
+        public override Result Execute(MemberInfo src)
+        {
+            if (src is not Type type)
+                return Error();
+
+            var sigTypes = type.DelegateSignature();
+            var baseClass = $"QDotNetDelegate<{string
+                .Join($", ", sigTypes.Select(x => $"{x.MFn(Ns | Name)}"))}>";
+
+            ////////////////////////////////////////////////////////////////////////////////////////
+            //
+            if (type.GetPlaceholder(ForwardDecl) is not { } forwardDecl)
+                return Error();
+            forwardDecl += $"struct {type.MFn(Name)};";
+
+            ////////////////////////////////////////////////////////////////////////////////////////
+            //
+            if (type.GetPlaceholder(Includes) is not { } includes)
+                return Error();
+            includes += "#include <QDotNetDelegate>";
+            foreach (var sigType in sigTypes.Where(x => !x.IsBuiltIn()))
+                includes += $"#include <{sigType.MFn(Ns | Dir)}{sigType.MFn(File)}.h>";
+
+            ////////////////////////////////////////////////////////////////////////////////////////
+            //
+            if (type.GetPlaceholder(PublicDeclarations) is not { } publicDecl)
+                return Error();
+            publicDecl += $@"
+
+struct {type.MFn(Ns | Name)} : public {baseClass}
+{{
+    {type.MFn(Name)}(nullptr_t) : {baseClass}(nullptr) {{ }}
+    {type.MFn(Name)}(const void *objectRef): {baseClass}(objectRef) {{ }}
+    {type.MFn(Name)}(const {type.MFn(Name)} &cpySrc) : {baseClass}(cpySrc) {{ }}
+    {type.MFn(Name)} &operator=(const {type.MFn(Name)} &cpySrc)
+    {{
+        {baseClass}::operator=(cpySrc);
+        return *this;
+    }}
+    {type.MFn(Name)}({type.MFn(Name)} &&movSrc) noexcept : {baseClass}(std::move(movSrc)) {{ }}
+    {type.MFn(Name)} &operator=({type.MFn(Name)} &&movSrc) noexcept
+    {{
+        {baseClass}::operator=(std::move(movSrc));
+        return *this;
+    }}
+}};
+";
+            return Ok;
+        }
+    }
+}
