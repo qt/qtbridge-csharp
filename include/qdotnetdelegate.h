@@ -22,6 +22,8 @@ class QDotNetDelegate : public QDotNetObject
 public:
     Q_DOTNET_OBJECT_INLINE(QDotNetDelegate, "System.Delegate");
 
+    QDotNetDelegate() : QDotNetObject(nullptr) { }
+
     T invoke(TArg... arg) const
     {
         return method("Invoke", fnInvoke).invoke(*this, arg...);
