@@ -44,9 +44,10 @@ namespace Qt.DotNet.Utils
             object owner = lazyProperty.DeclaringType;
             if (lazyPropertyExpr.Expression is ConstantExpression { Value: not null } lazyThis)
                 owner = lazyThis.Value;
+            if (Objs.TryGetValue((owner, lazyProperty), out var current) && current.Equals(value))
+                return;
             Objs[(owner, lazyProperty)] = value;
-            if (owner is INotifyPropertyChanged)
-                PropertyChanged?.Invoke(owner, new PropertyChangedEventArgs(lazyProperty.Name));
+            PropertyChanged?.Invoke(owner, new PropertyChangedEventArgs(lazyProperty.Name));
         }
     }
 }
