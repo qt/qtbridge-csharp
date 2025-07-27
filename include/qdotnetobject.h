@@ -343,6 +343,45 @@ struct QDotNetEventHandler
         QDotNetObject &eventArgs) = 0;
 };
 
+template<typename T = nullptr_t>
+struct QDotNetEventHandlerHelper : public QDotNetEventHandler
+{
+    QDotNetEventHandlerHelper(const QString &eventName, QDotNetObject *receiver, T *d = nullptr)
+        : eventName(eventName), receiver(receiver), d(d)
+    {
+        receiver->subscribe(eventName, this);
+    }
+
+    ~QDotNetEventHandlerHelper() override
+    {
+        // TO_DO: figure out why this crashes on app shutdown
+        if (receiver && receiver->isValid())
+            receiver->unsubscribe(eventName, this);
+    }
+
+    const QString eventName{ };
+    QDotNetObject *receiver{ nullptr };
+    T *d{ nullptr };
+};
+
+#define Q_DOTNET_EVENT_HANDLER(event_name,context) \
+struct event_name##EventHandler : public QDotNetEventHandlerHelper<context> \
+{ \
+    event_name##EventHandler(QDotNetObject *receiver, context *d = nullptr) \
+    : QDotNetEventHandlerHelper<context>(#event_name, receiver, d) {} \
+    void handleEvent(const QString &name, QDotNetObject &sender, QDotNetObject &args) override; \
+}; \
+event_name##EventHandler
+
+#define Q_DOTNET_CONTEXT_FREE_EVENT_HANDLER(event_name) \
+struct event_name##EventHandler : public QDotNetEventHandlerHelper<> \
+{ \
+    event_name##EventHandler(QDotNetObject *receiver) \
+    : QDotNetEventHandlerHelper<>(#event_name, receiver) {} \
+    void handleEvent(const QString &name, QDotNetObject &sender, QDotNetObject &args) override; \
+}; \
+event_name##EventHandler
+
 inline void QDOTNETFUNCTION_CALLTYPE QDotNetObject::eventCallback(void *context, void *eventNameChars,
     void *eventSourceRef, void *eventArgsRef)
 {
