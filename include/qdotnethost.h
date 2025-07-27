@@ -18,6 +18,7 @@
 #include <QFile>
 #include <QProcess>
 #include <QRegularExpression>
+#include <QScopedPointer>
 #include <QString>
 #include <QTemporaryFile>
 #include <QVersionNumber>
@@ -73,8 +74,17 @@ public:
         if (!loadRuntime(runtimePath))
             return false;
 
-        int argc = 1;
-        const char_t *argv[] = { STR(appPath), nullptr };
+        auto argc = args.size();
+        if (argc == 0)
+            argc = 1;
+        QScopedPointer<const char_t *,
+            QScopedPointerArrayDeleter<const char_t *>> argvPtr(new const char_t * [argc + 1]);
+
+        auto argv = argvPtr.data();
+        argv[0] = STR(appPath);
+        for (int i = 1; i < argc ; ++i)
+            argv[i] = STR(args[i]);
+        argv[argc] = nullptr;
 
         auto result = fnInitApp(argc, argv, nullptr, &hostContext);
         if (HOSTFN_FAILED(result) || hostContext == nullptr) {
