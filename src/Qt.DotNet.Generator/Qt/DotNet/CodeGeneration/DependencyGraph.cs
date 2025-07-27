@@ -73,15 +73,21 @@ namespace Qt.DotNet.CodeGeneration
         private Type AttribIgnore => lazy.Get(() => AttribIgnore, ()
             => TypeOf<Qt.IgnoreAttribute>());
 
-        public ConcurrentSet<Type> ExcludedTypes { get; } = new();
+        public ConcurrentSet<Type> ExcludedTypes => lazy.Get(() => ExcludedTypes, () => new()
+        {
+            TypeOf<Task>(),
+            TypeOf<IDeserializationCallback>(),
+            TypeOf<IFormattable>(),
+            TypeOf<ISerializable>(),
+            TypeOf<ISpanFormattable>(),
+            TypeOf<SerializationInfo>(),
+            TypeOf<StreamingContext>(),
+        });
         public ConcurrentSet<Type> ExcludedBaseTypes { get; } = new();
 
         public ConcurrentSet<Type> BuiltInTypes => lazy.Get(() => BuiltInTypes, () => new()
         {
             TypeOf<Array>(),
-            TypeOf<ICollection>(),
-            TypeOf<IEnumerable>(),
-            TypeOf<IEnumerator>(),
             TypeOf<DateTime>(),
             TypeOf<decimal>(),
             TypeOf<Delegate>(),
@@ -90,17 +96,10 @@ namespace Qt.DotNet.CodeGeneration
             TypeOf<IComparable>(),
             TypeOf<IConvertible>(),
             TypeOf<IDisposable>(),
-            TypeOf<IDeserializationCallback>(),
-            TypeOf<IFormattable>(),
             TypeOf<INotifyPropertyChanged>(),
-            TypeOf<ISerializable>(),
-            TypeOf<ISpanFormattable>(),
             TypeOf<object>(),
             TypeOf<PropertyChangedEventArgs>(),
             TypeOf<string>(),
-            TypeOf<SerializationInfo>(),
-            TypeOf<StreamingContext>(),
-            TypeOf<Task>(),
             TypeOf<Type>(),
             TypeOf<ValueType>(),
             TypeOf(typeof(void))
@@ -242,6 +241,9 @@ namespace Qt.DotNet.CodeGeneration
         {
             if (fromType == type)
                 return true;
+
+            if (IsExcluded(type))
+                return false;
 
             if (IsBuiltIn(type))
                 return true;
