@@ -85,6 +85,7 @@ namespace Qt.MetaObject
         : Signal<TEvent>
         where TEvent : EventArgs
     {
+        public Type Type1 => typeof(T1);
         public virtual T1 Arg1 { get; private set; }
         protected object Param1 { set { Arg1 = ArgValue<T1>(value); } }
         public override int Count => 1;
@@ -104,6 +105,7 @@ namespace Qt.MetaObject
         : Signal<TEvent, T1>
         where TEvent : EventArgs
     {
+        public Type Type2 => typeof(T2);
         public virtual T2 Arg2 { get; private set; }
         protected object Param2 { set { Arg2 = ArgValue<T2>(value); } }
         public override int Count => 2;
@@ -125,6 +127,7 @@ namespace Qt.MetaObject
         : Signal<TEvent, T1, T2>
         where TEvent : EventArgs
     {
+        public Type Type3 => typeof(T3);
         public virtual T3 Arg3 { get; private set; }
         protected object Param3 { set { Arg3 = ArgValue<T3>(value); } }
         public override int Count => 3;
@@ -146,6 +149,7 @@ namespace Qt.MetaObject
         : Signal<TEvent, T1, T2, T3>
         where TEvent : EventArgs
     {
+        public Type Type4 => typeof(T4);
         public virtual T4 Arg4 { get; private set; }
         protected object Param4 { set { Arg4 = ArgValue<T4>(value); } }
         public override int Count => 4;
@@ -167,6 +171,7 @@ namespace Qt.MetaObject
         : Signal<TEvent, T1, T2, T3, T4>
         where TEvent : EventArgs
     {
+        public Type Type5 => typeof(T5);
         public virtual T5 Arg5 { get; private set; }
         protected object Param5 { set { Arg5 = ArgValue<T5>(value); } }
         public override int Count => 5;
@@ -188,6 +193,7 @@ namespace Qt.MetaObject
         : Signal<TEvent, T1, T2, T3, T4, T5>
         where TEvent : EventArgs
     {
+        public Type Type6 => typeof(T6);
         public virtual T6 Arg6 { get; private set; }
         protected object Param6 { set { Arg6 = ArgValue<T6>(value); } }
         public override int Count => 6;
@@ -209,6 +215,7 @@ namespace Qt.MetaObject
         : Signal<TEvent, T1, T2, T3, T4, T5, T6>
         where TEvent : EventArgs
     {
+        public Type Type7 => typeof(T7);
         public virtual T7 Arg7 { get; private set; }
         protected object Param7 { set { Arg7 = ArgValue<T7>(value); } }
         public override int Count => 7;
@@ -230,6 +237,7 @@ namespace Qt.MetaObject
         : Signal<TEvent, T1, T2, T3, T4, T5, T6, T7>
         where TEvent : EventArgs
     {
+        public Type Type8 => typeof(T8);
         public virtual T8 Arg8 { get; private set; }
         protected object Param8 { set { Arg8 = ArgValue<T8>(value); } }
         public override int Count => 8;
@@ -251,6 +259,7 @@ namespace Qt.MetaObject
         : Signal<TEvent, T1, T2, T3, T4, T5, T6, T7, T8>
         where TEvent : EventArgs
     {
+        public Type Type9 => typeof(T9);
         public virtual T9 Arg9 { get; private set; }
         protected object Param9 { set { Arg9 = ArgValue<T9>(value); } }
         public override int Count => 9;
@@ -272,6 +281,7 @@ namespace Qt.MetaObject
         : Signal<TEvent, T1, T2, T3, T4, T5, T6, T7, T8, T9>
         where TEvent : EventArgs
     {
+        public Type Type10 => typeof(T10);
         public virtual T10 Arg10 { get; private set; }
         protected object Param10 { set { Arg10 = ArgValue<T10>(value); } }
         public override int Count => 10;
@@ -293,6 +303,7 @@ namespace Qt.MetaObject
         : Signal<TEvent, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
         where TEvent : EventArgs
     {
+        public Type Type11 => typeof(T11);
         public virtual T11 Arg11 { get; private set; }
         protected object Param11 { set { Arg11 = ArgValue<T11>(value); } }
         public override int Count => 11;
@@ -314,6 +325,7 @@ namespace Qt.MetaObject
         : Signal<TEvent, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>
         where TEvent : EventArgs
     {
+        public Type Type12 => typeof(T12);
         public virtual T12 Arg12 { get; private set; }
         protected object Param12 { set { Arg12 = ArgValue<T12>(value); } }
         public override int Count => 12;
@@ -335,6 +347,7 @@ namespace Qt.MetaObject
         : Signal<TEvent, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>
         where TEvent : EventArgs
     {
+        public Type Type13 => typeof(T13);
         public virtual T13 Arg13 { get; private set; }
         protected object Param13 { set { Arg13 = ArgValue<T13>(value); } }
         public override int Count => 13;
@@ -356,6 +369,7 @@ namespace Qt.MetaObject
         : Signal<TEvent, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>
         where TEvent : EventArgs
     {
+        public Type Type14 => typeof(T14);
         public virtual T14 Arg14 { get; private set; }
         protected object Param14 { set { Arg14 = ArgValue<T14>(value); } }
         public override int Count => 14;
@@ -377,6 +391,7 @@ namespace Qt.MetaObject
         : Signal<TEvent, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>
         where TEvent : EventArgs
     {
+        public Type Type15 => typeof(T15);
         public virtual T15 Arg15 { get; private set; }
         protected object Param15 { set { Arg15 = ArgValue<T15>(value); } }
         public override int Count => 15;
@@ -398,6 +413,7 @@ namespace Qt.MetaObject
         : Signal<TEvent, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>
         where TEvent : EventArgs
     {
+        public Type Type16 => typeof(T16);
         public virtual T16 Arg16 { get; private set; }
         protected object Param16 { set { Arg16 = ArgValue<T16>(value); } }
         public override int Count => 16;

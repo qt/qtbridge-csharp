@@ -85,6 +85,22 @@ public:
         return fnGetArg();
     }
 
+    QDotNetType type(int argIdx)
+    {
+        if (argIdx < 0 || argIdx >= count())
+            return { nullptr };
+        auto fnGetType = method<QDotNetType>(QString("get_Type%1").arg(argIdx + 1));
+        return fnGetType();
+    }
+
+    bool is(int argIdx, const QString &typeName)
+    {
+        if (argIdx < 0 || argIdx >= count())
+            return false;
+        auto argType = type(argIdx);
+        return argType.isValid() && argType.isAssignableTo(QDotNetType::typeOf(typeName));
+    }
+
 private:
     static inline
         QDotNetType typeSignal = nullptr;
