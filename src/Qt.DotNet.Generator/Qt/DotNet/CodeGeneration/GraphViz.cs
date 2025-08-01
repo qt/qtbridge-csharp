@@ -18,7 +18,6 @@ namespace Qt.DotNet.CodeGeneration
             var graphViz = RootGraph.CreateNew(GraphType.Directed, "Assembly Dependency Graph");
             graphViz.SetAttribute("fontname", "Consolas");
 
-            Dictionary<string, HashSet<Type>> namespaces = new();
             foreach (var node in graph) {
                 var type = node.Key;
                 var gvNode = graphViz.GetOrAddNode(type.GetHashCode().ToString());
@@ -87,24 +86,15 @@ PROPERTY {TypeLabel(x.PropertyType)} {x.Name}");
 <FONT FACE=""Consolas"" POINT-SIZE=""{(type.IsRootNode() ? 24 : 14)}"">
   <TABLE BORDER=""{(type.IsRootNode() ? 2 : 1)}"" CELLBORDER=""0"" CELLSPACING=""0"">
     <TR>
+      <TD ALIGN=""LEFT"" BGCOLOR=""lightgray""
+        ><SUP>{type.Namespace ?? "<B>ROOT</B>"}</SUP></TD>
+    </TR>
+    <TR>
       <TD BORDER=""{(members.Any() ? 1 : 0)}"" SIDES=""B""><B>{TypeLabel(type)}</B></TD>
     </TR>
 {membersHtml}
   </TABLE>
 </FONT>");
-
-                if (string.IsNullOrEmpty(type.Namespace))
-                    continue;
-                if (!namespaces.TryGetValue(type.Namespace, out var nsTypes))
-                    nsTypes = namespaces[type.Namespace] = new();
-                nsTypes.Add(type);
-            }
-
-            foreach (var ns in namespaces) {
-                var cluster = AddNamespaceCluster(ns.Key, graphViz);
-                foreach (var node in ns.Value) {
-                    cluster.AddExisting(graphViz.GetNode(node.GetHashCode().ToString()));
-                }
             }
 
             foreach (var nodeFrom in graph.Keys) {
@@ -117,24 +107,6 @@ PROPERTY {TypeLabel(x.PropertyType)} {x.Name}");
             }
 
             return graphViz;
-        }
-
-        private static SubGraph AddNamespaceCluster(string ns, RootGraph graphViz)
-        {
-            var parts = ns.Split('.');
-            var ranks = parts.Select((n, i) => string.Join('.', parts.Take(i + 1)));
-            SubGraph cluster = null;
-            foreach (var rank in ranks) {
-                cluster = (cluster ?? (Graph)graphViz).GetOrCreateCluster(rank);
-                cluster.SetAttribute("label", ns);
-                cluster.SetAttribute("labeljust", "l");
-                cluster.SetAttribute("fontsize", "22");
-                cluster.SetAttribute("fontcolor", "gray60");
-                cluster.SetAttribute("margin", "20");
-                cluster.SetAttribute("style", "dashed");
-                cluster.SetAttribute("pencolor", "gray60");
-            }
-            return cluster;
         }
 
         private static string TypeLabel(Type type)
