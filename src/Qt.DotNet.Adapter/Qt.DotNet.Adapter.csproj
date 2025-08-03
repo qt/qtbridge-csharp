@@ -21,27 +21,9 @@
   <Target Name="CleanPostBuild" AfterTargets="Clean">
     <Delete Files="$(SolutionDir)bin\$(AssemblyName).dll" />
   </Target>
-  <ItemGroup>
-    <None Remove="build\Qt.DotNet.Adapter.targets" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="build\Qt.DotNet.Adapter.targets">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\includegen\includegen.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="build\include\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="..\..\include\*" Link="build\include\%(FileName)%(Extension)">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
 </Project>
