@@ -55,14 +55,12 @@
     <ItemGroup>
       <NativeProject Include="$(IntermediateOutputPath)qtdotnet\native\build\*.vcxproj" />
     </ItemGroup>
-    <!-- TO_DO: uncomment when full native code is generated
     <MSBuild Condition="'%(NativeProject.Filename)' != 'ALL_BUILD' AND '%(NativeProject.Filename)' != 'ZERO_CHECK'" Projects="%(NativeProject.Identity)" Properties="Platform=x64;CL_MP=true" BuildInParallel="false" Targets="Build;BuiltProjectOutputGroup">
       <Output TaskParameter="TargetOutputs" ItemName="NativeBinary" />
     </MSBuild>
     <PropertyGroup>
       <AppHostSourcePath Condition="'%(NativeBinary.Extension)' == '.exe'">@(NativeBinary)</AppHostSourcePath>
     </PropertyGroup>
-    -->
   </Target>
 
   <Target Name="DeployNative" AfterTargets="CopyFilesToOutputDirectory">
@@ -73,9 +71,7 @@
         "$(QtDir)\bin\windeployqt.exe" --no-translations --no-compiler-runtime "$(RunCommand)" &gt; NUL
       </RunWinDeployQt>
     </PropertyGroup>
-    <!-- TO_DO: uncomment when full native code is generated
     <Exec Command="$(RunWinDeployQt)" />
-    -->
   </Target>
 
   <Target Name="CleanNative" AfterTargets="Clean">
