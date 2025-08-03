@@ -13,3 +13,6 @@ obj/
 # Generated Headers
 include/*
 !include/*.h
+
+# Build logs
+*.binlog
