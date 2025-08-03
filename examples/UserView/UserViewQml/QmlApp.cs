@@ -15,8 +15,7 @@ using Qt.Quick;
 namespace UserViewQml
 {
     [QObject]
-    [QmlElement]
-    [QmlSingleton]
+    [QmlElement(Singleton = true)]
     public class QmlApp : INotifyPropertyChanged
     {
         public QmlApp()

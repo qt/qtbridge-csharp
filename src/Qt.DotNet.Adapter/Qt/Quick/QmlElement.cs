@@ -13,5 +13,11 @@ namespace Qt.Quick
     public class QmlElementAttribute : Attribute
     {
         public string Name { get; set; }
+        public bool Singleton { get; set; }
+    }
+
+    [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+    public class QmlElementAttribute<T> : QmlElementAttribute
+    {
     }
 }
