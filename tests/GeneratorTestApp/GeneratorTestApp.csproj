@@ -1,80 +1,31 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+****************************************************************************************************
+ Copyright (C) 2025 The Qt Company Ltd.
+ SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+****************************************************************************************************
+-->
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
+    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="User.cs" />
+    <ProjectReference
+      Include="..\..\src\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
+    <ProjectReference
+      Include="..\..\src\Qt.DotNet.Generator\Qt.DotNet.Generator.csproj" />
+    <ProjectReference
+      Include="..\..\src\Qt.DotNet.GenerationRules\Qt.DotNet.GenerationRules.csproj" />
+    <ProjectReference
+      Include="..\..\utils\LazyFactory\LazyFactory.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
-    <ProjectReference Include="..\..\src\Qt.DotNet.Generator\Qt.DotNet.Generator.csproj" />
-    <ProjectReference Include="..\..\src\Qt.DotNet.GenerationRules\Qt.DotNet.GenerationRules.csproj" />
-    <ProjectReference Include="..\..\utils\LazyFactory\LazyFactory.csproj" />
-  </ItemGroup>
+  <Import Project="qtdotnet.targets"/>
 
-  <Target Name="BuildNative" AfterTargets="CoreCompile" BeforeTargets="_CreateAppHost" Condition="'$(DesignTimeBuild)' != 'true'">
-
-    <Message Importance="high" Text="Generating native code..." />
-    <MakeDir Directories="$(IntermediateOutputPath)qtdotnet\native" />
-    <PropertyGroup>
-      <QdnGenCmd>"..\..\src\Qt.DotNet.Generator\bin\$(Configuration)\$(TargetFramework)\qdngen.exe"</QdnGenCmd>
-      <QdnGenCmd>$(QdnGenCmd) --source "$(IntermediateOutputPath)$(TargetFileName)"</QdnGenCmd>
-      <QdnGenCmd>$(QdnGenCmd) --ref "$(SolutionDir)src\Qt.DotNet.Adapter\bin\$(Configuration)\$(TargetFramework)"</QdnGenCmd>
-      <QdnGenCmd>$(QdnGenCmd) --rules "$(SolutionDir)src\Qt.DotNet.GenerationRules\bin\$(Configuration)\$(TargetFramework)\Qt.DotNet.GenerationRules.dll"</QdnGenCmd>
-      <QdnGenCmd>$(QdnGenCmd) --rules "$(ProjectDir)$(IntermediateOutputPath)$(TargetFileName)"</QdnGenCmd>
-      <QdnGenCmd Condition="'$(Configuration)' == 'Debug'">$(QdnGenCmd) --graphviz "$(IntermediateOutputPath)qtdotnet\dependency_graph.pdf"</QdnGenCmd>
-      <QdnGenCmd>$(QdnGenCmd) --target "$(IntermediateOutputPath)qtdotnet\native"</QdnGenCmd>
-    </PropertyGroup>
-    <Exec Command="$(QdnGenCmd)" EchoOff="true" IgnoreExitCode="true">
-      <Output TaskParameter="ExitCode" PropertyName="GenResult" />
-    </Exec>
-    <Error Condition="'$(GenResult)' != '0'" Text="Error generating native code!" />
-    <WriteLinesToFile File="$(IntermediateOutputPath)qtdotnet\native\source\qtdotnet.cmake" Lines="include_directories(&quot;$(SolutionDir.Replace('\', '/'))include&quot;)" Overwrite="true" WriteOnlyWhenDifferent="true" />
-
-    <Message Importance="high" Text="Building native code..." />
-    <MakeDir Directories="$(IntermediateOutputPath)qtdotnet\native\build" />
-    <PropertyGroup>
-      <QtDir Condition="'$(QtDir)' == ''">C:\lib\qt\6.8.0\msvc2022_64</QtDir>
-      <BuildNative>
-        CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
-        SET CMAKE_PREFIX_PATH=$(QtDir);$(CMAKE_PREFIX_PATH)
-        CD "$(IntermediateOutputPath)qtdotnet\native\build"
-        cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake
-      </BuildNative>
-    </PropertyGroup>
-    <Exec Command="$(BuildNative)" EchoOff="true" IgnoreExitCode="true">
-      <Output TaskParameter="ExitCode" PropertyName="BuildResult" />
-    </Exec>
-    <Error Condition="'$(BuildResult)' != '0'" Text="Error building native code!" />
-    <ItemGroup>
-      <NativeProject Include="$(IntermediateOutputPath)qtdotnet\native\build\*.vcxproj" />
-    </ItemGroup>
-    <MSBuild Condition="'%(NativeProject.Filename)' != 'ALL_BUILD' AND '%(NativeProject.Filename)' != 'ZERO_CHECK'" Projects="%(NativeProject.Identity)" Properties="Platform=x64;CL_MP=true" BuildInParallel="false" Targets="Build;BuiltProjectOutputGroup">
-      <Output TaskParameter="TargetOutputs" ItemName="NativeBinary" />
-    </MSBuild>
-    <PropertyGroup>
-      <AppHostSourcePath Condition="'%(NativeBinary.Extension)' == '.exe'">@(NativeBinary)</AppHostSourcePath>
-    </PropertyGroup>
-  </Target>
-
-  <Target Name="DeployNative" AfterTargets="CopyFilesToOutputDirectory">
-    <Message Importance="high" Text="Deploying Qt binaries..." />
-    <PropertyGroup>
-      <RunWinDeployQt>
-        CD "$(TargetDir)"
-        "$(QtDir)\bin\windeployqt.exe" --no-translations --no-compiler-runtime "$(RunCommand)" &gt; NUL
-      </RunWinDeployQt>
-    </PropertyGroup>
-    <Exec Command="$(RunWinDeployQt)" />
-  </Target>
-
-  <Target Name="CleanNative" AfterTargets="Clean">
-    <RemoveDir Directories="$(IntermediateOutputPath)qtdotnet\native" />
-  </Target>
 </Project>

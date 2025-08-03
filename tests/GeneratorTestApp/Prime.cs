@@ -10,29 +10,34 @@ namespace GeneratorTestApp
 {
     public class Prime : INotifyPropertyChanged
     {
-        public int Index
+        public List<Prime > Primes { get; set; }
+        public Prime()
         {
-            get => lazy.Get(() => Index, () => 0);
-            set
-            {
-                lazy.Set(() => Index, value);
-                Value = NthPrime(value + 1);
-            }
-        }
-
-        public int this[int idx] { get => NthPrime(idx); set { } }
-        public int this[string idx] { get => NthPrime(int.Parse(idx)); set { } }
-
-        public int Value
-        {
-            get => lazy.Get(() => Value, () => 2);
-            set => lazy.Set(() => Value, value);
+            lazy.PropertyChanged += OnPropertyChanged;
         }
 
         public event PropertyChangedEventHandler PropertyChanged
         {
-            add { lazy.PropertyChanged += value; }
-            remove { lazy.PropertyChanged -= value; }
+            add => lazy.PropertyChanged += value;
+            remove => lazy.PropertyChanged -= value;
+        }
+
+        public int Index
+        {
+            get => lazy.Get(() => Index, () => 0);
+            set => lazy.Set(() => Index, value);
+        }
+
+        public int Value
+        {
+            get => lazy.Get(() => Value, () => 2);
+            private set => lazy.Set(() => Value, value);
+        }
+
+        private void OnPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(Index))
+                Value = NthPrime(Index + 1);
         }
 
         private LazyFactory lazy = new();
