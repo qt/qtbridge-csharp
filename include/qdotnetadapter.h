@@ -108,7 +108,9 @@ public:
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(FreeTypeRef));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(AddInterfaceProxy));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(SetInterfaceMethod));
+#ifndef QT_NO_DEBUG
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(Stats));
+#endif
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(GetObject));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(Reset));
 
@@ -309,6 +311,7 @@ public:
             callback, cleanUp, context);
     }
 
+#ifndef QT_NO_DEBUG
     struct Stats
     {
         qint32 refCount;
@@ -331,6 +334,7 @@ public:
             --s.refCount;
         return s;
     }
+#endif
 
     void *object(const QDotNetRef &obj, const QString &path)
     {
@@ -366,7 +370,9 @@ private:
     mutable QDotNetFunction<void *, QString, void *, void *> fnAddInterfaceProxy;
     mutable QDotNetFunction<void, QDotNetRef, QString, qint32, QList<QDotNetParameter>,
         void *, void *, void *> fnSetInterfaceMethod;
+#ifndef QT_NO_DEBUG
     mutable QDotNetFunction<void, qint32 *, qint32 *, qint32 *> fnStats;
+#endif
     mutable QDotNetFunction<void *, QDotNetRef, QString> fnGetObject;
     mutable QDotNetFunction<void> fnReset;
 
