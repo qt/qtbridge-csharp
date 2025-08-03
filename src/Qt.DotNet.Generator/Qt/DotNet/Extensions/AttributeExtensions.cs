@@ -36,13 +36,48 @@ namespace Qt.DotNet.Extensions
             return attribData.Where(x => x.AttributeType.Assembly == adapterAssembly);
         }
 
-        public static object Property(this CustomAttributeData self, string propertyName)
+        public static bool HasProperty(this CustomAttributeData self, string name)
         {
             var namedArguments = self?.NamedArguments ?? new List<CustomAttributeNamedArgument>();
-            if (namedArguments.All(arg => arg.MemberName != propertyName))
-                throw new ArgumentException(nameof(propertyName));
-            return namedArguments.FirstOrDefault(arg => arg.MemberName == propertyName)
+            return namedArguments.Any(arg => arg.MemberName == name);
+        }
+
+        public static object Property(this CustomAttributeData self, string name)
+        {
+            var namedArguments = self?.NamedArguments ?? new List<CustomAttributeNamedArgument>();
+            if (!self.HasProperty(name))
+                throw new ArgumentException($"Property '{name}' not found.", nameof(name));
+            return namedArguments.FirstOrDefault(arg => arg.MemberName == name)
                 .TypedValue.Value;
+        }
+
+        public static bool TryProperty(this CustomAttributeData self, string name, out object value)
+        {
+            value = null;
+            if (!self.HasProperty(name))
+                return false;
+            value = self.Property(name);
+            return true;
+        }
+
+        public static T Property<T>(this CustomAttributeData self, string name)
+        {
+            var namedArguments = self?.NamedArguments ?? new List<CustomAttributeNamedArgument>();
+            if (!self.HasProperty(name))
+                throw new ArgumentException($"Property '{name}' not found.", nameof(name));
+            var arg = namedArguments.FirstOrDefault(arg => arg.MemberName == name).TypedValue;
+            if (arg.ArgumentType != TypeOf<T>() || arg.Value is not T argValue)
+                return default;
+            return argValue;
+        }
+
+        public static bool TryProperty<T>(this CustomAttributeData self, string name, out T value)
+        {
+            value = default;
+            if (!self.HasProperty(name))
+                return false;
+            value = self.Property<T>(name);
+            return true;
         }
     }
 }

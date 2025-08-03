@@ -8,9 +8,11 @@ namespace Qt.DotNet.CodeGeneration
     public enum Placeholders
     {
         BuildSpecFile
+            , IncludeDirs
             , Packages
             , SourceFiles
-            , QmlModules
+            , QmlElementSourceFiles
+            , QmlFiles
             , Libraries
             ,
         BuiltInTypes

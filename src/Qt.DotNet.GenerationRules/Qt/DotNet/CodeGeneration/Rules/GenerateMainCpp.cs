@@ -34,11 +34,13 @@ namespace Qt.DotNet.CodeGeneration.Rules
 "#include <QDir>",
 "#include <QFile>",
 "#include <QGuiApplication>",
+"#include <QQmlApplicationEngine>",
 "#include <QThread>",
 "#include <QTimer>",
 "#include <QDotNetHost>",
 "#include <QDotNetAdapter>",
-"#include <QDotNetRef>"
+"#include <QDotNetRef>",
+"#include <QDotNetStatic>"
                 }
             }
 ]}
@@ -74,12 +76,19 @@ int main(int argc, char *argv[])
         }});
     dotnetThread->start();
 
-    while (!dotNetHost.isReady())
-        QThread::yieldCurrentThread();
+    int tries = 0;
+    constexpr int maxTries = 10000; // ~1 sec total
+    while (!dotNetHost.isReady() && tries++ < maxTries)
+        QThread::usleep(100);
+    if (!dotNetHost.isReady()) {{
+        qCritical() << "".NET host not ready after timeout."";
+        return -2;
+    }}
 
+    QQmlApplicationEngine qmlEngine;
     QDotNetAdapter::instance().init(
         QDir(QCoreApplication::applicationDirPath()).filePath(""Qt.DotNet.Adapter.dll""),
-        ""Qt.DotNet.Adapter"", ""Qt.DotNet.Adapter"", &dotNetHost);
+        ""Qt.DotNet.Adapter"", ""Qt.DotNet.Adapter"", &dotNetHost, &qmlEngine);
 
     {mainCpp[new(MainBeforeAppExec) { Sorted = false }]}
 

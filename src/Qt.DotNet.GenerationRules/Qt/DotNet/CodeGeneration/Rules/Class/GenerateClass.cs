@@ -23,6 +23,18 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
+            if (type.IsQmlElement()) {
+                if (Root.GetPlaceholder(IncludeDirs) is not { } includeDirs)
+                    return Error();
+                includeDirs += $"include_directories({Hpp}/{type.MFn(Ns | Dir)})";
+
+                if (type.GetPlaceholder(Includes) is not { } includes)
+                    return Error();
+                includes += "#include <QtQml/qqmlregistration.h>";
+            }
+
+            ////////////////////////////////////////////////////////////////////////////////////////
+            //
             if (type.GetPlaceholder(ForwardDecl) is not { } forwardDecl)
                 return Error();
             forwardDecl += $"class {type.MFn(Name)};";
@@ -66,6 +78,10 @@ class {type.MFn(Ns | Name)} :
     public QObject, public QDotNetObject
 {{
     Q_OBJECT
+    {(!type.IsQmlElement() ? Wrap : type.QmlElementName() is not { Length: > 0 } elementName
+        ? "QML_ELEMENT"
+        : $"QML_NAMED_ELEMENT({elementName})")}
+    {(type.IsQmlSingleton() ? "QML_SINGLETON" : Wrap)}
     {publicDecl[new(TypeTraits)]}
 public:
     Q_DOTNET_OBJECT({type.MFn(Name)},
