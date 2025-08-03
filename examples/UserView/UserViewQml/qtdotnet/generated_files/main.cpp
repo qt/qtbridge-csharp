@@ -47,13 +47,12 @@ int main(int argc, char *argv[])
     dotnetThread->start();
 
     while (!dotNetHost.isReady())
-        QThread::sleep(1);
+        QThread::usleep(100);
+
+    QQmlApplicationEngine qmlEngine;
     QDotNetAdapter::instance().init(
         QDir(QCoreApplication::applicationDirPath()).filePath("Qt.DotNet.Adapter.dll"),
-        "Qt.DotNet.Adapter", "Qt.DotNet.Adapter", &dotNetHost);
-
-    QQmlApplicationEngine engine;
-    engine.loadFromModule("qmlapp", "Main");
+        "Qt.DotNet.Adapter", "Qt.DotNet.Adapter", &dotNetHost, &qmlEngine);
 
     return app.exec();
 }

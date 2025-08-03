@@ -8,6 +8,7 @@
 #include "qdotnetinterface.h"
 #include "iqmodelindex.h"
 #include "iqvariant.h"
+#include "iqqmlapplicationengine.h"
 #include "qdotnetabstractlistmodel.h"
 
 #include <functional>
@@ -25,6 +26,9 @@ public:
         IQVariant::staticInit(this);
         IQModelIndex::staticInit(this);
         QDotNetAbstractListModel::staticInit(this);
+#ifdef QT_QUICK_LIB
+        IQQmlApplicationEngine::staticInit(this);
+#endif
     }
 };
 

@@ -12,6 +12,11 @@
 #   pragma GCC diagnostic ignored "-Wconversion"
 #endif
 #include <QCoreApplication>
+#ifdef QT_QUICK_LIB
+#include <QQmlApplicationEngine>
+#else
+struct QQmlApplicationEngine {};
+#endif
 #include <QDir>
 #include <QList>
 #include <QMutexLocker>
@@ -62,13 +67,14 @@ public:
     }
 
     static void init(const QString &assemblyPath, const QString &typeAndAssemblyName,
-        QDotNetHost *externalHost = nullptr)
+        QDotNetHost *externalHost = nullptr, QQmlApplicationEngine *qml = nullptr)
     {
-        init(assemblyPath, typeAndAssemblyName, typeAndAssemblyName, externalHost);
+        init(assemblyPath, typeAndAssemblyName, typeAndAssemblyName, externalHost, qml);
     }
 
     static void init(const QString &assemblyPath, const QString &assemblyName,
-        const QString &typeName, QDotNetHost *externalHost = nullptr)
+        const QString &typeName, QDotNetHost *externalHost = nullptr,
+        QQmlApplicationEngine *qml = nullptr)
     {
         if (instance().isValid())
             return;
@@ -117,6 +123,7 @@ public:
 #undef QDOTNETADAPTER_DELEGATE
 
         instance().host = host;
+        instance().qml = qml;
 
         if (ctor_staticInterface)
             instance().staticInterface = ctor_staticInterface();
@@ -342,6 +349,11 @@ public:
         return fnGetObject(obj, path);
     }
 
+    QQmlApplicationEngine *qmlEngine() const
+    {
+        return qml;
+    }
+
 private:
     QDotNetHost defaultHost;
     mutable QDotNetHost *host = nullptr;
@@ -381,6 +393,7 @@ private:
     static inline const QString defaultTypeName = QLatin1String("Qt.DotNet.Adapter");
 
     mutable void *staticInterface = nullptr;
+    mutable QQmlApplicationEngine *qml = nullptr;
 
 public:
     inline static std::function<void *()> ctor_staticInterface = nullptr;
