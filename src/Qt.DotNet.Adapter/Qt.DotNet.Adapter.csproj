@@ -22,8 +22,6 @@
     <Delete Files="$(SolutionDir)bin\$(AssemblyName).dll" />
   </Target>
 
-  <ItemGroup>
-    <ProjectReference Include="..\includegen\includegen.csproj" />
-  </ItemGroup>
+  <Import Project="includegen.targets" />
 
 </Project>
