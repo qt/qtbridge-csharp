@@ -31,6 +31,19 @@
     <Copy SkipUnchangedFiles="true" SourceFiles="@(QtDotNetGenerated);@(Qml)" DestinationFolder="$(QtNativeSource)" />
 
     <Message Importance="high" Text="Building native code..." />
+
+    <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
+      <VsWhereCmd
+        >"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe"</VsWhereCmd>
+      <VsWhereCmd>$(VsWhereCmd) -latest</VsWhereCmd>
+      <VsWhereCmd>$(VsWhereCmd) -property installationPath</VsWhereCmd>
+    </PropertyGroup>
+    <Exec Condition="'$(VsInstallRoot)' == ''" Command="$(VsWhereCmd)" ConsoleToMsBuild="true">
+      <Output TaskParameter="ConsoleOutput" ItemName="VsWhereOutput" />
+    </Exec>
+    <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
+      <VsInstallRoot Condition="Exists('%(VsWhereOutput.Identity)')">%(VsWhereOutput.Identity)</VsInstallRoot>
+    </PropertyGroup>
     <PropertyGroup>
       <BuildNative>
         CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
@@ -47,6 +60,7 @@
     <Message Importance="high" Text="Deploying QML app..." />
     <PropertyGroup>
       <RunWinDeployQt>
+        CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
         CD "$(TargetDir)"
         "$(QtDir)\bin\windeployqt.exe" --no-translations --no-compiler-runtime qmlapp.exe &gt; NUL
       </RunWinDeployQt>

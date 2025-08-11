@@ -12,6 +12,10 @@
     <QtDir Condition="'$(QtDir)' == ''">C:\lib\qt\6.8.0\msvc2022_64</QtDir>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(SolutionDir)' == ''">
+    <SolutionDir>$(MSBuildThisFileDirectory)\..\..\</SolutionDir>
+  </PropertyGroup>
+
   <ItemGroup>
     <!-- Add QML files to the build -->
     <Qml Include="$(ProjectDir)**\*.qml" />
@@ -87,14 +91,31 @@
 
     <Message Importance="high" Text="Qt/.NET: Building native code..." />
 
+    <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
+      <VsWhereCmd
+        >"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe"</VsWhereCmd>
+      <VsWhereCmd>$(VsWhereCmd) -latest</VsWhereCmd>
+      <VsWhereCmd>$(VsWhereCmd) -property installationPath</VsWhereCmd>
+    </PropertyGroup>
+    <Exec Condition="'$(VsInstallRoot)' == ''" Command="$(VsWhereCmd)" ConsoleToMsBuild="true">
+      <Output TaskParameter="ConsoleOutput" ItemName="VsWhereOutput" />
+    </Exec>
+    <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
+      <CMakeBuild>true</CMakeBuild>
+      <VsInstallRoot Condition="Exists('%(VsWhereOutput.Identity)')">%(VsWhereOutput.Identity)</VsInstallRoot>
+    </PropertyGroup>
+
     <!-- TO_DO: allow choice of project generator (VS or Ninja) -->
     <MakeDir Directories="$(IntermediateOutputPath)qtdotnet\native\build" />
     <PropertyGroup>
       <CMakeCmd>
-        CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
-        SET CMAKE_PREFIX_PATH=$(QtDir);$(CMAKE_PREFIX_PATH)
-        CD "$(IntermediateOutputPath)qtdotnet\native\build"
-        cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake
+CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
+SET CMAKE_PREFIX_PATH=$(QtDir);$(CMAKE_PREFIX_PATH)
+CD "$(IntermediateOutputPath)qtdotnet\native\build"
+cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake
+      </CMakeCmd>
+      <CMakeCmd Condition="'$(CMakeBuild)' == 'true'">$(CMakeCmd)
+        cmake --build .
       </CMakeCmd>
     </PropertyGroup>
     <Exec Command="$(CMakeCmd)" EchoOff="true" IgnoreExitCode="true">
@@ -116,14 +137,33 @@
                               $(NativeApp).vcxproj" />
       <NativeProject Remove="@(NativeProject)" Condition="!Exists('%(NativeProject.FullPath)')" />
     </ItemGroup>
-    <MSBuild Projects="@(NativeProject)" BuildInParallel="false" StopOnFirstFailure="true"
-             Properties="Platform=x64;CL_MP=true" Targets="Build;BuiltProjectOutputGroup">
+    <MSBuild Condition="'$(CMakeBuild)' != 'true'"
+      Projects="@(NativeProject)" BuildInParallel="false" StopOnFirstFailure="true"
+      Properties="Platform=x64;CL_MP=true" Targets="Build;BuiltProjectOutputGroup">
       <Output TaskParameter="TargetOutputs" ItemName="NativeBinary" />
     </MSBuild>
-    <PropertyGroup>
+    <PropertyGroup Condition="'$(CMakeBuild)' != 'true'">
       <AppHostSourcePath
         Condition="'%(NativeBinary.Extension)' == '.exe'">@(NativeBinary)</AppHostSourcePath>
     </PropertyGroup>
+
+    <PropertyGroup Condition="'$(CMakeBuild)' == 'true'">
+      <MSBuildCmd>msbuild "$(NativeApp).vcxproj"</MSBuildCmd>
+      <MSBuildCmd>$(MSBuildCmd) -t:BuiltProjectOutputGroup</MSBuildCmd>
+      <MSBuildCmd>$(MSBuildCmd) -getProperty:TargetPath</MSBuildCmd>
+      <MSBuildCmd>
+CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
+$(MSBuildCmd) &gt; "$(NativeApp)_targetpath.txt"
+      </MSBuildCmd>
+    </PropertyGroup>
+    <Exec Condition="'$(CMakeBuild)' == 'true'"
+      Command="$(MSBuildCmd)" EchoOff="true" IgnoreExitCode="true" />
+    <PropertyGroup Condition="'$(CMakeBuild)' == 'true'">
+      <AppHostSourcePath Condition="Exists('$(NativeApp)_targetpath.txt')"
+        >$([System.IO.File]::ReadAllText('$(NativeApp)_targetpath.txt').Split('
+')[0])</AppHostSourcePath>
+    </PropertyGroup>
+
     <ItemGroup>
       <QtDotNetNativeBuild Include="$(IntermediateOutputPath)qtdotnet\native\build\**\*" />
     </ItemGroup>
