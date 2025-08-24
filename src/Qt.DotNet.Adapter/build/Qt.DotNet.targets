@@ -7,36 +7,15 @@
 -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-  <!-- TO_DO: implement detection of Qt installation(s) -->
-  <PropertyGroup>
-    <QtDir Condition="'$(QtDir)' == ''">C:\lib\qt\6.8.0\msvc2022_64</QtDir>
-  </PropertyGroup>
+  <Import
+    Condition="'$(QtDotNetPropsImported)' != 'true'"
+    Project="$(MSBuildThisFileDirectory)Qt.DotNet.props"/>
 
-  <PropertyGroup Condition="'$(SolutionDir)' == ''">
-    <SolutionDir>$(MSBuildThisFileDirectory)\..\..\</SolutionDir>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <!-- Add QML files to the build -->
-    <Qml Include="$(ProjectDir)**\*.qml" />
-    <!-- Remove copies in output dirs -->
-    <Qml Remove="$(ProjectDir)$(BaseOutputPath)**\*.qml" />
-    <Qml Remove="$(ProjectDir)$(BaseIntermediateOutputPath)**\*.qml" />
-    <!-- Add QML files to up-to-date check of VS -->
-    <UpToDateCheckInput Set="Qml" Include="@(Qml)" />
-    <UpToDateCheckOutput Set="Qml"
-      Include="@(Qml->'$(IntermediateOutputPath)qtdotnet\native\source\%(Filename)%(Extension)')" />
-    <!-- Add reference to source files for incremental build -->
-    <QtDotNetNativeSource
-      Include="$(IntermediateOutputPath)qtdotnet\native\source\CMakeLists.txt
-              ;$(IntermediateOutputPath)qtdotnet\native\source\**\*" />
-    <!-- Add reference to build files for incremental build -->
-    <QtDotNetNativeBuild
-      Include="$(IntermediateOutputPath)qtdotnet\native\build\CMakeCache.txt
-              ;$(IntermediateOutputPath)qtdotnet\native\build\**\*" />
-  </ItemGroup>
-
-  <Target Name ="QtDotNetAddQmlFiles" BeforeTargets="CoreCompile"
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtDotNetAddQmlFiles
+  -->
+  <Target Name="QtDotNetAddQmlFiles" BeforeTargets="CoreCompile"
     Inputs="@(Qml)" Outputs="$(IntermediateOutputPath)qtdotnet\csharp\QmlFiles.cs"
     Condition="'$(DesignTimeBuild)' != 'true'">
     <!-- Copy QML files to native source dir -->
@@ -53,37 +32,57 @@
         Include="$(IntermediateOutputPath)qtdotnet\csharp\QmlFiles.cs" />
     </ItemGroup>
   </Target>
+  <!-- END QtDotNetAddQmlFiles -->
 
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtDotNetGenerate
+  -->
   <Target Name="QtDotNetGenerate" AfterTargets="CoreCompile" BeforeTargets="_CreateAppHost"
     DependsOnTargets="QtDotNetAddQmlFiles"
-    Inputs="$(IntermediateOutputPath)$(TargetFileName)"
+    Inputs="$(TargetPath);$(ProjectDir)$(IntermediateOutputPath)$(TargetFileName)"
     Outputs="@(QtDotNetNativeSource)"
     Condition="'$(DesignTimeBuild)' != 'true'">
 
     <Message Importance="high" Text="Qt/.NET: Generating native code..." />
 
+    <Error Condition="'$(QtDotNetGen)' == '' OR !Exists('$(QtDotNetGen)')"
+      Text="Error: Qt/.NET generator tool not found" />
+    <Error Condition="'$(QtDotNetGenRules)' == '' OR !Exists('$(QtDotNetGenRules)')"
+      Text="Error: Qt/.NET generations rules not found" />
+    <Error Condition="'$(QtDotNetAdapter)' == '' OR !Exists('$(QtDotNetAdapter)')"
+      Text="Error: Qt/.NET adapter tool not found" />
+    <Error Condition="'$(QtDotNetLib)' == '' OR !Exists('$(QtDotNetLib)/qdotnethost.h')"
+      Text="Error: Qt/.NET library not found" />
+
     <PropertyGroup>
-      <GenCmd>"..\..\src\Qt.DotNet.Generator\bin\$(Configuration)\$(TargetFramework)\qdngen.exe"</GenCmd>
-      <GenCmd>$(GenCmd) --source "$(IntermediateOutputPath)$(TargetFileName)"</GenCmd>
-      <GenCmd>$(GenCmd) --ref "$(SolutionDir)src\Qt.DotNet.Adapter\bin\$(Configuration)\$(TargetFramework)"</GenCmd>
-      <GenCmd>$(GenCmd) --rules "$(SolutionDir)src\Qt.DotNet.GenerationRules\bin\$(Configuration)\$(TargetFramework)\Qt.DotNet.GenerationRules.dll"</GenCmd>
-      <GenCmd>$(GenCmd) --rules "$(ProjectDir)$(IntermediateOutputPath)$(TargetFileName)"</GenCmd>
-      <GenCmd Condition="'$(Configuration)' == 'Debug'"
-             >$(GenCmd) --graphviz "$(IntermediateOutputPath)qtdotnet\dependency_graph.pdf"</GenCmd>
-      <GenCmd>$(GenCmd) --target "$(IntermediateOutputPath)qtdotnet\native"</GenCmd>
+      <ProjectIntermediateDir>$(ProjectDir)$(IntermediateOutputPath)</ProjectIntermediateDir>
+      <QtGenCmd
+        >$(QtGenCmd) --rules "$(ProjectIntermediateDir)$(TargetFileName)"</QtGenCmd>
+      <QtGenCmd
+        >$(QtGenCmd) --source "$(ProjectIntermediateDir)$(TargetFileName)"</QtGenCmd>
+      <QtGenCmd
+        >$(QtGenCmd) --target "$(ProjectIntermediateDir)qtdotnet\native"</QtGenCmd>
     </PropertyGroup>
-    <Exec Command="$(GenCmd)" EchoOff="true" IgnoreExitCode="true">
-      <Output TaskParameter="ExitCode" PropertyName="GenResult" />
+
+    <Message Importance="high" Text="$(QtGenCmd)" />
+    <Exec Command="$(QtGenCmd)" EchoOff="true" IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="QtGenResult" />
     </Exec>
-    <Error Condition="'$(GenResult)' != '0'" Text="Error generating native code!" />
+    <Error Condition="'$(QtGenResult)' != '0'" Text="Error generating native code!" />
     <WriteLinesToFile Overwrite="true" WriteOnlyWhenDifferent="true"
       File="$(IntermediateOutputPath)qtdotnet\native\source\qtdotnet.cmake"
-      Lines="include_directories(&quot;$(SolutionDir.Replace('\', '/'))include&quot;)" />
+      Lines="include_directories(&quot;$(QtDotNetLib.Replace('\', '/'))&quot;)" />
     <ItemGroup>
       <QtDotNetNativeSource Include="$(IntermediateOutputPath)qtdotnet\native\source\**\*" />
     </ItemGroup>
   </Target>
+  <!-- END QtDotNetGenerate-->
 
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtDotNetBuild
+  -->
   <Target Name="QtDotNetBuild"
     DependsOnTargets="QtDotNetGenerate" BeforeTargets="_CreateAppHost"
     Inputs="@(QtDotNetNativeSource)" Outputs="@(QtDotNetNativeBuild)"
@@ -109,12 +108,13 @@
     <MakeDir Directories="$(IntermediateOutputPath)qtdotnet\native\build" />
     <PropertyGroup>
       <CMakeCmd>
-CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
-SET CMAKE_PREFIX_PATH=$(QtDir);$(CMAKE_PREFIX_PATH)
-CD "$(IntermediateOutputPath)qtdotnet\native\build"
-cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake
+        CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
+        SET CMAKE_PREFIX_PATH=$(QtDir);$(CMAKE_PREFIX_PATH)
+        CD "$(IntermediateOutputPath)qtdotnet\native\build"
+        cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake
       </CMakeCmd>
-      <CMakeCmd Condition="'$(CMakeBuild)' == 'true'">$(CMakeCmd)
+      <CMakeCmd Condition="'$(CMakeBuild)' == 'true'">
+        $(CMakeCmd)
         cmake --build .
       </CMakeCmd>
     </PropertyGroup>
@@ -152,23 +152,28 @@ cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake
       <MSBuildCmd>$(MSBuildCmd) -t:BuiltProjectOutputGroup</MSBuildCmd>
       <MSBuildCmd>$(MSBuildCmd) -getProperty:TargetPath</MSBuildCmd>
       <MSBuildCmd>
-CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
-$(MSBuildCmd) &gt; "$(NativeApp)_targetpath.txt"
+        CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
+        $(MSBuildCmd) &gt; "$(NativeApp)_targetpath.txt"
       </MSBuildCmd>
     </PropertyGroup>
     <Exec Condition="'$(CMakeBuild)' == 'true'"
       Command="$(MSBuildCmd)" EchoOff="true" IgnoreExitCode="true" />
     <PropertyGroup Condition="'$(CMakeBuild)' == 'true'">
       <AppHostSourcePath Condition="Exists('$(NativeApp)_targetpath.txt')"
-        >$([System.IO.File]::ReadAllText('$(NativeApp)_targetpath.txt').Split('
-')[0])</AppHostSourcePath>
+        >$([System.IO.File]::ReadAllText('$(NativeApp)_targetpath.txt')
+          .Replace('%0D', '').Split('%0A')[0])</AppHostSourcePath>
     </PropertyGroup>
 
     <ItemGroup>
       <QtDotNetNativeBuild Include="$(IntermediateOutputPath)qtdotnet\native\build\**\*" />
     </ItemGroup>
   </Target>
+  <!-- END QtDotNetBuild-->
 
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtDotNetDeploy
+  -->
   <Target Name="QtDotNetDeploy"
     AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="QtDotNetBuild"
     Inputs="$(RunCommand)" Outputs="$(TargetDir)qtdeploy.txt"
@@ -176,21 +181,46 @@ $(MSBuildCmd) &gt; "$(NativeApp)_targetpath.txt"
 
     <Message Importance="high" Text="Qt/.NET: Deploying Qt..." />
 
+    <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
+      <VsWhereCmd
+        >"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe"</VsWhereCmd>
+      <VsWhereCmd>$(VsWhereCmd) -latest</VsWhereCmd>
+      <VsWhereCmd>$(VsWhereCmd) -property installationPath</VsWhereCmd>
+    </PropertyGroup>
+    <Exec Condition="'$(VsInstallRoot)' == ''" Command="$(VsWhereCmd)" ConsoleToMsBuild="true">
+      <Output TaskParameter="ConsoleOutput" ItemName="VsWhereOutput" />
+    </Exec>
+    <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
+      <VsInstallRoot Condition="Exists('%(VsWhereOutput.Identity)')"
+        >%(VsWhereOutput.Identity)</VsInstallRoot>
+    </PropertyGroup>
+
     <PropertyGroup>
+      <VcVarsCmd Condition="'$(VsInstallRoot)' != ''"
+        >CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL</VcVarsCmd>
       <DeployCmd>"$(QtDir)\bin\windeployqt.exe"</DeployCmd>
       <DeployCmd>$(DeployCmd) --qmldir "$(ProjectDir.TrimEnd('\'))"</DeployCmd>
       <DeployCmd>$(DeployCmd) --no-translations</DeployCmd>
       <DeployCmd>$(DeployCmd) --no-compiler-runtime</DeployCmd>
       <DeployCmd>$(DeployCmd) "$(RunCommand)"</DeployCmd>
+      <DeployCmd>$(DeployCmd) &gt; NUL</DeployCmd>
     </PropertyGroup>
-    <Exec WorkingDirectory="$(TargetDir)" Command="$(DeployCmd) &gt; NUL" IgnoreExitCode="true">
+    <Exec Command="
+          $(VcVarsCmd)
+          $(DeployCmd)"
+      WorkingDirectory="$(TargetDir)" IgnoreExitCode="true">
       <Output TaskParameter="ExitCode" PropertyName="DeployResult" />
     </Exec>
     <Error Condition="'$(DeployResult)' != '0'" Text="Error deploying Qt binaries!" />
     <Exec WorkingDirectory="$(TargetDir)" IgnoreExitCode="true"
       Command="$(DeployCmd) --list relative &gt; qtdeploy.txt 2&gt; NUL" />
   </Target>
+  <!-- END QtDotNetDeploy-->
 
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtDotNetClean
+  -->
   <Target Name="QtDotNetClean" AfterTargets="Clean">
     <RemoveDir Directories="$(IntermediateOutputPath)qtdotnet" />
     <ReadLinesFromFile Condition="Exists('$(TargetDir)qtdeploy.txt')"
@@ -202,5 +232,6 @@ $(MSBuildCmd) &gt; "$(NativeApp)_targetpath.txt"
     <RemoveDir Condition="$([System.String]::Copy('%(QtDeploy.Identity)').Contains('\'))"
        Directories="$(TargetDir)$([System.IO.Path]::GetDirectoryName(%(QtDeploy.Identity)).Split('\')[0])" />
   </Target>
+  <!-- END QtDotNetClean-->
 
 </Project>
