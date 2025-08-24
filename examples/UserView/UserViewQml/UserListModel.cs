@@ -76,12 +76,12 @@ namespace UserViewQml
         public enum UserItemRoles
         {
             None = ItemDataRole.UserRole,
-            FullName, FirstName, LastName, Email, Thumbnail, Picture
+            FullName, FirstName, LastName, Email, Thumbnail, Picture, Age
         }
 
         public override string RoleNames()
         {
-            return "fullName,firstName,lastName,email,thumbnail,picture";
+            return "fullName,firstName,lastName,email,thumbnail,picture,age";
         }
 
         public override IQVariant Data(IQModelIndex index, int role = 0)
@@ -89,21 +89,18 @@ namespace UserViewQml
             if (index.Row() >= Count)
                 return null;
             var user = Users.ElementAt(index.Row());
-            string text = role switch
+            return role switch
             {
                 (int)ItemDataRole.DisplayRole or
-                (int)UserItemRoles.FullName => user.Name.Full,
-                (int)UserItemRoles.FirstName => user.Name.First,
-                (int)UserItemRoles.LastName => user.Name.Last,
-                (int)UserItemRoles.Email => user.Email,
-                (int)UserItemRoles.Thumbnail => user.Picture.Thumbnail,
-                (int)UserItemRoles.Picture => user.Picture.Large,
-                _ => string.Empty
+                (int)UserItemRoles.FullName => QVariant(user.Name.Full),
+                (int)UserItemRoles.FirstName => QVariant(user.Name.First),
+                (int)UserItemRoles.LastName => QVariant(user.Name.Last),
+                (int)UserItemRoles.Email => QVariant(user.Email),
+                (int)UserItemRoles.Thumbnail => QVariant(user.Picture.Thumbnail),
+                (int)UserItemRoles.Picture => QVariant(user.Picture.Large),
+                (int)UserItemRoles.Age => QVariant(user.Age),
+                _ => null
             };
-            if (string.IsNullOrEmpty(text))
-                return null;
-            var data = QVariant(text);
-            return data;
         }
 
         public override int RowCount(IQModelIndex parent = null)

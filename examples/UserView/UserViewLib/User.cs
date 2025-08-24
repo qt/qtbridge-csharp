@@ -9,8 +9,12 @@ namespace UserViewLib
 {
     public record User(
         [property: JsonPropertyName("name")] UserName Name,
+        [property: JsonPropertyName("dob")] UserDateOfBirth Birth,
         [property: JsonPropertyName("email")] string Email,
-        [property: JsonPropertyName("picture")] UserPicture Picture);
+        [property: JsonPropertyName("picture")] UserPicture Picture)
+    {
+        public int Age => Birth.Age;
+    }
 
     public record UserName(
         [property: JsonPropertyName("first")] string First,
@@ -18,6 +22,10 @@ namespace UserViewLib
     {
         public string Full => $"{Last}, {First}";
     }
+
+    public record UserDateOfBirth(
+        [property: JsonPropertyName("date")] DateTime Date,
+        [property: JsonPropertyName("age")] int Age);
 
     public record UserPicture(
         [property: JsonPropertyName("thumbnail")] string Thumbnail,

@@ -142,6 +142,33 @@ struct QDotNetNull<T, std::enable_if_t<std::is_fundamental_v<T>>>
     static bool isNull(const T &obj) { return obj == value(); }
 };
 
+template<>
+struct QDotNetTypeOf<QChar>
+{
+    static inline const QString TypeName = QStringLiteral("System.Char");
+    static inline UnmanagedType MarshalAs = UnmanagedType::U2; // 16-bit
+};
+
+template<>
+struct QDotNetOutbound<QChar>
+{
+    using SourceType = QChar;
+    using OutboundType = quint16; // matches U2
+    static inline const QDotNetParameter Parameter =
+        QDotNetParameter(QDotNetTypeOf<QChar>::TypeName, QDotNetTypeOf<QChar>::MarshalAs);
+    static OutboundType convert(SourceType sourceValue) { return sourceValue.unicode(); }
+};
+
+template<>
+struct QDotNetInbound<QChar>
+{
+    using InboundType = quint16;
+    using TargetType = QChar;
+    static inline const QDotNetParameter Parameter =
+        QDotNetParameter(QDotNetTypeOf<QChar>::TypeName, QDotNetTypeOf<QChar>::MarshalAs);
+    static TargetType convert(InboundType inboundValue) { return { inboundValue }; }
+};
+
 template<typename T>
 struct QDotNetOutbound<T, std::enable_if_t<std::is_pointer_v<T>>>
 {

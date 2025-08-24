@@ -31,6 +31,7 @@ ApplicationWindow {
             required property string email
             required property string thumbnail
             required property string picture
+            required property int age
             Image {
                 id: userPicture
                 source: user.thumbnail
@@ -42,7 +43,7 @@ ApplicationWindow {
             ColumnLayout {
                 Text {
                     Layout.alignment: Qt.AlignLeft
-                    text: user.firstName + " " + user.lastName
+                    text: user.firstName + " " + user.lastName + " (" + user.age.toString() + ")"
                     font.bold: true; font.pixelSize: 20
                 }
                 Text {

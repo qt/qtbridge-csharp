@@ -116,7 +116,7 @@ namespace FooLib
 
         public static IQVariant GetVariant(string value)
         {
-            return Adapter.Static.QVariant_Create(value);
+            return Adapter.QVariant(value);
         }
 
         public static IQModelIndex GetModelIndex()
@@ -166,9 +166,9 @@ namespace FooLib
             {
                 switch (index.Row()) {
                     case 0:
-                        return Adapter.Static.QVariant_Create("FOO");
+                        return Adapter.QVariant("FOO");
                     default:
-                        return Adapter.Static.QVariant_Create("BAR");
+                        return Adapter.QVariant("BAR");
                 }
             }
         }

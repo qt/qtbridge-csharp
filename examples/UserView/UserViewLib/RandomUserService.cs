@@ -15,7 +15,7 @@ namespace UserViewLib
 
         public interface IUserService
         {
-            [Get("/api/?dataType=json&inc=name,email,picture")]
+            [Get("/api/?dataType=json&inc=name,dob,email,picture")]
             Task<RandomUserService> FetchAsync([AliasAs("results")] int count);
         }
 

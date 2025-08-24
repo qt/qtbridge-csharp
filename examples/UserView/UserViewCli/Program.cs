@@ -48,7 +48,7 @@ namespace UserViewCli
         {
             ConsoleExt.ClearScreen();
             var users = Users
-                .Select(x => $@"{x.Name.Full} ({x.Email})")
+                .Select(x => $@"{x.Name.Full} ({x.Age}) ({x.Email})")
                 .ToList();
             for (int i = 0; i < users.Count; i++) {
                 if (i == hlIndex)
