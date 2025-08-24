@@ -17,6 +17,9 @@ namespace Qt.DotNet.CodeGeneration
             ,
         BuiltInTypes
             ,
+        EventDispatchHeader,
+        EventDispatchSource
+            ,
         MainCpp
             , MainIncludes
             , MainBeforeAppExec

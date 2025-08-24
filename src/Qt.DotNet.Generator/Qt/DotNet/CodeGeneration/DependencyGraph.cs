@@ -98,7 +98,6 @@ namespace Qt.DotNet.CodeGeneration
             TypeOf<IConvertible>(),
             TypeOf<IDisposable>(),
             TypeOf<INotifyPropertyChanged>(),
-            TypeOf<PropertyChangedEventArgs>(),
             TypeOf<string>(),
             TypeOf<ValueType>(),
             TypeOf(typeof(void))
@@ -371,6 +370,11 @@ namespace Qt.DotNet.CodeGeneration
         {
             return await AddEdgeAsync(info.ReflectedType, info);
         }
+
+        public IEnumerable<MemberInfo> NodeSet() => Nodes
+            .SelectMany(n => n.Value.Prepend(n.Key)).Distinct();
+
+        public IEnumerable<T> NodeSet<T>() => NodeSet().Where(n => n is T).Cast<T>();
 
         #region IReadOnlyDictionary<Type, ConcurrentSet<MemberInfo>>
         public bool ContainsKey(Type t)

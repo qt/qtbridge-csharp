@@ -292,6 +292,17 @@ public:
         return isAssignableTo(typeOf<T>());
     }
 
+    bool is(const QDotNetType &c) const
+    {
+        return equals(c);
+    }
+
+    template<typename T>
+    bool is() const
+    {
+        return is(typeOf<T>());
+    }
+
 private:
     mutable QDotNetFunction<QString> fnAssemblyQualifiedName;
     mutable QDotNetFunction<QString> fnFullName;

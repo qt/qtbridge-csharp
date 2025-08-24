@@ -22,42 +22,6 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
                 return Error();
             var type = src.ReflectedType;
 
-            var signalData = ev.QtAttributeData()
-                .Where(a => a.AttributeType.IsAssignableTo(TypeOf<QSignalAttribute>()))
-                .Select(a => new
-                {
-                    Src = a.MFn(Src) switch
-                    {
-                        { Length: > 0 } name => name,
-                        _ => ev.MFn(Src)
-                    },
-                    Name = a.MFn(Signal) switch
-                    {
-                        { Length: > 0 } name => name,
-                        _ => ev.MFn(Signal)
-                    },
-                    Types = a.AttributeType.GetGenericArguments() switch
-                    {
-                        { Length: 0 } => [],
-                        { Length: 1 } x => x[0].BaseType.GetGenericArguments() switch
-                        {
-                            { Length: <= 1 } => [],
-                            { } y => y.Skip(1).ToArray(),
-                            _ => null
-                        },
-                        { } x => x.Skip(1).ToArray(),
-                        _ => null
-                    }
-                });
-            if (!signalData.Any()) {
-                signalData = [ new
-                {
-                    Src = ev.MFn(Src),
-                    Name = ev.MFn(Signal),
-                    Types = Array.Empty<Type>()
-                }];
-            }
-
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             if (type.GetPlaceholder(SignalDeclarations) is not { } signals)
@@ -65,9 +29,8 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
             signals += $@"
 {BkSpc}#ifndef Q_MOC_RUN
 {BkSpc}#  define EVENT_{ev.MFn(Src)}
-{BkSpc}#endif{string.Join("", signalData.Select(signal => $@"
-EVENT_{ev.MFn(Src)} Q_SIGNAL void {signal.Name}{Wrap}
-    ({string.Join(", ", signal.Types.Select(x => $"{x.MFn(Ns | Name)}"))});"))}
+{BkSpc}#endif
+EVENT_{ev.MFn(Src)} Q_SIGNAL void {ev.MFn(Signal)}(QObject *qEvArgs);
 {BkSpc}#undef EVENT_{ev.MFn(Src)}
 {Blank}";
 
@@ -77,6 +40,7 @@ EVENT_{ev.MFn(Src)} Q_SIGNAL void {signal.Name}{Wrap}
                 return Error();
             privateIncludes += "#include <QDotNetEventArgs>";
             privateIncludes += "#include <QDotNetSignal>";
+            privateIncludes += "#include <event_dispatch.h>";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -116,28 +80,23 @@ void {type.MFn(Ns | Name | Private)}::{ev.MFn(Handler)}{Wrap}
     if (!args.type().isAssignableTo<QDotNetEventArgs>())
         return;
 {(ev.Name != "PropertyChanged" ? Wrap : $@"
-    const auto propertyChangedEvent = args.cast<QDotNetPropertyEvent>();
-    if (propertyChangedEvent.isValid())
-        d->onPropertyChanged(propertyChangedEvent.propertyName());")}
+    if (args.type().is<QDotNetPropertyEvent>()) {{
+        const auto propertyChangedEvent = args.cast<QDotNetPropertyEvent>(true);
+        if (propertyChangedEvent.isValid())
+            d->onPropertyChanged(propertyChangedEvent.propertyName());
+    }}")}
 
     auto eventArgs = args.cast<QDotNetEventArgs>();
     if (!eventArgs.isValid())
         return;
 
-    auto eventSignals = QDotNetSignal::fromEvent(eventName, sender);
-    for (auto& eventSignal : eventSignals) {{
-        if (!QDotNetSignal::convert(eventSignal, sender, eventArgs))
-            continue;
-        auto signalName = eventSignal.name();
-        {string.Join("", signalData.Select(signal => $@"
-        if (signalName == ""{signal.Src}""{string
-            .Join("", signal.Types.Select((t, i) => $@"
-            && eventSignal.is({i}, ""{t.AssemblyQualifiedName}"")"))}) {{
-            emit d->q->{signal.Name}({string.Join(", ", signal.Types
-                .Select((t, i) => $"eventSignal.arg<{t.MFn(Ns | Name)}>({i})"))});
-            continue;
-        }}"))}
-    }}
+    QObject *qEvArgs = QtDotNet::eventDispatch(eventArgs);
+    if (!qEvArgs)
+        return;
+
+    emit d->q->{ev.MFn(Signal)}(qEvArgs);
+    if (qEvArgs && !qEvArgs->parent())
+        delete qEvArgs;
 }}
 {Blank}";
             return Ok;

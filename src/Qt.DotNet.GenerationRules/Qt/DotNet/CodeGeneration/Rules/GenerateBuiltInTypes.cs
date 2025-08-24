@@ -22,8 +22,8 @@ namespace Qt.DotNet.CodeGeneration.Rules
                 return Error();
             sourceFiles += builtInPath;
 
-            var fwdDecl = new FilePlaceholder(BuiltInTypes, Root, $"{Root.MFn(Dir)}{builtInPath}");
-            fwdDecl += $@"
+            var builtIn = new FilePlaceholder(BuiltInTypes, Root, $"{Root.MFn(Dir)}{builtInPath}");
+            builtIn += $@"
 #pragma once
 #include <QtTypes>
 #include <QChar>
@@ -32,6 +32,16 @@ namespace Qt.DotNet.CodeGeneration.Rules
 #include <QDotNetObject>
 #include <QDotNetType>
 #include <QDotNetArray>
+
+namespace QtDotNet
+{{
+    template<typename T>
+    QObject *as(QDotNetObject &obj) {{
+        if (obj.type().is<T>())
+            return new T(obj.cast<T>(true));
+        return nullptr;
+    }}
+}}
 ";
             return Ok;
         }
