@@ -15,7 +15,7 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
         {
             ParameterInfo arg => traits switch
             {
-                _ => arg.Name
+                _ => string.IsNullOrWhiteSpace(arg.Name) ? $"arg{arg.Position}" : arg.Name
             },
             _ => null
         };
