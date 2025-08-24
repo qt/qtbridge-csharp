@@ -23,6 +23,8 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
                 return Error();
 
             var type = src.ReflectedType;
+            var returnType = func.ReturnType;
+            var star = returnType.IsBuiltIn() ? "" : "*";
 
             if (func.GetParameters() is not { } args)
                 return Error();
@@ -32,8 +34,10 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
             if (type.GetPlaceholder(MethodDeclarations) is not { } methods)
                 return Error();
             methods += $@"
-Q_INVOKABLE {func.ReturnType.MFn(Ns | Name)} {func.MFn(Name)}({string.Join(", ", args
-    .Select(arg => $"{arg.ParameterType.MFn(Ns | Name)} {arg.MFn(Name)}"))});
+Q_INVOKABLE {returnType.MFn(Ns | Name)} {star}{func.MFn(Name)}({string.Join(", ", args
+    .Select(arg => $@"{Wrap}
+        {arg.ParameterType.MFn(Ns | Name)} {(arg.ParameterType.IsBuiltIn() ? "" : "*")}{Wrap}
+        {arg.MFn(Name)}"))}) const;
 {Blank}";
 
             ////////////////////////////////////////////////////////////////////////////////////////
@@ -41,7 +45,7 @@ Q_INVOKABLE {func.ReturnType.MFn(Ns | Name)} {func.MFn(Name)}({string.Join(", ",
             if (type.GetPlaceholder(PrivateMemberDeclarations) is not { } privateMembers)
                 return Error();
             privateMembers += $@"
-mutable QDotNetFunction<{func.ReturnType.MFn(Ns | Name)}{args switch
+mutable QDotNetFunction<{returnType.MFn(Ns | Name)}{args switch
             {
                 { Length: > 0 } => ", " + string
                     .Join(", ", args.Select(arg => arg.ParameterType.MFn(Ns | Name))),
@@ -53,15 +57,21 @@ mutable QDotNetFunction<{func.ReturnType.MFn(Ns | Name)}{args switch
             if (type.GetPlaceholder(Implementation) is not { } implementation)
                 return Error();
             implementation += $@"
-{func.ReturnType.MFn(Ns | Name)} {type.MFn(Ns | Name)}::{func.MFn(Name)}({string.Join(", ", args
-    .Select(arg => $"{arg.ParameterType.MFn(Ns | Name)} {arg.MFn(Name)}"))})
+{returnType.MFn(Ns | Name)} {star}{type.MFn(Ns | Name)}::{func.MFn(Name)}({string.Join(", ", args
+    .Select(arg => $@"{Wrap}
+        {arg.ParameterType.MFn(Ns | Name)} {(arg.ParameterType.IsBuiltIn() ? "" : "*")}{Wrap}
+        {arg.MFn(Name)}"))}) const
 {{
-    {(func.ReturnType.Is(typeof(void)) ? string.Empty :
-        "return ")}method(""{func.MFn(Src)}"", d->{func.MFn(Func)}).invoke(*this{args switch
+    {(returnType.Is(typeof(void)) ? string.Empty :
+        "auto result = ")}method(""{func.MFn(Src)}"", d->{func.MFn(Func)}).invoke(*this{args switch
         {
-            { Length: > 0 } => ", " + string.Join(", ", args.Select(arg => arg.MFn(Name))),
+            { Length: > 0 } => ", " + string.Join(", ", args
+                .Select(arg => $@"{(arg.ParameterType.IsBuiltIn() ? "" : "*")}{arg.MFn(Name)}")),
             _ => string.Empty
         }});
+    {(returnType.Is(typeof(void)) ? Wrap
+    : returnType.IsBuiltIn() ? "return result;"
+    : $"return new {returnType.MFn(Ns | Name)}(std::move(result));")}
 }}
 {Blank}";
 

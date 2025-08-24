@@ -24,19 +24,20 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
 
             var type = src.ReflectedType;
             var fieldType = field.FieldType;
+            var star = fieldType.IsBuiltIn() ? "" : "*";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             if (type.GetPlaceholder(PropertyDeclarations) is not { } properties)
                 return Error();
             properties += $@"
-Q_PROPERTY({fieldType.MFn(Ns | Name)} {field.MFn()} {Wrap}
+Q_PROPERTY({fieldType.MFn(Ns | Name)} {star}{field.MFn()} {Wrap}
     READ {field.MFn(Get)}{Wrap}
 {(field.IsLiteral || field.IsInitOnly ? string.Empty : $@" {Wrap}
     WRITE {field.MFn(Set)}")})
-{fieldType.MFn(Ns | Name)} {field.MFn(Get)}();
+{fieldType.MFn(Ns | Name)} {star}{field.MFn(Get)}() const;
 {(field.IsLiteral || field.IsInitOnly ? string.Empty : $@"{Wrap}
-void {field.MFn(Set)}({fieldType.MFn(Ns | Name)} value);")}
+void {field.MFn(Set)}({fieldType.MFn(Ns | Name)} {star}value);")}
 {Blank}";
 
             ////////////////////////////////////////////////////////////////////////////////////////
@@ -55,16 +56,19 @@ mutable QDotNetFunction<void, QDotNetRef, {fieldType.MFn(Ns | Name)}> {Wrap}
             if (type.GetPlaceholder(Implementation) is not { } implementation)
                 return Error();
             implementation += $@"
-{fieldType.MFn(Ns | Name)} {type.MFn(Ns | Name)}::{field.MFn(Get)}()
+{fieldType.MFn(Ns | Name)} {star}{type.MFn(Ns | Name)}::{field.MFn(Get)}() const
 {{
-    return fieldGet<{fieldType.MFn(Ns | Name)}>(""{field.MFn(Src)}"", d->{field.MFn(Get | Func)})
+    auto result = fieldGet<{fieldType.MFn(Ns | Name)}>({Wrap}
+        ""{field.MFn(Src)}"", d->{field.MFn(Get | Func)})
         .invoke(nullptr, *this);
+    {(fieldType.IsBuiltIn() ? "return result;"
+        : $"return new {fieldType.MFn(Ns | Name)}(std::move(result));")}
 }}
 {(field.IsLiteral || field.IsInitOnly ? Wrap : $@"
-void {type.MFn(Ns | Name)}::{field.MFn(Set)}({fieldType.MFn(Ns | Name)} value)
+void {type.MFn(Ns | Name)}::{field.MFn(Set)}({fieldType.MFn(Ns | Name)} {star}value)
 {{
     fieldSet<{fieldType.MFn(Ns | Name)}>(""{field.MFn(Src)}"", d->{field.MFn(Set | Func)})
-        .invoke(nullptr, *this, value);
+        .invoke(nullptr, *this, {star}value);
 }}")}
 {Blank}";
 

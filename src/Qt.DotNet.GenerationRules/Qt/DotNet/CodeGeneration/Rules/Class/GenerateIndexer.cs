@@ -27,13 +27,17 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
 
             var type = src.ReflectedType;
             var propType = prop.PropertyType;
+            var star = propType.IsBuiltIn() ? "" : "*";
+
             var propParams = prop.GetIndexParameters();
             var args = string.Join(", ", propParams
-                .Select(arg => $"{arg.ParameterType.MFn(Ns | Name)} {arg.MFn(Name)}"));
+                .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name)} {Wrap}
+                    {(arg.ParameterType.IsBuiltIn() ? "" : "*")}{arg.MFn(Name)}"));
             var argNames = string.Join(", ", propParams
                 .Select(arg => arg.MFn(Name)));
             var argTypes = string.Join(", ", propParams
-                .Select(arg => arg.ParameterType.MFn(Ns | Name)));
+                .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name)} {Wrap}
+                    {(arg.ParameterType.IsBuiltIn() ? "" : "*")}"));
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -41,10 +45,10 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
                 return Error();
             methods += $@"
 {(!prop.CanRead ? Wrap : $@"{Wrap}
-Q_INVOKABLE {propType.MFn(Ns | Name)} {prop.MFn(Get)}({args});
+Q_INVOKABLE {propType.MFn(Ns | Name)} {star}{prop.MFn(Get)}({args}) const;
 {Blank}")}
 {(!prop.CanWrite ? Wrap : $@"{Wrap}
-Q_INVOKABLE void {prop.MFn(Set)}({args}, {propType.MFn(Ns | Name)} value);
+Q_INVOKABLE void {prop.MFn(Set)}({args}, {propType.MFn(Ns | Name)} {star}value);
 {Blank}")}";
 
             ////////////////////////////////////////////////////////////////////////////////////////
@@ -63,15 +67,19 @@ Q_INVOKABLE void {prop.MFn(Set)}({args}, {propType.MFn(Ns | Name)} value);
                 return Error();
             implementation += $@"
 {(prop.CanRead ? $@"{Wrap}
-{propType.MFn(Ns | Name)} {type.MFn(Ns | Name)}::{prop.MFn(Get)}({args})
+{propType.MFn(Ns | Name)} {star}{type.MFn(Ns | Name)}::{prop.MFn(Get)}({args}) const
 {{
-    return method(""{prop.MFn(Src | Get)}"", d->{prop.MFn(Get | Func)}).invoke(*this, {argNames});
+    auto result = method(""{prop.MFn(Src | Get)}"", d->{prop.MFn(Get | Func)})
+        .invoke(*this, {argNames});
+    {(propType.IsBuiltIn() ? "return result;"
+        : $"return new {propType.MFn(Ns | Name)}(std::move(result));")}
 }}" : string.Empty)}
 
 {(prop.CanWrite ? $@"{Wrap}
-void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({args}, {propType.MFn(Ns | Name)} value)
+void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({args}, {propType.MFn(Ns | Name)} {star}value)
 {{
-    method(""{prop.MFn(Src | Set)}"", d->{prop.MFn(Set | Func)}).invoke(*this, {argNames}, value);
+    method(""{prop.MFn(Src | Set)}"", d->{prop.MFn(Set | Func)})
+        .invoke(*this, {argNames}, {star}value);
 }}" : string.Empty)}
 {Blank}";
 

@@ -25,18 +25,19 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
                 return Error();
             var type = src.ReflectedType;
             var propType = prop.PropertyType;
+            var star = propType.IsBuiltIn() ? "" : "*";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             if (type.GetPlaceholder(PropertyDeclarations) is not { } properties)
                 return Error();
             properties += $@"
-Q_PROPERTY({propType.MFn(Ns | Name)} {prop.MFn()}{(
+Q_PROPERTY({propType.MFn(Ns | Name)} {star}{prop.MFn()}{(
     !prop.CanRead ? string.Empty : $" READ {prop.MFn(Get)}")}{(
     !prop.CanWrite ? string.Empty : $" WRITE {prop.MFn(Set)}")}{(
     !prop.IsNotifiable() ? string.Empty : $" NOTIFY {prop.MFn(Signal)}")})
-{(!prop.CanRead ? Wrap : $"{propType.MFn(Ns | Name)} {prop.MFn(Get)}();")}
-{(!prop.CanWrite ? Wrap : $"void {prop.MFn(Set)}({propType.MFn(Ns | Name)} value);")}
+{(!prop.CanRead ? Wrap : $"{propType.MFn(Ns | Name)} {star}{prop.MFn(Get)}() const;")}
+{(!prop.CanWrite ? Wrap : $"void {prop.MFn(Set)}({propType.MFn(Ns | Name)} {star}value);")}
 {(!prop.IsNotifiable() ? Wrap : $@"{Wrap}
 {BkSpc}#ifndef Q_MOC_RUN
 {BkSpc}#  define PROPERTY_{prop.MFn(Src)}
@@ -62,15 +63,17 @@ mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} 
 
             implementation += $@"
 {(!prop.CanRead ? Wrap : $@"{Wrap}
-{propType.MFn(Ns | Name)} {type.MFn(Ns | Name)}::{prop.MFn(Get)}()
+{propType.MFn(Ns | Name)} {star}{type.MFn(Ns | Name)}::{prop.MFn(Get)}() const
 {{
-    return method(""{prop.MFn(Src | Get)}"", d->{prop.MFn(Get | Func)}).invoke(*this);
+    auto result = method(""{prop.MFn(Src | Get)}"", d->{prop.MFn(Get | Func)}).invoke(*this);
+    {(propType.IsBuiltIn() ? "return result;"
+        : $"return new {propType.MFn(Ns | Name)}(std::move(result));")}
 }}
 {Blank}")}
 {(!prop.CanWrite ? Wrap : $@"{Wrap}
-void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({propType.MFn(Ns | Name)} value)
+void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({propType.MFn(Ns | Name)} {star}value)
 {{
-    method(""{prop.MFn(Src | Set)}"", d->{prop.MFn(Set | Func)}).invoke(*this, value);
+    method(""{prop.MFn(Src | Set)}"", d->{prop.MFn(Set | Func)}).invoke(*this, {star}value);
 }}
 {Blank}")}";
 
