@@ -12,7 +12,7 @@ namespace Qt.DotNet.Extensions
     {
         public static bool IsNotifiable(this PropertyInfo prop)
         {
-            return prop.DeclaringType.Implements<INotifyPropertyChanged>();
+            return prop.ReflectedType.Implements<INotifyPropertyChanged>();
         }
 
         public static bool IsStatic(this PropertyInfo prop)

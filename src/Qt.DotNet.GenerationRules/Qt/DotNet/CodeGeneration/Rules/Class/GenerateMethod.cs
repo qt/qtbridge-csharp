@@ -22,7 +22,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
             if (src is not MethodInfo func)
                 return Error();
 
-            var type = src.DeclaringType;
+            var type = src.ReflectedType;
 
             if (func.GetParameters() is not { } args)
                 return Error();

@@ -20,7 +20,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
         {
             if (src is not EventInfo ev)
                 return Error();
-            var type = src.DeclaringType;
+            var type = src.ReflectedType;
 
             var signalData = ev.QtAttributeData()
                 .Where(a => a.AttributeType.IsAssignableTo(TypeOf<QSignalAttribute>()))

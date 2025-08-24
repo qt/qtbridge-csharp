@@ -22,7 +22,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
             if (src is not FieldInfo field)
                 return Error();
 
-            var type = src.DeclaringType;
+            var type = src.ReflectedType;
             var fieldType = field.FieldType;
 
             ////////////////////////////////////////////////////////////////////////////////////////

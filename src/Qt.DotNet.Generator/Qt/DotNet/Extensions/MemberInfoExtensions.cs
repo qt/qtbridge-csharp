@@ -11,7 +11,7 @@ namespace Qt.DotNet.Extensions
     {
         public static bool IsOverload(this MemberInfo self)
         {
-            if (self?.DeclaringType is not { } type)
+            if (self?.ReflectedType is not { } type)
                 return false;
             return self switch
             {

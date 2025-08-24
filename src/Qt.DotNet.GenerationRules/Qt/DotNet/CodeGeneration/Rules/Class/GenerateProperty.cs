@@ -23,7 +23,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
         {
             if (src is not PropertyInfo prop)
                 return Error();
-            var type = src.DeclaringType;
+            var type = src.ReflectedType;
             var propType = prop.PropertyType;
 
             ////////////////////////////////////////////////////////////////////////////////////////
