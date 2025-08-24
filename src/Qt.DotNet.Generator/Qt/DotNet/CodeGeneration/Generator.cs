@@ -173,6 +173,12 @@ namespace Qt.DotNet.CodeGeneration
             var result = await Files.WriteAllAsync(new IncrementalFileSink());
             if (result.Any(x => x.Updated == null || !File.Exists(x.File.FullName)))
                 return Error(ctx, ExitCode.OutputError, $@"Error writing generated files");
+            result.Where(x => x.Updated == true).ToList()
+                .ForEach(x => Console.WriteLine($" {Path.GetRelativePath(targetPath, x.File.FullName)}"));
+            Console.Write($"Qt/.NET: generated {result.Count(x => x.Updated == true)} new files");
+            if (result.Count(x => x.Updated == false) is int n && n > 0)
+                Console.Write($" (skipped {n} up-to-date files)");
+            Console.WriteLine();
 
             return ExitCode.Ok;
         }

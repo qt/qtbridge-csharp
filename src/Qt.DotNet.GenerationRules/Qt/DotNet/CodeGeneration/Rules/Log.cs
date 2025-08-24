@@ -7,9 +7,9 @@ using System.Reflection;
 
 namespace Qt.DotNet.CodeGeneration.Rules
 {
-    using MetaFunctions;
+    using static Traits;
 
-    public class LogBegin : Rule
+    public class LogTypes : Rule
     {
         private FilePlaceholder LogFile { get; set; }
         public override int Priority => int.MinValue;
@@ -17,26 +17,15 @@ namespace Qt.DotNet.CodeGeneration.Rules
         public override Result Execute(MemberInfo src)
         {
             if (src.IsRootNode())
-                LogFile = new("LOG", SourceGraph.Root, "rules_log.txt");
+                LogFile = new("LOG", SourceGraph.Root, "rules_log.txt") { Distinct = true };
             if (LogFile == null)
                 return Error();
-            LogFile += src.MFn(Log.Begin);
-            return Ok;
-        }
-    }
-
-    public class LogEnd : Rule
-    {
-        private Placeholder LogFile { get; set; }
-        public override int Priority => int.MaxValue;
-        public override bool Matches(MemberInfo _) => true;
-        public override Result Execute(MemberInfo src)
-        {
-            if (src.IsRootNode())
-                LogFile = Root.GetPlaceholder("LOG");
-            if (LogFile == null)
-                return Error();
-            LogFile += src.MFn(Log.End);
+            LogFile += src switch
+            {
+                _ when src.IsRootNode() => string.Empty,
+                Type type => type.MFn(Ns | Name),
+                _ => $"{src.ReflectedType.MFn(Ns | Name)}::{src.ToString()}"
+            };
             return Ok;
         }
     }
