@@ -67,6 +67,7 @@ namespace std
 }}
 
 {hppFile[new(ForwardDeclTypeOf) { Distinct = true }]}
+{hppFile[new(ForwardDecl3rdParty) { Distinct = true }]}
 {hppFile[includes = new(Includes) { Distinct = true }]}
 
 namespace {baseType.MFn(Ns)}

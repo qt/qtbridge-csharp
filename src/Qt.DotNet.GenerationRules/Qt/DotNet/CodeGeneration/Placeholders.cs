@@ -28,6 +28,7 @@ namespace Qt.DotNet.CodeGeneration
             , ForwardDecl
             , ForwardDeclBaseOf
             , ForwardDeclTypeOf
+            , ForwardDecl3rdParty
             , Includes
             , ForwardDeclPrivate
             , PublicDeclarationsGroup
