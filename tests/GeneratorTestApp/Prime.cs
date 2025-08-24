@@ -4,13 +4,16 @@
 ***************************************************************************************************/
 
 using System.ComponentModel;
+using Qt.DotNet;
 using Qt.DotNet.Utils;
+using Qt.Quick;
 
 namespace GeneratorTestApp
 {
+    using static Adapter;
+
     public class Prime : INotifyPropertyChanged
     {
-        public List<Prime > Primes { get; set; }
         public Prime()
         {
             lazy.PropertyChanged += OnPropertyChanged;
@@ -42,7 +45,7 @@ namespace GeneratorTestApp
 
         private LazyFactory lazy = new();
 
-        private static int NthPrime(int n)
+        public static int NthPrime(int n)
         {
             int x = 2;
             while (n > 0) {
@@ -65,6 +68,85 @@ namespace GeneratorTestApp
                 if (x % i == 0 || x % (i + 2) == 0)
                     return false;
             return true;
+        }
+    }
+
+    public class PrimeCreateEventArgs : EventArgs
+    {
+        public List<Prime> Primes { get; set; }
+    }
+
+    public class PrimeFactory
+    {
+        public event EventHandler<PrimeCreateEventArgs> PrimeCreated;
+
+        public Prime Prime { get; set; } = new();
+
+        public List<Prime> Primes { get; set; } = new();
+
+        public Prime GetNthPrime(int index)
+        {
+            var prime = new Prime() { Index = index };
+            Primes.Add(prime);
+            PrimeCreated?.Invoke(this, new() { Primes = Primes });
+            return prime;
+        }
+
+        public bool IsValid(Prime prime)
+        {
+            return prime.Index > 0;
+        }
+
+        public Prime[] GetNPrimes(int n)
+        {
+            var primes = new List<Prime>();
+            for (int i = 0; i < n; i++) {
+                primes.Add(new Prime() { Index = i });
+            }
+            return primes.ToArray();
+        }
+
+        public int[] GetNPrimeValues(int n)
+        {
+            var primes = new List<int>();
+            for (int i = 0; i < n; i++) {
+                primes.Add(Prime.NthPrime(i));
+            }
+            return primes.ToArray();
+        }
+    }
+
+    public class Primes : QAbstractListModel
+    {
+        public int Count { get; set; }
+
+        public override string RoleNames()
+        {
+            return "index,value";
+        }
+
+        private enum PrimeRoles
+        {
+            None = ItemDataRole.UserRole,
+            Index, Value
+        }
+
+        public override int RowCount(IQModelIndex parent = null)
+        {
+            return Count;
+        }
+
+        public override IQVariant Data(IQModelIndex index, int role = 0)
+        {
+            int row = index.Row();
+            if (row < 0 || row >= Count)
+                return null;
+            return role switch
+            {
+                (int)PrimeRoles.Index => QVariant(index.Row() + 1),
+                (int)PrimeRoles.Value => QVariant(Prime.NthPrime(index.Row() + 1)),
+                _ => QVariant()
+            };
         }
     }
 }

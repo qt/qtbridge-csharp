@@ -3,31 +3,66 @@
  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 ***************************************************************************************************/
 import QtQuick
+import QtQuick.Controls.Basic
+import QtQuick.Controls
 
 Window {
-    id: window; width: 640; height: 480; visible: true; title: "Primes!"
-    GridView {
-        id: primeGrid; model: 1000; delegate: primeDelegate
-        anchors.fill: parent; cellWidth: parent.width / 10; cellHeight: parent.height / 10
+    id: window; width: 240; height: 320; visible: true;
+    title: "Primes"
+
+    Program {
+        id: program
     }
+
+    ListModel {
+        id: menu
+        ListElement {
+            label: "Element created in delegate"
+            type: "DelegateElement"
+        }
+        ListElement {
+            label: "Object list model proxy"
+            type: "ObjectModelProxy"
+        }
+        ListElement {
+            label: "Value list model proxy"
+            type: "ValueModelProxy"
+        }
+        ListElement {
+            label: "QAIM-based item model\n<< VERY SLOW >>"
+            type: "ItemModel"
+        }
+    }
+
+    ListView {
+        id: menuView
+        anchors.fill: parent
+        anchors.margins: 20
+        focus: true
+        model: menu
+        delegate: menuDelegate
+        spacing: 5
+        clip: true
+    }
+
     Component {
-        id: primeDelegate
-        Rectangle {
-            id: wrapper
-            required property int index
-            width: window.width / 10; height: window.height / 10;
-            color: "#53d769"; border.color: Qt.lighter(color, 1.1)
-            Prime {
-                id : prime
-                index: wrapper.index
+        id: menuDelegate
+        Button {
+            id: menuOption
+            required property string label
+            required property string type
+            text: label
+            background: Rectangle {
+                implicitWidth: menuView.width
+                implicitHeight: 40
+                color: menuOption.down ? "#157efb" : "#53d769"
+                border.color: Qt.lighter(color, 1.1)
+                border.width: 1
+                radius: 5
             }
-            Text {
-                text: prime.value
-                anchors.centerIn: parent; font.pixelSize: 18
-            }
-            Text {
-                text: "#" + (prime.index + 1)
-                anchors.top: parent.top; anchors.left: parent.left; anchors.margins: 2
+            onClicked: {
+                menuOption.enabled = false
+                program.load(menuOption.type)
             }
         }
     }

@@ -8,12 +8,17 @@ using Qt.Quick;
 
 namespace GeneratorTestApp
 {
-    internal class Program
+    public class Program
     {
         static void Main(string[] args)
         {
             Qml.LoadFromModule("Main");
             Qml.WaitForExit();
+        }
+
+        public void Load(string type)
+        {
+            _ = Task.Run(() => Qml.LoadFromModule(type));
         }
     }
 }
