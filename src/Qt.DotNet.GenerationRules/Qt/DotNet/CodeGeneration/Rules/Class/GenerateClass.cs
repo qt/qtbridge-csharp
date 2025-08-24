@@ -67,15 +67,15 @@ struct QDotNetTypeOf<{type.MFn(Ns | Name)}>
                 return Error();
             forwardDeclPrivate += $"struct {type.MFn(Name | Private)};";
 
-
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             if (type.GetPlaceholder(PublicDeclarations) is not { } publicDecl)
                 return Error();
             publicDecl += $@"
 class {type.MFn(Ns | Name)} :
+    {publicDecl[new(QObjectBaseClass) { Content = ["public QObject"] }]},
     {publicDecl[new(BaseClasses)]}
-    public QObject, public QDotNetObject
+    public QDotNetObject
 {{
     Q_OBJECT
     {(!type.IsQmlElement() ? Wrap : type.QmlElementName() is not { Length: > 0 } elementName
@@ -88,7 +88,7 @@ public:
         ""{type.MFn(Src | Fqn)}"");
 
     {publicDecl[new(CtorDeclarations)]}
-    ~{type.MFn(Name)}();
+    ~{type.MFn(Name)}() override;
 
     {publicDecl[new(PropertyDeclarations)]}
     {publicDecl[new(MethodDeclarations)]}

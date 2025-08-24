@@ -34,6 +34,7 @@ namespace Qt.DotNet.CodeGeneration
             , PublicDeclarationsGroup
                 , PublicDeclarations
                     , BaseClasses
+                    , QObjectBaseClass
                     , TypeTraits
                     , CtorDeclarations
                     , PropertyDeclarations

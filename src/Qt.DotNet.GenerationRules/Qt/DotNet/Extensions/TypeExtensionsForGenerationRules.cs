@@ -3,6 +3,7 @@
  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 ***************************************************************************************************/
 
+using System.Collections;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -115,6 +116,32 @@ namespace Qt.DotNet.Extensions
             return self.QtAttributeData<QmlElementAttribute>()
                 .Select(a => a.Property<string>(nameof(QmlElementAttribute.Name)))
                 .FirstOrDefault(x => x is { Length: > 0 } && Regex.IsMatch(x, @"^(?!\d)\w+$"));
+        }
+
+        public static bool IsList(this Type self, out Type itemType)
+        {
+            itemType = null;
+
+            var genericLists = new[]
+            {
+                TypeOf("System.Collections.Generic.IReadOnlyList`1"),
+                TypeOf("System.Collections.Generic.IList`1"),
+            };
+
+            var iListOf = self.GetInterfaces()
+                .FirstOrDefault(t => t.IsGenericType
+                    && genericLists.Contains(t.GetGenericTypeDefinition()));
+            if (iListOf != null) {
+                itemType = iListOf.GetGenericArguments()[0];
+                return true;
+            }
+
+            if (self.Implements<IList>()) {
+                itemType = TypeOf<object>();
+                return true;
+            }
+
+            return false;
         }
     }
 }
