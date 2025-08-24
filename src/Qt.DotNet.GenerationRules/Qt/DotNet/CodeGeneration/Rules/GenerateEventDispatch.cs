@@ -56,7 +56,7 @@ namespace QtDotNet
 #include <QHash>
 
 {dispatchCpp[new() { Distinct = true, Content = eventTypes.Select(t => $@"
-#include <{t.MFn(Ns | Dir)}{t.MFn(File)}.h>").ToList() }]}
+#include <{t.MFn(Ns | Dir)}{t.MFn(File)}.h>") }]}
 
 using Factory = QObject *(*)(QDotNetObject &);
 

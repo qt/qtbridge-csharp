@@ -28,7 +28,7 @@ namespace Qt.DotNet.CodeGeneration.Rules
 {mainCpp[new(MainIncludes)
             {
                 Distinct = true,
-                Content = new()
+                Content = new[]
                 {
 "#include <QtDebug>",
 "#include <QDir>",

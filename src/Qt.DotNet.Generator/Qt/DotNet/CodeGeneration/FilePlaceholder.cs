@@ -59,7 +59,7 @@ namespace Qt.DotNet.CodeGeneration
 
         private static ConcurrentSet<FilePlaceholder> Instances { get; } = new();
 
-        internal static new class All
+        internal static class All
         {
             public static async Task<(FileInfo File, bool? Updated)[]> WriteAllAsync(IFileSink sink,
                 CancellationToken cancellationToken = default)
