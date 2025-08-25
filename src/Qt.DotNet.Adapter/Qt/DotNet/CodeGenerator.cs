@@ -32,9 +32,8 @@ namespace Qt.DotNet
     {
         public static MethodInfo CreateSafeMethod(MethodInfo unsafeMethod)
         {
-#if DEBUG
             Debug.Assert(unsafeMethod.DeclaringType != null, "unsafeMethod.DeclaringType is null");
-#endif
+
             var typeGen = ModuleGen.DefineType(
                 UniqueName("Safe", unsafeMethod.DeclaringType?.Name, unsafeMethod.Name),
                 TypeAttributes.Public, typeof(object));
@@ -52,12 +51,12 @@ namespace Qt.DotNet
             var safeReturnCtor = safeReturnType.GetConstructor(Array.Empty<Type>());
             var safeReturnSetValue = safeReturnType.GetMethod("set_Value");
             var safeReturnSetException = safeReturnType.GetMethod("set_Exception");
-#if DEBUG
+
             Debug.Assert(safeReturnCtor != null, nameof(safeReturnCtor) + " is null");
             Debug.Assert(safeReturnSetValue != null, nameof(safeReturnSetValue) + " is null");
             Debug.Assert(safeReturnSetException != null,
                 nameof(safeReturnSetException) + " is null");
-#endif
+
             var safeMethod = typeGen.DefineMethod("SafeInvoke",
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static,
                 safeReturnType, paramTypes);
@@ -310,7 +309,6 @@ namespace Qt.DotNet
         /// <exception cref="TypeAccessException"/>
         public static Type CreateDelegateTypeForMethod(MethodInfo method, Parameter[] parameters)
         {
-#if DEBUG
             Debug.Assert(method.GetParameters().Length == parameters.Length - 1);
             Debug.Assert(method.DeclaringType != null, "method.DeclaringType is null");
             Debug.Assert(method.ReturnType.IsAssignableTo(parameters[0].GetParameterType())
@@ -318,7 +316,7 @@ namespace Qt.DotNet
             Debug.Assert(method.GetParameters().Zip(parameters.Skip(1))
                 .All(x => x.First.ParameterType.IsAssignableTo(x.Second.GetParameterType())
                     || x.First.ParameterType.IsAssignableFrom(x.Second.GetParameterType())));
-#endif
+
             // Check if already in cache
             if (DelegateTypes.TryGetValue((method, parameters), out Type delegateType))
                 return delegateType;
@@ -382,9 +380,8 @@ namespace Qt.DotNet
         public static MethodInfo CreateProxyMethodForField(
             FieldInfo field, bool isFieldSet, Parameter[] parameters)
         {
-#if DEBUG
             Debug.Assert(field is not null);
-#endif
+
             // Check if already in cache
             if (Proxies.TryGetValue((field, parameters), out MethodInfo proxy))
                 return proxy;
@@ -479,13 +476,12 @@ namespace Qt.DotNet
         public static MethodInfo CreateProxyMethodForCtor(
             ConstructorInfo ctor, Parameter[] parameters)
         {
-#if DEBUG
             Debug.Assert(ctor.GetParameters().Length == parameters.Length - 1);
             Debug.Assert(ctor.DeclaringType != null, "ctor.DeclaringType is null");
             Debug.Assert(ctor.DeclaringType.IsAssignableTo(parameters[0].GetParameterType()));
             Debug.Assert(ctor.GetParameters().Zip(parameters.Skip(1))
                 .All(x => x.First.ParameterType.IsAssignableTo(x.Second.GetParameterType())));
-#endif
+
             // Check if already in cache
             if (Proxies.TryGetValue((ctor, parameters), out MethodInfo proxy))
                 return proxy;

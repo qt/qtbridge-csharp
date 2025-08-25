@@ -155,9 +155,9 @@ namespace Qt.DotNet
                 .FirstOrDefault();
 
             var funcDelegate = delegateHandle.Target as Delegate;
-#if DEBUG
+
             Debug.Assert(funcDelegate != null, nameof(funcDelegate) + " is null");
-#endif
+
             if (SafeMethods.TryGetValue(funcDelegate.Method, out var delegateRef))
                 return delegateRef.FuncPtr;
 

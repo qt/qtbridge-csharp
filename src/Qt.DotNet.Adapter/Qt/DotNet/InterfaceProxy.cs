@@ -50,9 +50,9 @@ namespace Qt.DotNet
                     $"Interface '{interfaceName}' not found", nameof(interfaceName));
             var proxyType = CodeGenerator.CreateInterfaceProxyType(interfaceType);
             var ctor = proxyType.GetConstructor(Array.Empty<Type>());
-#if DEBUG
+
             Debug.Assert(ctor != null, nameof(ctor) + " is null");
-#endif
+
             if (ctor.Invoke(null) is not InterfaceProxy proxy)
                 throw new InvalidOperationException($"Error creating proxy for {interfaceName}");
 
@@ -87,9 +87,9 @@ namespace Qt.DotNet
 
             var delegateType = CodeGenerator.CreateDelegateType(method.Name, parameters);
             var delegateTypeInvoke = delegateType.GetMethod("Invoke");
-#if DEBUG
+
             Debug.Assert(delegateTypeInvoke != null, nameof(delegateTypeInvoke) + " != null");
-#endif
+
             var paramTypes = delegateTypeInvoke.GetParameters()
                 .Select(p => p.ParameterType)
                 .ToArray();
@@ -123,21 +123,21 @@ namespace Qt.DotNet
 
             var fieldCallback = proxy.GetType().GetField($"Call_{prototype.Name}");
             var callbackDelegate = Marshal.GetDelegateForFunctionPointer(callbackPtr, delegateType);
-#if DEBUG
+
             Debug.Assert(fieldCallback != null, nameof(fieldCallback) + " is null");
-#endif
+
             fieldCallback.SetValue(proxy, callbackDelegate);
 
             var fieldCleanup = proxy.GetType().GetField($"CleanUp_{prototype.Name}");
-#if DEBUG
+
             Debug.Assert(fieldCleanup != null, nameof(fieldCleanup) + " is null");
-#endif
+
             fieldCleanup.SetValue(proxy, cleanUpPtr);
 
             var fieldContext = proxy.GetType().GetField($"Context_{prototype.Name}");
-#if DEBUG
+
             Debug.Assert(fieldContext != null, nameof(fieldContext) + " is null");
-#endif
+
             fieldContext.SetValue(proxy, context);
         }
     }

@@ -168,13 +168,11 @@ namespace Qt.DotNet
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             public delegate void Reset();
 
-#if DEBUG
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             public delegate void Stats(
                 [Out] out int refCount,
                 [Out] out int staticCount,
                 [Out] out int eventCount);
-#endif
         }
     }
 }

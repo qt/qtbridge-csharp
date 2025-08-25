@@ -32,9 +32,8 @@ namespace Qt.DotNet
             Context = context;
             RelayEventDelegate = null;
             Enabled = enabled;
-#if DEBUG
+
             Debug.Assert(Event.EventHandlerType != null, "Event.EventHandlerType is null");
-#endif
         }
 
         private readonly object eventSync = new();
@@ -65,10 +64,10 @@ namespace Qt.DotNet
         {
             if (sender == null && args == null) {
                 var info = MethodBase.GetCurrentMethod() as MethodInfo;
-#if DEBUG
+
                 Debug.Assert(info != null, nameof(info) + " != null");
                 Debug.Assert(Event.EventHandlerType != null, "Event.EventHandlerType is null");
-#endif
+
                 RelayEventDelegate = Delegate.CreateDelegate(Event.EventHandlerType, this, info);
             } else {
                 lock (eventSync)

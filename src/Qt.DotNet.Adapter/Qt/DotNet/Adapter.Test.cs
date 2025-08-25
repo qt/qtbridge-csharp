@@ -9,7 +9,6 @@ namespace Qt.DotNet
 {
     public partial class Adapter
     {
-#if DEBUG
         /// <summary>
         /// Get current ref counters. For debug/test purposes.
         /// </summary>
@@ -31,6 +30,5 @@ namespace Qt.DotNet
             return members.First();
 
         }
-#endif
     }
 }
