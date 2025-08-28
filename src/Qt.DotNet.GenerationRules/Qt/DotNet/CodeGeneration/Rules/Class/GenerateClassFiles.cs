@@ -55,6 +55,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
 #pragma once
 #include <type_traits>
 #include <builtin_types.h>
+#include <convert.h>
 
 namespace {baseType.MFn(Ns)}
 {{

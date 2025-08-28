@@ -17,6 +17,9 @@ namespace Qt.DotNet.CodeGeneration
             ,
         BuiltInTypes
             ,
+        ConvertHeader,
+        ConvertSource
+            ,
         EventDispatchHeader,
         EventDispatchSource
             ,
