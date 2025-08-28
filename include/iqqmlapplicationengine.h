@@ -41,13 +41,17 @@ struct IQQmlApplicationEngine : public QDotNetNativeInterface<QQmlApplicationEng
     }
 
     void init() {
-        QObject::connect(QDotNetAdapter::instance().qmlEngine(), &QQmlApplicationEngine::exit,
+        const auto *engine = QDotNetAdapter::instance().qmlEngine();
+        if (engine == nullptr)
+            return;
+
+        QObject::connect(engine, &QQmlApplicationEngine::exit,
             [this](int code)
             {
                 exitCode = code;
                 exited = true;
             });
-        QObject::connect(QDotNetAdapter::instance().qmlEngine(), &QQmlApplicationEngine::quit,
+        QObject::connect(engine, &QQmlApplicationEngine::quit,
             [this]()
             {
                 exitCode = 0;
