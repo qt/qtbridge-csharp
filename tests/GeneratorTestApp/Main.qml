@@ -17,6 +17,10 @@ Window {
     ListModel {
         id: menu
         ListElement {
+            label: "QAIM-based item model"
+            type: "ItemModel"
+        }
+        ListElement {
             label: "Element created in delegate"
             type: "DelegateElement"
         }
@@ -27,10 +31,6 @@ Window {
         ListElement {
             label: "Value list model proxy"
             type: "ValueModelProxy"
-        }
-        ListElement {
-            label: "QAIM-based item model\n<< VERY SLOW >>"
-            type: "ItemModel"
         }
     }
 

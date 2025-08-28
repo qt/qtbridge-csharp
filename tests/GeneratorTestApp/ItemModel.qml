@@ -14,7 +14,7 @@ Window {
     }
 
     GridView {
-        id: primeGrid; model: primes.model; delegate: primeDelegate
+        id: primeGrid; model: primes; delegate: primeDelegate
         anchors.fill: parent; cellWidth: parent.width / 10; cellHeight: parent.height / 10
     }
     Component {

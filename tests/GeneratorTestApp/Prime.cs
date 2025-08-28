@@ -10,8 +10,6 @@ using Qt.Quick;
 
 namespace GeneratorTestApp
 {
-    using static Adapter;
-
     public class Prime : INotifyPropertyChanged
     {
         public Prime()
@@ -116,36 +114,41 @@ namespace GeneratorTestApp
         }
     }
 
-    public class Primes : QAbstractListModel
+    public class Primes : ListModel
     {
         public int Count { get; set; }
 
-        public override string RoleNames()
+        private static class PrimeRoles
         {
-            return "index,value";
+            public const int Index = Roles.UserRole + 0;
+            public const int Value = Roles.UserRole + 1;
         }
 
-        private enum PrimeRoles
+        private Dictionary<int, string> RoleMap { get; } = new()
         {
-            None = ItemDataRole.UserRole,
-            Index, Value
+            { PrimeRoles.Index, "index" },
+            { PrimeRoles.Value, "value" },
+        };
+
+        public override Dictionary<int, string> RoleNames()
+        {
+            return RoleMap;
         }
 
-        public override int RowCount(IQModelIndex parent = null)
+        public override int RowCount(ModelIndex parent)
         {
             return Count;
         }
 
-        public override IQVariant Data(IQModelIndex index, int role = 0)
+        public override object Data(ModelIndex idx, int role)
         {
-            int row = index.Row();
-            if (row < 0 || row >= Count)
+            if (idx.Row < 0 || idx.Row >= Count)
                 return null;
             return role switch
             {
-                (int)PrimeRoles.Index => QVariant(index.Row() + 1),
-                (int)PrimeRoles.Value => QVariant(Prime.NthPrime(index.Row() + 1)),
-                _ => QVariant()
+                PrimeRoles.Index => idx.Row + 1,
+                PrimeRoles.Value => Prime.NthPrime(idx.Row + 1),
+                _ => null
             };
         }
     }
