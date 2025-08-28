@@ -14,6 +14,7 @@
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wconversion"
 #endif
+#include <QModelIndex>
 #include <QObject>
 #include <QString>
 #ifdef __GNUC__
@@ -60,6 +61,9 @@ public:
 
     int fooField();
     void setFooField(int value);
+
+    static QModelIndex findIndex();
+    static QString dataAt(const QModelIndex &idx);
 
 signals:
     void barChanged();

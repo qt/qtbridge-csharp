@@ -13,12 +13,31 @@
 #endif
 #include <QChar>
 #include <QList>
+#include <QModelIndex>
 #include <QString>
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop
 #endif
 
 #include <type_traits>
+
+#ifdef Q_OS_WINDOWS
+#   include <windows.h>
+#else
+#   include <stdlib.h>
+#endif
+
+struct QDotNetMarshal
+{
+    static void freeHGlobal(void *ptr)
+    {
+#ifdef Q_OS_WINDOWS
+        LocalFree(ptr);
+#else
+        free(ptr);
+#endif
+    }
+};
 
 class QDotNetException;
 class QDotNetRef;
@@ -333,3 +352,41 @@ namespace QtDotNet
     template<typename T>
     T null() { return QDotNetNull<T>::value(); }
 }
+
+template<>
+struct QDotNetTypeOf<QModelIndex>
+{
+    static inline const QString TypeName =
+        QStringLiteral("Qt.DotNet.ModelIndexMarshaler, Qt.DotNet.Adapter");
+    static inline UnmanagedType MarshalAs = UnmanagedType::CustomMarshaler;
+};
+
+template<>
+struct QDotNetOutbound<QModelIndex>
+{
+    using SourceType = const QModelIndex &;
+    using OutboundType = const void *;
+    static inline const QDotNetParameter Parameter = QDotNetParameter(
+        QDotNetTypeOf<QModelIndex>::TypeName, QDotNetTypeOf<QModelIndex>::MarshalAs);
+    static OutboundType convert(SourceType sourceValue)
+    {
+        return reinterpret_cast<OutboundType>(&sourceValue);
+    }
+};
+
+template<>
+struct QDotNetInbound<QModelIndex>
+{
+    using InboundType = void *;
+    using TargetType = QModelIndex;
+    static inline const QDotNetParameter Parameter = QDotNetParameter(
+        QDotNetTypeOf<QModelIndex>::TypeName, QDotNetTypeOf<QModelIndex>::MarshalAs);
+    static QModelIndex convert(void *inboundValue)
+    {
+        if (!inboundValue)
+            return QModelIndex();
+        QModelIndex idx = *reinterpret_cast<QModelIndex *>(inboundValue);
+        QDotNetMarshal::freeHGlobal(inboundValue);
+        return idx;
+    }
+};

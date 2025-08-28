@@ -27,6 +27,7 @@ namespace Qt.DotNet.CodeGeneration.Rules
 #pragma once
 #include <QtTypes>
 #include <QChar>
+#include <QModelIndex>
 #include <QString>
 #include <QObject>
 #include <QDotNetObject>

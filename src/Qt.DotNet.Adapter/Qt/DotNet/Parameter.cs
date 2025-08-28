@@ -14,6 +14,48 @@ namespace Qt.DotNet
         static Type NativeType { get; }
     }
 
+    public abstract class CustomMarshaler<T> : IAdapterCustomMarshaler, ICustomMarshaler
+        where T: class
+    {
+        public static Type NativeType => typeof(T);
+
+        public abstract int NativeSize { get; }
+
+        public abstract T MarshalIn(nint ptr);
+        public abstract nint MarshalOut(T obj);
+        public virtual void CleanUp(T obj) { }
+        public virtual void CleanUp(nint ptr) { }
+
+        public void CleanUpManagedData(object obj)
+        {
+            if (obj is not T objT)
+                return;
+            CleanUp(objT);
+        }
+
+        public void CleanUpNativeData(nint ptr)
+        {
+            CleanUp(ptr);
+        }
+
+        public int GetNativeDataSize()
+        {
+            return NativeSize;
+        }
+
+        public nint MarshalManagedToNative(object obj)
+        {
+            if (obj is not T objT)
+                return nint.Zero;
+            return MarshalOut(objT);
+        }
+
+        public object MarshalNativeToManaged(nint ptr)
+        {
+            return MarshalIn(ptr);
+        }
+    }
+
     /// <summary>
     /// Information describing a parameter or the return type of a function.
     /// Used to generate dynamic delegate types for methods requested through the Adapter.
@@ -56,8 +98,8 @@ namespace Qt.DotNet
                 Debug.Assert(customMarshalerType != null, nameof(customMarshalerType) + " is null");
 #endif
                 if (customMarshalerType.IsAssignableTo(typeof(IAdapterCustomMarshaler))) {
-                    var nativeType = customMarshalerType.GetProperty(
-                        "NativeType", BindingFlags.Public | BindingFlags.Static);
+                    var nativeType = customMarshalerType.GetProperty("NativeType",
+                        BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
                     if (nativeType != null && nativeType.GetValue(null) is Type customType)
                         return customType;
                 }

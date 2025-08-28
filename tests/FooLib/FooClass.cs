@@ -176,6 +176,16 @@ namespace FooLib
         public delegate int FooFunc(int x);
 
         public static FooFunc Plus42 { get; } = new FooFunc(x => x + 42);
+
+        public static ModelIndex FindIndex()
+        {
+            return new(42, 24, 0x12345678);
+        }
+
+        public static string DataAt(ModelIndex idx)
+        {
+            return $"{idx.Row}, {idx.Column}, 0x{idx.Id:X}";
+        }
     }
 
     public class Coord2DEventArgs : EventArgs

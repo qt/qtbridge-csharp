@@ -21,7 +21,8 @@ namespace Qt.DotNet.Extensions
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
             return type.IsPrimitive || type.Is<decimal>()
-                || type.Is(typeof(void)) || type.Is<string>();
+                || type.Is(typeof(void)) || type.Is<string>()
+                || type.Is<ModelIndex>();
         }
 
         public static string FormatName(this Type type, string separator,

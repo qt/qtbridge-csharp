@@ -138,6 +138,7 @@ private slots:
     void delegates();
     void signalConverters();
     void fieldAccess();
+    void modelIndexMarshal();
 #endif //TEST_FUNCTION_CALLS
 #ifdef TEST_APP_SHUTDOWN
     void appShutdown();
@@ -786,6 +787,30 @@ void tst_qtdotnet::fieldAccess()
     QVERIFY(foo.fooField() == 123);
 }
 
+struct ModelIndexTestModel : public QAbstractListModel
+{
+    int rowCount(const QModelIndex &) const override { return 0; }
+    QVariant data(const QModelIndex &, int) const override { return {}; }
+
+    QModelIndex setOwnIndex(const QModelIndex &idx)
+    {
+        if (idx.model() != nullptr && idx.model() != reinterpret_cast<void *>(-1))
+            return QModelIndex();
+        return createIndex(idx.row(), idx.column(), idx.internalId());
+    }
+};
+
+void tst_qtdotnet::modelIndexMarshal()
+{
+    ModelIndexTestModel model;
+    auto idx = model.setOwnIndex(Foo::findIndex());
+    QVERIFY(idx.isValid());
+    QVERIFY(idx.row() == 42);
+    QVERIFY(idx.column() == 24);
+    QVERIFY(idx.internalId() == 0x12345678);
+    QVERIFY(idx.model() == &model);
+    QVERIFY(Foo::dataAt(idx) == "42, 24, 0x12345678");
+}
 #endif //TEST_FUNCTION_CALLS
 
 #ifdef TEST_HOST_UNLOAD

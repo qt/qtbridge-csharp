@@ -33,6 +33,7 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
                 _ when type.Is<char>() => "QChar",
                 _ when type.Is<decimal>() => "double",
                 _ when type.Is<string>() => "QString",
+                _ when type.Is<ModelIndex>() => "QModelIndex",
                 _ when type.Is(typeof(void)) => "void",
                 _ => null
             },

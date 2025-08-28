@@ -116,6 +116,17 @@ void Foo::setFooField(int value)
     return fieldSet<int>("FooField", d->fnSetFooField).invoke(nullptr, *this, value);
 }
 
+QModelIndex Foo::findIndex()
+{
+    return QtDotNet::call<QModelIndex>(AssemblyQualifiedName, "FindIndex");
+}
+
+QString Foo::dataAt(const QModelIndex &idx)
+{
+    return QtDotNet::call<QString, QModelIndex>(AssemblyQualifiedName, "DataAt", idx);
+}
+
+
 IBarTransformation::IBarTransformation() : QDotNetInterface(AssemblyQualifiedName, nullptr)
 {
     setCallback<QString, QString>("Transform",
