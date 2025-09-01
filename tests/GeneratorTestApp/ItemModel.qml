@@ -6,34 +6,28 @@ import QtQuick
 
 Window {
     id: window; width: 640; height: 480; visible: true;
-    title: "Primes: QAIM-based item model"
-
-    Primes {
-        id: primes
-        count: 1000
-    }
+    title: "Primes! - Model from QAIM-based C# class"
 
     GridView {
-        id: primeGrid; model: primes; delegate: primeDelegate
-        anchors.fill: parent; cellWidth: parent.width / 10; cellHeight: parent.height / 10
-    }
-    Component {
-        id: primeDelegate
-        Rectangle {
-            id: wrapper
-            required property int index
+        model: Primes { count: 1000 }
+        delegate: Rectangle {
+            required property int n
             required property int value
             width: window.width / 10; height: window.height / 10;
             color: "#53d769"; border.color: Qt.lighter(color, 1.1)
 
             Text {
-                text: wrapper.value
-                anchors.centerIn: parent; font.pixelSize: 18
+                text: value
+                anchors.centerIn: parent; font.pixelSize: parent.width / 4
             }
+
             Text {
-                text: "#" + wrapper.index.toString()
+                text: "#" + n.toString()
                 anchors.top: parent.top; anchors.left: parent.left; anchors.margins: 2
+                font.pixelSize: parent.width / 6
             }
         }
+
+        anchors.fill: parent; cellWidth: parent.width / 10; cellHeight: parent.height / 10
     }
 }

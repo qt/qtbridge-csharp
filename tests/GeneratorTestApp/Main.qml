@@ -7,7 +7,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Controls
 
 Window {
-    id: window; width: 240; height: 320; visible: true;
+    id: window; width: 320; height: 320; visible: true;
     title: "Primes"
 
     Program {
@@ -17,20 +17,28 @@ Window {
     ListModel {
         id: menu
         ListElement {
-            label: "QAIM-based item model"
-            type: "ItemModel"
+            label: "Delegate calls C# function"
+            type: "DelegateCall"
         }
         ListElement {
-            label: "Element created in delegate"
+            label: "Delegate creates C# object"
             type: "DelegateElement"
         }
         ListElement {
-            label: "Object list model proxy"
-            type: "ObjectModelProxy"
+            label: "Model from C# list of values"
+            type: "ValueListModel"
         }
         ListElement {
-            label: "Value list model proxy"
-            type: "ValueModelProxy"
+            label: "Model from C# list of objects"
+            type: "ObjectListModel"
+        }
+        ListElement {
+            label: "Model from C# event"
+            type: "ModelFromEvent"
+        }
+        ListElement {
+            label: "Model from QAIM-based C# class"
+            type: "ItemModel"
         }
     }
 
@@ -52,9 +60,10 @@ Window {
             required property string label
             required property string type
             text: label
+            font.pixelSize: height / 3
             background: Rectangle {
                 implicitWidth: menuView.width
-                implicitHeight: 40
+                implicitHeight: menuView.height / (menu.count + 1)
                 color: menuOption.down ? "#157efb" : "#53d769"
                 border.color: Qt.lighter(color, 1.1)
                 border.width: 1

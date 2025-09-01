@@ -6,27 +6,26 @@ import QtQuick
 
 Window {
     id: window; width: 640; height: 480; visible: true;
-    title: "Primes! - Delegate creates C# object"
+    title: "Primes! - Model from C# list of objects"
+
+    PrimeFactory {
+        id: primeFactory
+    }
 
     GridView {
-        model: 1000;
+        model: primeFactory.getNPrimes(1000);
         delegate: Rectangle {
-            required property int index
+            required property QtObject item
             width: window.width / 10; height: window.height / 10;
             color: "#53d769"; border.color: Qt.lighter(color, 1.1)
 
-            Prime {
-                id : prime
-                n: index + 1
-            }
-
             Text {
-                text: prime.value
+                text: item.value
                 anchors.centerIn: parent; font.pixelSize: parent.width / 4
             }
 
             Text {
-                text: "#" + prime.n.toString()
+                text: "#" + item.n.toString()
                 anchors.top: parent.top; anchors.left: parent.left; anchors.margins: 2
                 font.pixelSize: parent.width / 6
             }

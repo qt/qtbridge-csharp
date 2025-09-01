@@ -6,7 +6,11 @@ import QtQuick
 
 Window {
     id: window; width: 640; height: 480; visible: true;
-    title: "Primes! - Delegate creates C# object"
+    title: "Primes! - Delegate calls C# function"
+
+    PrimeFactory {
+        id: primeFactory
+    }
 
     GridView {
         model: 1000;
@@ -15,18 +19,13 @@ Window {
             width: window.width / 10; height: window.height / 10;
             color: "#53d769"; border.color: Qt.lighter(color, 1.1)
 
-            Prime {
-                id : prime
-                n: index + 1
-            }
-
             Text {
-                text: prime.value
+                text: primeFactory.getNthPrime(index + 1)
                 anchors.centerIn: parent; font.pixelSize: parent.width / 4
             }
 
             Text {
-                text: "#" + prime.n.toString()
+                text: "#" + (index + 1).toString()
                 anchors.top: parent.top; anchors.left: parent.left; anchors.margins: 2
                 font.pixelSize: parent.width / 6
             }

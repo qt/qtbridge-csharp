@@ -6,32 +6,33 @@ import QtQuick
 
 Window {
     id: window; width: 640; height: 480; visible: true;
-    title: "Primes: object model proxy"
+    title: "Primes! - Model from C# event"
+    Component.onCompleted: primeFactory.createNPrimes(1000)
 
     PrimeFactory {
         id: primeFactory
+        onPrimesCreated: args => gridPrimes.model = args.primes
     }
 
     GridView {
-        id: primeGrid; model: primeFactory.getNPrimes(1000); delegate: primeDelegate
-        anchors.fill: parent; cellWidth: parent.width / 10; cellHeight: parent.height / 10
-    }
-    Component {
-        id: primeDelegate
-        Rectangle {
-            id: wrapper
+        id: gridPrimes
+        model: []
+        delegate: Rectangle {
             required property QtObject item
             width: window.width / 10; height: window.height / 10;
             color: "#53d769"; border.color: Qt.lighter(color, 1.1)
 
             Text {
                 text: item.value
-                anchors.centerIn: parent; font.pixelSize: 18
+                anchors.centerIn: parent; font.pixelSize: parent.width / 4
             }
+
             Text {
-                text: "#" + item.index.toString()
+                text: "#" + item.n.toString()
                 anchors.top: parent.top; anchors.left: parent.left; anchors.margins: 2
+                font.pixelSize: parent.width / 6
             }
         }
+        anchors.fill: parent; cellWidth: parent.width / 10; cellHeight: parent.height / 10
     }
 }
