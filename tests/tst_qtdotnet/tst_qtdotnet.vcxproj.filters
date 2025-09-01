@@ -114,5 +114,8 @@
     <ClInclude Include="..\..\include\qdotnetsignal.h">
       <Filter>qtdotnet</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\iqqmlapplicationengine.h">
+      <Filter>qtdotnet</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
