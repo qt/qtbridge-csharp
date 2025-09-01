@@ -126,6 +126,16 @@ QString Foo::dataAt(const QModelIndex &idx)
     return QtDotNet::call<QString, QModelIndex>(AssemblyQualifiedName, "DataAt", idx);
 }
 
+QDateTime Foo::getDateTime()
+{
+    return QtDotNet::call<QDateTime>(AssemblyQualifiedName, "GetDateTime");
+}
+
+QString Foo::printDateTime(const QDateTime &t)
+{
+    return QtDotNet::call<QString, QDateTime>(AssemblyQualifiedName, "PrintDateTime", t);
+}
+
 
 IBarTransformation::IBarTransformation() : QDotNetInterface(AssemblyQualifiedName, nullptr)
 {

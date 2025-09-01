@@ -65,6 +65,9 @@ public:
     static QModelIndex findIndex();
     static QString dataAt(const QModelIndex &idx);
 
+    static QDateTime getDateTime();
+    static QString printDateTime(const QDateTime &t);
+
 signals:
     void barChanged();
 

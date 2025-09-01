@@ -186,6 +186,16 @@ namespace FooLib
         {
             return $"{idx.Row}, {idx.Column}, 0x{idx.Id:X}";
         }
+
+        public static DateTime GetDateTime()
+        {
+            return new DateTime(1912, 6, 23, 11, 22, 33, 444);
+        }
+
+        public static string PrintDateTime(DateTime t)
+        {
+            return $"{t.Year:0000}-{t.Month:00}-{t.Day:00} {t.Hour:00}:{t.Minute:00}:{t.Second:00}.{t.Millisecond:000}";
+        }
     }
 
     public class Coord2DEventArgs : EventArgs

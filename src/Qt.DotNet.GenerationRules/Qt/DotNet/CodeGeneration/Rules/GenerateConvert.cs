@@ -122,6 +122,8 @@ QVariant Convert::toVariant(QDotNetObject obj)
         return QVariant(toSingle(obj));
     if (isDouble(obj))
         return QVariant(toDouble(obj));
+    if (isDateTime(obj))
+        return QVariant(toDateTime(obj));
     if (isString(obj))
         return QVariant(toString(obj));
     return QVariant::fromValue<QObject *>(QtDotNet::as<System::Object>(obj));

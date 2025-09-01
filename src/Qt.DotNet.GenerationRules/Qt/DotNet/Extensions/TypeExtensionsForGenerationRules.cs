@@ -22,7 +22,7 @@ namespace Qt.DotNet.Extensions
                 throw new ArgumentNullException(nameof(type));
             return type.IsPrimitive || type.Is<decimal>()
                 || type.Is(typeof(void)) || type.Is<string>()
-                || type.Is<ModelIndex>();
+                || type.Is<ModelIndex>() || type.Is<DateTime>();
         }
 
         public static string FormatName(this Type type, string separator,

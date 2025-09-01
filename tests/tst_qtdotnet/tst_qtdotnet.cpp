@@ -139,6 +139,7 @@ private slots:
     void signalConverters();
     void fieldAccess();
     void modelIndexMarshal();
+    void dateTimeMarshal();
 #endif //TEST_FUNCTION_CALLS
 #ifdef TEST_APP_SHUTDOWN
     void appShutdown();
@@ -810,6 +811,13 @@ void tst_qtdotnet::modelIndexMarshal()
     QVERIFY(idx.internalId() == 0x12345678);
     QVERIFY(idx.model() == &model);
     QVERIFY(Foo::dataAt(idx) == "42, 24, 0x12345678");
+}
+
+void tst_qtdotnet::dateTimeMarshal()
+{
+    auto dt = Foo::getDateTime();
+    QVERIFY(dt == QDateTime(QDate(1912, 6, 23), QTime(11, 22, 33, 444), QTimeZone::utc()));
+    QVERIFY(Foo::printDateTime(dt) == "1912-06-23 11:22:33.444");
 }
 #endif //TEST_FUNCTION_CALLS
 

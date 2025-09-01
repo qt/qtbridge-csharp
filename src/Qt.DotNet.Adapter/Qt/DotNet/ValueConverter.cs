@@ -23,6 +23,7 @@ namespace Qt.DotNet
         public static object FromUInt64(ulong value) => value;
         public static object FromSingle(float value) => value;
         public static object FromDouble(double value) => value;
+        public static object FromDateTime(DateTime value) => value;
         public static object FromString(string value) => value;
 
         internal static bool IsValue<T>(object obj) where T : struct => obj is T;
@@ -37,6 +38,7 @@ namespace Qt.DotNet
         public static bool IsUInt64(object obj) => obj is ulong;
         public static bool IsSingle(object obj) => obj is float;
         public static bool IsDouble(object obj) => obj is double;
+        public static bool IsDateTime(object obj) => obj is DateTime;
         public static bool IsString(object obj) => obj is string;
 
         internal static T ToValue<T>(object obj) where T : struct
@@ -62,6 +64,7 @@ namespace Qt.DotNet
         public static ulong ToUInt64(object obj) => ToValue<ulong>(obj);
         public static float ToSingle(object obj) => ToValue<float>(obj);
         public static double ToDouble(object obj) => ToValue<double>(obj);
+        public static DateTime ToDateTime(object obj) => ToValue<DateTime>(obj);
         public static string ToString(object obj) => obj as string ?? obj?.ToString() ?? "";
 
         public static object[] ToArray(object obj)
@@ -97,6 +100,7 @@ namespace Qt.DotNet
                 || t == typeof(ulong)
                 || t == typeof(float)
                 || t == typeof(double)
+                || t == typeof(DateTime)
                 || t == typeof(string);
         }
     }

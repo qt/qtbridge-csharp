@@ -12,9 +12,11 @@
 #   pragma GCC diagnostic ignored "-Wconversion"
 #endif
 #include <QChar>
+#include <QDateTime>
 #include <QList>
 #include <QModelIndex>
 #include <QString>
+#include <QTimeZone>
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop
 #endif
@@ -388,5 +390,43 @@ struct QDotNetInbound<QModelIndex>
         QModelIndex idx = *reinterpret_cast<QModelIndex *>(inboundValue);
         QDotNetMarshal::freeHGlobal(inboundValue);
         return idx;
+    }
+};
+
+template<>
+struct QDotNetTypeOf<QDateTime>
+{
+    static inline const QString TypeName = QStringLiteral("System.DateTime");
+    static inline UnmanagedType MarshalAs = UnmanagedType::Struct;
+    static constexpr double Epoch = 25569.0;
+    static constexpr double Scale = 86400000.0;
+};
+
+template<>
+struct QDotNetOutbound<QDateTime>
+{
+    using SourceType = const QDateTime &;
+    using OutboundType = double;
+    static inline const QDotNetParameter Parameter = QDotNetParameter(
+        QDotNetTypeOf<QDateTime>::TypeName, QDotNetTypeOf<QDateTime>::MarshalAs);
+    static OutboundType convert(SourceType sourceValue)
+    {
+        return (sourceValue.toUTC().toMSecsSinceEpoch() / QDotNetTypeOf<QDateTime>::Scale)
+            + QDotNetTypeOf<QDateTime>::Epoch;
+    }
+};
+
+template<>
+struct QDotNetInbound<QDateTime>
+{
+    using InboundType = double;
+    using TargetType = QDateTime;
+    static inline const QDotNetParameter Parameter = QDotNetParameter(
+        QDotNetTypeOf<QDateTime>::TypeName, QDotNetTypeOf<QDateTime>::MarshalAs);
+    static TargetType convert(InboundType inboundValue)
+    {
+        return QDateTime::fromMSecsSinceEpoch(qint64(
+            (inboundValue - QDotNetTypeOf<QDateTime>::Epoch) * QDotNetTypeOf<QDateTime>::Scale),
+            QTimeZone::utc());
     }
 };
