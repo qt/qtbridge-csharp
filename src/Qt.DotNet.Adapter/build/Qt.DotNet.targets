@@ -58,11 +58,11 @@
     <PropertyGroup>
       <ProjectIntermediateDir>$(ProjectDir)$(IntermediateOutputPath)</ProjectIntermediateDir>
       <QtGenCmd
-        >$(QtGenCmd) --rules "$(ProjectIntermediateDir)$(TargetFileName)"</QtGenCmd>
-      <QtGenCmd
         >$(QtGenCmd) --source "$(ProjectIntermediateDir)$(TargetFileName)"</QtGenCmd>
       <QtGenCmd
         >$(QtGenCmd) --target "$(ProjectIntermediateDir)qtdotnet\native"</QtGenCmd>
+      <QtGenCmd
+        >$(QtGenCmd) @(_ResolvedProjectReferencePaths->'--ref &quot;%(Identity)&quot;', ' ')</QtGenCmd>
     </PropertyGroup>
 
     <Message Importance="high" Text="$(QtGenCmd)" />
@@ -139,15 +139,22 @@
     </ItemGroup>
     <MSBuild Condition="'$(CMakeBuild)' != 'true'"
       Projects="@(NativeProject)" BuildInParallel="false" StopOnFirstFailure="true"
-      Properties="Platform=x64;CL_MP=true" Targets="Build;BuiltProjectOutputGroup">
-      <Output TaskParameter="TargetOutputs" ItemName="NativeBinary" />
-    </MSBuild>
-    <PropertyGroup Condition="'$(CMakeBuild)' != 'true'">
-      <AppHostSourcePath
-        Condition="'%(NativeBinary.Extension)' == '.exe'">@(NativeBinary)</AppHostSourcePath>
-    </PropertyGroup>
+      Properties="Platform=x64;CL_MP=true" Targets="Build" />
+  </Target>
+  <!-- END QtDotNetBuild-->
 
-    <PropertyGroup Condition="'$(CMakeBuild)' == 'true'">
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtDotNetReplaceBinary
+  -->
+  <Target Name="QtDotNetReplaceBinary"
+    AfterTargets="QtDotNetBuild" BeforeTargets="_CreateAppHost"
+    Inputs="$(TargetPath)" Outputs="$(AppHostSourcePath)"
+    Condition="'$(DesignTimeBuild)' != 'true'">
+
+    <Message Importance="high" Text="Qt/.NET: Replacing native host binary..." />
+
+    <PropertyGroup>
       <MSBuildCmd>msbuild "$(NativeApp).vcxproj"</MSBuildCmd>
       <MSBuildCmd>$(MSBuildCmd) -t:BuiltProjectOutputGroup</MSBuildCmd>
       <MSBuildCmd>$(MSBuildCmd) -getProperty:TargetPath</MSBuildCmd>
@@ -156,19 +163,16 @@
         $(MSBuildCmd) &gt; "$(NativeApp)_targetpath.txt"
       </MSBuildCmd>
     </PropertyGroup>
-    <Exec Condition="'$(CMakeBuild)' == 'true'"
+    <Exec
       Command="$(MSBuildCmd)" EchoOff="true" IgnoreExitCode="true" />
-    <PropertyGroup Condition="'$(CMakeBuild)' == 'true'">
+    <PropertyGroup>
       <AppHostSourcePath Condition="Exists('$(NativeApp)_targetpath.txt')"
         >$([System.IO.File]::ReadAllText('$(NativeApp)_targetpath.txt')
-          .Replace('%0D', '').Split('%0A')[0])</AppHostSourcePath>
+        .Replace('%0D', '').Split('%0A')[0])</AppHostSourcePath>
     </PropertyGroup>
-
-    <ItemGroup>
-      <QtDotNetNativeBuild Include="$(IntermediateOutputPath)qtdotnet\native\build\**\*" />
-    </ItemGroup>
+    <Touch Files="$(AppHostSourcePath)" />
   </Target>
-  <!-- END QtDotNetBuild-->
+  <!-- END QtDotNetReplaceBinary-->
 
   <!--
   //////////////////////////////////////////////////////////////////////////////////////////////////
