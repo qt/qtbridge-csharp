@@ -11,6 +11,7 @@ namespace UserViewLib
     {
         int Count { get; }
         void Add(User user, int index = -1);
+        void AddRange(IList<User> users, int index = -1);
         void RemoveAt(int index);
         int BinarySearch(User user, IComparer<User> comparer);
     }
@@ -28,6 +29,16 @@ namespace UserViewLib
             if (index < 0 || index > Users.Count)
                 index = Users.Count;
             Users.Insert(index, user);
+        }
+
+        public void AddRange(IList<User> users, int index = -1)
+        {
+            if (users is null or { Count: 0 })
+                return;
+            if (index < 0 || index > Users.Count)
+                index = Users.Count;
+            foreach (User user in users)
+                Users.Insert(index++, user);
         }
 
         public void RemoveAt(int index)

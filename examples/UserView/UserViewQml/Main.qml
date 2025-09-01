@@ -3,8 +3,6 @@
  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 ***************************************************************************************************/
 
-import qmlapp
-
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Effects
@@ -15,14 +13,14 @@ ApplicationWindow {
     visible: true
     width: 480
     height: Screen.desktopAvailableHeight
-    title: "Users"
+
+    UserViewApp { id: app }
+    property UserListModel userList: app.users
+    title: "Users: " + userList.count.toString()
 
     ListView {
         anchors.fill: parent
-        model: QmlApp.users
-        section.property: "lastName"
-        section.criteria: ViewSection.FirstCharacter
-        section.delegate: sectionHeading
+        model: userList
         delegate: RowLayout {
             id: user
             required property string fullName
@@ -31,6 +29,7 @@ ApplicationWindow {
             required property string email
             required property string thumbnail
             required property string picture
+            required property date birthDate
             required property int age
             Image {
                 id: userPicture
@@ -43,14 +42,36 @@ ApplicationWindow {
             ColumnLayout {
                 Text {
                     Layout.alignment: Qt.AlignLeft
-                    text: user.firstName + " " + user.lastName + " (" + user.age.toString() + ")"
+                    text: user.firstName + " " + user.lastName
                     font.bold: true; font.pixelSize: 20
+                }
+                Text {
+                    Layout.alignment: Qt.AlignLeft
+                    text: user.birthDate.toISOString().split("T")[0] + " (" + user.age.toString() + ")"
+                    font.pixelSize: 10
                 }
                 Text {
                     Layout.alignment: Qt.AlignLeft
                     text: user.email
                     font.pixelSize: 14
                 }
+            }
+        }
+        section.property: "lastName"
+        section.criteria: ViewSection.FirstCharacter
+        section.delegate: Rectangle {
+            width: ListView.view.width; height: initial.height + 10
+            color: "transparent"
+            required property string section
+            Text {
+                id: initial; text: parent.section
+                color: "#00414A"; anchors.bottom: parent.bottom; anchors.bottomMargin: 2
+                font.bold: true; font.pixelSize: 20; font.capitalization: Font.AllUppercase
+            }
+            Rectangle {
+                width: parent.width; height: 2
+                anchors.bottom: parent.bottom
+                color: "#2CDE85"
             }
         }
         add: Transition {
@@ -76,57 +97,42 @@ ApplicationWindow {
         Rectangle { width: 64; height: 64; radius: 16; color: "black" }
     }
 
-    Component {
-        id: sectionHeading
-        Rectangle {
-            width: ListView.view.width; height: initial.height + 10
-            color: "transparent"
-            required property string section
-            Text {
-                id: initial; text: parent.section
-                color: "#00414A"; anchors.bottom: parent.bottom; anchors.bottomMargin: 2
-                font.bold: true; font.pixelSize: 20; font.capitalization: Font.AllUppercase
-            }
-            Rectangle {
-                width: parent.width; height: 2
-                anchors.bottom: parent.bottom
-                color: "#2CDE85"
-            }
+    Button {
+        id: buttonAdd
+        opacity: 0.85; x: parent.width - 150; y: 10; width: 140; height: 40
+        text: "Add"
+        onClicked: {
+            app.add()
         }
     }
 
     Button {
-        opacity: 0.85; x: parent.width - 150; y: 10; width: 90; height: 40
-        text: "Add"
-        onClicked: QmlApp.add()
-    }
-
-    SpinBox {
-        opacity: 0.85; x: parent.width - 55; y: 10; width: 45; height: 40
-        value: QmlApp.amountToAdd
-        onValueModified: QmlApp.amountToAdd = value
-    }
-
-    Button {
+        id: buttonRemove
         opacity: 0.85; x: parent.width - 150; y: 60; width: 140; height: 40
         text: "Remove"
-        onClicked: QmlApp.remove()
+        onClicked: {
+            app.remove()
+        }
     }
 
     Connections {
-        target: QmlApp
+        target: app
 
-        function onUserAdded(name, picture, timestamp) {
-            popup.name = name
-            popup.picture = picture
+        function onUserAdded(args) {
+            popup.name = args.user.name.full
+            popup.picture = args.user.picture.large
+            popup.description = "Added on "
+                + args.timestamp.toISOString().replace("T", " ").split(".")[0]
             if (!popup.visible)
                 popup.open()
             popupClose.restart();
         }
 
-        function onUserRemoved(name, picture, timestamp) {
-            popup.name = name
-            popup.picture = picture
+        function onUserRemoved(args) {
+            popup.name = args.user.name.full
+            popup.picture = args.user.picture.large
+            popup.description = "Removed on "
+                + args.timestamp.toISOString().replace("T", " ").split(".")[0]
             if (!popup.visible)
                 popup.open()
             popupClose.restart();
@@ -137,6 +143,7 @@ ApplicationWindow {
         id: popup
         property string name
         property string picture
+        property string description
         popupType: Popup.Item
         anchors.centerIn: parent
         modal: false; focus: true
@@ -158,6 +165,11 @@ ApplicationWindow {
                 Layout.alignment: Qt.AlignCenter
                 text: popup.name
                 font.bold: true; font.pixelSize: 20
+            }
+            Text {
+                Layout.alignment: Qt.AlignCenter
+                text: popup.description
+                font.pixelSize: 12
             }
         }
     }

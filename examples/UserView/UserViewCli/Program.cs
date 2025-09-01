@@ -14,34 +14,56 @@ namespace UserViewCli
         static void Main(string[] args)
         {
             Console.WriteLine("Fetching random users...");
-            RandomUserService.Fetch(20)
+            Users.AddRange(RandomUserService.Fetch(20)
                 .OrderBy(x => x, UserComparer.ByLastName)
-                .ToList()
-                .ForEach(x => Users.Add(x));
+                .ToList());
             ConsoleExt.ClearScreen(false);
             PrintUsers();
 
             var rand = new Random();
-            while (!ConsoleExt.EscapePressed) {
+            bool escPressed = false;
+            while (!escPressed) {
+                if (Console.KeyAvailable) {
+                    switch (Console.ReadKey(true).Key) {
+                        case ConsoleKey.Escape:
+                            escPressed = true;
+                            continue;
+                        case ConsoleKey.Enter:
+                            AddUser();
+                            break;
+                        case ConsoleKey.Backspace:
+                            RemoveUser(rand.Next(Users.Count));
+                            break;
+                    }
+                    while (Console.KeyAvailable)
+                        Console.ReadKey(true);
+                }
                 Thread.Sleep(100);
                 var w = rand.Next(100);
-                if (w < 10) {
-                    var removeIndex = rand.Next(Users.Count);
-                    PrintUsers(removeIndex, ConsoleColor.Red);
-                    Users.RemoveAt(removeIndex);
-                    PrintUsers();
-                }
-                else if (w < 20) {
-                    var newUser = RandomUserService.Fetch();
-                    var index = Users.BinarySearch(newUser, UserComparer.ByLastName);
-                    if (index < 0) {
-                        Users.Add(newUser, ~index);
-                        PrintUsers(~index, ConsoleColor.Green);
-                        PrintUsers();
-                    }
-                }
+                if (w < 10)
+                    RemoveUser(rand.Next(Users.Count));
+                else if (w < 20)
+                    AddUser();
             }
             ConsoleExt.ClearScreen(false);
+        }
+
+        private static void AddUser()
+        {
+            var newUser = RandomUserService.Fetch();
+            var index = Users.BinarySearch(newUser, UserComparer.ByLastName);
+            if (index < 0) {
+                Users.Add(newUser, ~index);
+                PrintUsers(~index, ConsoleColor.Green);
+                PrintUsers();
+            }
+        }
+
+        private static void RemoveUser(int removeIndex)
+        {
+            PrintUsers(removeIndex, ConsoleColor.Red);
+            Users.RemoveAt(removeIndex);
+            PrintUsers();
         }
 
         private static void PrintUsers(int hlIndex = -1, ConsoleColor hlColor = ConsoleColor.Black)
@@ -57,6 +79,7 @@ namespace UserViewCli
                 if (i == hlIndex)
                     Console.ResetColor();
             }
+            Console.Title = $"Users: {users.Count}";
             Thread.Sleep(500);
         }
     }

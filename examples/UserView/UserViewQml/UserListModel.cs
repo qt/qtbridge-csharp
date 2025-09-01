@@ -5,27 +5,25 @@
 
 using Qt.DotNet;
 using System.Collections;
+using System.ComponentModel;
 using UserViewLib;
 
 namespace UserViewQml
 {
-    using static Adapter;
-
-    public class UserListModel : QAbstractListModel, IUserList
+    public class UserListModel : ListModel, IUserList, INotifyPropertyChanged
     {
+        public enum UserItemRoles
+        {
+            FullName = ItemDataRole.UserRole,
+            FirstName, LastName, Email, Thumbnail, Picture, BirthDate, Age
+        }
         private readonly object CriticalSection = new();
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
         private UserList Users { get; set; } = new();
 
-        private IQModelIndex NullIndex { get; } = null;
-        private IQModelIndex FirstIndex { get; } = null;
-
         public int Count { get; private set; } = 0;
-
-        public UserListModel()
-        {
-            NullIndex = QModelIndex();
-            FirstIndex = CreateIndex(0, 0, 0);
-        }
 
         public void Add(User user, int index = -1)
         {
@@ -33,80 +31,110 @@ namespace UserViewQml
                 return;
             if (index < 0 || index > Count)
                 index = Count;
-            BeginInsertRows(NullIndex, index, index);
-            lock (CriticalSection) {
-                Users.Add(user, index);
-                Count = Users.Count;
-            }
+            BeginInsertRows(ModelIndex.Empty, index, index);
+            Users.Add(user, index);
+            Count = Users.Count;
             EndInsertRows();
+            PropertyChanged?.Invoke(this, new(nameof(Count)));
+        }
+
+        public void AddRange(IList<User> users, int index = -1)
+        {
+            if (users is null or { Count: 0 })
+                return;
+            if (index < 0 || index > Count)
+                index = Count;
+            BeginInsertRows(ModelIndex.Empty, index, index + users.Count - 1);
+            foreach (var user in users)
+                Users.Add(user, index++);
+            Count = Users.Count;
+            EndInsertRows();
+            PropertyChanged?.Invoke(this, new(nameof(Count)));
         }
 
         public void RemoveAt(int index)
         {
-            BeginRemoveRows(NullIndex, index, index);
-            lock (CriticalSection) {
-                Users.RemoveAt(index);
-                Count = Users.Count;
-            }
+            if (index < 0 || index >= Count)
+                return;
+            BeginRemoveRows(ModelIndex.Empty, index, index);
+            Users.RemoveAt(index);
+            Count = Users.Count;
             EndRemoveRows();
-            EmitDataChanged(FirstIndex, FirstIndex, [(int)ItemDataRole.DisplayRole]);
+            PropertyChanged?.Invoke(this, new(nameof(Count)));
+        }
+
+        public User RemoveRandom(Random random)
+        {
+            User oldUser = null;
+            if (!Users.Any())
+                return null;
+            int index = random.Next(Users.Count);
+            if (index < 0 || index >= Count)
+                return null;
+            oldUser = Users.ElementAt(index);
+            BeginRemoveRows(ModelIndex.Empty, index, index);
+            Users.RemoveAt(index);
+            Count = Users.Count;
+            EndRemoveRows();
+            PropertyChanged?.Invoke(this, new(nameof(Count)));
+            return oldUser;
         }
 
         public int BinarySearch(User user, IComparer<User> comparer)
         {
-            lock (CriticalSection) {
-                return Users.BinarySearch(user, comparer);
-            }
+            return Users.BinarySearch(user, comparer);
         }
 
         public IEnumerator<User> GetEnumerator()
         {
-            lock (CriticalSection) {
-                return Users.GetEnumerator();
-            }
+            return Users.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            lock (CriticalSection) {
-                return Users.GetEnumerator();
-            }
+            return Users.GetEnumerator();
         }
 
-        public enum UserItemRoles
+        public Dictionary<int, string> RoleMap { get; } = new()
         {
-            None = ItemDataRole.UserRole,
-            FullName, FirstName, LastName, Email, Thumbnail, Picture, Age
+            { (int)UserItemRoles.FullName, "fullName" },
+            { (int)UserItemRoles.FirstName, "firstName" },
+            { (int)UserItemRoles.LastName, "lastName" },
+            { (int)UserItemRoles.Email, "email" },
+            { (int)UserItemRoles.Thumbnail, "thumbnail" },
+            { (int)UserItemRoles.Picture, "picture" },
+            { (int)UserItemRoles.BirthDate, "birthDate" },
+            { (int)UserItemRoles.Age, "age" }
+        };
+
+        public override Dictionary<int, string> RoleNames()
+        {
+            return RoleMap;
         }
 
-        public override string RoleNames()
+        public override object Data(ModelIndex index, int role)
         {
-            return "fullName,firstName,lastName,email,thumbnail,picture,age";
-        }
-
-        public override IQVariant Data(IQModelIndex index, int role = 0)
-        {
-            if (index.Row() >= Count)
+            var users = Users.ToList();
+            if (index.Row >= users.Count)
                 return null;
-            var user = Users.ElementAt(index.Row());
+            var user = users.ElementAt(index.Row);
             return role switch
             {
                 (int)ItemDataRole.DisplayRole or
-                (int)UserItemRoles.FullName => QVariant(user.Name.Full),
-                (int)UserItemRoles.FirstName => QVariant(user.Name.First),
-                (int)UserItemRoles.LastName => QVariant(user.Name.Last),
-                (int)UserItemRoles.Email => QVariant(user.Email),
-                (int)UserItemRoles.Thumbnail => QVariant(user.Picture.Thumbnail),
-                (int)UserItemRoles.Picture => QVariant(user.Picture.Large),
-                (int)UserItemRoles.Age => QVariant(user.Age),
+                (int)UserItemRoles.FullName => user.Name.Full,
+                (int)UserItemRoles.FirstName => user.Name.First,
+                (int)UserItemRoles.LastName => user.Name.Last,
+                (int)UserItemRoles.Email => user.Email,
+                (int)UserItemRoles.Thumbnail => user.Picture.Thumbnail,
+                (int)UserItemRoles.Picture => user.Picture.Large,
+                (int)UserItemRoles.BirthDate => user.Birth.Date,
+                (int)UserItemRoles.Age => user.Age,
                 _ => null
             };
         }
 
-        public override int RowCount(IQModelIndex parent = null)
+        public override int RowCount(ModelIndex parent)
         {
-            if (parent?.IsValid() == true)
-                return 0;
             return Count;
         }
     }
