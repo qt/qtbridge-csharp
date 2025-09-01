@@ -73,8 +73,8 @@ ADAPTER::FreeObjectRef: WARNING Invalid object reference: 0x{objRefPtr:x16}");
             }
             RemoveAllEventHandlers(objRef);
 
-            var liveObjects = ObjectRefs.Values.Select(x => x.Target).ToList();
-            var isLive = liveObjects.Any(x => x.Equals(objRef.Target));
+            var isLive = objRef.Target != null
+                && ObjectRefs.Values.Any(x => x?.Target?.Equals(objRef.Target) == true);
             if (!isLive) {
                 var deadMethods = DelegatesByMember
                     .Where(x => x.Key.Target.Equals(objRef.Target))
