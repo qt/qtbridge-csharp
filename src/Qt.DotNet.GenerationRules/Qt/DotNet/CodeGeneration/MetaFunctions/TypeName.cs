@@ -41,6 +41,8 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
                 typeName.Append(type.FormatName("_"));
                 if (traits.HasTraits(Private))
                     typeName.Append("Private");
+                if (traits.HasTraits(Init))
+                    typeName.Append("Init");
             }
 
             if (type.IsArray)

@@ -38,6 +38,8 @@ EVENT_{ev.MFn(Src)} Q_SIGNAL void {ev.MFn(Signal)}(QObject *qEvArgs);
             //
             if (type.GetPlaceholder(PrivateIncludes) is not { } privateIncludes)
                 return Error();
+            privateIncludes += "#include <QThread>";
+            privateIncludes += "#include <QMetaMethod>";
             privateIncludes += "#include <QDotNetEventArgs>";
             privateIncludes += "#include <QDotNetSignal>";
             privateIncludes += "#include <event_dispatch.h>";
@@ -71,9 +73,9 @@ if ({ev.MFn(Handler | Var)})
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
-            if (type.GetPlaceholder(Implementation) is not { } implementation)
+            if (type.GetPlaceholder(EventHandlers) is not { } eventHandlers)
                 return Error();
-            implementation += $@"
+            eventHandlers += $@"
 void {type.MFn(Ns | Name | Private)}::{ev.MFn(Handler)}{Wrap}
 ::handleEvent(const QString &eventName, QDotNetObject &sender, QDotNetObject &args)
 {{
@@ -94,7 +96,13 @@ void {type.MFn(Ns | Name | Private)}::{ev.MFn(Handler)}{Wrap}
     if (!qEvArgs)
         return;
 
-    emit d->q->{ev.MFn(Signal)}(qEvArgs);
+    if (QThread::isMainThread()) {{
+        emit d->q->{ev.MFn(Signal)}(qEvArgs);
+    }} else {{
+        QMetaMethod::fromSignal(&{type.MFn(Ns | Name)}::{ev.MFn(Signal)})
+            .invoke(d->q, Qt::BlockingQueuedConnection, qEvArgs);
+    }}
+
     if (qEvArgs && !qEvArgs->parent())
         delete qEvArgs;
 }}

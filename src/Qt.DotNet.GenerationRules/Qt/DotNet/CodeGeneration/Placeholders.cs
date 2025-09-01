@@ -52,9 +52,15 @@ namespace Qt.DotNet.CodeGeneration
             , ImplementationGroup
                 , QDotNetObjectImpl
                 , Implementation
+                    , PublicCtors
+                    , PrivateCtor
+                    , Initializer
+                    , PrivateDtor
+                    , PublicDtor
                     , EventSubscribers
                     , EventUnsubscribers
                     , EventHandlers
                     , PropertyNotifiers
+                    , MethodsImplementation
     }
 }

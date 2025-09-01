@@ -50,7 +50,7 @@ QHash<int, QByteArray> roleNames() const override;
 {Blank}";
             ////////////////////////////////////////////////////////////////////////////////////////
             //
-            if (type.GetPlaceholder(Implementation) is not { } implementation)
+            if (type.GetPlaceholder(MethodsImplementation) is not { } implementation)
                 return Error();
             implementation += $@"
 QHash<int, QByteArray> {type.MFn(Ns | Name)}::roleNames() const
@@ -69,7 +69,7 @@ QVariant {type.MFn(Ns | Name)}::data(const QModelIndex &index, int role) const
     if (index.row() < 0 || index.row() >= {(type.IsArray ? "length" : "count")}())
         return QVariant();
     if (role == Qt::UserRole)
-        {(itemType.IsBuiltIn() ? $@"{Wrap}
+        {(itemType.IsValue() ? $@"{Wrap}
         return QVariant({(type.IsArray ? "get" : "item")}(index.row()));" : $@"{Wrap}
         return QVariant::fromValue<QObject *>({(type.IsArray ? "get" : "item")}(index.row()));")}
     return QVariant();

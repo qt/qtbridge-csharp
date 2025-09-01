@@ -246,6 +246,10 @@ namespace Qt.DotNet.CodeGeneration
                 assembly.ExportedTypes
                 .Where(x => x.DeclaringType == null)
                 .Select(x => Task.Run(async () => await AddEdgeAsync(Root, x))));
+
+            if (!Edges.Any())
+                await AddEdgeAsync(Root, TypeOf<object>());
+
             return Nodes.Any();
         }
 
@@ -260,7 +264,7 @@ namespace Qt.DotNet.CodeGeneration
             if (IsBuiltIn(type))
                 return true;
 
-            if (!await AddTypeAsync(type))
+            if (!Nodes.ContainsKey(type) && !await AddTypeAsync(type))
                 return false;
 
             Edges.TryAdd(fromType, new());
@@ -299,7 +303,6 @@ namespace Qt.DotNet.CodeGeneration
                     FieldInfo y => AddFieldAsync(y),
                     MethodInfo y => AddMethodAsync(y),
                     PropertyInfo y => AddPropertyAsync(y),
-                    TypeInfo y => AddNestedTypeAsync(y),
                     _ => Task.FromResult(false)
                 }) ? x : null)));
             foreach (var member in members.Where(x => x != null))
@@ -370,11 +373,6 @@ namespace Qt.DotNet.CodeGeneration
             if (info.IsSpecialName)
                 return false;
             return await AddEdgeAsync(info.ReflectedType, info.FieldType);
-        }
-
-        private async Task<bool> AddNestedTypeAsync(TypeInfo info)
-        {
-            return await AddEdgeAsync(info.ReflectedType, info);
         }
 
         public IEnumerable<MemberInfo> NodeSet() => Nodes

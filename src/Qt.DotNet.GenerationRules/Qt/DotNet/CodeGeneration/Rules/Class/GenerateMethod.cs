@@ -24,7 +24,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
 
             var type = src.ReflectedType;
             var returnType = func.ReturnType;
-            var star = returnType.IsBuiltIn() ? "" : "*";
+            var star = returnType.IsValue() ? "" : "*";
 
             if (func.GetParameters() is not { } args)
                 return Error();
@@ -36,7 +36,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
             methods += $@"
 Q_INVOKABLE {returnType.MFn(Ns | Name)} {star}{func.MFn(Name)}({string.Join(", ", args
     .Select(arg => $@"{Wrap}
-        {arg.ParameterType.MFn(Ns | Name)} {(arg.ParameterType.IsBuiltIn() ? "" : "*")}{Wrap}
+        {arg.ParameterType.MFn(Ns | Name)} {(arg.ParameterType.IsValue() ? "" : "*")}{Wrap}
         {arg.MFn(Name)}"))}) const;
 {Blank}";
 
@@ -54,24 +54,24 @@ mutable QDotNetFunction<{returnType.MFn(Ns | Name)}{args switch
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
-            if (type.GetPlaceholder(Implementation) is not { } implementation)
+            if (type.GetPlaceholder(MethodsImplementation) is not { } implementation)
                 return Error();
             implementation += $@"
 {returnType.MFn(Ns | Name)} {star}{type.MFn(Ns | Name)}::{func.MFn(Name)}({string.Join(", ", args
     .Select(arg => $@"{Wrap}
-        {arg.ParameterType.MFn(Ns | Name)} {(arg.ParameterType.IsBuiltIn() ? "" : "*")}{Wrap}
+        {arg.ParameterType.MFn(Ns | Name)} {(arg.ParameterType.IsValue() ? "" : "*")}{Wrap}
         {arg.MFn(Name)}"))}) const
 {{
     {(returnType.Is(typeof(void)) ? string.Empty :
         "auto result = ")}method(""{func.MFn(Src)}"", d->{func.MFn(Func)}).invoke(*this{args switch
         {
             { Length: > 0 } => ", " + string.Join(", ", args
-                .Select(arg => $@"{(arg.ParameterType.IsBuiltIn() ? "" : "*")}{arg.MFn(Name)}")),
+                .Select(arg => $@"{(arg.ParameterType.IsValue() ? "" : "*")}{arg.MFn(Name)}")),
             _ => string.Empty
         }});
-    {(returnType.Is(typeof(void)) ? Wrap
-    : returnType.IsBuiltIn() ? "return result;"
-    : $"return new {returnType.MFn(Ns | Name)}(std::move(result));")}
+{(returnType.Is(typeof(void)) ? Wrap
+    : returnType.IsValue() ? $"{Tab}return result;"
+    : $"{Tab}return new {returnType.MFn(Ns | Name)}(std::move(result));")}
 }}
 {Blank}";
 

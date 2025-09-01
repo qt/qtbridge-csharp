@@ -66,15 +66,16 @@ struct QDotNetTypeOf<{type.MFn(Ns | Name)}>
             if (type.GetPlaceholder(ForwardDeclPrivate) is not { } forwardDeclPrivate)
                 return Error();
             forwardDeclPrivate += $"struct {type.MFn(Name | Private)};";
+            forwardDeclPrivate += $"struct {type.MFn(Name | Init)};";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             if (type.GetPlaceholder(PublicDeclarations) is not { } publicDecl)
                 return Error();
             publicDecl += $@"
-class {type.MFn(Ns | Name)} :
-    {publicDecl[new(QObjectBaseClass) { Content = ["public QObject"] }]},
-    {publicDecl[new(BaseClasses)]}
+class {type.MFn((System.Enum)(Ns | Name))} :
+    {publicDecl[(Placeholder)new((System.Enum)QObjectBaseClass) { Content = ["public QObject"] }]},
+    {publicDecl[(Placeholder)new((System.Enum)BaseClasses)]}
     public QDotNetObject
 {{
     Q_OBJECT
@@ -82,23 +83,25 @@ class {type.MFn(Ns | Name)} :
         ? "QML_ELEMENT"
         : $"QML_NAMED_ELEMENT({elementName})")}
     {(type.IsQmlSingleton() ? "QML_SINGLETON" : Wrap)}
-    {publicDecl[new(TypeTraits)]}
+    {publicDecl[(Placeholder)new((System.Enum)TypeTraits)]}
 public:
-    Q_DOTNET_OBJECT({type.MFn(Name)},
-        ""{type.MFn(Src | Fqn)}"");
+    Q_DOTNET_OBJECT({type.MFn((System.Enum)Name)},
+        ""{type.MFn((System.Enum)(Src | Fqn))}"");
 
-    {publicDecl[new(CtorDeclarations)]}
-    ~{type.MFn(Name)}() override;
+    {publicDecl[(Placeholder)new((System.Enum)CtorDeclarations)]}
+    ~{type.MFn((System.Enum)Name)}() override;
 
-    {publicDecl[new(PropertyDeclarations)]}
-    {publicDecl[new(MethodDeclarations)]}
-    {publicDecl[new(SignalDeclarations)]}
+    {publicDecl[(Placeholder)new((System.Enum)PropertyDeclarations)]}
+    {publicDecl[(Placeholder)new((System.Enum)MethodDeclarations)]}
+    {publicDecl[(Placeholder)new((System.Enum)SignalDeclarations)]}
 protected:
     void connectNotify(const QMetaMethod &signal) override;
 
 private:
-    {type.MFn(Name | Private)} *d = nullptr;
-    friend {type.MFn(Name | Private)};
+    {type.MFn((System.Enum)(Name | Private))} *d = nullptr;
+    friend {type.MFn((System.Enum)(Name | Private))};
+    {type.MFn((System.Enum)(Name | Init))} *i = nullptr;
+    friend {type.MFn((System.Enum)(Name | Init))};
 }};
 ";
             ////////////////////////////////////////////////////////////////////////////////////////
@@ -121,6 +124,11 @@ struct {type.MFn(Ns | Name | Private)}
         : "void onPropertyChanged(const QString &propertyName);")}
     {privateDecl[new Placeholder(PrivateMemberDeclarations)]}
 }};
+
+struct {type.MFn(Ns | Name | Init)}
+{{
+    {type.MFn(Name | Init)}({type.MFn(Name)} *q, {type.MFn(Name | Private)} *d);
+}};
 {Blank}";
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -130,7 +138,9 @@ struct {type.MFn(Ns | Name | Private)}
 namespace {src.MFn(Ns)}
 {{
     Q_DOTNET_OBJECT_IMPL({type.MFn(Name)},
-        Q_DOTNET_OBJECT_INIT(d(new {type.MFn(Name | Private)}(this))));
+        Q_DOTNET_OBJECT_INIT(
+            d(new {type.MFn(Name | Private)}(this)),
+            i(new {type.MFn(Name | Init)}(this, d))));
 }}
 {Blank}";
             ////////////////////////////////////////////////////////////////////////////////////////
@@ -138,35 +148,46 @@ namespace {src.MFn(Ns)}
             if (type.GetPlaceholder(Implementation) is not { } implementation)
                 return Error();
             implementation += $@"
-void {type.MFn(Ns | Name)}::connectNotify(const QMetaMethod &signal)
-{{
-    QString signalTag = signal.tag();
-    {implementation[new(EventSubscribers)]}
-}}
-{Blank}";
-            implementation += $@"
+{implementation[new(PublicCtors)]}
 {type.MFn(Ns | Name | Private)}::{type.MFn(Name | Private)}({type.MFn(Ns | Name)} *q) : q(q)
 {{
+    {implementation[new(PrivateCtor)]}
+}}
+
+{type.MFn(Ns | Name | Init)}::{type.MFn(Name | Init)}(
+    {type.MFn(Ns | Name)} *q,
+    {type.MFn(Ns | Name | Private)} *d)
+{{
+    {implementation[new(Initializer)]}
 }}
 
 {type.MFn(Ns | Name | Private)}::~{type.MFn(Name | Private)}()
 {{
     {implementation[new(EventUnsubscribers)]}
+    {implementation[new(PrivateDtor)]}
 }}
 
 {type.MFn(Ns | Name)}::~{type.MFn(Name)}()
 {{
+    delete i;
     delete d;
+    {implementation[new(PublicDtor)]}
 }}
-{Blank}";
-            if (type.Implements<INotifyPropertyChanged>()) {
-                implementation += $@"
+
+void {type.MFn(Ns | Name)}::connectNotify(const QMetaMethod &signal)
+{{
+    QString signalTag = signal.tag();
+    {implementation[new(EventSubscribers)]}
+}}
+
+{(!type.Implements<INotifyPropertyChanged>() ? Wrap : $@"{Wrap}
 void {type.MFn(Ns | Name | Private)}::onPropertyChanged(const QString &propertyName)
 {{
     {implementation[new(PropertyNotifiers)]}
 }}
-{Blank}";
-            }
+")}
+{implementation[new(EventHandlers)]}
+{implementation[new(MethodsImplementation)]}";
             return Ok;
         }
     }

@@ -25,6 +25,11 @@ namespace Qt.DotNet.Extensions
                 || type.Is<ModelIndex>() || type.Is<DateTime>();
         }
 
+        public static bool IsValue(this Type type)
+        {
+            return IsBuiltIn(type) || type.IsEnum;
+        }
+
         public static string FormatName(this Type type, string separator,
             Func<string, string> formatPart = null, Func<string, string> afterFormat = null,
             Func<Type, string> nameOf = null)

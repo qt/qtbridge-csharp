@@ -8,6 +8,7 @@ using System.Reflection;
 namespace Qt.DotNet.CodeGeneration.Rules.Class
 {
     using Extensions;
+    using System;
     using static Placeholders;
     using static Traits;
 
@@ -26,29 +27,34 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
-            if (type.GetPlaceholder(CtorDeclarations) is not { } ctors)
+            if (type.GetPlaceholder(CtorDeclarations) is not { } ctorDeclarations)
                 return Error();
-            ctors += $@"
+            ctorDeclarations += $@"
 {type.MFn(Name)}({string.Join(", ", args
     .Select(arg => $"{arg.ParameterType.MFn(Ns | Name)} {arg.MFn(Name)}"))});
 {Blank}";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
-            if (type.GetPlaceholder(Implementation) is not { } implementation)
+            if (type.GetPlaceholder(PublicCtors) is not { } ctors)
                 return Error();
-            implementation += $@"
+            ctors += $@"
 {type.MFn(Ns | Name)}::{type.MFn(Name)}({string.Join(", ", args
-    .Select(arg => $"{arg.ParameterType.MFn(Ns | Name)} {arg.MFn(Name)}"))})
-    : d(new {type.MFn(Ns | Name | Private)}(this))
-{{
-    static auto ctor = constructor<{type.MFn(Name)}{args switch
+    .Select(arg => $"{arg.ParameterType.MFn(Ns | Name)} {arg.MFn(Name)}"))}) :
+    QDotNetObject(constructor<{type.MFn(Ns | Name)}{args switch
     {
         { Length: > 0 } => ", " + string
             .Join(", ", args.Select(arg => arg.ParameterType.MFn(Ns | Name))),
         _ => string.Empty
-    }}>();
-    *this = ctor({string.Join(", ", args.Select(arg => arg.MFn(Name)))});
+    }}>().invoke(nullptr{args switch
+    {
+        { Length: > 0 } => ", " + string
+            .Join(", ", args.Select(arg => arg.MFn(Name))),
+        _ => string.Empty
+    }})),
+    d(new {type.MFn(Ns | Name | Private)}(this)),
+    i(new {type.MFn(Ns | Name | Init)}(this, d))
+{{
 }}
 {Blank}";
 

@@ -44,9 +44,9 @@ struct Convert
     static QDotNetType &type();
     {string.Join(@"
     ", funcs.Select(func => $@"{Wrap}
-    static {(func.ReturnType.IsBuiltIn() ? func.ReturnType.MFn(Ns | Name) : "QDotNetObject")} {Wrap}
+    static {(func.ReturnType.IsValue() ? func.ReturnType.MFn(Ns | Name) : "QDotNetObject")} {Wrap}
 {func.MFn(Name)}({string.Join(", ", func.GetParameters().Select(arg => $@"{Wrap}
-    {(arg.ParameterType.IsBuiltIn() ? arg.ParameterType.MFn(Ns | Name) : "QDotNetObject")} {Wrap}
+    {(arg.ParameterType.IsValue() ? arg.ParameterType.MFn(Ns | Name) : "QDotNetObject")} {Wrap}
     {arg.MFn(Name)}"))});"))}
     static QDotNetArray<QDotNetObject> toArray(QDotNetObject obj);
     static QVariant toVariant(QDotNetObject obj);
@@ -71,17 +71,17 @@ QDotNetType &Convert::type()
 {string.Join(@"
 
 ", funcs.Select(func => $@"{Wrap}
-{(func.ReturnType.IsBuiltIn() ? func.ReturnType.MFn(Ns | Name) : "QDotNetObject")} {Wrap}
+{(func.ReturnType.IsValue() ? func.ReturnType.MFn(Ns | Name) : "QDotNetObject")} {Wrap}
 Convert::{func.MFn(Name)}({string.Join(", ", func.GetParameters().Select(arg => $@"{Wrap}
-    {(arg.ParameterType.IsBuiltIn() ? arg.ParameterType.MFn(Ns | Name) : "QDotNetObject")} {Wrap}
+    {(arg.ParameterType.IsValue() ? arg.ParameterType.MFn(Ns | Name) : "QDotNetObject")} {Wrap}
     {arg.MFn(Name)}"))})
 {{
     static QDotNetFunction<{Wrap}
-        {(func.ReturnType.IsBuiltIn() ? func.ReturnType.MFn(Ns | Name) : "QDotNetObject")}{Wrap}
+        {(func.ReturnType.IsValue() ? func.ReturnType.MFn(Ns | Name) : "QDotNetObject")}{Wrap}
         {func.GetParameters() switch
             {
                 { Length: > 0 } args => ", " + string.Join(", ", args.Select(arg =>
-                    arg.ParameterType.IsBuiltIn() ? arg.ParameterType.MFn(Ns | Name)
+                    arg.ParameterType.IsValue() ? arg.ParameterType.MFn(Ns | Name)
                         : "QDotNetObject")),
                 _ => string.Empty
             }}> fn;

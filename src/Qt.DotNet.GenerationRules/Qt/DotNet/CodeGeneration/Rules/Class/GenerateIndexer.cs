@@ -27,17 +27,17 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
 
             var type = src.ReflectedType;
             var propType = prop.PropertyType;
-            var star = propType.IsBuiltIn() ? "" : "*";
+            var star = propType.IsValue() ? "" : "*";
 
             var propParams = prop.GetIndexParameters();
             var args = string.Join(", ", propParams
                 .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name)} {Wrap}
-                    {(arg.ParameterType.IsBuiltIn() ? "" : "*")}{arg.MFn(Name)}"));
+                    {(arg.ParameterType.IsValue() ? "" : "*")}{arg.MFn(Name)}"));
             var argNames = string.Join(", ", propParams
                 .Select(arg => arg.MFn(Name)));
             var argTypes = string.Join(", ", propParams
                 .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name)} {Wrap}
-                    {(arg.ParameterType.IsBuiltIn() ? "" : "*")}"));
+                    {(arg.ParameterType.IsValue() ? "" : "*")}"));
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -63,7 +63,7 @@ Q_INVOKABLE void {prop.MFn(Set)}({args}, {propType.MFn(Ns | Name)} {star}value);
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
-            if (type.GetPlaceholder(Implementation) is not { } implementation)
+            if (type.GetPlaceholder(MethodsImplementation) is not { } implementation)
                 return Error();
             implementation += $@"
 {(prop.CanRead ? $@"{Wrap}
@@ -71,7 +71,7 @@ Q_INVOKABLE void {prop.MFn(Set)}({args}, {propType.MFn(Ns | Name)} {star}value);
 {{
     auto result = method(""{prop.MFn(Src | Get)}"", d->{prop.MFn(Get | Func)})
         .invoke(*this, {argNames});
-    {(propType.IsBuiltIn() ? "return result;"
+    {(propType.IsValue() ? "return result;"
         : $"return new {propType.MFn(Ns | Name)}(std::move(result));")}
 }}" : string.Empty)}
 

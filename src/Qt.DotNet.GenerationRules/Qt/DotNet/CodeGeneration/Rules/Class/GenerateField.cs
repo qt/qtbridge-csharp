@@ -24,7 +24,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
 
             var type = src.ReflectedType;
             var fieldType = field.FieldType;
-            var star = fieldType.IsBuiltIn() ? "" : "*";
+            var star = fieldType.IsValue() ? "" : "*";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -53,7 +53,7 @@ mutable QDotNetFunction<void, QDotNetRef, {fieldType.MFn(Ns | Name)}> {Wrap}
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
-            if (type.GetPlaceholder(Implementation) is not { } implementation)
+            if (type.GetPlaceholder(MethodsImplementation) is not { } implementation)
                 return Error();
             implementation += $@"
 {fieldType.MFn(Ns | Name)} {star}{type.MFn(Ns | Name)}::{field.MFn(Get)}() const
@@ -61,7 +61,7 @@ mutable QDotNetFunction<void, QDotNetRef, {fieldType.MFn(Ns | Name)}> {Wrap}
     auto result = fieldGet<{fieldType.MFn(Ns | Name)}>({Wrap}
         ""{field.MFn(Src)}"", d->{field.MFn(Get | Func)})
         .invoke(nullptr, *this);
-    {(fieldType.IsBuiltIn() ? "return result;"
+    {(fieldType.IsValue() ? "return result;"
         : $"return new {fieldType.MFn(Ns | Name)}(std::move(result));")}
 }}
 {(field.IsLiteral || field.IsInitOnly ? Wrap : $@"

@@ -25,7 +25,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
                 return Error();
             var type = src.ReflectedType;
             var propType = prop.PropertyType;
-            var star = propType.IsBuiltIn() ? "" : "*";
+            var star = propType.IsValue() ? "" : "*";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -48,6 +48,13 @@ PROPERTY_{prop.MFn(Src)} Q_SIGNAL void {prop.MFn(Signal)}();
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
+            if (type.GetPlaceholder(PrivateIncludes) is not { } privateIncludes)
+                return Error();
+            privateIncludes += "#include <QThread>";
+            privateIncludes += "#include <QMetaMethod>";
+
+            ////////////////////////////////////////////////////////////////////////////////////////
+            //
             if (type.GetPlaceholder(PrivateMemberDeclarations) is not { } privateMembers)
                 return Error();
             privateMembers += $@"
@@ -58,7 +65,7 @@ mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} 
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
-            if (type.GetPlaceholder(Implementation) is not { } implementation)
+            if (type.GetPlaceholder(MethodsImplementation) is not { } implementation)
                 return Error();
 
             implementation += $@"
@@ -66,7 +73,7 @@ mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} 
 {propType.MFn(Ns | Name)} {star}{type.MFn(Ns | Name)}::{prop.MFn(Get)}() const
 {{
     auto result = method(""{prop.MFn(Src | Get)}"", d->{prop.MFn(Get | Func)}).invoke(*this);
-    {(propType.IsBuiltIn() ? "return result;"
+    {(propType.IsValue() ? "return result;"
         : $"return new {propType.MFn(Ns | Name)}(std::move(result));")}
 }}
 {Blank}")}
@@ -97,7 +104,12 @@ if (signalTag == ""PROPERTY_{prop.MFn(Src)}"") {{
                 return Error();
             notifiers += $@"
 if (propertyName == ""{prop.MFn(Src)}"") {{
-    emit q->{prop.MFn(Signal)}();
+    if (QThread::isMainThread()) {{
+        emit q->{prop.MFn(Signal)}();
+    }} else {{
+        QMetaMethod::fromSignal(&{type.MFn(Ns | Name)}::{prop.MFn(Signal)})
+            .invoke(q, Qt::BlockingQueuedConnection);
+    }}
     return;
 }}";
 
