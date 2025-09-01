@@ -354,9 +354,7 @@ struct QDotNetEventHandlerHelper : public QDotNetEventHandler
 
     ~QDotNetEventHandlerHelper() override
     {
-        // TO_DO: figure out why this crashes on app shutdown
-        if (receiver && receiver->isValid())
-            receiver->unsubscribe(eventName, this);
+        QDotNetAdapter::instance().removeAllEventHandlersByContext(this);
     }
 
     const QString eventName{ };

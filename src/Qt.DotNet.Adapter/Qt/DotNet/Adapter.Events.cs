@@ -70,21 +70,20 @@ namespace Qt.DotNet
                 evRelay.Enabled = false;
         }
 
+
         /// <summary>
-        /// Unsubscribe to notifications of all events from given object
+        /// Unsubscribe to notifications of all events for a given context object
         /// </summary>
-        /// <param name="objRefPtr">Native reference to target object.</param>
-        /// <exception cref="ArgumentException"></exception>
-        public static void RemoveAllEventHandlers(IntPtr objRefPtr)
+        /// <param name="context">Native context reference.</param>
+        public static void RemoveAllEventHandlersByContext(IntPtr context)
         {
 #if DEBUG
             // Compile-time signature check of delegate vs. method
-            _ = new Delegates.RemoveAllEventHandlers(RemoveAllEventHandlers);
+            _ = new Delegates.RemoveAllEventHandlersByContext(RemoveAllEventHandlersByContext);
 #endif
-            var objRef = GetObjectRefFromPtr(objRefPtr);
-            if (objRef == null)
-                throw new ArgumentException("Invalid object reference", nameof(objRefPtr));
-            RemoveAllEventHandlers(objRef);
+            var evHandlers = Events.Where(x => x.Key.Context == context);
+            foreach (var evHandler in evHandlers)
+                RemoveEventHandler(evHandler.Key.Source, evHandler.Key.Name, evHandler.Key.Context);
         }
 
         private static void RemoveAllEventHandlers(ObjectRef objRef)

@@ -38,10 +38,11 @@ namespace Test_Qt.DotNet.Adapter
                 objRef, "set_Bar", 1, [new(), new Parameter(UnmanagedType.LPWStr)]);
             Assert.IsNotNull(setBarPtr);
 
+            var context = new IntPtr(42);
             AddEventHandler(
                 objRef,
                 "PropertyChanged",
-                new IntPtr(42),
+                context,
                 TestNativeEventHandler);
 
             for (var i = 0; i < 1000; ++i) {
@@ -52,7 +53,7 @@ namespace Test_Qt.DotNet.Adapter
                     ?.Invoke(GetObjectRefFromPtr(objRef).Target, [str]);
             }
 
-            RemoveAllEventHandlers(objRef);
+            RemoveAllEventHandlersByContext(context);
             FreeObjectRef(objRef);
             FreeTypeRef("FooLib.Foo, FooLib");
 

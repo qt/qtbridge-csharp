@@ -117,8 +117,8 @@ namespace Qt.DotNet
                 [In] IntPtr context);
 
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-            public delegate void RemoveAllEventHandlers(
-                [In] IntPtr objRefPtr);
+            public delegate void RemoveAllEventHandlersByContext(
+                [In] IntPtr context);
 
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             public delegate IntPtr AddObjectRef(

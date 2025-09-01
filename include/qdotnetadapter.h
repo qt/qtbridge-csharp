@@ -107,7 +107,7 @@ public:
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(ResolveSafeMethod));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(AddEventHandler));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(RemoveEventHandler));
-        host->resolveFunction(QDOTNETADAPTER_DELEGATE(RemoveAllEventHandlers));
+        host->resolveFunction(QDOTNETADAPTER_DELEGATE(RemoveAllEventHandlersByContext));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(AddObjectRef));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(FreeDelegateRef));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(FreeObjectRef));
@@ -260,12 +260,11 @@ public:
         fnRemoveEventHandler(eventSource, eventName, &eventSource);
     }
 
-    void removeAllEventHandlers(const QDotNetRef &eventSource) const
+    void removeAllEventHandlersByContext(void *context) const
     {
-        init();
-        if (QtDotNet::isNull(eventSource))
+        if (!isValid() || !fnRemoveAllEventHandlersByContext.isValid())
             return;
-        fnRemoveAllEventHandlers(eventSource);
+        fnRemoveAllEventHandlersByContext(context);
     }
 
     void *addObjectRef(const QDotNetRef &objectRef, bool weakRef = false) const
@@ -374,7 +373,7 @@ private:
     mutable QDotNetFunction<void *, void *, qint32, QList<QDotNetParameter>> fnResolveSafeMethod;
     mutable QDotNetFunction<void, QDotNetRef, QString, void *, EventCallback> fnAddEventHandler;
     mutable QDotNetFunction<void, QDotNetRef, QString, void *> fnRemoveEventHandler;
-    mutable QDotNetFunction<void, QDotNetRef> fnRemoveAllEventHandlers;
+    mutable QDotNetFunction<void, void *> fnRemoveAllEventHandlersByContext;
     mutable QDotNetFunction<void *, QDotNetRef, bool> fnAddObjectRef;
     mutable QDotNetFunction<void, void *> fnFreeDelegateRef;
     mutable QDotNetFunction<void, QDotNetRef> fnFreeObjectRef;
