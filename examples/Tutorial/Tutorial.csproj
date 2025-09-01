@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
+    <ProjectReference Include="..\..\src\Qt.DotNet.Generator\Qt.DotNet.Generator.csproj" />
+    <ProjectReference Include="..\..\src\Qt.DotNet.GenerationRules\Qt.DotNet.GenerationRules.csproj" />
+  </ItemGroup>
+
+  <Import Project="..\..\src\Qt.DotNet.Adapter\build\Qt.DotNet.targets" />
+
+</Project>
