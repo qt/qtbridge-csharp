@@ -16,7 +16,7 @@
   // QtDotNetAddQmlFiles
   -->
   <Target Name="QtDotNetAddQmlFiles" BeforeTargets="CoreCompile"
-    Inputs="@(Qml)" Outputs="$(IntermediateOutputPath)qtdotnet\csharp\QmlFiles.cs"
+    Inputs="@(Qml)" Outputs="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlFilesCs)"
     Condition="'$(DesignTimeBuild)' != 'true'">
     <!-- Copy QML files to native source dir -->
     <Copy Condition="'@(Qml)' != ''"
@@ -24,8 +24,8 @@
     <MakeDir Condition="'@(Qml)' != ''"
       Directories="$(IntermediateOutputPath)qtdotnet\csharp" />
     <!-- Add C# source with paths of QML files; this will be an input for code generation -->
-    <WriteLinesToFile Condition="'@(Qml)' != ''" Overwrite="true" WriteOnlyWhenDifferent="true"
-      File="$(IntermediateOutputPath)qtdotnet\csharp\QmlFiles.cs"
+    <WriteLinesToFile Condition="'@(Qml)' != ''" Overwrite="true" WriteOnlyWhenDifferent="false"
+      File="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlFilesCs)"
       Lines="@(Qml->'[assembly: Qt.Quick.QmlFile(Path = @&quot;%(Identity)&quot;)]')" />
     <ItemGroup>
       <Compile Condition="'@(Qml)' != ''"

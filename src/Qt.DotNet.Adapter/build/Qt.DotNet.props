@@ -37,6 +37,8 @@
     <QtGenCmd>"$(QtDotNetGen)"</QtGenCmd>
     <QtGenCmd>$(QtGenCmd) --ref "$(QtDotNetAdapter)"</QtGenCmd>
     <QtGenCmd>$(QtGenCmd) --rules "$(QtDotNetGenRules)"</QtGenCmd>
+
+    <QtQmlFilesCs>qtdotnet\csharp\QmlFiles.cs</QtQmlFilesCs>
   </PropertyGroup>
 
   <ItemGroup>
@@ -47,8 +49,7 @@
     <Qml Remove="$(ProjectDir)$(BaseIntermediateOutputPath)**\*.qml" />
     <!-- Add QML files to up-to-date check of VS -->
     <UpToDateCheckInput Set="Qml" Include="@(Qml)" />
-    <UpToDateCheckOutput Set="Qml"
-      Include="@(Qml->'$(IntermediateOutputPath)qtdotnet\native\source\%(Filename)%(Extension)')" />
+    <UpToDateCheckOutput Set="Qml" Include="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlFilesCs)" />
     <!-- Add reference to source files for incremental build -->
     <QtDotNetNativeSource
       Include="$(IntermediateOutputPath)qtdotnet\native\source\CMakeLists.txt
