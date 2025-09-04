@@ -63,6 +63,8 @@
         >$(QtGenCmd) --target "$(ProjectIntermediateDir)qtdotnet\native"</QtGenCmd>
       <QtGenCmd
         >$(QtGenCmd) @(_ResolvedProjectReferencePaths->'--ref &quot;%(Identity)&quot;', ' ')</QtGenCmd>
+      <QtGenCmd
+        >$(QtGenCmd) @(RuntimeCopyLocalItems->'--ref &quot;%(Identity)&quot;', ' ')</QtGenCmd>
     </PropertyGroup>
 
     <Message Importance="high" Text="$(QtGenCmd)" />
