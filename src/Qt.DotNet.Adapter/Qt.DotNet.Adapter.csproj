@@ -1,6 +1,6 @@
 ﻿<!--
 /***************************************************************************************************
- Copyright (C) 2023 The Qt Company Ltd.
+ Copyright (C) 2025 The Qt Company Ltd.
  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 ***************************************************************************************************/
 -->
@@ -24,6 +24,12 @@
   <Target Name="CleanPostBuild" AfterTargets="Clean">
     <Delete Files="$(SolutionDir)bin\$(AssemblyName).dll" />
   </Target>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Test_Qt.DotNet.Adapter</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 
   <Import Project="includegen.targets" />
 

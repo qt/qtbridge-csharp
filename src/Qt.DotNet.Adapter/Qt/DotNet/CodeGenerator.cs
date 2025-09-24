@@ -32,7 +32,7 @@ namespace Qt.DotNet
     {
         public static MethodInfo CreateSafeMethod(MethodInfo unsafeMethod)
         {
-#if TESTS || DEBUG
+#if DEBUG
             Debug.Assert(unsafeMethod.DeclaringType != null, "unsafeMethod.DeclaringType is null");
 #endif
             var typeGen = ModuleGen.DefineType(
@@ -52,7 +52,7 @@ namespace Qt.DotNet
             var safeReturnCtor = safeReturnType.GetConstructor(Array.Empty<Type>());
             var safeReturnSetValue = safeReturnType.GetMethod("set_Value");
             var safeReturnSetException = safeReturnType.GetMethod("set_Exception");
-#if TESTS || DEBUG
+#if DEBUG
             Debug.Assert(safeReturnCtor != null, nameof(safeReturnCtor) + " is null");
             Debug.Assert(safeReturnSetValue != null, nameof(safeReturnSetValue) + " is null");
             Debug.Assert(safeReturnSetException != null,
@@ -310,7 +310,7 @@ namespace Qt.DotNet
         /// <exception cref="TypeAccessException"/>
         public static Type CreateDelegateTypeForMethod(MethodInfo method, Parameter[] parameters)
         {
-#if TESTS || DEBUG
+#if DEBUG
             Debug.Assert(method.GetParameters().Length == parameters.Length - 1);
             Debug.Assert(method.DeclaringType != null, "method.DeclaringType is null");
             Debug.Assert(method.ReturnType.IsAssignableTo(parameters[0].GetParameterType())
@@ -382,7 +382,7 @@ namespace Qt.DotNet
         public static MethodInfo CreateProxyMethodForField(
             FieldInfo field, bool isFieldSet, Parameter[] parameters)
         {
-#if TESTS || DEBUG
+#if DEBUG
             Debug.Assert(field is not null);
 #endif
             // Check if already in cache
@@ -479,7 +479,7 @@ namespace Qt.DotNet
         public static MethodInfo CreateProxyMethodForCtor(
             ConstructorInfo ctor, Parameter[] parameters)
         {
-#if TESTS || DEBUG
+#if DEBUG
             Debug.Assert(ctor.GetParameters().Length == parameters.Length - 1);
             Debug.Assert(ctor.DeclaringType != null, "ctor.DeclaringType is null");
             Debug.Assert(ctor.DeclaringType.IsAssignableTo(parameters[0].GetParameterType()));

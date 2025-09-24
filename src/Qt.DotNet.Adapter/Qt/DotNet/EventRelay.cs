@@ -1,5 +1,5 @@
 /***************************************************************************************************
- Copyright (C) 2023 The Qt Company Ltd.
+ Copyright (C) 2025 The Qt Company Ltd.
  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 ***************************************************************************************************/
 
@@ -32,7 +32,7 @@ namespace Qt.DotNet
             Context = context;
             RelayEventDelegate = null;
             Enabled = enabled;
-#if TESTS || DEBUG
+#if DEBUG
             Debug.Assert(Event.EventHandlerType != null, "Event.EventHandlerType is null");
 #endif
         }
@@ -65,7 +65,7 @@ namespace Qt.DotNet
         {
             if (sender == null && args == null) {
                 var info = MethodBase.GetCurrentMethod() as MethodInfo;
-#if TESTS || DEBUG
+#if DEBUG
                 Debug.Assert(info != null, nameof(info) + " != null");
                 Debug.Assert(Event.EventHandlerType != null, "Event.EventHandlerType is null");
 #endif
