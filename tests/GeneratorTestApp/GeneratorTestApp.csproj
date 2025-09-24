@@ -26,6 +26,6 @@
       Include="..\..\utils\LazyFactory\LazyFactory.csproj" />
   </ItemGroup>
 
-  <Import Project="qtdotnet.targets"/>
+  <Import Project="..\..\src\Qt.DotNet.Adapter\build\Qt.DotNet.targets"/>
 
 </Project>
