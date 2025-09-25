@@ -170,7 +170,7 @@ namespace Qt.DotNet.CodeGeneration
                 }
             }
 
-            var result = await Files.WriteAllAsync();
+            var result = await Files.WriteAllAsync(new IncrementalFileSink());
             if (result.Any(x => x.Updated == null || !File.Exists(x.File.FullName)))
                 return Error(ctx, ExitCode.OutputError, $@"Error writing generated files");
 

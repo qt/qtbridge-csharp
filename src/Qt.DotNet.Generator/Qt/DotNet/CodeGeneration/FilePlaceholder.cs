@@ -5,9 +5,7 @@
 
 global using Files = Qt.DotNet.CodeGeneration.FilePlaceholder.All;
 
-using System;
 using System.Reflection;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -37,12 +35,15 @@ namespace Qt.DotNet.CodeGeneration
         public FilePlaceholder(Enum id, MemberInfo src, string path) : this(IdName(id), src, path)
         { }
 
-        public async Task<bool?> WriteAsync()
+        public async Task<bool?> WriteAsync(IFileSink sink, CancellationToken cancelToken = default)
         {
+#if DEBUG
+            ArgumentNullException.ThrowIfNull(sink);
+#endif
             if (Target == null)
                 return null;
 
-            var text = await RenderAsync();
+            var text = await RenderAsync().WaitAsync(cancelToken).ConfigureAwait(false);
             text = (ByteOrderMark ? "\uFEFF" : "") + text
                 .Replace($"{Nul}", "")
                 .Replace($"{Tab}", IndentChars);
@@ -51,44 +52,32 @@ namespace Qt.DotNet.CodeGeneration
                 .Replace($"{Blank}", "\r\n")
                 .TrimEnd('\r', '\n', ' ')
                 + (NewLineEof ? "\r\n" : "");
-            var data = Encoding.GetBytes(text);
 
-            if (!ForceWrite && Target.Exists) {
-                using var newData = new MemoryStream(data);
-                var newSha1 = await SHA1.HashDataAsync(newData);
-                try {
-                    await using var oldData = Target.OpenRead();
-                    var oldSha1 = await SHA1.HashDataAsync(oldData);
-                    if (Enumerable.SequenceEqual(newSha1, oldSha1))
-                        return false;
-                } catch (SystemException) {
-                    return null;
-                }
-            }
-
-            try {
-                if (Target.Directory is { Exists: false, FullName.Length: > 0 })
-                    Directory.CreateDirectory(Target.Directory.FullName);
-                await using var file = Target
-                    .Open(FileMode.Create, FileAccess.Write, FileShare.None);
-                await file.WriteAsync(data);
-                await file.FlushAsync();
-                Target.Refresh();
-            } catch (SystemException) {
-                return null;
-            }
-
-            return true;
+            return await sink.WriteAsync(Target, text, Encoding, ForceWrite, cancelToken)
+                .ConfigureAwait(false);
         }
 
         private static ConcurrentSet<FilePlaceholder> Instances { get; } = new();
 
         internal static new class All
         {
-            public static async Task<(FileInfo File, bool? Updated)[]> WriteAllAsync()
+            public static async Task<(FileInfo File, bool? Updated)[]> WriteAllAsync(IFileSink sink,
+                CancellationToken cancellationToken = default)
             {
-                return await Task.WhenAll(Instances
-                    .Select(x => Task.Run(async () => (x.Target, await x.WriteAsync()))));
+#if DEBUG
+                ArgumentNullException.ThrowIfNull(sink);
+#endif
+                var filePlaceholders = Instances.ToArray(); // snapshot
+                var results = new (FileInfo File, bool? Updated)[filePlaceholders.Length];
+
+                await Task.WhenAll(Enumerable.Range(0, filePlaceholders.Length).Select(async i =>
+                {
+                    var placeholder = filePlaceholders[i];
+                    results[i] = (placeholder.Target, await placeholder
+                        .WriteAsync(sink, cancellationToken).ConfigureAwait(false));
+                })).ConfigureAwait(false);
+
+                return results;
             }
         }
 
