@@ -9,7 +9,8 @@ namespace Qt.DotNet.Extensions
     {
         public static IEnumerable<Type> DelegateSignature(this Type type)
         {
-            var invoke = type.GetMethod("Invoke");
+            if (type.GetMethod("Invoke") is not { } invoke)
+                return [];
             return invoke.GetParameters()
                 .Select(x => x.ParameterType)
                 .Prepend(invoke.ReturnType);
