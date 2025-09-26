@@ -75,6 +75,8 @@ namespace Qt.DotNet.CodeGeneration
 
         public ConcurrentSet<Type> ExcludedTypes => lazy.Get(() => ExcludedTypes, () => new()
         {
+            TypeOf<Array>(),
+            TypeOf<Type>(),
             TypeOf<Task>(),
             TypeOf<IDeserializationCallback>(),
             TypeOf<IFormattable>(),
@@ -82,25 +84,22 @@ namespace Qt.DotNet.CodeGeneration
             TypeOf<ISpanFormattable>(),
             TypeOf<SerializationInfo>(),
             TypeOf<StreamingContext>(),
+            TypeOf<Delegate>(),
         });
         public ConcurrentSet<Type> ExcludedBaseTypes { get; } = new();
 
         public ConcurrentSet<Type> BuiltInTypes => lazy.Get(() => BuiltInTypes, () => new()
         {
-            TypeOf<Array>(),
             TypeOf<DateTime>(),
             TypeOf<decimal>(),
-            TypeOf<Delegate>(),
             TypeOf<Enum>(),
             TypeOf<EventArgs>(),
             TypeOf<IComparable>(),
             TypeOf<IConvertible>(),
             TypeOf<IDisposable>(),
             TypeOf<INotifyPropertyChanged>(),
-            TypeOf<object>(),
             TypeOf<PropertyChangedEventArgs>(),
             TypeOf<string>(),
-            TypeOf<Type>(),
             TypeOf<ValueType>(),
             TypeOf(typeof(void))
         });
@@ -158,7 +157,7 @@ namespace Qt.DotNet.CodeGeneration
             }
             if (type == TypeOfTask)
                 return true;
-            if (type.IsByRef || type.IsByRefLike)
+            if (type.IsByRef || type.IsByRefLike || type.IsPointer)
                 return true;
             if (ExcludedTypes.Any(x => IsSame(type, x)))
                 return true;
