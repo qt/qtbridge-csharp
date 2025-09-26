@@ -44,21 +44,26 @@ namespace Test_Qt.DotNet.Generator.Support
         /// <param name="maxConcurrency">Maximum parallelism for file operations.</param>
         /// <param name="ct">Cancellation token.</param>
         /// <returns>Generated code and metadata.</returns>
-        public static async Task<Result> GenerateAsync(string[] sources, string[] extraRefs = null,
+        public static async Task<Result> GenerateAsync(string[] sources,
+            Assembly[] sourceRefs = null, string[] extraRefs = null,
             int maxConcurrency = 1, CancellationToken ct = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sources.ToString(), nameof(sources));
 
             // 1. Compile input sources into a temporary assembly
             var trees = sources.Select(src => CSharpSyntaxTree.ParseText(src)).ToArray();
-            var refs = new[]
-            {
-                CreateMetadataReference(typeof(object).Assembly),
-                CreateMetadataReference(typeof(Enumerable).Assembly),
-                CreateMetadataReference(typeof(Rule).Assembly),
-                CreateMetadataReference(typeof(GenerateIndexer).Assembly),
-                CreateMetadataReference(typeof(BasicTypes).Assembly)
-            };
+            var refs = (sourceRefs ?? Array.Empty<Assembly>())
+                .Union([
+                    Assembly.Load("System.Runtime"),
+                    typeof(object).Assembly,
+                    typeof(Enumerable).Assembly,
+                    typeof(Rule).Assembly,
+                    typeof(GenerateIndexer).Assembly,
+                    typeof(BasicTypes).Assembly
+                ])
+                .Distinct()
+                .Select(CreateMetadataReference)
+                .ToArray();
 
             var assemblyName  = "CodeGeneratorTest_" + Guid.NewGuid().ToString("N");
             var compilation = CSharpCompilation.Create(assemblyName , trees, refs,
