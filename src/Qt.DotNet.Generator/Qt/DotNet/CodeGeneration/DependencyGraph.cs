@@ -114,7 +114,7 @@ namespace Qt.DotNet.CodeGeneration
                 return true;
             if (BuiltInTypes.Contains(type))
                 return true;
-            if (type.IsPrimitive || type.IsArray)
+            if (type.IsPrimitive)
                 return true;
             if (type.Assembly == AdapterAssembly)
                 return true;

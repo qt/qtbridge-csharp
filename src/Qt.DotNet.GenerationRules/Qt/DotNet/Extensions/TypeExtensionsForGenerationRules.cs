@@ -4,6 +4,7 @@
 ***************************************************************************************************/
 
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using Qt.Quick;
 
@@ -23,19 +24,34 @@ namespace Qt.DotNet.Extensions
         }
 
         public static string FormatName(this Type type, string separator,
-            Func<string, string> formatPart = null, Func<string, string> afterFormat = null)
+            Func<string, string> formatPart = null, Func<string, string> afterFormat = null,
+            Func<Type, string> nameOf = null)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
             formatPart ??= x => x;
             afterFormat ??= x => x;
+            nameOf ??= x =>
+            {
+                StringBuilder name = new();
+                if (x.IsArray) {
+                    var rank = x.GetArrayRank();
+                    name.Append("Array");
+                    if (rank > 1)
+                        name.Append($"{rank}D");
+                    name.Append("_");
+                    x = x.GetElementType();
+                }
+                name.Append(x.Name.Split('`')[0]);
+                return name.ToString();
+            };
             Stack<Type> nestingTypes = new();
             while (type != null) {
                 nestingTypes.Push(type);
                 type = type.DeclaringType; ;
             }
             return afterFormat(string.Join(separator, nestingTypes
-                .Select(x => formatPart(x.Name.Split('`')[0]))));
+                .Select(x => formatPart(nameOf(x)))));
         }
 
         public static string FormatNamespace(this Type type, string separator,

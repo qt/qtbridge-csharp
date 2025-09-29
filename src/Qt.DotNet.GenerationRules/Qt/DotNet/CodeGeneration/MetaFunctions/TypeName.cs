@@ -28,11 +28,6 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
                 return type.Name;
             }
 
-            if (type.Is<Array>())
-                return "QDotNetArray<QDotNetRef>";
-            if (type.IsArray)
-                return $"QDotNetArray<{type.GetElementType().MFn(traits)}>";
-
             StringBuilder typeName = new();
             if (traits.HasTraits(Ns)) {
                 if (type.Namespace is { Length: > 0 })
@@ -47,6 +42,9 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
                 if (traits.HasTraits(Private))
                     typeName.Append("Private");
             }
+
+            if (type.IsArray)
+                type = type.GetElementType();
 
             if (traits.HasTraits(Ns) && !traits.HasTraits(Name))
                 return typeName.ToString();
