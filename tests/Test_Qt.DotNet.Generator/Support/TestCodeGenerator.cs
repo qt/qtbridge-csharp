@@ -50,6 +50,10 @@ namespace Test_Qt.DotNet.Generator.Support
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sources.ToString(), nameof(sources));
 
+            // 0. Ensure no trace left from a previous run
+            Placeholder.ResetIndex();
+            Rule.All.Reset();
+
             // 1. Compile input sources into a temporary assembly
             var trees = sources.Select(src => CSharpSyntaxTree.ParseText(src)).ToArray();
             var refs = (sourceRefs ?? Array.Empty<Assembly>())

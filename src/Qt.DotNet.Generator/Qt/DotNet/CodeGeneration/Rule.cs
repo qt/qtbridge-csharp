@@ -37,7 +37,7 @@ namespace Qt.DotNet.CodeGeneration
         protected const char Wrap = Placeholder.Wrap;
         public const string RootName = DependencyGraph.RootName;
         public static DependencyGraph SourceGraph { get; private set; }
-        protected static Type Root => SourceGraph.Root;
+        protected static Type Root => SourceGraph?.Root;
 
         private static ConcurrentSet<Rule> AllRules { get; } = new();
         public static void Register<T>(T rule) where T : Rule => AllRules.Add(rule);
@@ -80,6 +80,17 @@ namespace Qt.DotNet.CodeGeneration
 
         internal static class All
         {
+            internal static void Reset()
+            {
+                SourceGraph = null;
+                AllRules.Clear();
+                TargetDir = null;
+                Results.Clear();
+                SourceTypes = null;
+                SourceMembers = null;
+                SourceRules.Clear();
+            }
+
             public static DirectoryInfo TargetDir { get; private set; }
 
             public static async Task<bool> RunAllAsync(DependencyGraph graph, string targetPath)

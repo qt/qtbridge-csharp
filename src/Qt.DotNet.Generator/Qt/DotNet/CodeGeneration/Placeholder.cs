@@ -127,6 +127,11 @@ namespace Qt.DotNet.CodeGeneration
         private ConcurrentQueue<Placeholder> Children { get; } = new();
         private static Index Index { get; } = new();
 
+        internal static void ResetIndex()
+        {
+            Index.Clear();
+        }
+
         protected static string IdName(Enum id) => $"{id.GetType().Name}.{id}";
 
         protected void AddToIndex()

@@ -50,5 +50,11 @@ namespace Qt.DotNet.Utils.Collections.Concurrent
             lock (criticalSection)
                 items.Add((item.Priority, ++timestamp), item);
         }
+
+        public void Clear()
+        {
+            lock (criticalSection)
+                items.Clear();
+        }
     }
 }

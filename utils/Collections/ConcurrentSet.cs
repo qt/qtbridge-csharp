@@ -18,6 +18,7 @@ namespace Qt.DotNet.Utils.Collections.Concurrent
         public bool Add(T item) => Items.TryAdd(item, true);
         public bool Remove(T item) => Items.TryRemove(item, out _);
         public bool Contains(T item) => Items.ContainsKey(item);
+        public void Clear() => Items.Clear();
         public IEnumerator<T> GetEnumerator() => Items.Keys.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => Items.Keys.GetEnumerator();
     }
