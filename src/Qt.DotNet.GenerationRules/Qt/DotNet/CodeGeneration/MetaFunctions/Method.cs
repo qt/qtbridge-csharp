@@ -16,8 +16,7 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
         {
             MethodInfo func => traits switch
             {
-                Func when func.IsOverload() => $"fn{func.Name}_{func.MetadataToken:X}",
-                Func => $"fn{func.Name}",
+                Func => $"fn{func.Name}_{func.UniqueId()}",
                 Src => func.Name,
                 _ => func.Name.FromPascalCase().ToCamelCase()
             },

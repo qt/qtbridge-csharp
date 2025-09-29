@@ -3,22 +3,20 @@
  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 ***************************************************************************************************/
 
+using System.Diagnostics;
+using System.IO.Hashing;
 using System.Reflection;
+using System.Text;
 
 namespace Qt.DotNet.Extensions
 {
     public static class MemberInfoExtensions
     {
-        public static bool IsOverload(this MemberInfo self)
+        public static string UniqueId(this MemberInfo m)
         {
-            if (self?.ReflectedType is not { } type)
-                return false;
-            return self switch
-            {
-                MethodInfo => type.GetMethods().Count(x => x.Name == self.Name) > 1,
-                PropertyInfo => type.GetProperties().Count(x => x.Name == self.Name) > 1,
-                _ => false
-            };
+            Debug.Assert(m?.ReflectedType?.FullName is { Length: > 0 });
+            var data = Encoding.UTF8.GetBytes($"[{m.ReflectedType.FullName}]::{m}");
+            return BitConverter.ToString(Crc32.Hash(data)).Replace("-", "");
         }
     }
 }

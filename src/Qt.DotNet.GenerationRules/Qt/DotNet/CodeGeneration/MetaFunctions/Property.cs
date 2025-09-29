@@ -19,10 +19,8 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
                 Src => prop.Name,
                 Src | Get => $"get_{prop.Name}",
                 Src | Set => $"set_{prop.Name}",
-                Get | Func when prop.IsOverload() => $"fnGet{prop.Name}_{prop.MetadataToken:X}",
-                Get | Func => $"fnGet{prop.Name}",
-                Set | Func when prop.IsOverload() => $"fnSet{prop.Name}_{prop.MetadataToken:X}",
-                Set | Func => $"fnSet{prop.Name}",
+                Get | Func => $"fnGet{prop.Name}_{prop.UniqueId()}",
+                Set | Func => $"fnSet{prop.Name}_{prop.UniqueId()}",
                 Set => $"set{prop.Name}",
                 Signal => $"{prop.Name.FromPascalCase().ToCamelCase()}Changed",
                 _ => prop.Name.FromPascalCase().ToCamelCase()

@@ -3,6 +3,7 @@
  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 ***************************************************************************************************/
 
+using Qt.DotNet.Extensions;
 using System.Reflection;
 
 namespace Qt.DotNet.CodeGeneration.MetaFunctions
@@ -15,7 +16,7 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
         {
             ConstructorInfo ctor => traits switch
             {
-                Func => $"fnCtor{ctor.MetadataToken:X}",
+                Func => $"fnCtor{ctor.UniqueId()}",
                 _ => null
             },
             _ => null
