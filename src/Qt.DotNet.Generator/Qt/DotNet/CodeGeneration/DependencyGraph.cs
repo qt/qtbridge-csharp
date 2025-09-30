@@ -110,8 +110,6 @@ namespace Qt.DotNet.CodeGeneration
 
         private bool IsBuiltIn(Type type)
         {
-            if (type.BaseType?.Assembly == AdapterAssembly)
-                return true;
             if (IsConstructedTypeOfGenericType(type, TypeOfIEquatable))
                 return true;
             if (BuiltInTypes.Contains(type))
@@ -164,10 +162,8 @@ namespace Qt.DotNet.CodeGeneration
                 return true;
             if (IsIgnored(type))
                 return true;
-            if (type.IsAssignableTo(TypeOfDelegate)) {
-                if (type.DelegateSignature().Any(IsExcluded))
-                    return true;
-            }
+            if (type.IsAssignableTo(TypeOfDelegate))
+                return true;
             return false;
         }
 
@@ -182,6 +178,41 @@ namespace Qt.DotNet.CodeGeneration
             if (attribs == null)
                 return false;
             if (!attribs.Any(x => x.AttributeType == AttribIgnore))
+                return false;
+            return true;
+        }
+
+        private bool IsAdapterOverride(MemberInfo i)
+        {
+            if (i.ReflectedType.BaseType is not { } bt)
+                return false;
+            if (bt.Assembly != AdapterAssembly)
+                return false;
+            if (i is not MethodInfo m)
+                return false;
+            if (!m.IsVirtual)
+                return false;
+            if ((m.Attributes & MethodAttributes.VtableLayoutMask) == MethodAttributes.NewSlot)
+                return false;
+            var pars = m.GetParameters()
+                .Select(p => p.ParameterType)
+                .ToArray();
+            if (bt.GetMethod(m.Name, pars) is not { IsVirtual: true } bm)
+                return false;
+            if ((bm.Attributes & MethodAttributes.VtableLayoutMask) != MethodAttributes.NewSlot)
+                return false;
+            return true;
+        }
+
+        private bool IsValidMember(MemberInfo i)
+        {
+            if (IsExcluded(i.ReflectedType))
+                return false;
+            if (IsIgnored(i))
+                return false;
+            if (i.DeclaringType?.Assembly == AdapterAssembly)
+                return false;
+            if (IsAdapterOverride(i))
                 return false;
             return true;
         }
@@ -275,17 +306,9 @@ namespace Qt.DotNet.CodeGeneration
             if (type.IsEnum)
                 return true;
 
-            if (type.BaseType != null)
-                await AddEdgeAsync(type, type.BaseType);
-
-            await Task.WhenAll(
-                type.GetInterfaces()
-                .Select(x => Task.Run(async () => await AddEdgeAsync(type, x))));
-
             var members = await Task.WhenAll(
                 type.GetMembers(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
-                .Where(x => !IsBuiltIn(x.DeclaringType) && !IsExcluded(x.DeclaringType)
-                    && !IsIgnored(x))
+                .Where(x => IsValidMember(x))
                 .Select(x => Task.Run(async () => await (x switch
                 {
                     ConstructorInfo y => AddConstructorAsync(y),
