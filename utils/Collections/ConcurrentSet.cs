@@ -8,17 +8,20 @@ using System.Collections.Concurrent;
 
 namespace Qt.DotNet.Utils.Collections.Concurrent
 {
-    public class ConcurrentSet<T> : IEnumerable<T>
+    public class ConcurrentSet<T> : IReadOnlyCollection<T>
     {
-        private ConcurrentDictionary<T, bool> Items { get; } = new();
+        private ConcurrentDictionary<T, bool> Items { get; }
         public ConcurrentSet(IEqualityComparer<T> comparer = null)
         {
             Items = new ConcurrentDictionary<T, bool>(comparer ?? EqualityComparer<T>.Default);
         }
         public bool Add(T item) => Items.TryAdd(item, true);
         public bool Remove(T item) => Items.TryRemove(item, out _);
-        public bool Contains(T item) => Items.ContainsKey(item);
         public void Clear() => Items.Clear();
+
+        public int Count => Items.Count;
+        public bool Contains(T item) => Items.ContainsKey(item);
+
         public IEnumerator<T> GetEnumerator() => Items.Keys.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => Items.Keys.GetEnumerator();
     }
