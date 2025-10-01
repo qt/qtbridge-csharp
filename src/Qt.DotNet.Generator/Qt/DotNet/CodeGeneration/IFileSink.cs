@@ -79,6 +79,10 @@ namespace Qt.DotNet.CodeGeneration
         {
             var baseDir = Rules.TargetDir?.FullName ?? Directory.GetCurrentDirectory();
             var key = Path.GetRelativePath(baseDir, target.FullName).Replace('\\', '/');
+#if DEBUG
+            if (Files.ContainsKey(key))
+                throw new InvalidOperationException($"File: {key} already generated.");
+#endif
             Files[key] = content;
             return Task.FromResult<bool?>(true);
         }

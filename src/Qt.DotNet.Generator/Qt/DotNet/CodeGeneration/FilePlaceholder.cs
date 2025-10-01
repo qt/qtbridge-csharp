@@ -79,6 +79,8 @@ namespace Qt.DotNet.CodeGeneration
 
                 return results;
             }
+
+            public static void Reset() => Instances.Clear();
         }
 
         public static FilePlaceholder operator +(FilePlaceholder self, string text)

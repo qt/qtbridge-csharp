@@ -53,6 +53,7 @@ namespace Test_Qt.DotNet.Generator.Support
             // 0. Ensure no trace left from a previous run
             Placeholder.ResetIndex();
             Rule.All.Reset();
+            FilePlaceholder.All.Reset();
 
             // 1. Compile input sources into a temporary assembly
             var trees = sources.Select(src => CSharpSyntaxTree.ParseText(src)).ToArray();
