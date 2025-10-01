@@ -35,6 +35,23 @@ namespace Qt
             | AttributeTargets.Event;
     }
 
+    [AttributeUsage(TypeAttributeTarget | MemberAttributeTarget, AllowMultiple = false)]
+    public class IncludeAttribute : Attribute
+    {
+        private const AttributeTargets TypeAttributeTarget
+            = AttributeTargets.Class
+            | AttributeTargets.Struct
+            | AttributeTargets.Interface
+            | AttributeTargets.Enum
+            | AttributeTargets.Delegate;
+        private const AttributeTargets MemberAttributeTarget
+            = AttributeTargets.Constructor
+            | AttributeTargets.Method
+            | AttributeTargets.Property
+            | AttributeTargets.Field
+            | AttributeTargets.Event;
+    }
+
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
     public class GenerateAttribute : Attribute
     {

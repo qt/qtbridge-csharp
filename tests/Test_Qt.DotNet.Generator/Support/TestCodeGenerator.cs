@@ -3,6 +3,8 @@
  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 ***************************************************************************************************/
 
+global using Rules = Qt.DotNet.CodeGeneration.Rule.All;
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -54,7 +56,7 @@ namespace Test_Qt.DotNet.Generator.Support
 
             // Ensure no trace left from a previous run
             Placeholder.ResetIndex();
-            Rule.All.Reset();
+            Rules.Reset();
             FilePlaceholder.All.Reset();
 
             // Build up necessary dependencies infrastructure
@@ -135,14 +137,14 @@ namespace Test_Qt.DotNet.Generator.Support
             foreach (var t in typeof(GenerateIndexer).Assembly.ExportedTypes)
                 _ = t.TryRegisterAsRule() || t.TryRegisterAsMetaFunction();
 
-            // Build dependency graph and run rules
-            var graph = await DependencyGraph.CreateAsync(metadataLoadContext, sourceAssembly,
+            // 4. Build dependency graph and run rules
+            await DependencyGraph.CreateAsync(metadataLoadContext, sourceAssembly,
                 Array.Empty<Type>());
             var targetDirectory = Path.Combine(Path.GetTempPath(), "qtdotnet_codegen_" + Guid
                 .NewGuid().ToString("N"));
             Directory.CreateDirectory(targetDirectory);
 
-            var rulesSucceeded = await Rule.All.RunAllAsync(graph, targetDirectory);
+            var rulesSucceeded = await Rules.RunAllAsync(targetDirectory);
             if (!rulesSucceeded)
                 throw new InvalidOperationException("Running generation rules failed.");
 
@@ -150,7 +152,7 @@ namespace Test_Qt.DotNet.Generator.Support
             var sink = new MemorySink();
             await FilePlaceholder.All.WriteAllAsync(sink, ct);
 
-            return new Result(graph, metadataLoadContext, Assembly.LoadFile(outputPath), sink,
+            return new Result(Rules.SourceGraph, metadataLoadContext, Assembly.LoadFile(outputPath), sink,
                 targetDirectory);
         }
 

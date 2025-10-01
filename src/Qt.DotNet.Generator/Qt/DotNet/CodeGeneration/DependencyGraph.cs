@@ -29,15 +29,14 @@ namespace Qt.DotNet.CodeGeneration
             this.loader = loader;
         }
 
-        public static async Task<DependencyGraph> CreateAsync(
+        public static async Task CreateAsync(
             MetadataLoadContext loader, Assembly source, IEnumerable<Type> excludedTypes)
         {
-            var graph = new DependencyGraph(loader);
+            Rules.SourceGraph = new DependencyGraph(loader);
             foreach (var excludedType in excludedTypes)
-                graph.ExcludedTypes.Add(excludedType);
-            if (!await graph.BuildAsync(source))
-                return null;
-            return graph;
+                Rules.SourceGraph.ExcludedTypes.Add(excludedType);
+            if (!await Rules.SourceGraph.BuildAsync(source))
+                Rules.SourceGraph = null;
         }
 
         private ConcurrentDictionary<Type, ConcurrentSet<MemberInfo>> Nodes { get; } = new();
@@ -110,6 +109,8 @@ namespace Qt.DotNet.CodeGeneration
 
         private bool IsBuiltIn(Type type)
         {
+            if (type.QtAttributeData<IncludeAttribute>().Any())
+                return false;
             if (IsConstructedTypeOfGenericType(type, TypeOfIEquatable))
                 return true;
             if (BuiltInTypes.Contains(type))
@@ -145,6 +146,8 @@ namespace Qt.DotNet.CodeGeneration
 
         private bool IsExcluded(Type type)
         {
+            if (type.QtAttributeData<IncludeAttribute>().Any())
+                return false;
             if (type.IsGenericTypeDefinition
                 || type.IsGenericParameter
                 || type.IsGenericTypeParameter
@@ -182,37 +185,17 @@ namespace Qt.DotNet.CodeGeneration
             return true;
         }
 
-        private bool IsAdapterOverride(MemberInfo i)
-        {
-            if (i.ReflectedType.BaseType is not { } bt)
-                return false;
-            if (bt.Assembly != AdapterAssembly)
-                return false;
-            if (i is not MethodInfo m)
-                return false;
-            if (!m.IsVirtual)
-                return false;
-            if ((m.Attributes & MethodAttributes.VtableLayoutMask) == MethodAttributes.NewSlot)
-                return false;
-            var pars = m.GetParameters()
-                .Select(p => p.ParameterType)
-                .ToArray();
-            if (bt.GetMethod(m.Name, pars) is not { IsVirtual: true } bm)
-                return false;
-            if ((bm.Attributes & MethodAttributes.VtableLayoutMask) != MethodAttributes.NewSlot)
-                return false;
-            return true;
-        }
-
         private bool IsValidMember(MemberInfo i)
         {
+            if (i.QtAttributeData<IncludeAttribute>().Any())
+                return true;
             if (IsExcluded(i.ReflectedType))
                 return false;
             if (IsIgnored(i))
                 return false;
             if (i.DeclaringType?.Assembly == AdapterAssembly)
                 return false;
-            if (IsAdapterOverride(i))
+            if (i.IsOverrideOf(AdapterAssembly))
                 return false;
             return true;
         }

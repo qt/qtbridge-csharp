@@ -124,14 +124,14 @@ namespace Qt.DotNet.CodeGeneration
                 .Select(x => loader.CoreAssembly.GetType(x))
                 .Where(x => x != null);
 
-            var graph = await DependencyGraph.CreateAsync(loader, sourceAssembly, excludedTypes);
-            if (graph == null)
+            await DependencyGraph.CreateAsync(loader, sourceAssembly, excludedTypes);
+            if (Rules.SourceGraph == null)
                 return Error(ctx, ExitCode.GraphBuildError, "Graph build error");
 #if DEBUG
             if (ctx.TryGetValue(Options.Graphviz, out string graphVizPath)) {
                 try {
                     GraphViz
-                        .FromDependencyGraph(graph)
+                        .FromDependencyGraph(Rules.SourceGraph)
                         .ToPdfFile(graphVizPath);
                 } catch (Exception ex) {
                     return Error(ctx, ExitCode.GraphVizError,
@@ -155,17 +155,17 @@ namespace Qt.DotNet.CodeGeneration
                     _ = type.TryRegisterAsRule() || type.TryRegisterAsMetaFunction();
             }
 
-            var rulesOk = await Rules.RunAllAsync(graph, targetPath);
+            var rulesOk = await Rules.RunAllAsync(targetPath);
             foreach (var res in Rules.Results.Where(r => !r.Succeeded))
                 Error(res.Output);
             if (!rulesOk)
                 return Error(ctx, ExitCode.GenerationError, $@"Error running generation rules");
 
-            foreach (var attrib in graph.Root.QtAttributeData()) {
+            foreach (var attrib in Rules.SourceGraph.Root.QtAttributeData()) {
                 if (!attrib.AttributeType.Is<Qt.GenerateAttribute>())
                     continue;
                 foreach (var genArg in attrib.NamedArguments) {
-                    graph.Root.GetPlaceholder($"Placeholders.{genArg.MemberName}")
+                    Rules.SourceGraph.Root.GetPlaceholder($"Placeholders.{genArg.MemberName}")
                         ?.AddText(genArg.TypedValue.Value as string);
                 }
             }

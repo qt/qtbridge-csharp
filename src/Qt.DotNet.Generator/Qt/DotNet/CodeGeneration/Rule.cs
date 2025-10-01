@@ -93,15 +93,22 @@ namespace Qt.DotNet.CodeGeneration
 
             public static DirectoryInfo TargetDir { get; private set; }
 
-            public static async Task<bool> RunAllAsync(DependencyGraph graph, string targetPath)
+            public static DependencyGraph SourceGraph
             {
+                get => Rule.SourceGraph;
+                set => Rule.SourceGraph = value;
+            }
+
+            public static async Task<bool> RunAllAsync(string targetPath)
+            {
+                if (SourceGraph == null)
+                    return false;
                 if (!AllRules.Any())
                     return false;
-                SourceGraph = graph;
                 if (!Directory.Exists(targetPath))
                     Directory.CreateDirectory(targetPath);
                 TargetDir = new DirectoryInfo(targetPath);
-                var nodes = graph.Where(x => !x.Key.IsRootNode());
+                var nodes = SourceGraph.Where(x => !x.Key.IsRootNode());
                 SourceTypes = new(nodes.Select(x => x.Key));
                 SourceMembers = new(nodes.SelectMany(x => x.Value));
                 var tests = SourceTypes.Union(SourceMembers).Prepend(SourceGraph.Root)
