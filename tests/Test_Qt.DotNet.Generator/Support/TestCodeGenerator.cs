@@ -40,37 +40,64 @@ namespace Test_Qt.DotNet.Generator.Support
         /// and captures the output in memory.
         /// </summary>
         /// <param name="sources">C# source files to compile.</param>
+        /// <param name="sourceRefs">List of reference assemblies</param>
         /// <param name="extraRefs">Additional directories to search for assembly references.</param>
-        /// <param name="maxConcurrency">Maximum parallelism for file operations.</param>
+        /// <param name="referencesWithAliases">Aliased references (extern alias support).</param>
         /// <param name="ct">Cancellation token.</param>
         /// <returns>Generated code and metadata.</returns>
         public static async Task<Result> GenerateAsync(string[] sources,
             Assembly[] sourceRefs = null, string[] extraRefs = null,
-            int maxConcurrency = 1, CancellationToken ct = default)
+            List<(string Alias, string Path)> referencesWithAliases = null,
+            CancellationToken ct = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sources.ToString(), nameof(sources));
 
-            // 0. Ensure no trace left from a previous run
+            // Ensure no trace left from a previous run
             Placeholder.ResetIndex();
             Rule.All.Reset();
             FilePlaceholder.All.Reset();
 
-            // 1. Compile input sources into a temporary assembly
-            var trees = sources.Select(src => CSharpSyntaxTree.ParseText(src)).ToArray();
-            var refs = (sourceRefs ?? Array.Empty<Assembly>())
-                .Union([
-                    Assembly.Load("System.Runtime"),
-                    typeof(object).Assembly,
-                    typeof(Enumerable).Assembly,
+            // Build up necessary dependencies infrastructure
+            var refs = CreateDefaultFrameworkPaths()
+                .Select(path => MetadataReference.CreateFromFile(path))
+                .Cast<MetadataReference>().ToList();
+
+            // Codegen infrastructure + user-specified sourceRefs
+            var assemblies = (sourceRefs ?? [])
+                .Union(
+                [
                     typeof(Rule).Assembly,
                     typeof(GenerateIndexer).Assembly,
                     typeof(BasicTypes).Assembly
                 ])
-                .Distinct()
-                .Select(CreateMetadataReference)
-                .ToArray();
+                .Distinct();
 
+            refs.AddRange(assemblies
+                .Select(assembly => MetadataReference.CreateFromFile(assembly.Location)));
+
+            // Add aliases if provided and update assembly references
+            if (referencesWithAliases is { Count: > 0 }) {
+                foreach (var (alias, path) in referencesWithAliases) {
+                    refs.Add(MetadataReference.CreateFromFile(path,
+                        new MetadataReferenceProperties(aliases: ["global", alias])));
+                }
+
+                var probe = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var p in extraRefs ?? []) {
+                    if (!string.IsNullOrWhiteSpace(p) && Directory.Exists(p))
+                        probe.Add(p);
+                }
+                foreach (var (_, path) in referencesWithAliases) {
+                    var dir = Path.GetDirectoryName(path);
+                    if (!string.IsNullOrWhiteSpace(dir))
+                        probe.Add(dir);
+                }
+                extraRefs = probe.ToArray();
+            }
+
+            // Compile input sources into a temporary assembly
             var assemblyName  = "CodeGeneratorTest_" + Guid.NewGuid().ToString("N");
+            var trees = sources.Select(src => CSharpSyntaxTree.ParseText(src)).ToArray();
             var compilation = CSharpCompilation.Create(assemblyName , trees, refs,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
@@ -81,7 +108,7 @@ namespace Test_Qt.DotNet.Generator.Support
                   + string.Join(NewLine, emitResult.Diagnostics.Select(d => d.ToString())));
             }
 
-            // 2. Set up metadata loading context similar to codegen
+            // Set up metadata loading context similar to codegen
             var extraDirectories = new List<string> {
                 RuntimeEnvironment.GetRuntimeDirectory(),
                 AppContext.BaseDirectory,
@@ -100,15 +127,15 @@ namespace Test_Qt.DotNet.Generator.Support
                 throw new InvalidOperationException("Qt.DotNet.Adapter.dll not found.");
 
             // Create MLC using shared helper
-            using var metadataLoadContext = MetadataResolver.CreateLoadContext(extraDirectories);
+            var metadataLoadContext = MetadataResolver.CreateLoadContext(extraDirectories);
             var sourceAssembly = metadataLoadContext.LoadFromAssemblyPath(outputPath);
 
-            // 3. Register meta-functions and rules
+            // Register meta-functions and rules
             MetaFunction.Register<BasicTypes>();
             foreach (var t in typeof(GenerateIndexer).Assembly.ExportedTypes)
                 _ = t.TryRegisterAsRule() || t.TryRegisterAsMetaFunction();
 
-            // 4. Build dependency graph and run rules
+            // Build dependency graph and run rules
             var graph = await DependencyGraph.CreateAsync(metadataLoadContext, sourceAssembly,
                 Array.Empty<Type>());
             var targetDirectory = Path.Combine(Path.GetTempPath(), "qtdotnet_codegen_" + Guid
@@ -119,7 +146,7 @@ namespace Test_Qt.DotNet.Generator.Support
             if (!rulesSucceeded)
                 throw new InvalidOperationException("Running generation rules failed.");
 
-            // 5. Capture outputs in memory
+            // Capture outputs in memory
             var sink = new MemorySink();
             await FilePlaceholder.All.WriteAllAsync(sink, ct);
 
@@ -127,7 +154,29 @@ namespace Test_Qt.DotNet.Generator.Support
                 targetDirectory);
         }
 
-        private static PortableExecutableReference CreateMetadataReference(Assembly a)
-            => MetadataReference.CreateFromFile(a.Location);
+        private static IEnumerable<string> CreateDefaultFrameworkPaths()
+        {
+            var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES"))!
+                .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+            var system = new[]
+            {
+                "System.Private.CoreLib.dll",
+                "System.Runtime.dll",
+                "System.Linq.dll",
+                "System.Console.dll",
+                "System.Collections.dll",
+                "System.Runtime.Extensions.dll",
+                "netstandard.dll"
+            };
+
+            var found = system.Select(name =>
+            {
+                return tpa.FirstOrDefault(p => string.Equals(Path.GetFileName(p), name,
+                    StringComparison.OrdinalIgnoreCase));
+            })
+            .Where(p => p is not null).ToArray();
+            return found.Length == 0 ? [typeof(object).Assembly.Location] : found;
+        }
     }
 }
