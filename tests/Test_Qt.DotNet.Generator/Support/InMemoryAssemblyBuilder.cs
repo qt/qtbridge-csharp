@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
@@ -12,6 +13,13 @@ using System.Reflection.PortableExecutable;
 
 namespace Test_Qt.DotNet.Generator.Support
 {
+    internal sealed class AssemblyConfig
+    {
+        internal string AssemblyName { get; init; }
+        internal string TypeName { get; init; }
+        internal string MethodName { get; init; }
+    }
+
     /// <summary>
     /// Configuration for the method's return value. By overriding <c>ReturnIl</c>, you can
     /// provide IL instructions to compute and push the return value onto the evaluation stack
@@ -41,14 +49,13 @@ namespace Test_Qt.DotNet.Generator.Support
     /// </summary>
     internal static class InMemoryAssemblyBuilder
     {
-        internal static byte[] Build(string assemblyName, string moduleName, string typeName,
-            string methodName, ReturnConfig returnConfig, ParameterConfig parameterConfig,
-            bool includeParamRows = true)
+        internal static void Build(AssemblyConfig assemblyConfig, ReturnConfig returnConfig,
+            ParameterConfig parameterConfig, Stream outputStream, bool includeParamRows = true)
         {
-            ArgumentException.ThrowIfNullOrEmpty(assemblyName);
-            ArgumentException.ThrowIfNullOrEmpty(moduleName);
-            ArgumentException.ThrowIfNullOrEmpty(typeName);
-            ArgumentException.ThrowIfNullOrEmpty(methodName);
+            ArgumentNullException.ThrowIfNull(assemblyConfig);
+            ArgumentException.ThrowIfNullOrEmpty(assemblyConfig.AssemblyName);
+            ArgumentException.ThrowIfNullOrWhiteSpace(assemblyConfig.TypeName);
+            ArgumentException.ThrowIfNullOrWhiteSpace(assemblyConfig.MethodName);
 
             ArgumentNullException.ThrowIfNull(returnConfig);
             ArgumentNullException.ThrowIfNull(returnConfig.EncodeType);
@@ -64,19 +71,43 @@ namespace Test_Qt.DotNet.Generator.Support
             // Add module
             _ = metadataBuilder.AddModule(
                 generation: 0,
-                moduleName: metadataBuilder.GetOrAddString(moduleName),
+                moduleName: metadataBuilder.GetOrAddString(assemblyConfig.AssemblyName + ".dll"),
                 mvid: metadataBuilder.GetOrAddGuid(Guid.NewGuid()),
                 encId: metadataBuilder.GetOrAddGuid(Guid.NewGuid()),
                 encBaseId: metadataBuilder.GetOrAddGuid(Guid.NewGuid()));
 
             // Add assembly
             _ = metadataBuilder.AddAssembly(
-                name: metadataBuilder.GetOrAddString(assemblyName),
+                name: metadataBuilder.GetOrAddString(assemblyConfig.AssemblyName),
                 version: new Version(1, 0, 0, 0),
                 culture: default,
                 publicKey: default,
                 flags: 0,
                 hashAlgorithm: AssemblyHashAlgorithm.None);
+
+            var sysRuntimeName = Assembly.Load("System.Runtime").GetName();
+            ArgumentException.ThrowIfNullOrEmpty(sysRuntimeName.Name);
+            ArgumentNullException.ThrowIfNull(sysRuntimeName.Version);
+
+            // Public key token must be present to unify identities
+            var pkt = sysRuntimeName.GetPublicKeyToken();
+            BlobHandle publicKeyOrToken = default;
+            if (pkt is { Length: > 0 })
+                publicKeyOrToken = metadataBuilder.GetOrAddBlob(pkt);
+
+            // Optional: culture if available
+            StringHandle culture = default;
+            if (!string.IsNullOrEmpty(sysRuntimeName.CultureName))
+                culture = metadataBuilder.GetOrAddString(sysRuntimeName.CultureName);
+
+            // Add the AssemblyRef for System.Runtime
+            var systemRuntimeRef = metadataBuilder.AddAssemblyReference(
+                name: metadataBuilder.GetOrAddString(sysRuntimeName.Name),
+                version: sysRuntimeName.Version,
+                culture: culture,
+                publicKeyOrToken: publicKeyOrToken,
+                flags: 0,
+                hashValue: default);
 
             // Build method signature using the provided configurations
             var signatureBuilder = new BlobBuilder();
@@ -96,11 +127,12 @@ namespace Test_Qt.DotNet.Generator.Support
             var methodBodyStreamEncoder = new MethodBodyStreamEncoder(ilBuilder);
             var methodBodyHandle = methodBodyStreamEncoder.AddMethodBody(instructionEncoder);
 
-            // Optional: Add parameter rows (must be added BEFORE the method)
-            var firstParameterHandle = default(ParameterHandle);
-            if (includeParamRows) {
+            // Optional: Add parameter rows (must be added before the method)
+            ParameterHandle firstParameterHandle;
+            switch (includeParamRows) {
+            case true when paramCount > 0:
                 // Sequence 0 = return parameter
-                metadataBuilder.AddParameter(
+                firstParameterHandle = metadataBuilder.AddParameter(
                     attributes: ParameterAttributes.None,
                     name: default,
                     sequenceNumber: 0);
@@ -111,40 +143,67 @@ namespace Test_Qt.DotNet.Generator.Support
                     var nameHandle = string.IsNullOrEmpty(paramName)
                         ? default
                         : metadataBuilder.GetOrAddString(paramName);
-                    var paramHandle = metadataBuilder.AddParameter(
+                    _ = metadataBuilder.AddParameter(
                         attributes: ParameterAttributes.None,
                         name: nameHandle,
                         sequenceNumber: paramSequence++);
-                    if (firstParameterHandle.IsNil)
-                        firstParameterHandle = paramHandle;
                 }
+
+                break;
+            case true when paramCount == 0:
+                firstParameterHandle = default; // omit Param table entries entirely
+                break;
+            default:
+                var nextParamRow = metadataBuilder.GetRowCount(TableIndex.Param) + 1;
+                firstParameterHandle = paramCount == 0
+                    ? default
+                    : MetadataTokens.ParameterHandle(nextParamRow);
+                break;
             }
 
-            // Compute first MethodDef row for TypeDef.MethodList
-            var firstMethodRow = MetadataTokens.MethodDefinitionHandle(
-                metadataBuilder.GetRowCount(TableIndex.MethodDef) + 1);
+            // Order here is important
 
-            // Add TypeDef with provided type name
+            // Compute starting row indices before emitting TypeDefs
+            var nextFieldRow = metadataBuilder.GetRowCount(TableIndex.Field) + 1;
+            var nextMethodRow = metadataBuilder.GetRowCount(TableIndex.MethodDef) + 1;
+
+            // <Module> type (no base type, no fields, no methods)
             _ = metadataBuilder.AddTypeDefinition(
-                attributes: TypeAttributes.Public | TypeAttributes.Abstract | TypeAttributes.Sealed,
+                attributes: 0,
                 @namespace: default,
-                name: metadataBuilder.GetOrAddString(typeName),
+                name: metadataBuilder.GetOrAddString("<Module>"),
                 baseType: default,
-                fieldList: default,
-                methodList: firstMethodRow);
+                fieldList: MetadataTokens.FieldDefinitionHandle(nextFieldRow),
+                methodList: MetadataTokens.MethodDefinitionHandle(nextMethodRow));
 
-            // Add MethodDef with provided method name
+            // Split "Namespace.Type" into namespace + simple name
+            var (ns, simpleName) = SplitNamespaceAndName(assemblyConfig.TypeName);
+
+            var systemObjectTypeRef = metadataBuilder.AddTypeReference(systemRuntimeRef,
+                metadataBuilder.GetOrAddString("System"), metadataBuilder.GetOrAddString("Object"));
+
+            // User type, it will own methods starting at nextMethodRow
+            _ = metadataBuilder.AddTypeDefinition(
+                attributes: TypeAttributes.Class | TypeAttributes.Public
+                | TypeAttributes.AutoLayout | TypeAttributes.BeforeFieldInit,
+                @namespace: string.IsNullOrEmpty(ns) ? default : metadataBuilder.GetOrAddString(ns),
+                name: metadataBuilder.GetOrAddString(simpleName),
+                baseType: systemObjectTypeRef,
+                fieldList: MetadataTokens.FieldDefinitionHandle(nextFieldRow),
+                methodList: MetadataTokens.MethodDefinitionHandle(nextMethodRow));
+
+            // Emit the MethodDef(s) that belong to the user type
             _ = metadataBuilder.AddMethodDefinition(
                 MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig,
                 implAttributes: MethodImplAttributes.IL,
-                name: metadataBuilder.GetOrAddString(methodName),
+                name: metadataBuilder.GetOrAddString(assemblyConfig.MethodName),
                 signature: metadataBuilder.GetOrAddBlob(signatureBuilder),
                 bodyOffset: methodBodyHandle,
                 parameterList: firstParameterHandle);
 
             // Build PE
             var peHeaderBuilder = new PEHeaderBuilder(
-                imageCharacteristics: Characteristics.ExecutableImage | Characteristics.Dll);
+                imageCharacteristics: Characteristics.Dll);
             var metadataRootBuilder = new MetadataRootBuilder(metadataBuilder);
             var managedPeBuilder = new ManagedPEBuilder(
                 header: peHeaderBuilder,
@@ -156,7 +215,22 @@ namespace Test_Qt.DotNet.Generator.Support
             // Write into the specified stream
             var peBlobBuilder = new BlobBuilder();
             managedPeBuilder.Serialize(peBlobBuilder);
-            return peBlobBuilder.ToArray();
+            peBlobBuilder.WriteContentTo(outputStream);
+        }
+
+        private static (string Namespace, string Name) SplitNamespaceAndName(string fullTypeName)
+        {
+            if (string.IsNullOrWhiteSpace(fullTypeName))
+                return ("", "");
+
+            // Split only on the last dot so we keep nested markers (e.g., "Outer+Inner")
+            var lastDot = fullTypeName.LastIndexOf('.');
+            if (lastDot < 0)
+                return ("", fullTypeName);
+
+            var ns = fullTypeName[..lastDot];
+            var name = fullTypeName[(lastDot + 1)..]; // may contain '+' for nested types
+            return (ns, name);
         }
     }
 }

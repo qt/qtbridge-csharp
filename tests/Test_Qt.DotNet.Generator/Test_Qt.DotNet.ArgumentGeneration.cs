@@ -24,11 +24,14 @@ namespace Test_Qt.DotNet.Generator
         [TestMethod]
         public void Parameter_Name_FallsBack_To_argPosition_When_Missing()
         {
-            var assemblyBytes = InMemoryAssemblyBuilder.Build(
-                assemblyName: "ArgPositionTestAssembly",
-                moduleName: "ArgPositionTestModule",
-                typeName: "ArgPositionTestType",
-                methodName: "ArgPositionTestMethod",
+            var memoryStream = new MemoryStream();
+            InMemoryAssemblyBuilder.Build(
+                assemblyConfig: new AssemblyConfig
+                {
+                    AssemblyName = "ArgPositionTestAssembly",
+                    TypeName = "ArgPositionTestType",
+                    MethodName = "ArgPositionTestMethod",
+                },
                 returnConfig: new ReturnConfig
                 {
                     EncodeType = returnType => returnType.Void()
@@ -43,10 +46,12 @@ namespace Test_Qt.DotNet.Generator
                         parameters.AddParameter().Type().String();
                     }
                 },
+                memoryStream,
                 includeParamRows: true);
+            memoryStream.Position = 0;
 
             using var metadataLoadContext = MetadataResolver.CreateLoadContext();
-            var assembly = metadataLoadContext.LoadFromStream(new MemoryStream(assemblyBytes));
+            var assembly = metadataLoadContext.LoadFromStream(memoryStream);
 
             var type = assembly.GetType("ArgPositionTestType", throwOnError: false);
             Assert.IsNotNull(type);
@@ -67,13 +72,16 @@ namespace Test_Qt.DotNet.Generator
         }
 
         [TestMethod]
-        public void Parameter_Name_FallsBack_To_argPosition_Without_ParmaTableEntries()
+        public void Parameter_Name_FallsBack_To_argPosition_Without_ParamTableEntries()
         {
-            var assemblyBytes = InMemoryAssemblyBuilder.Build(
-                assemblyName: "ArgPositionTestAssembly",
-                moduleName: "ArgPositionTestModule",
-                typeName: "ArgPositionTestType",
-                methodName: "ArgPositionTestMethod",
+            var memoryStream = new MemoryStream();
+            InMemoryAssemblyBuilder.Build(
+                assemblyConfig: new AssemblyConfig
+                {
+                    AssemblyName = "ArgPositionTestAssembly",
+                    TypeName = "ArgPositionTestType",
+                    MethodName = "ArgPositionTestMethod",
+                },
                 returnConfig: new ReturnConfig
                 {
                     EncodeType = returnType => returnType.Void()
@@ -88,10 +96,12 @@ namespace Test_Qt.DotNet.Generator
                         parameters.AddParameter().Type().String();
                     }
                 },
+                memoryStream,
                 includeParamRows: false);
+            memoryStream.Position = 0;
 
             using var metadataLoadContext = MetadataResolver.CreateLoadContext();
-            var assembly = metadataLoadContext.LoadFromStream(new MemoryStream(assemblyBytes));
+            var assembly = metadataLoadContext.LoadFromStream(memoryStream);
 
             var type = assembly.GetType("ArgPositionTestType", throwOnError: false);
             Assert.IsNotNull(type);
