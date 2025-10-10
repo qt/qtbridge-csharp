@@ -59,6 +59,10 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     auto assemblyPath = QDir(QCoreApplication::applicationDirPath()).filePath(appName);
     if (!QFile::exists(assemblyPath)) {{
+        assemblyPath = QDir(QCoreApplication::applicationDirPath())
+            .filePath(""{Root.Assembly.GetName().Name}.dll"");
+    }}
+    if (!QFile::exists(assemblyPath)) {{
         qCritical() << ""App assembly not found: "" << assemblyPath;
         return -1;
     }}

@@ -34,6 +34,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solution", "solution", "{0F06C31E-1553-4715-B6AD-B770B3256FE3}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
+		HOW-TO debug generated code.md = HOW-TO debug generated code.md
 		README.md = README.md
 	EndProjectSection
 EndProject
