@@ -73,8 +73,7 @@ mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} 
 {propType.MFn(Ns | Name)} {star}{type.MFn(Ns | Name)}::{prop.MFn(Get)}() const
 {{
     auto result = method(""{prop.MFn(Src | Get)}"", d->{prop.MFn(Get | Func)}).invoke(*this);
-    {(propType.IsValue() ? "return result;"
-        : $"return new {propType.MFn(Ns | Name)}(std::move(result));")}
+    {(propType.IsValue() ? "return result;" : $"return d->asQObject(result);")}
 }}
 {Blank}")}
 {(!prop.CanWrite ? Wrap : $@"{Wrap}

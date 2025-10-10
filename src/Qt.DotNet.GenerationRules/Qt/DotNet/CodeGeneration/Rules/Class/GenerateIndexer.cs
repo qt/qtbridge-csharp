@@ -71,8 +71,7 @@ Q_INVOKABLE void {prop.MFn(Set)}({args}, {propType.MFn(Ns | Name)} {star}value);
 {{
     auto result = method(""{prop.MFn(Src | Get)}"", d->{prop.MFn(Get | Func)})
         .invoke(*this, {argNames});
-    {(propType.IsValue() ? "return result;"
-        : $"return new {propType.MFn(Ns | Name)}(std::move(result));")}
+    {(propType.IsValue() ? "return result;" : $"return d->asQObject(result);")}
 }}" : string.Empty)}
 
 {(prop.CanWrite ? $@"{Wrap}

@@ -70,8 +70,7 @@ mutable QDotNetFunction<{returnType.MFn(Ns | Name)}{args switch
             _ => string.Empty
         }});
 {(returnType.Is(typeof(void)) ? Wrap
-    : returnType.IsValue() ? $"{Tab}return result;"
-    : $"{Tab}return new {returnType.MFn(Ns | Name)}(std::move(result));")}
+    : returnType.IsValue() ? $"{Tab}return result;" : $"{Tab}return d->asQObject(result);")}
 }}
 {Blank}";
 

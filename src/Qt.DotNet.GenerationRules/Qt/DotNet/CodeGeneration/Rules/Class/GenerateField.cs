@@ -61,8 +61,7 @@ mutable QDotNetFunction<void, QDotNetRef, {fieldType.MFn(Ns | Name)}> {Wrap}
     auto result = fieldGet<{fieldType.MFn(Ns | Name)}>({Wrap}
         ""{field.MFn(Src)}"", d->{field.MFn(Get | Func)})
         .invoke(nullptr, *this);
-    {(fieldType.IsValue() ? "return result;"
-        : $"return new {fieldType.MFn(Ns | Name)}(std::move(result));")}
+    {(fieldType.IsValue() ? "return result;" : $"return d->asQObject(result);")}
 }}
 {(field.IsLiteral || field.IsInitOnly ? Wrap : $@"
 void {type.MFn(Ns | Name)}::{field.MFn(Set)}({fieldType.MFn(Ns | Name)} {star}value)
