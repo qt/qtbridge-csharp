@@ -84,6 +84,19 @@ namespace Qt.DotNet.CodeGeneration
             TypeOf<SerializationInfo>(),
             TypeOf<StreamingContext>(),
             TypeOf<Delegate>(),
+            TypeOf<IEnumerator>(),
+            TypeOf("System.Collections.ObjectModel.ReadOnlyCollection`1"),
+            TypeOf("System.Collections.Generic.IComparer`1"),
+            TypeOf("System.Collections.Generic.IEqualityComparer`1"),
+            TypeOf("System.Collections.Generic.IEnumerable`1"),
+            TypeOf("System.Collections.Generic.IEnumerator`1"),
+            TypeOf("System.Collections.Generic.List`1+Enumerator"),
+            TypeOf("System.Collections.Generic.IList`1"),
+            TypeOf("System.Collections.Generic.ICollection`1"),
+            TypeOf("System.Collections.Generic.IDictionary`2"),
+            TypeOf("System.Collections.Generic.Dictionary`2+ValueCollection"),
+            TypeOf("System.Collections.Generic.Dictionary`2+KeyCollection"),
+            TypeOf("System.Collections.Generic.Dictionary`2+Enumerator"),
         });
         public ConcurrentSet<Type> ExcludedBaseTypes { get; } = new();
 
