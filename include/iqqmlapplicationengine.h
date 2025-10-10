@@ -76,6 +76,10 @@ struct IQQmlApplicationEngine : public QDotNetNativeInterface<QQmlApplicationEng
                     QThread::usleep(100);
                 return IQQmlApplicationEngine::exited;
             });
+        setCallback<void>("ProcessEvents", [this](void *data)
+            {
+                QCoreApplication::processEvents();
+            });
     }
 
     static void staticInit(QDotNetInterface *sta)

@@ -77,6 +77,15 @@ namespace Qt.DotNet
     /// </summary>
     public partial class Adapter
     {
+        internal static Thread MainThread { get; private set; }
+
+        public static void SetMainThread()
+        {
+            MainThread = Thread.CurrentThread;
+        }
+
+        internal static bool IsMainThread => MainThread == Thread.CurrentThread;
+
         /// <summary>
         /// Loads a .NET assembly into memory
         /// </summary>

@@ -4,6 +4,7 @@
 ***************************************************************************************************/
 
 using System.Reflection;
+using Qt.DotNet;
 
 namespace Qt
 {
@@ -30,6 +31,7 @@ namespace Qt
         {
             void LoadFromModule(string uri, string typeName);
             bool WaitForExit(int timeout = -1);
+            void ProcessEvents();
         }
 
         public static class Qml
@@ -64,6 +66,12 @@ namespace Qt
             public static bool WaitForExit(int timeout = -1)
             {
                 return Instance.WaitForExit(timeout);
+            }
+
+            internal static void ProcessEvents()
+            {
+                if (Adapter.IsMainThread)
+                    Instance.ProcessEvents();
             }
         }
     }

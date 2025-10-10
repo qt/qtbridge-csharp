@@ -90,6 +90,8 @@ int main(int argc, char *argv[])
         QDir(QCoreApplication::applicationDirPath()).filePath(""Qt.DotNet.Adapter.dll""),
         ""Qt.DotNet.Adapter"", ""Qt.DotNet.Adapter"", &dotNetHost, &qmlEngine);
 
+    QtDotNet::call<void>(""Qt.DotNet.Adapter, Qt.DotNet.Adapter"", ""SetMainThread"");
+
     {mainCpp[new(MainBeforeAppExec) { Sorted = false }]}
 
     return app.exec();

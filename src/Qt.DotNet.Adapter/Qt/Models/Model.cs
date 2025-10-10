@@ -3,6 +3,8 @@
  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 ***************************************************************************************************/
 
+using Qt.Quick;
+
 namespace Qt.DotNet
 {
     [Include]
@@ -28,6 +30,8 @@ namespace Qt.DotNet
         public List<int> Roles { get; init; }
         [Include]
         public Model.HeaderOrientation Orientation { get; init; }
+        [Include]
+        public bool Synchronized { get; set; } = false;
     }
 
     public abstract class Model
@@ -187,9 +191,45 @@ namespace Qt.DotNet
         [Include]
         public event EventHandler<ModelChangeEventArgs> ModelChanged;
 
+        private enum Sync { None, Enter, Exit }
+
+        private bool EventSync(ModelChangeEventArgs args)
+        {
+            if (args.Synchronized)
+                return true;
+            Qml.ProcessEvents();
+            return args.Synchronized;
+        }
+
+        private bool EnterCriticalSection()
+        {
+            if (Monitor.TryEnter(CriticalSection))
+                return true;
+            Qml.ProcessEvents();
+            return Monitor.TryEnter(CriticalSection);
+        }
+
+        private void OnModelChanged(Sync sync, ModelChangeEventArgs args)
+        {
+            if (sync == Sync.Enter)
+                SpinWait.SpinUntil(EnterCriticalSection);
+            try {
+                if (ModelChanged != null) {
+                    ModelChanged.Invoke(this, args);
+                    if (sync != Sync.None)
+                        SpinWait.SpinUntil(() => EventSync(args));
+                }
+            } finally {
+                if (sync == Sync.Exit)
+                    Monitor.Exit(CriticalSection);
+            }
+        }
+
+        private readonly object CriticalSection = new();
+
         protected void BeginInsertColumns(ModelIndex parent, int first, int last)
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.Enter, new()
             {
                 Action = EventAction.BeginInsertColumns,
                 Parent = parent,
@@ -200,7 +240,7 @@ namespace Qt.DotNet
 
         protected void EndInsertColumns()
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.Exit, new()
             {
                 Action = EventAction.EndInsertColumns
             });
@@ -210,7 +250,7 @@ namespace Qt.DotNet
             ModelIndex sourceParent, int sourceFirst, int sourceLast,
             ModelIndex destinationParent, int destinationChild)
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.Enter, new()
             {
                 Action = EventAction.BeginMoveColumns,
                 Parent = sourceParent,
@@ -223,7 +263,7 @@ namespace Qt.DotNet
 
         protected void EndMoveColumns()
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.Exit, new()
             {
                 Action = EventAction.EndMoveColumns
             });
@@ -231,7 +271,7 @@ namespace Qt.DotNet
 
         protected void BeginRemoveColumns(ModelIndex parent, int first, int last)
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.Enter, new()
             {
                 Action = EventAction.BeginRemoveColumns,
                 Parent = parent,
@@ -242,7 +282,7 @@ namespace Qt.DotNet
 
         protected void EndRemoveColumns()
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.Exit, new()
             {
                 Action = EventAction.EndRemoveColumns
             });
@@ -250,7 +290,7 @@ namespace Qt.DotNet
 
         protected void BeginInsertRows(ModelIndex parent, int first, int last)
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.Enter, new()
             {
                 Action = EventAction.BeginInsertRows,
                 Parent = parent,
@@ -261,7 +301,7 @@ namespace Qt.DotNet
 
         protected void EndInsertRows()
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.Exit, new()
             {
                 Action = EventAction.EndInsertRows
             });
@@ -270,7 +310,7 @@ namespace Qt.DotNet
         protected void BeginMoveRows(ModelIndex sourceParent, int sourceFirst, int sourceLast,
             ModelIndex destinationParent, int destinationChild)
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.Enter, new()
             {
                 Action = EventAction.BeginMoveRows,
                 Parent = sourceParent,
@@ -283,7 +323,7 @@ namespace Qt.DotNet
 
         protected void EndMoveRows()
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.Exit, new()
             {
                 Action = EventAction.EndMoveRows
             });
@@ -291,7 +331,7 @@ namespace Qt.DotNet
 
         protected void BeginRemoveRows(ModelIndex parent, int first, int last)
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.Enter, new()
             {
                 Action = EventAction.BeginRemoveRows,
                 Parent = parent,
@@ -302,7 +342,7 @@ namespace Qt.DotNet
 
         protected void EndRemoveRows()
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.Exit, new()
             {
                 Action = EventAction.EndRemoveRows
             });
@@ -310,7 +350,7 @@ namespace Qt.DotNet
 
         protected void BeginResetModel()
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.Enter, new()
             {
                 Action = EventAction.BeginResetModel
             });
@@ -318,7 +358,7 @@ namespace Qt.DotNet
 
         protected void EndResetModel()
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.Exit, new()
             {
                 Action = EventAction.EndResetModel
             });
@@ -326,7 +366,7 @@ namespace Qt.DotNet
 
         protected void DataChanged(ModelIndex topLeft, ModelIndex bottomRight, int[] roles = null)
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.None, new()
             {
                 Action = EventAction.DataChanged,
                 TopLeft = topLeft,
@@ -337,7 +377,7 @@ namespace Qt.DotNet
 
         protected void HeaderDataChanged(HeaderOrientation orientation, int first, int last)
         {
-            ModelChanged?.Invoke(this, new()
+            OnModelChanged(Sync.None, new()
             {
                 Action = EventAction.HeaderDataChanged,
                 Orientation = orientation,

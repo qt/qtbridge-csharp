@@ -99,13 +99,8 @@ QModelIndex {type.MFn(Ns | Name | Private)}::setOwnIndex(const QModelIndex &idx)
             init += $@"
 QObject::connect(q, &{type.MFn(Ns | Name)}::modelChanged, [q](QObject *evObj)
 {{
-    auto invoke = [q](auto &&fn) {{
-        if (QThread::currentThread() == q->thread()) {{
-            fn();
-        }} else {{
-            QMetaObject::invokeMethod(q, std::forward<decltype(fn)>(fn), Qt::QueuedConnection);
-        }}
-    }};
+    Q_ASSERT_X(q->thread() == QThread::currentThread(),
+        ""Model Changed"", ""Emit must run on the object's thread"");
     auto args = qobject_cast<Qt::DotNet::ModelChangeEventArgs *>(evObj);
     if (args) {{
         auto idxParent = q->d->setOwnIndex(args->parent());
@@ -114,76 +109,48 @@ QObject::connect(q, &{type.MFn(Ns | Name)}::modelChanged, [q](QObject *evObj)
         auto idxBottomRight = q->d->setOwnIndex(args->bottomRight());
         switch (args->action()) {{
         case Qt::DotNet::Model_EventAction::BeginResetModel:
-            invoke([=] {{
-                q->beginResetModel();
-            }});
+            q->beginResetModel();
             break;
         case Qt::DotNet::Model_EventAction::EndResetModel:
-            invoke([=] {{
-                q->endResetModel();
-            }});
+            q->endResetModel();
             break;
         case Qt::DotNet::Model_EventAction::BeginInsertRows:
-            invoke([=] {{
-                q->beginInsertRows(idxParent, args->first(), args->last());
-            }});
+            q->beginInsertRows(idxParent, args->first(), args->last());
             break;
         case Qt::DotNet::Model_EventAction::EndInsertRows:
-            invoke([=] {{
-                q->endInsertRows();
-            }});
+            q->endInsertRows();
             break;
         case Qt::DotNet::Model_EventAction::BeginMoveRows:
-            invoke([=] {{
-                q->beginMoveRows(idxParent, args->first(), args->last(),
-                    idxDestinationParent, args->destinationChild());
-            }});
+            q->beginMoveRows(idxParent, args->first(), args->last(),
+                idxDestinationParent, args->destinationChild());
             break;
         case Qt::DotNet::Model_EventAction::EndMoveRows:
-            invoke([=] {{
-                q->endMoveRows();
-            }});
+            q->endMoveRows();
             break;
         case Qt::DotNet::Model_EventAction::BeginRemoveRows:
-            invoke([=] {{
-                q->beginRemoveRows(idxParent, args->first(), args->last());
-            }});
+            q->beginRemoveRows(idxParent, args->first(), args->last());
             break;
         case Qt::DotNet::Model_EventAction::EndRemoveRows:
-            invoke([=] {{
-                q->endRemoveRows();
-            }});
+            q->endRemoveRows();
             break;
         case Qt::DotNet::Model_EventAction::BeginInsertColumns:
-            invoke([=] {{
-                q->beginInsertColumns(idxParent, args->first(), args->last());
-            }});
+            q->beginInsertColumns(idxParent, args->first(), args->last());
             break;
         case Qt::DotNet::Model_EventAction::EndInsertColumns:
-            invoke([=] {{
-                q->endInsertColumns();
-            }});
+            q->endInsertColumns();
             break;
         case Qt::DotNet::Model_EventAction::BeginMoveColumns:
-            invoke([=] {{
-                q->beginMoveColumns(idxParent, args->first(), args->last(),
-                    idxDestinationParent, args->destinationChild());
-            }});
+            q->beginMoveColumns(idxParent, args->first(), args->last(),
+                idxDestinationParent, args->destinationChild());
             break;
         case Qt::DotNet::Model_EventAction::EndMoveColumns:
-            invoke([=] {{
-                q->endMoveColumns();
-            }});
+            q->endMoveColumns();
             break;
         case Qt::DotNet::Model_EventAction::BeginRemoveColumns:
-            invoke([=] {{
-                q->beginRemoveColumns(idxParent, args->first(), args->last());
-            }});
+            q->beginRemoveColumns(idxParent, args->first(), args->last());
             break;
         case Qt::DotNet::Model_EventAction::EndRemoveColumns:
-            invoke([=] {{
-                q->endRemoveColumns();
-            }});
+            q->endRemoveColumns();
             break;
         case Qt::DotNet::Model_EventAction::DataChanged:
             {{
@@ -192,18 +159,15 @@ QObject::connect(q, &{type.MFn(Ns | Name)}::modelChanged, [q](QObject *evObj)
                 int n = a->count();
                 for (int i = 0; i < n; i++)
                     roles << a->item(i);
-                invoke([=] {{
-                    emit q->dataChanged(idxTopLeft, idxBottomRight, roles);
-                }});
+                emit q->dataChanged(idxTopLeft, idxBottomRight, roles);
             }}
             break;
         case Qt::DotNet::Model_EventAction::HeaderDataChanged:
-            invoke([=] {{
-                emit q->headerDataChanged(
-                    (Qt::Orientation)args->orientation(), args->first(), args->last());
-            }});
+            emit q->headerDataChanged(
+                (Qt::Orientation)args->orientation(), args->first(), args->last());
             break;
         }}
+        args->setSynchronized(true);
     }}
 }});
 ";
