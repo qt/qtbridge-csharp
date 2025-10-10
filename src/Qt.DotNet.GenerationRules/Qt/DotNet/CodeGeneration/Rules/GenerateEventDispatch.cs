@@ -68,7 +68,7 @@ static const QHash<QString, Factory>& registry()
             QStringLiteral(""{t.MFn(Src | Fqn)}""),
             [](QDotNetObject& obj) -> QObject *
             {{
-                return QtDotNet::as<{t.MFn(Ns | Name)}>(obj);
+                return QtDotNet::as<{t.MFn(Ns | Name)}>(obj, false);
             }}
         }}"))}
     }};

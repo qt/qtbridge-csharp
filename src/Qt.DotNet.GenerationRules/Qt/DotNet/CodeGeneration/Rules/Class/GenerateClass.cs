@@ -183,6 +183,8 @@ void {type.MFn(Ns | Name)}::connectNotify(const QMetaMethod &signal)
 {(!type.Implements<INotifyPropertyChanged>() ? Wrap : $@"{Wrap}
 void {type.MFn(Ns | Name | Private)}::onPropertyChanged(const QString &propertyName)
 {{
+    Q_ASSERT_X(q->thread() == QThread::currentThread(),
+        ""Property Notifier"", ""Emit must run on the object's thread"");
     {implementation[new(PropertyNotifiers)]}
 }}
 ")}

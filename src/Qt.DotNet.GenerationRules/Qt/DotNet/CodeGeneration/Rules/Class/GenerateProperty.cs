@@ -104,12 +104,8 @@ if (signalTag == ""PROPERTY_{prop.MFn(Src)}"") {{
                 return Error();
             notifiers += $@"
 if (propertyName == ""{prop.MFn(Src)}"") {{
-    if (QThread::isMainThread()) {{
-        emit q->{prop.MFn(Signal)}();
-    }} else {{
-        QMetaMethod::fromSignal(&{type.MFn(Ns | Name)}::{prop.MFn(Signal)})
-            .invoke(q, Qt::BlockingQueuedConnection);
-    }}
+    QMetaMethod::fromSignal(&{type.MFn(Ns | Name)}::{prop.MFn(Signal)})
+        .invoke(q, Qt::DirectConnection);
     return;
 }}";
 

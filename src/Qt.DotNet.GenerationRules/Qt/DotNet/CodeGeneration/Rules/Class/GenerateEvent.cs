@@ -3,6 +3,7 @@
  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 ***************************************************************************************************/
 
+using System.ComponentModel;
 using System.Reflection;
 using Qt.MetaObject;
 
@@ -21,6 +22,12 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
             if (src is not EventInfo ev)
                 return Error();
             var type = src.ReflectedType;
+            if (ev.EventHandlerType.DelegateSignature()?.ToArray() is not { Length: 3 } evTypes
+                || evTypes[0] != TypeOf(typeof(void)) || evTypes[1] != TypeOf<object>()
+                || !evTypes[2].IsAssignableTo(TypeOf<EventArgs>())) {
+                return Error();
+            }
+            var argsType = evTypes[2];
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -76,35 +83,28 @@ if ({ev.MFn(Handler | Var)})
             if (type.GetPlaceholder(EventHandlers) is not { } eventHandlers)
                 return Error();
             eventHandlers += $@"
-void {type.MFn(Ns | Name | Private)}::{ev.MFn(Handler)}{Wrap}
-::handleEvent(const QString &eventName, QDotNetObject &sender, QDotNetObject &args)
+void {type.MFn(Ns | Name | Private)}::{ev.MFn(Handler)}::handleEvent(
+    const QString &eventName, QDotNetObject &sender, QDotNetObject &args)
 {{
-    if (!args.type().isAssignableTo<QDotNetEventArgs>())
-        return;
-{(ev.Name != "PropertyChanged" ? Wrap : $@"
-    if (args.type().is<QDotNetPropertyEvent>()) {{
-        const auto propertyChangedEvent = args.cast<QDotNetPropertyEvent>(true);
-        if (propertyChangedEvent.isValid())
-            d->onPropertyChanged(propertyChangedEvent.propertyName());
-    }}")}
-
-    auto eventArgs = args.cast<QDotNetEventArgs>();
-    if (!eventArgs.isValid())
+    if (!args.isValid())
         return;
 
-    QObject *qEvArgs = QtDotNet::eventDispatch(eventArgs);
-    if (!qEvArgs)
-        return;
+    // NOTE: Do not change invokeMethod using Qt::AutoConnection
+    //   * Event-to-signal mapping and property change notifications need to run on d->q’s thread.
+    QMetaObject::invokeMethod(d->q, [=]() mutable {{
 
-    if (QThread::isMainThread()) {{
-        emit d->q->{ev.MFn(Signal)}(qEvArgs);
-    }} else {{
+        QObject *qEvArgs = QtDotNet::eventDispatch(args);
+        if (!qEvArgs)
+            return;
+        {(!argsType.Is<PropertyChangedEventArgs>() ? Wrap : $@"{Wrap}
+        auto *qPropEv = qobject_cast<{argsType.MFn(Ns | Name)} *>(qEvArgs);
+        if (qPropEv)
+            d->onPropertyChanged(qPropEv->propertyName());")}
         QMetaMethod::fromSignal(&{type.MFn(Ns | Name)}::{ev.MFn(Signal)})
-            .invoke(d->q, Qt::BlockingQueuedConnection, qEvArgs);
-    }}
-
-    if (qEvArgs && !qEvArgs->parent())
+            .invoke(d->q, Qt::DirectConnection, qEvArgs);
         delete qEvArgs;
+
+    }});
 }}
 {Blank}";
             return Ok;

@@ -37,9 +37,9 @@ namespace Qt.DotNet.CodeGeneration.Rules
 namespace QtDotNet
 {{
     template<typename T>
-    QObject *as(QDotNetObject &obj) {{
+    QObject *as(QDotNetObject &obj, bool addRef = true) {{
         if (obj.type().is<T>())
-            return new T(obj.cast<T>(true));
+            return new T(obj.cast<T>(addRef));
         return nullptr;
     }}
 }}
