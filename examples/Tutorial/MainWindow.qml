@@ -8,10 +8,14 @@ import QtQuick.Layouts
 
 ApplicationWindow {
     id: window; width: 220; height: 240; visible: true; title: "Names"
+
     NameList { id: names }
-    Column {
+
+    ColumnLayout {
+        anchors.fill: parent
+
         TextField {
-            id: newName; width: window.width; leftPadding: 10; focus: true;
+            Layout.fillWidth: true; leftPadding: 10; focus: true;
             placeholderText: "Enter a name"
             onAccepted: {
                 let name = text.trim();
@@ -20,12 +24,13 @@ ApplicationWindow {
                 clear();
             }
         }
+
         ListView {
             model: names
-            width: window.width; height: window.height - newName.height;
+            Layout.fillWidth: true; Layout.fillHeight: true; clip: true
             delegate: Text {
                 required property string item
-                text: item; width: window.width; leftPadding: 10
+                text: item; leftPadding: 10
             }
         }
     }
