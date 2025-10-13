@@ -62,6 +62,10 @@ PROPERTY_{prop.MFn(Src)} Q_SIGNAL void {prop.MFn(Signal)}();
 mutable QDotNetFunction<{propType.MFn(Ns | Name)}> {prop.MFn(Get | Func)} = nullptr;")}
 {(!prop.CanWrite ? Wrap : $@"{Wrap}
 mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} = nullptr;")}";
+            if (!propType.IsValue()) {
+                privateMembers += $@"
+mutable {propType.MFn(Ns | Name)} *cached{prop.MFn(Src)} = nullptr;";
+            }
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -72,13 +76,18 @@ mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} 
 {(!prop.CanRead ? Wrap : $@"{Wrap}
 {propType.MFn(Ns | Name)} {star}{type.MFn(Ns | Name)}::{prop.MFn(Get)}() const
 {{
+    {(propType.IsValue() ? Wrap : $@"{Wrap}
+    if (d->cached{prop.MFn(Src)} && d->cached{prop.MFn(Src)}->isValid())
+        return d->cached{prop.MFn(Src)};")}
     auto result = method(""{prop.MFn(Src | Get)}"", d->{prop.MFn(Get | Func)}).invoke(*this);
-    {(propType.IsValue() ? "return result;" : $"return d->asQObject(result);")}
+    {(propType.IsValue() ? "return result;" : $@"{Wrap}
+    return d->cached{prop.MFn(Src)} = d->asQObject(result);")}
 }}
 {Blank}")}
 {(!prop.CanWrite ? Wrap : $@"{Wrap}
 void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({propType.MFn(Ns | Name)} {star}value)
 {{
+    {(propType.IsValue() ? Wrap : $"d->cached{prop.MFn(Src)} = value;")}
     method(""{prop.MFn(Src | Set)}"", d->{prop.MFn(Set | Func)}).invoke(*this, {star}value);
 }}
 {Blank}")}";
@@ -103,6 +112,7 @@ if (signalTag == ""PROPERTY_{prop.MFn(Src)}"") {{
                 return Error();
             notifiers += $@"
 if (propertyName == ""{prop.MFn(Src)}"") {{
+    {(propType.IsValue() ? Wrap : $@"cached{prop.MFn(Src)} = nullptr;")}
     QMetaMethod::fromSignal(&{type.MFn(Ns | Name)}::{prop.MFn(Signal)})
         .invoke(q, Qt::DirectConnection);
     return;

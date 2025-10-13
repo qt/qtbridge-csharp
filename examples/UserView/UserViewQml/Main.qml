@@ -13,14 +13,13 @@ ApplicationWindow {
     visible: true
     width: 480
     height: Screen.desktopAvailableHeight
+    title: "Users: " + app.users.count.toString()
 
     UserViewApp { id: app }
-    property UserListModel userList: app.users
-    title: "Users: " + userList.count.toString()
 
     ListView {
         anchors.fill: parent
-        model: userList
+        model: app.users
         delegate: RowLayout {
             id: user
             required property string fullName
