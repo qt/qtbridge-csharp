@@ -238,7 +238,7 @@ public:
     }
 
     template<typename T>
-    QDotNetFunction<T, QDotNetRef> fieldGet(const QString &fieldName)
+    QDotNetFunction<T, QDotNetRef> fieldGet(const QString &fieldName) const
     {
         const QList<QDotNetParameter> parameters
         {
@@ -251,7 +251,7 @@ public:
 
     template<typename T>
     QDotNetFunction<T, QDotNetRef> fieldGet(const QString &fieldName,
-        QDotNetFunction<T, QDotNetRef> &func)
+        QDotNetFunction<T, QDotNetRef> &func) const
     {
         if (!func.isValid())
             func = fieldGet<T>(fieldName);

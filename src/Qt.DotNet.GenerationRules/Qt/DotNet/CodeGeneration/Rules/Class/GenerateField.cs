@@ -32,7 +32,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
                 return Error();
             properties += $@"
 Q_PROPERTY({fieldType.MFn(Ns | Name)} {star}{field.MFn()} {Wrap}
-    READ {field.MFn(Get)}{Wrap}
+    READ {field.MFn(Get)} {Wrap}
 {(field.IsLiteral || field.IsInitOnly ? string.Empty : $@" {Wrap}
     WRITE {field.MFn(Set)}")})
 {fieldType.MFn(Ns | Name)} {star}{field.MFn(Get)}() const;
