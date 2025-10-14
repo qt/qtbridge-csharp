@@ -1,4 +1,6 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -14,5 +16,12 @@
   </ItemGroup>
 
   <Import Project="..\..\src\Qt.DotNet.Adapter\build\Qt.DotNet.targets" />
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <QtGenCmd Condition="'$(QtGenCmd)' != '' AND '$(Configuration)' == 'Debug'"
+      >$(QtGenCmd) --graphviz "$(IntermediateOutputPath)qtdotnet\dependency_graph.pdf"</QtGenCmd>
+  </PropertyGroup>
 
 </Project>
