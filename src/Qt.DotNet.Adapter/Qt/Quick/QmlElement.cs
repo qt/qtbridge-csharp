@@ -20,4 +20,10 @@ namespace Qt.Quick
     public class QmlElementAttribute<T> : QmlElementAttribute
     {
     }
+
+    public interface IQmlElement
+    {
+        void QmlClassBegin();
+        void QmlComponentComplete(object[] nestedElements);
+    }
 }
