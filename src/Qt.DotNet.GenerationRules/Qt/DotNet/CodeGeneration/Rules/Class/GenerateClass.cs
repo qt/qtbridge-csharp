@@ -73,9 +73,9 @@ struct QDotNetTypeOf<{type.MFn(Ns | Name)}>
             if (type.GetPlaceholder(PublicDeclarations) is not { } publicDecl)
                 return Error();
             publicDecl += $@"
-class {type.MFn((System.Enum)(Ns | Name))} :
-    {publicDecl[(Placeholder)new((System.Enum)QObjectBaseClass) { Content = ["public QObject"] }]},
-    {publicDecl[(Placeholder)new((System.Enum)BaseClasses)]}
+class {type.MFn(Ns | Name)} :
+    {publicDecl[(Placeholder)new(QObjectBaseClass) { Content = ["public QObject"] }]},
+    {publicDecl[(Placeholder)new(BaseClasses)]}
     public QDotNetObject
 {{
     Q_OBJECT
@@ -83,25 +83,25 @@ class {type.MFn((System.Enum)(Ns | Name))} :
         ? "QML_ELEMENT"
         : $"QML_NAMED_ELEMENT({elementName})")}
     {(type.IsQmlSingleton() ? "QML_SINGLETON" : Wrap)}
-    {publicDecl[(Placeholder)new((System.Enum)TypeTraits)]}
+    {publicDecl[(Placeholder)new(TypeTraits)]}
 public:
-    Q_DOTNET_OBJECT({type.MFn((System.Enum)Name)},
-        ""{type.MFn((System.Enum)(Src | Fqn))}"");
+    Q_DOTNET_OBJECT({type.MFn(Name)},
+        ""{type.MFn(Src | Fqn)}"");
 
-    {publicDecl[(Placeholder)new((System.Enum)CtorDeclarations)]}
-    ~{type.MFn((System.Enum)Name)}() override;
+    {publicDecl[(Placeholder)new(CtorDeclarations)]}
+    ~{type.MFn(Name)}() override;
 
-    {publicDecl[(Placeholder)new((System.Enum)PropertyDeclarations)]}
-    {publicDecl[(Placeholder)new((System.Enum)MethodDeclarations)]}
-    {publicDecl[(Placeholder)new((System.Enum)SignalDeclarations)]}
+    {publicDecl[(Placeholder)new(PropertyDeclarations)]}
+    {publicDecl[(Placeholder)new(MethodDeclarations)]}
+    {publicDecl[(Placeholder)new(SignalDeclarations)]}
 protected:
     void connectNotify(const QMetaMethod &signal) override;
 
 private:
-    {type.MFn((System.Enum)(Name | Private))} *d = nullptr;
-    friend {type.MFn((System.Enum)(Name | Private))};
-    {type.MFn((System.Enum)(Name | Init))} *i = nullptr;
-    friend {type.MFn((System.Enum)(Name | Init))};
+    {type.MFn(Name | Private)} *d = nullptr;
+    friend {type.MFn(Name | Private)};
+    {type.MFn(Name | Init)} *i = nullptr;
+    friend {type.MFn(Name | Init)};
 }};
 ";
             ////////////////////////////////////////////////////////////////////////////////////////
