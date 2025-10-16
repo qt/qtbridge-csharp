@@ -90,7 +90,7 @@ void {type.MFn(Ns | Name | Private)}::{ev.MFn(Handler)}::handleEvent(
         return;
 
     // NOTE: Do not change invokeMethod using Qt::AutoConnection
-    //   * Event-to-signal mapping and property change notifications need to run on d->q’s thread.
+    //   * Event-to-signal mapping and property change notifications need to run on d->q's thread.
     QMetaObject::invokeMethod(d->q, [=]() mutable {{
 
         QObject *qEvArgs = QtDotNet::eventDispatch(args);
