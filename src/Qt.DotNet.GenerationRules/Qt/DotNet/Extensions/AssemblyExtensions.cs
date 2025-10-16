@@ -12,14 +12,17 @@ namespace Qt.DotNet.Extensions
 
     public static class AssemblyExtensions
     {
-        public static string[] QmlFiles(this Assembly self)
+        public static IEnumerable<QmlFileAttribute> QmlFiles(this Assembly self)
         {
             return self.QtAttributeData()
                 .Where(x => x.AttributeType.Is<QmlFileAttribute>())
-                .SelectMany(x => x.NamedArguments
-                    .Where(y => y.MemberName == "Path" && y.TypedValue.ArgumentType.Is<string>())
-                    .Select(y => y.TypedValue.Value as string))
-                .ToArray();
+                .Select(x => new QmlFileAttribute()
+                {
+                    Uri = x.Property<string>(nameof(QmlFileAttribute.Uri)),
+                    TypeName = x.Property<string>(nameof(QmlFileAttribute.TypeName)),
+                    IsRoot = x.Property<bool>(nameof(QmlFileAttribute.IsRoot)),
+                    Path = x.Property<string>(nameof(QmlFileAttribute.Path))
+                });
         }
     }
 }

@@ -39,14 +39,15 @@
     <QtGenCmd>$(QtGenCmd) --rules "$(QtDotNetGenRules)"</QtGenCmd>
 
     <QtQmlFilesCs>qtdotnet\csharp\QmlFiles.cs</QtQmlFilesCs>
+    <QtQmlSourceDir>qtdotnet\native\source\qml\</QtQmlSourceDir>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- Add QML files to the build -->
-    <Qml Include="$(ProjectDir)**\*.qml" />
+    <Qml Include="**\*.qml" />
     <!-- Remove copies in output dirs -->
-    <Qml Remove="$(ProjectDir)$(BaseOutputPath)**\*.qml" />
-    <Qml Remove="$(ProjectDir)$(BaseIntermediateOutputPath)**\*.qml" />
+    <Qml Remove="$(BaseOutputPath)**\*.qml" />
+    <Qml Remove="$(BaseIntermediateOutputPath)**\*.qml" />
     <!-- Add QML files to up-to-date check of VS -->
     <UpToDateCheckInput Set="Qml" Include="@(Qml)" />
     <UpToDateCheckOutput Set="Qml" Include="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlFilesCs)" />

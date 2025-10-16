@@ -3,30 +3,31 @@
  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 ***************************************************************************************************/
 import QtQuick
+import Application
 
 Window {
     id: window; width: 640; height: 480; visible: true;
-    title: "Primes! - Model from C# list of objects"
-
-    PrimeFactory {
-        id: primeFactory
-    }
+    title: "Primes! - Delegate creates C# object"
 
     GridView {
-        model: primeFactory.getNPrimes(1000);
+        model: 1000;
         delegate: Rectangle {
-            required property QtObject item
-            required property int value
+            required property int index
             width: window.width / 10; height: window.height / 10;
             color: "#53d769"; border.color: Qt.lighter(color, 1.1)
 
+            Prime {
+                id : prime
+                n: index + 1
+            }
+
             Text {
-                text: value // accessing the 'value' property directly
+                text: prime.value
                 anchors.centerIn: parent; font.pixelSize: parent.width / 4
             }
 
             Text {
-                text: "#" + item.n.toString() // accessing the 'n' property via the 'item' object
+                text: "#" + prime.n.toString()
                 anchors.top: parent.top; anchors.left: parent.left; anchors.margins: 2
                 font.pixelSize: parent.width / 6
             }

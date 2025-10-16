@@ -10,7 +10,7 @@ namespace Tutorial
     {
         static void Main(string[] args)
         {
-            Qml.LoadFromModule("MainWindow");
+            Qml.LoadFromRootModule("MainWindow");
             Qml.WaitForExit();
         }
     }

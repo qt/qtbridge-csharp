@@ -14,7 +14,7 @@ namespace UserViewQml
 
         static void Main(string[] args)
         {
-            Qml.LoadFromModule("Main");
+            Qml.LoadFromRootModule("Main");
 
             bool listInit = false;
             var rand = new Random();

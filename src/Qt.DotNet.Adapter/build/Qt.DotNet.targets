@@ -13,20 +13,50 @@
 
   <!--
   //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtDotNetSetupQml
+  -->
+  <Target Name="QtDotNetSetupQml" Outputs="@(Qml);@(QmlModule)">
+    <ItemGroup>
+      <!-- Set QML file properties -->
+      <Qml>
+        <IsRoot Condition="'%(RelativeDir)' == ''">true</IsRoot>
+        <IsRoot Condition="'%(RelativeDir)' != ''">false</IsRoot>
+      </Qml>
+      <Qml>
+        <SourceDir Condition="%(IsRoot)">Application\</SourceDir>
+        <SourceDir Condition="!%(IsRoot)">%(RelativeDir)</SourceDir>
+      </Qml>
+      <Qml>
+        <Uri>$([System.String]::Copy(%(SourceDir))
+                .Replace('\','/').Replace('/','.').Trim('.'))</Uri>
+        <TypeName>%(FileName)</TypeName>
+      </Qml>
+      <QmlModule Include="%(Qml.Uri)">
+        <IsRoot>%(Qml.IsRoot)</IsRoot>
+        <SourceDir>%(Qml.SourceDir)</SourceDir>
+      </QmlModule>
+    </ItemGroup>
+  </Target>
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
   // QtDotNetAddQmlFiles
   -->
-  <Target Name="QtDotNetAddQmlFiles" BeforeTargets="CoreCompile"
+  <Target Name="QtDotNetAddQmlFiles" BeforeTargets="CoreCompile" DependsOnTargets="QtDotNetSetupQml"
     Inputs="@(Qml)" Outputs="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlFilesCs)"
     Condition="'$(DesignTimeBuild)' != 'true'">
     <!-- Copy QML files to native source dir -->
     <Copy Condition="'@(Qml)' != ''"
-      SourceFiles="@(Qml)" DestinationFolder="$(IntermediateOutputPath)qtdotnet\native\source" />
+      SourceFiles="$(ProjectDir)%(RelativeDir)%(Filename)%(Extension)"
+      DestinationFolder="$(IntermediateOutputPath)$(QtQmlSourceDir)%(SourceDir)" />
     <MakeDir Condition="'@(Qml)' != ''"
       Directories="$(IntermediateOutputPath)qtdotnet\csharp" />
     <!-- Add C# source with paths of QML files; this will be an input for code generation -->
     <WriteLinesToFile Condition="'@(Qml)' != ''" Overwrite="true" WriteOnlyWhenDifferent="false"
       File="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlFilesCs)"
-      Lines="@(Qml->'[assembly: Qt.Quick.QmlFile(Path = @&quot;%(Identity)&quot;)]')" />
+      Lines="@(Qml->'[assembly: Qt.Quick.QmlFile(
+    Uri = &quot;%(Uri)&quot;, TypeName = &quot;%(TypeName)&quot;, IsRoot = %(IsRoot),
+    Path = @&quot;%(SourceDir)%(Filename)%(Extension)&quot;)]')" />
     <ItemGroup>
       <Compile Condition="'@(Qml)' != ''"
         Include="$(IntermediateOutputPath)qtdotnet\csharp\QmlFiles.cs" />
@@ -220,6 +250,19 @@
     <Error Condition="'$(DeployResult)' != '0'" Text="Error deploying Qt binaries!" />
     <Exec WorkingDirectory="$(TargetDir)" IgnoreExitCode="true"
       Command="$(DeployCmd) --list relative &gt; qtdeploy.txt 2&gt; NUL" />
+
+    <ItemGroup>
+      <QmlDeploy Condition="'@(Qml)' != ''"
+        Include="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlSourceDir)%(Qml.SourceDir)*">
+        <SourceDir>%(Qml.SourceDir)</SourceDir>
+      </QmlDeploy>
+    </ItemGroup>
+    <Copy Condition="'@(QmlDeploy)' != ''"
+      SourceFiles="%(Identity)"
+      DestinationFolder="$(TargetDir)%(SourceDir)" />
+    <WriteLinesToFile Condition="'@(QmlDeploy)' != ''"
+      File="$(TargetDir)qtdeploy.txt" Overwrite="false"
+      Lines="%(SourceDir)%(Filename)%(Extension)" />
   </Target>
   <!-- END QtDotNetDeploy-->
 

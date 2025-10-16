@@ -22,7 +22,11 @@ namespace Qt.DotNet.CodeGeneration.Rules
         public override bool Matches(MemberInfo src) => src.IsRootNode();
         public override Result Execute(MemberInfo _)
         {
-            var qmlFiles = Root.Assembly.QmlFiles();
+            var rootModuleUri = Root.Assembly.QmlFiles()
+                .Where(x => x.IsRoot)
+                .Select(x => x.Uri)
+                .FirstOrDefault();
+            var hasQmlFiles = !string.IsNullOrEmpty(rootModuleUri);
 
             var cmake = new FilePlaceholder(
                 BuildSpecFile, Root, $@"{Root.MFn(Dir)}/CMakeLists.txt");
@@ -51,14 +55,10 @@ qt_add_executable({Root.MFn(Target)}
     {cmake[new(SourceFiles)]}
 )
 
-{(!qmlFiles.Any() ? Wrap : $@"{Wrap}
+{(!hasQmlFiles ? Wrap : $@"{Wrap}
 qt_add_qml_module({Root.MFn(Target)}
-    URI {Root.MFn(Src)}
+    URI {rootModuleUri}
     VERSION {Root.MFn(Version)}
-    QML_FILES
-        {cmake[new(QmlFiles) { Content = [string.Join(@"
-        ", qmlFiles.Select(qml => $@"{Path.GetFileNameWithoutExtension(qml)
-            .FromCamelCase().ToPascalCase()}.qml"))] }]}
     SOURCES
         {cmake[new(QmlElementSourceFiles)]}
 )")}

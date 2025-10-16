@@ -10,6 +10,10 @@ namespace Qt.Quick
     [AttributeUsage(AttributeTargets.Assembly, Inherited = false, AllowMultiple = true)]
     public class QmlFileAttribute : Attribute
     {
+        public string Uri { get; set; }
+        public string TypeName { get; set; }
+        public bool IsRoot { get; set; }
         public string Path { get; set; }
+        public string ModulePath => System.IO.Path.GetDirectoryName(Path).Replace('\\', '/');
     }
 }

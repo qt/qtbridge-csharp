@@ -48,14 +48,9 @@ namespace Qt
             }
             private static IQQmlApplicationEngine instance;
 
-            public static void LoadFromModule(string typeName)
+            public static void LoadFromRootModule(string typeName)
             {
-                LoadFromModule(Assembly.GetCallingAssembly().GetName().Name, typeName);
-            }
-
-            public static void LoadFromModule(Assembly assembly, string typeName)
-            {
-                LoadFromModule(assembly.GetName().Name, typeName);
+                LoadFromModule("Application", typeName);
             }
 
             public static void LoadFromModule(string uri, string typeName)

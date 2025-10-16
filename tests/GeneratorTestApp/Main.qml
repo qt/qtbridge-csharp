@@ -18,26 +18,32 @@ Window {
         id: menu
         ListElement {
             label: "Delegate calls C# function"
+            uri: "Models.Static.Range"
             type: "DelegateCall"
         }
         ListElement {
             label: "Delegate creates C# object"
+            uri: "Models.Static.Range"
             type: "DelegateElement"
         }
         ListElement {
             label: "Model from C# list of values"
+            uri: "Models.Static.Function"
             type: "ValueListModel"
         }
         ListElement {
             label: "Model from C# list of objects"
+            uri: "Models.Static.Function"
             type: "ObjectListModel"
         }
         ListElement {
             label: "Model from C# event"
+            uri: "Models.Dynamic.Event"
             type: "ModelFromEvent"
         }
         ListElement {
             label: "Model from QAIM-based C# class"
+            uri: "Models.Dynamic.Model"
             type: "ItemModel"
         }
     }
@@ -58,6 +64,7 @@ Window {
         Button {
             id: menuOption
             required property string label
+            required property string uri
             required property string type
             text: label
             font.pixelSize: height / 3
@@ -71,7 +78,7 @@ Window {
             }
             onClicked: {
                 menuOption.enabled = false
-                program.load(menuOption.type)
+                program.load(menuOption.uri, menuOption.type)
             }
         }
     }

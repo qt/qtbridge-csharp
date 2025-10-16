@@ -12,13 +12,13 @@ namespace GeneratorTestApp
     {
         static void Main(string[] args)
         {
-            Qml.LoadFromModule("Main");
+            Qml.LoadFromRootModule("Main");
             Qml.WaitForExit();
         }
 
-        public void Load(string type)
+        public void Load(string uri, string type)
         {
-            _ = Task.Run(() => Qml.LoadFromModule(type));
+            _ = Task.Run(() => Qml.LoadFromModule(uri, type));
         }
     }
 }
