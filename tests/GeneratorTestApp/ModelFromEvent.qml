@@ -19,16 +19,17 @@ Window {
         model: []
         delegate: Rectangle {
             required property QtObject item
+            required property int n
             width: window.width / 10; height: window.height / 10;
             color: "#53d769"; border.color: Qt.lighter(color, 1.1)
 
             Text {
-                text: item.value
+                text: item.value  // accessing the 'value' property via the 'item' object
                 anchors.centerIn: parent; font.pixelSize: parent.width / 4
             }
 
             Text {
-                text: "#" + item.n.toString()
+                text: "#" + n.toString() // accessing the 'n' property directly
                 anchors.top: parent.top; anchors.left: parent.left; anchors.margins: 2
                 font.pixelSize: parent.width / 6
             }
