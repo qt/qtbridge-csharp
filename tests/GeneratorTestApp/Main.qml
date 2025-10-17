@@ -46,6 +46,11 @@ Window {
             uri: "Models.Dynamic.Model"
             type: "ItemModel"
         }
+        ListElement {
+            label: "ObservableCollection<T> live model"
+            uri: "Models.Dynamic.Model"
+            type: "ObservableModel"
+        }
     }
 
     ListView {

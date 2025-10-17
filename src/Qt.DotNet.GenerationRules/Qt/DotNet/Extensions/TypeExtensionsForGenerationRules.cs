@@ -4,7 +4,6 @@
 ***************************************************************************************************/
 
 using System.Collections;
-using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using Qt.Quick;
@@ -148,6 +147,51 @@ namespace Qt.DotNet.Extensions
             }
 
             return false;
+        }
+
+        public static bool IsObservableList(this Type self, out Type itemType)
+        {
+            ArgumentNullException.ThrowIfNull(self);
+
+            itemType = null;
+            if (!self.IsList(out itemType))
+                return false;
+
+            if (self.ImplementsINotifyCollectionChanged())
+                return true;
+
+            try {
+                var def = self.IsGenericTypeDefinition
+                    ? self
+                    : self.IsGenericType ? self.GetGenericTypeDefinition() : null;
+                return def?.FullName is "System.Collections.ObjectModel.ObservableCollection`1"
+                    or "System.Collections.ObjectModel.ReadOnlyObservableCollection`1";
+            } catch { /* ignore */ }
+
+            return false;
+        }
+
+        private static bool ImplementsINotifyCollectionChanged(this Type self)
+        {
+            ArgumentNullException.ThrowIfNull(self);
+
+            const string ns = "System.Collections.Specialized";
+            const string eventHandler = ns + ".NotifyCollectionChangedEventHandler";
+
+            // Strongly-typed fast path, if available
+            try {
+                var type = TypeOf($"{ns}.INotifyCollectionChanged");
+                if (type != null && type.IsAssignableFrom(self))
+                    return true;
+            } catch { /* ignore */ }
+
+            // name-based fallback
+            if (self.GetInterfaces().Any(i => i.FullName == $"{ns}.INotifyCollectionChanged"))
+                return true;
+
+            // event-signature fallback
+            var ev = self.GetEvent("CollectionChanged");
+            return ev != null && (ev.EventHandlerType?.FullName?.Contains(eventHandler) ?? false);
         }
     }
 }

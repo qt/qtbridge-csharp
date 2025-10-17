@@ -15,7 +15,8 @@ namespace Qt.DotNet.CodeGeneration.Rules.Models
     public class GenerateListAsModel : Class.GenerateClass
     {
         public override int Priority => base.Priority + 1;
-        public override bool Matches(MemberInfo src) => src is Type type && type.IsList(out _);
+        public override bool Matches(MemberInfo src)
+            => src is Type type && type.IsList(out _) && !type.IsObservableList(out _);
         public override Result Execute(MemberInfo src)
         {
             if (src is not Type type || !type.IsList(out var itemType))
@@ -56,6 +57,20 @@ namespace Qt.DotNet.CodeGeneration.Rules.Models
             if (type.GetPlaceholder(Includes) is not { } includes)
                 return Error();
             includes += "#include <QAbstractListModel>";
+
+            if (type.GetPlaceholder(PrivateMemberDeclarations) is not { } privateMemberDeclaration)
+                return Error();
+
+            // rowCountOverride is a temporary override used only during remove deltas.
+            // Rationale:
+            //   When a .NET ObservableCollection<T> raises CollectionChanged(Remove),
+            //   the underlying Count has ALREADY been decremented. However, Qt's
+            //   beginRemoveRows()/endRemoveRows() contract requires the model to still
+            //   report the PRE-REMOVAL row count until endRemoveRows() completes.
+            //   To satisfy this, we set d->rowCountOverride = (currentCount + removed)
+            //   just for the duration of the remove notification, so rowCount() returns
+            //   the "old" count and Qt invariants stay intact (avoids assertions).
+            privateMemberDeclaration += "qint32 rowCountOverride = -1;";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -102,6 +117,10 @@ QHash<int, QByteArray> {type.MFn(Ns | Name)}::roleNames() const
 
 int {type.MFn(Ns | Name)}::rowCount(const QModelIndex &parent) const
 {{
+    // If a remove delta is in progress, report the pre-removal count so that
+    // Qt's beginRemoveRows()/endRemoveRows() contract holds.
+    if (d && d->rowCountOverride >= 0)
+        return d->rowCountOverride;
     return {sizeAccessor}();
 }}
 
