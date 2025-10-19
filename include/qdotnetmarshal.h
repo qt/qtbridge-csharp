@@ -17,6 +17,7 @@
 #include <QModelIndex>
 #include <QString>
 #include <QTimeZone>
+#include <QUrl>
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop
 #endif
@@ -31,6 +32,17 @@
 
 struct QDotNetMarshal
 {
+    static void *allocHGlobal(size_t size)
+    {
+#ifdef Q_OS_WINDOWS
+        return LocalAlloc(LMEM_FIXED | LMEM_ZEROINIT, size);
+#else
+        void *ptr = malloc(size);
+        memset(ptr, 0, size);
+        return ptr;
+#endif
+    }
+
     static void freeHGlobal(void *ptr)
     {
 #ifdef Q_OS_WINDOWS
@@ -428,5 +440,47 @@ struct QDotNetInbound<QDateTime>
         return QDateTime::fromMSecsSinceEpoch(qint64(
             (inboundValue - QDotNetTypeOf<QDateTime>::Epoch) * QDotNetTypeOf<QDateTime>::Scale),
             QTimeZone::utc());
+    }
+
+};
+
+template<>
+struct QDotNetTypeOf<QUrl>
+{
+    static inline const QString TypeName =
+        QStringLiteral("Qt.DotNet.UriMarshaler, Qt.DotNet.Adapter");
+    static inline UnmanagedType MarshalAs = UnmanagedType::CustomMarshaler;
+};
+
+template<>
+struct QDotNetOutbound<QUrl>
+{
+    using SourceType = const QUrl &;
+    using OutboundType = void *;
+    static inline const QDotNetParameter Parameter = QDotNetParameter(
+        QDotNetTypeOf<QUrl>::TypeName, QDotNetTypeOf<QUrl>::MarshalAs);
+    static OutboundType convert(SourceType sourceValue)
+    {
+        QString url = sourceValue.toDisplayString();
+        void *ptr = QDotNetMarshal::allocHGlobal((url.length() + 1) * sizeof(wchar_t));
+        memcpy(ptr, url.constData(), url.length() * sizeof(wchar_t));
+        return ptr;
+    }
+};
+
+template<>
+struct QDotNetInbound<QUrl>
+{
+    using InboundType = QChar *;
+    using TargetType = QUrl;
+    static inline const QDotNetParameter Parameter = QDotNetParameter(
+        QDotNetTypeOf<QUrl>::TypeName, QDotNetTypeOf<QUrl>::MarshalAs);
+    static TargetType convert(InboundType inboundValue)
+    {
+        if (!inboundValue)
+            return QUrl();
+        auto url = QUrl(QString(inboundValue));
+        QDotNetMarshal::freeHGlobal(inboundValue);
+        return url;
     }
 };

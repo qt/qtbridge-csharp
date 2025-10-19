@@ -33,6 +33,7 @@ namespace Qt.DotNet.CodeGeneration.Rules
 #include <QDotNetObject>
 #include <QDotNetType>
 #include <QDotNetArray>
+#include <QUrl>
 
 namespace QtDotNet
 {{

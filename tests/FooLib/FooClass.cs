@@ -194,6 +194,16 @@ namespace FooLib
         {
             return $"{t.Year:0000}-{t.Month:00}-{t.Day:00} {t.Hour:00}:{t.Minute:00}:{t.Second:00}.{t.Millisecond:000}";
         }
+
+        public static Uri GetUri()
+        {
+            return new Uri("https://www.qt.io/developers#wiki");
+        }
+
+        public static string PrintUri(Uri uri)
+        {
+            return uri.ToString();
+        }
     }
 
     public class Coord2DEventArgs : EventArgs

@@ -140,6 +140,7 @@ private slots:
     void fieldAccess();
     void modelIndexMarshal();
     void dateTimeMarshal();
+    void uriMarshal();
 #endif //TEST_FUNCTION_CALLS
 #ifdef TEST_APP_SHUTDOWN
     void appShutdown();
@@ -818,6 +819,13 @@ void tst_qtdotnet::dateTimeMarshal()
     auto dt = Foo::getDateTime();
     QVERIFY(dt == QDateTime(QDate(1912, 6, 23), QTime(11, 22, 33, 444), QTimeZone::utc()));
     QVERIFY(Foo::printDateTime(dt) == "1912-06-23 11:22:33.444");
+}
+
+void tst_qtdotnet::uriMarshal()
+{
+    auto url = Foo::getUri();
+    QVERIFY(url.toDisplayString() == "https://www.qt.io/developers#wiki");
+    QVERIFY(Foo::printUri(url) == "https://www.qt.io/developers#wiki");
 }
 #endif //TEST_FUNCTION_CALLS
 

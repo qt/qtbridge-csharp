@@ -35,6 +35,7 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
                 _ when type.Is<string>() => "QString",
                 _ when type.Is<ModelIndex>() => "QModelIndex",
                 _ when type.Is<DateTime>() => "QDateTime",
+                _ when type.Is<Uri>() => "QUrl",
                 _ when type.Is(typeof(void)) => "void",
                 _ => null
             },

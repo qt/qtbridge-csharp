@@ -103,6 +103,7 @@ namespace Qt.DotNet.CodeGeneration
         public ConcurrentSet<Type> BuiltInTypes => lazy.Get(() => BuiltInTypes, () => new()
         {
             TypeOf<DateTime>(),
+            TypeOf<Uri>(),
             TypeOf<decimal>(),
             TypeOf<Enum>(),
             TypeOf<EventArgs>(),

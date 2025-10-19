@@ -136,6 +136,15 @@ QString Foo::printDateTime(const QDateTime &t)
     return QtDotNet::call<QString, QDateTime>(AssemblyQualifiedName, "PrintDateTime", t);
 }
 
+QUrl Foo::getUri()
+{
+    return QtDotNet::call<QUrl>(AssemblyQualifiedName, "GetUri");
+}
+
+QString Foo::printUri(const QUrl url)
+{
+    return QtDotNet::call<QString, QUrl>(AssemblyQualifiedName, "PrintUri", url);
+}
 
 IBarTransformation::IBarTransformation() : QDotNetInterface(AssemblyQualifiedName, nullptr)
 {

@@ -17,6 +17,7 @@
 #include <QModelIndex>
 #include <QObject>
 #include <QString>
+#include <QUrl>
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop
 #endif
@@ -67,6 +68,9 @@ public:
 
     static QDateTime getDateTime();
     static QString printDateTime(const QDateTime &t);
+
+    static QUrl getUri();
+    static QString printUri(const QUrl url);
 
 signals:
     void barChanged();
