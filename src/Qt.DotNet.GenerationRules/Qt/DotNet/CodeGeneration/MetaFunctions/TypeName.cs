@@ -43,6 +43,8 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
                     typeName.Append("Private");
                 if (traits.HasTraits(Init))
                     typeName.Append("Init");
+                if (traits.HasTraits(Enum))
+                    typeName.Append("Enum");
             }
 
             if (type.IsArray)

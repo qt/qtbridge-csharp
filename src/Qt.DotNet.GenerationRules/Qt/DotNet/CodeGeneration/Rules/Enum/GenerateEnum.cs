@@ -26,7 +26,14 @@ namespace Qt.DotNet.CodeGeneration.Rules.Enum
                 return Error();
             var enumValues = names
                 .Select((x, i) => new { Name = x, Value = values.GetValue(i) })
-                .Where(x => x.Value != null)
+                .Where(x => x?.Value switch
+                {
+                    sbyte or byte or short or ushort or int => true,
+                    uint u32 => u32 <= int.MaxValue,
+                    ulong u64 => u64 <= int.MaxValue,
+                    long s64 => int.MinValue <= s64 && s64 <= int.MaxValue,
+                    _ => false
+                })
                 .Select(x => $"{x.Name} = {x.Value}")
                 .ToList();
             if (!enumValues.Any())
@@ -42,11 +49,26 @@ namespace Qt.DotNet.CodeGeneration.Rules.Enum
 
 namespace {type.MFn(Ns)}
 {{
-    enum {type.MFn(Name)} : {valuesType.MFn(Ns | Name)}
+    class {type.MFn(Name | Enum)};
+}}
+
+class {type.MFn(Ns | Name | Enum)} : public QObject
+{{
+    Q_OBJECT
+    QML_NAMED_ELEMENT({type.MFn(Name)})
+    QML_UNCREATABLE(""Type '{type.MFn(Name)}' is an enum."")
+public:
+    enum Values
     {{
         {string.Join(@",
         ", enumValues)}
     }};
+    Q_ENUM(Values)
+}};
+
+namespace {type.MFn(Ns)}
+{{
+    using {type.MFn(Name)} = {type.MFn(Name | Enum)}::Values;
 }}
 
 template<>

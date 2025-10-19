@@ -34,6 +34,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Enum
 #pragma once
 #include <builtin_types.h>
 #include <qdotnetmarshal.h>
+#include <QtQml/qqmlregistration.h>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // [{type.MFn(Src | Ns | Name)}]
