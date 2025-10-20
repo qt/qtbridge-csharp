@@ -22,7 +22,7 @@ Item {
     Connections {
         target: root.colorResources
         // Closes the URL selection popup once we have received data successfully
-        function onDataUpdated() {
+        function onDataChanged() {
             fetchTester.stop()
             root.serverSelected()
         }
@@ -34,12 +34,12 @@ Item {
         ListElement {
             title: qsTr("Public REST API Test Server")
             url: "https://reqres.in/api"
-            icon: "qrc:/qt/qml/ColorPalette/icons/testserver.png"
+            icon: "../icons/testserver.png"
         }
         ListElement {
             title: qsTr("Qt-based REST API server")
             url: "http://127.0.0.1:49425/api"
-            icon: "qrc:/qt/qml/ColorPalette/icons/qt.png"
+            icon: "../icons/qt.png"
         }
     }
 
@@ -51,7 +51,7 @@ Item {
 
         Image {
             Layout.alignment: Qt.AlignHCenter
-            source: "qrc:/qt/qml/ColorPalette/icons/qt.png"
+            source: "../icons/qt.png"
             fillMode: Image.PreserveAspectFit
             Layout.preferredWidth: 20
         }

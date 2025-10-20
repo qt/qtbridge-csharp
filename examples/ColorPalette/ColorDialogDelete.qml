@@ -20,9 +20,12 @@ Popup {
 
     property string colorName: ""
 
-    function maybeDelete(data) {
-        colorName = data.name
-        colorId = data.id
+    function maybeDelete(resObj) {
+        let resColor = TypeCast.asColorResource(resObj)
+        if (resColor == null)
+            return;
+        colorName = resColor.name
+        colorId = resColor.colorId
         open()
     }
 

@@ -31,12 +31,15 @@ Popup {
         open()
     }
 
-    function updateColor(data) {
+    function updateColor(resObj) {
+        let resColor = TypeCast.asColorResource(resObj)
+        if (resColor == null)
+            return;
         newColor = false
-        colorNameField.text = data.name
-        currentColor = data.color
-        colorPantoneField.text = data.pantone_value
-        colorId = data.id
+        colorNameField.text = resColor.name
+        currentColor = resColor.color
+        colorPantoneField.text = resColor.pantone
+        colorId = resColor.colorId
         open()
     }
 

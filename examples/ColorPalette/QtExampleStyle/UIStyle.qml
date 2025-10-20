@@ -22,8 +22,4 @@ QtObject {
     readonly property color colorQtPrimGreen: "#41cd52"
     readonly property color colorQtAuxGreen1: "#21be2b"
     readonly property color colorQtAuxGreen2: "#17a81a"
-
-    function iconPath(baseImagePath) {
-        return `qrc:/qt/qml/ColorPalette/icons/${baseImagePath}.svg`
-    }
 }

@@ -1,0 +1,91 @@
+<!--
+/***************************************************************************************************
+ Copyright (C) 2025 The Qt Company Ltd.
+ SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+***************************************************************************************************/
+-->
+
+<Project>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="icons\close.svg" />
+    <None Remove="icons\delete.svg" />
+    <None Remove="icons\dots.svg" />
+    <None Remove="icons\edit.svg" />
+    <None Remove="icons\login.svg" />
+    <None Remove="icons\logout.svg" />
+    <None Remove="icons\ok.svg" />
+    <None Remove="icons\plus.svg" />
+    <None Remove="icons\qt.png" />
+    <None Remove="icons\testserver.png" />
+    <None Remove="icons\update.svg" />
+    <None Remove="icons\user.svg" />
+    <None Remove="icons\userMask.svg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="icons\close.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\delete.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\dots.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\edit.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\login.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\logout.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\ok.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\plus.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\qt.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\testserver.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\update.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\user.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icons\userMask.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Refit" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
+    <ProjectReference Include="..\..\src\Qt.DotNet.Generator\Qt.DotNet.Generator.csproj" />
+    <ProjectReference Include="..\..\src\Qt.DotNet.GenerationRules\Qt.DotNet.GenerationRules.csproj" />
+  </ItemGroup>
+
+  <Import Project="..\..\src\Qt.DotNet.Adapter\build\Qt.DotNet.targets" />
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+</Project>

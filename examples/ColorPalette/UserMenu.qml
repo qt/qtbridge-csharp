@@ -39,9 +39,10 @@ Popup {
                 height: 30
                 width: userListView.width
 
-
-                required property var modelData
-                readonly property bool logged: (modelData.email === userMenu.userLoginService.user)
+                required property int userId
+                required property string email
+                required property string avatar
+                readonly property bool logged: (email === userMenu.userLoginService.user)
 
                 Rectangle {
                     id: userImageCliped
@@ -53,13 +54,13 @@ Popup {
                     Image {
                         id: userImage
                         anchors.fill: parent
-                        source: userInfo.modelData.avatar
+                        source: userInfo.avatar
                         visible: false
                     }
 
                     Image {
                         id: userMask
-                        source: "qrc:/qt/qml/ColorPalette/icons/userMask.svg"
+                        source: "../icons/userMask.svg"
                         anchors.fill: userImage
                         anchors.margins: 4
                         visible: false
@@ -78,7 +79,7 @@ Popup {
                     anchors.left: userImageCliped.right
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.margins: 5
-                    text: userInfo.modelData.email
+                    text: userInfo.email
                     font.bold: userInfo.logged
                 }
 
@@ -87,8 +88,7 @@ Popup {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.margins: 5
 
-                    icon.source: UIStyle.iconPath(userInfo.logged
-                                 ? "logout" : "login")
+                    icon.source: userInfo.logged ? "../icons/logout.svg" : "../icons/login.svg"
                     enabled: userInfo.logged || !userMenu.userLoginService.loggedIn
 
                     onClicked: {
@@ -96,9 +96,7 @@ Popup {
                             userMenu.userLoginService.logout()
                         } else {
                             //! [Login]
-                            userMenu.userLoginService.login({"email" : userInfo.modelData.email,
-                                                "password" : "apassword",
-                                                "id" : userInfo.modelData.id})
+                            userMenu.userLoginService.login(userInfo.email, "apassword")
                             //! [Login]
                             userMenu.close()
                         }

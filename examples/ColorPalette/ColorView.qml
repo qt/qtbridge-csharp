@@ -17,19 +17,25 @@ Item {
     required property PaginatedResource colors
     required property PaginatedResource colorViewUsers
 
+    ColorResourceFactory { id: factory }
+
     ColorDialogEditor {
         id: colorPopup
         onColorAdded: (colorNameField, colorRGBField, colorPantoneField) => {
-            root.colors.add({"name" : colorNameField,
-                        "color" : colorRGBField,
-                        "pantone_value" : colorPantoneField})
+            let colorResource = factory.create()
+            colorResource.name = colorNameField
+            colorResource.color = colorRGBField
+            colorResource.pantone = colorPantoneField
+            colorResource.add(root.colors)
         }
 
         onColorUpdated: (colorNameField, colorRGBField, colorPantoneField, cid) => {
-            root.colors.update({"name" : colorNameField,
-                        "color" : colorRGBField,
-                        "pantone_value" : colorPantoneField},
-                        cid)
+            let colorResource = factory.create()
+            colorResource.colorId = cid
+            colorResource.name = colorNameField
+            colorResource.color = colorRGBField
+            colorResource.pantone = colorPantoneField
+            colorResource.update(root.colors)
         }
     }
 
@@ -83,18 +89,18 @@ Item {
 
                             function getCurrentUserImage() {
                                 if (!root.loginService.loggedIn)
-                                    return "qrc:/qt/qml/ColorPalette/icons/user.svg";
-                                let users = root.colorViewUsers
-                                for (let i = 0; i < users.data.length; i++) {
-                                    if (users.data[i].email === root.loginService.user)
-                                        return users.data[i].avatar;
-                                }
+                                    return "../icons/user.svg";
+                                let users = root.colorViewUsers.data
+                                let idx = users.find("email", root.loginService.user)
+                                if (idx <= 0)
+                                    return "../icons/user.svg";
+                                return users.item(idx, "avatar")
                             }
                         }
 
                         Image {
                             id: userMask
-                            source: "qrc:/qt/qml/ColorPalette/icons/userMask.svg"
+                            source: "../icons/userMask.svg"
                             anchors.fill: userImage
                             anchors.margins: 4
                             visible: false
@@ -159,7 +165,7 @@ Item {
 
             Image {
                 anchors.centerIn: parent
-                source: "qrc:/qt/qml/ColorPalette/icons/qt.png"
+                source: "../icons/qt.png"
                 fillMode: Image.PreserveAspectFit
                 height: 25
             }
@@ -195,7 +201,7 @@ Item {
                     }
 
                     Image {
-                        source: UIStyle.iconPath("plus")
+                        source: "../icons/plus.svg"
                         fillMode: Image.PreserveAspectFit
                         anchors.fill: parent
                         sourceSize.width: width
@@ -220,7 +226,7 @@ Item {
                     }
 
                     Image {
-                        source: UIStyle.iconPath("update")
+                        source: "../icons/update.svg"
                         fillMode: Image.PreserveAspectFit
                         anchors.fill: parent
                         sourceSize.width: width
@@ -291,7 +297,10 @@ Item {
             delegate: Item {
                 id: colorInfo
 
-                required property var modelData
+                required property string name;
+                required property string color;
+                required property string pantone;
+                required property QtObject resource;
 
                 width: colorListView.width
                 height: 25
@@ -306,26 +315,26 @@ Item {
                         implicitWidth: 36
                         implicitHeight: 21
                         radius: 6
-                        color: colorInfo.modelData.color
+                        color: colorInfo.color
                     }
 
                     Text {
                         Layout.preferredWidth: colorInfo.width * 0.3 - colorSample.width
                         horizontalAlignment: Qt.AlignLeft
                         leftPadding: 5
-                        text: colorInfo.modelData.name
+                        text: colorInfo.name
                     }
 
                     Text {
                         Layout.preferredWidth: colorInfo.width * 0.25
                         horizontalAlignment: Qt.AlignHCenter
-                        text: colorInfo.modelData.color
+                        text: colorInfo.color
                     }
 
                     Text {
                         Layout.preferredWidth: colorInfo.width * 0.25
                         horizontalAlignment: Qt.AlignHCenter
-                        text: colorInfo.modelData.pantone_value
+                        text: colorInfo.pantone
                     }
 
                     Item {
@@ -337,14 +346,14 @@ Item {
                             id: buttonBox
                             anchors.fill: parent
                             ToolButton {
-                                icon.source: UIStyle.iconPath("delete")
+                                icon.source: "../icons/delete.svg"
                                 enabled: root.loginService.loggedIn
-                                onClicked: colorDeletePopup.maybeDelete(colorInfo.modelData)
+                                onClicked: colorDeletePopup.maybeDelete(colorInfo.resource)
                             }
                             ToolButton {
-                                icon.source: UIStyle.iconPath("edit")
+                                icon.source: "../icons/edit.svg"
                                 enabled: root.loginService.loggedIn
-                                onClicked: colorPopup.updateColor(colorInfo.modelData)
+                                onClicked: colorPopup.updateColor(colorInfo.resource)
                             }
                         }
                     }
