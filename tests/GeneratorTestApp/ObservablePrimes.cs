@@ -45,5 +45,23 @@ namespace GeneratorTestApp
         {
             Items.Clear();
         }
+
+        public void IncrementFirstN()
+        {
+            if (Items.Count > 0)
+                Items[0].N += 1;
+        }
+
+        public void RandomizeSomeNs()
+        {
+            if (Items.Count == 0)
+                return;
+            var rnd = new Random();
+            for (var k = 0; k < Math.Min(3, Items.Count); ++k) {
+                var i = rnd.Next(Items.Count);
+                var delta = rnd.Next(-2, 3);
+                Items[i].N = Math.Max(1, Items[i].N + delta);
+            }
+        }
     }
 }
