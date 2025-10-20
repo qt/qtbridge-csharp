@@ -36,17 +36,15 @@ namespace Qt
 
         public static class Qml
         {
+            private static IQQmlApplicationEngine _Instance;
             private static IQQmlApplicationEngine Instance
             {
                 get
                 {
-                    while (Static == null)
-                        Thread.Sleep(100);
-                    instance = Static.QQmlApplicationEngine_Get();
-                    return instance;
+                    _Instance ??= Static.QQmlApplicationEngine_Get();
+                    return _Instance;
                 }
             }
-            private static IQQmlApplicationEngine instance;
 
             public static void LoadFromRootModule(string typeName)
             {

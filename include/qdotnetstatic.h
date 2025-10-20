@@ -49,8 +49,6 @@ inline static bool dtor_static = std::invoke([]()
     {
         QDotNetAdapter::dtor_staticInterface = [](void *that)
             {
-                QtDotNet::call<void, QDotNetStatic>(
-                    "Qt.DotNet.Adapter, Qt.DotNet.Adapter", "set_Static", nullptr);
                 delete reinterpret_cast<QDotNetStatic *>(that);
             };
         return true;
