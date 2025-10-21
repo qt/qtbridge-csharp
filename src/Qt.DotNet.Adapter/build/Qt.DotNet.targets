@@ -189,6 +189,7 @@
     <PropertyGroup>
       <MSBuildCmd>msbuild "$(NativeApp).vcxproj"</MSBuildCmd>
       <MSBuildCmd>$(MSBuildCmd) -t:BuiltProjectOutputGroup</MSBuildCmd>
+      <MSBuildCmd>$(MSBuildCmd) -p:Configuration=$(Configuration)</MSBuildCmd>
       <MSBuildCmd>$(MSBuildCmd) -getProperty:TargetPath</MSBuildCmd>
       <MSBuildCmd>
         CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
