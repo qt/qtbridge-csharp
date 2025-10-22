@@ -19,11 +19,6 @@
 #include <qdotnetdelegate.h>
 #include <qdotnetsignal.h>
 
-#include <iqvariant.h>
-#include <iqmodelindex.h>
-
-#include <qdotnetabstractlistmodel.h>
-
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wconversion"
@@ -129,12 +124,6 @@ private slots:
     void arrayOfInts();
     void arrayOfStrings();
     void arrayOfObjects();
-    void variantNull();
-    void variantGet();
-    void variantSet();
-    void modelIndexNull();
-    void modelIndexGet();
-    void models();
     void delegates();
     void signalConverters();
     void fieldAccess();
@@ -585,86 +574,6 @@ void tst_qtdotnet::arrayOfObjects()
     a[6]->append(a[5]->toString()).append(" adipiscing");
     a[7]->append(a[6]->toString()).append(" elit.");
     QVERIFY(a[7]->toString() == "Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
-}
-
-void tst_qtdotnet::variantNull()
-{
-    auto getVariant = QDotNetType::staticMethod<IQVariant>("FooLib.Foo, FooLib", "GetVariant");
-    auto iqv = getVariant();
-    auto &qv = *iqv.dataAs<QVariant>();
-    QVERIFY(!qv.isValid());
-}
-
-void tst_qtdotnet::variantGet()
-{
-    auto getVariant = QDotNetType::staticMethod<IQVariant, QString>("FooLib.Foo, FooLib", "GetVariant");
-    auto iqv = getVariant("foobar");
-    auto &qv = *iqv.dataAs<QVariant>();
-    QVERIFY(qv.toString() == "foobar");
-}
-
-void tst_qtdotnet::variantSet()
-{
-    QVariant qv = "foobar";
-    IQVariant iqv(qv);
-    auto toUpper = QDotNetType::staticMethod<void, IQVariant>("FooLib.Foo, FooLib", "VariantStringToUpper");
-    toUpper(iqv);
-    QVERIFY(qv.toString() == "FOOBAR");
-}
-
-struct TestModel : public QStringListModel
-{
-    QModelIndex getIndex(int row, int col, void *ptr)
-    {
-        return createIndex(row, col, ptr);
-    }
-};
-
-void tst_qtdotnet::modelIndexNull()
-{
-    auto getModelIndex = QDotNetType::staticMethod<IQModelIndex>("FooLib.Foo, FooLib", "GetModelIndex");
-    auto iqmi = getModelIndex();
-    auto &qmi = *iqmi.dataAs<QModelIndex>();
-    QVERIFY(!qmi.isValid());
-}
-
-void tst_qtdotnet::modelIndexGet()
-{
-    TestModel tm;
-    auto idx = IQModelIndex(tm.getIndex(2, 3, reinterpret_cast<void *>(7)));
-    auto idxRowColPtr = QDotNetType::staticMethod<int, IQModelIndex>("FooLib.Foo, FooLib", "ModelIndexRowColPtr");
-    auto rcp = idxRowColPtr(idx);
-    QVERIFY(rcp == 42);
-}
-
-struct TestListModel : public QDotNetObject
-{
-    Q_DOTNET_OBJECT_INLINE(TestListModel, "FooLib.Foo+TestListModel, FooLib");
-    TestListModel()
-        : QDotNetObject(constructor<TestListModel>().invoke(nullptr))
-    { }
-    QAbstractListModel *base() const
-    {
-        auto baseObj = method("get_Base", fnBase).invoke(*this);
-        auto baseInterface = baseObj.cast<QDotNetInterface>();
-        return baseInterface.dataAs<QAbstractListModel>();
-    }
-    mutable QDotNetFunction<QDotNetRef> fnBase = nullptr;
-};
-
-void tst_qtdotnet::models()
-{
-    const auto testModel = TestListModel();
-    auto *baseModel = testModel.base();
-    auto n = baseModel->rowCount();
-    QVERIFY(n == 2);
-    auto ff = baseModel->flags(baseModel->index(0));
-    QVERIFY(ff == (Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemNeverHasChildren));
-    auto it0 = baseModel->data(baseModel->index(0));
-    QVERIFY(it0.toString() == "FOO");
-    auto it1 = baseModel->data(baseModel->index(1));
-    QVERIFY(it1.toString() == "BAR");
-    skipCleanup = true; // TODO: figure out why refs are still pending here
 }
 
 void tst_qtdotnet::delegates()

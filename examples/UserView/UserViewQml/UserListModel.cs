@@ -14,7 +14,7 @@ namespace UserViewQml
     {
         public enum UserItemRoles
         {
-            FullName = ItemDataRole.UserRole,
+            FullName = Roles.UserRole,
             FirstName, LastName, Email, Thumbnail, Picture, BirthDate, Age
         }
         private readonly object CriticalSection = new();
@@ -120,7 +120,7 @@ namespace UserViewQml
             var user = users.ElementAt(index.Row);
             return role switch
             {
-                (int)ItemDataRole.DisplayRole or
+                (int)Roles.DisplayRole or
                 (int)UserItemRoles.FullName => user.Name.Full,
                 (int)UserItemRoles.FirstName => user.Name.First,
                 (int)UserItemRoles.LastName => user.Name.Last,

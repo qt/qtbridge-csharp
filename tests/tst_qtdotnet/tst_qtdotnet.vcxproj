@@ -205,10 +205,7 @@
     <QtMoc Include="foo.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\include\iqmodelindex.h" />
     <ClInclude Include="..\..\include\iqqmlapplicationengine.h" />
-    <ClInclude Include="..\..\include\iqvariant.h" />
-    <ClInclude Include="..\..\include\qdotnetabstractlistmodel.h" />
     <ClInclude Include="..\..\include\qdotnetadapter.h" />
     <ClInclude Include="..\..\include\qdotnetarray.h" />
     <ClInclude Include="..\..\include\qdotnetcallback.h" />

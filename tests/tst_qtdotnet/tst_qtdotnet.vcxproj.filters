@@ -51,9 +51,6 @@
     <ClInclude Include="uri.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\iqvariant.h">
-      <Filter>qtdotnet</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\qdotnetadapter.h">
       <Filter>qtdotnet</Filter>
     </ClInclude>
@@ -97,12 +94,6 @@
       <Filter>qtdotnet</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\qdotnettype.h">
-      <Filter>qtdotnet</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\iqmodelindex.h">
-      <Filter>qtdotnet</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\qdotnetabstractlistmodel.h">
       <Filter>qtdotnet</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\qdotnetstatic.h">

@@ -6,10 +6,8 @@
 #pragma once
 
 #include "qdotnetinterface.h"
-#include "iqmodelindex.h"
-#include "iqvariant.h"
+#include "qdotnetobject.h"
 #include "iqqmlapplicationengine.h"
-#include "qdotnetabstractlistmodel.h"
 
 #include <functional>
 
@@ -23,9 +21,6 @@ public:
 
     QDotNetStatic() : QDotNetInterface(AssemblyQualifiedName, nullptr)
     {
-        IQVariant::staticInit(this);
-        IQModelIndex::staticInit(this);
-        QDotNetAbstractListModel::staticInit(this);
 #ifdef QT_QUICK_LIB
         IQQmlApplicationEngine::staticInit(this);
 #endif
@@ -36,11 +31,11 @@ inline static bool ctor_static = std::invoke([]()
     {
         QDotNetAdapter::ctor_staticInterface = []()
             {
-                auto *staticQVariant = new QDotNetStatic();
+                auto *staticObject = new QDotNetStatic();
                 auto setStatic = QDotNetType::staticMethod<void, QDotNetStatic>(
                     "Qt.DotNet.Adapter, Qt.DotNet.Adapter", "set_Static");
-                setStatic(*staticQVariant);
-                return staticQVariant;
+                setStatic(*staticObject);
+                return staticObject;
             };
         return true;
     });
