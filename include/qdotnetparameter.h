@@ -12,7 +12,6 @@
 #   pragma GCC diagnostic ignored "-Wconversion"
 #endif
 #include <QChar>
-#include <QModelIndex>
 #include <QString>
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop
@@ -100,13 +99,8 @@ struct QDotNetParameter
     }
 
     static const QDotNetParameter &String;
-    static const QDotNetParameter &ModelIndex;
 };
 
 inline const QDotNetParameter &QDotNetParameter::String = QDotNetParameter(
     QStringLiteral("Qt.DotNet.StringMarshaler, Qt.DotNet.Adapter, CleanUp=false"),
-    UnmanagedType::CustomMarshaler);
-
-inline const QDotNetParameter &QDotNetParameter::ModelIndex = QDotNetParameter(
-    QStringLiteral("Qt.DotNet.ModelIndexMarshaler, Qt.DotNet.Adapter"),
     UnmanagedType::CustomMarshaler);
