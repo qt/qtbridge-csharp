@@ -1,0 +1,131 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Qt.Bridge.DotNet</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>The Qt Company</Authors>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Description
+      >Qt.Bridge.DotNet adapter, generator, rules + native headers &amp; build targets</Description>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <BuildDependsOn>Clean;$(BuildDependsOn)</BuildDependsOn>
+  </PropertyGroup>
+
+  <ItemGroup>
+
+    <!-- 1) Consumer libs -> lib\$(TargetFramework)\ -->
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Adapter\bin\$(Configuration)\$(TargetFramework)\Qt.DotNet.Adapter.dll"
+          PackagePath="lib\$(TargetFramework)\" />
+    <None Pack="true"
+          Include="..\..\utils\Collections\bin\$(Configuration)\$(TargetFramework)\Qt.DotNet.Utils.Collections.dll"
+          PackagePath="lib\$(TargetFramework)\" />
+    <None Pack="true"
+          Include="..\..\utils\Concurrent\bin\$(Configuration)\$(TargetFramework)\Qt.DotNet.Utils.Concurrent.dll"
+          PackagePath="lib\$(TargetFramework)\" />
+    <None Pack="true"
+          Include="..\..\utils\LazyFactory\bin\$(Configuration)\$(TargetFramework)\Qt.DotNet.Utils.LazyFactory.dll"
+          PackagePath="lib\$(TargetFramework)\" />
+
+    <!-- 2) Build-time tool & deps -> build/$(TargetFramework)/ -->
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Generator\bin\$(Configuration)\$(TargetFramework)\qdngen.exe"
+          PackagePath="build\$(TargetFramework)\" />
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Generator\bin\$(Configuration)\$(TargetFramework)\qdngen.dll"
+          PackagePath="build\$(TargetFramework)\" />
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Generator\bin\$(Configuration)\$(TargetFramework)\qdngen.runtimeconfig.json"
+          PackagePath="build\$(TargetFramework)\" />
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Generator\bin\$(Configuration)\$(TargetFramework)\qdngen.deps.json"
+          PackagePath="build\$(TargetFramework)\" />
+
+    <!-- generator's own dependencies -->
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Adapter\bin\$(Configuration)\$(TargetFramework)\Qt.DotNet.Adapter.dll"
+          PackagePath="build\$(TargetFramework)\" />
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.GenerationRules\bin\$(Configuration)\$(TargetFramework)\Qt.DotNet.GenerationRules.dll"
+          PackagePath="build\$(TargetFramework)\" />
+    <None Pack="true"
+          Include="..\..\utils\Collections\bin\$(Configuration)\$(TargetFramework)\Qt.DotNet.Utils.Collections.dll"
+          PackagePath="build\$(TargetFramework)\" />
+    <None Pack="true"
+          Include="..\..\utils\Concurrent\bin\$(Configuration)\$(TargetFramework)\Qt.DotNet.Utils.Concurrent.dll"
+          PackagePath="build\$(TargetFramework)\" />
+    <None Pack="true"
+          Include="..\..\utils\LazyFactory\bin\$(Configuration)\$(TargetFramework)\Qt.DotNet.Utils.LazyFactory.dll"
+          PackagePath="build\$(TargetFramework)\" />
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Generator\bin\$(Configuration)\$(TargetFramework)\System.CommandLine.dll"
+          PackagePath="build\$(TargetFramework)\" />
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Generator\bin\$(Configuration)\$(TargetFramework)\System.Collections.Immutable.dll"
+          PackagePath="build\$(TargetFramework)\" />
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Generator\bin\$(Configuration)\$(TargetFramework)\System.Reflection.MetadataLoadContext.dll"
+          PackagePath="build\$(TargetFramework)\" />
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Generator\bin\$(Configuration)\$(TargetFramework)\System.Reflection.Metadata.dll"
+          PackagePath="build\$(TargetFramework)\" />
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Generator\bin\$(Configuration)\$(TargetFramework)\System.IO.Hashing.dll"
+          PackagePath="build\$(TargetFramework)\" />
+
+    <!-- 3) MSBuild props & targets (auto-import) -->
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Adapter\build\Qt.DotNet.props"
+          PackagePath="build\$(TargetFramework)\Qt.DotNet.props" />
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Adapter\build\Qt.DotNet.targets"
+          PackagePath="build\$(TargetFramework)\Qt.DotNet.targets" />
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Adapter\build\Qt.Bridge.DotNet.props"
+          PackagePath="build\$(TargetFramework)\Qt.Bridge.DotNet.props" />
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Adapter\build\Qt.Bridge.DotNet.targets"
+          PackagePath="build\$(TargetFramework)\Qt.Bridge.DotNet.targets" />
+
+    <!-- 4) Native Qt.DotNet headers -->
+    <None Pack="true"
+          Include="..\..\include\**\*"
+          PackagePath="include\" />
+
+    <!-- 5) README -->
+    <None Include="README.md" Pack="true"
+          PackagePath="" />
+
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NuGet.CommandLine" Version="6.14.0" GeneratePathProperty="true">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Include="@(None)" />
+  </ItemGroup>
+
+  <Target Name="CopyPackage" AfterTargets="Pack">
+    <Message Importance="high" Text="Copying package $(OutputPath)..\$(PackageId).$(PackageVersion).nupkg to $(MSBuildThisFileDirectory)nuget\local..." />
+    <Copy SourceFiles="$(OutputPath)..\$(PackageId).$(PackageVersion).nupkg" DestinationFolder="$(MSBuildThisFileDirectory)..\local" />
+    <Message Importance="high" Text="nuget init &quot;$(MSBuildThisFileDirectory)$(OutputPath)..&quot; &quot;$(MSBuildThisFileDirectory)..\local&quot;" />
+    <RemoveDir Directories="$(MSBuildThisFileDirectory)..\local\$(PackageId)" />
+    <RemoveDir Directories="$(NuGetPackageRoot)$(PackageId)" />
+    <PropertyGroup>
+      <NuGetInitCmd>"$(PkgNuGet_CommandLine)\tools\nuget.exe" init</NuGetInitCmd>
+      <NuGetInitCmd>$(NuGetInitCmd) "$(MSBuildThisFileDirectory)$(OutputPath).."</NuGetInitCmd>
+      <NuGetInitCmd>$(NuGetInitCmd) "$(MSBuildThisFileDirectory)..\local"</NuGetInitCmd>
+    </PropertyGroup>
+    <Exec Command="$(NuGetInitCmd)" />
+    <MSBuild Projects="../../tests/GeneratorTestApp/GeneratorTestApp.csproj" Targets="Restore" />
+  </Target>
+</Project>

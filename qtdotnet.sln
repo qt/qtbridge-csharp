@@ -33,6 +33,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solution", "solution", "{0F
 		.gitignore = .gitignore
 		HOW-TO attribs.md = HOW-TO attribs.md
 		HOW-TO debug generated code.md = HOW-TO debug generated code.md
+		NuGet.Config = NuGet.Config
 		README.md = README.md
 	EndProjectSection
 EndProject
@@ -89,6 +90,15 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tutorial", "examples\Tutorial\Tutorial.csproj", "{78239BC2-4B4A-6970-816C-4C1F26157596}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ColorPalette", "examples\ColorPalette\ColorPalette.csproj", "{244D0DD3-DCE9-433B-A2C3-31B56FADF7E4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuget", "nuget", "{13659C36-5EDE-471A-9727-7D9A5254B993}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Qt.Bridge.DotNet.Package", "nuget\Qt.Bridge.DotNet.Package\Qt.Bridge.DotNet.Package.csproj", "{85D62EAD-95CE-685F-AB50-0BDCBA1A311A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{33483AF1-0493-4753-A6E6-4BB750E0E083} = {33483AF1-0493-4753-A6E6-4BB750E0E083}
+		{3863807C-2F87-4E27-A9C9-8675645A8DA5} = {3863807C-2F87-4E27-A9C9-8675645A8DA5}
+		{BCBA19AC-3E42-8CD9-3158-AD6B6E5053DC} = {BCBA19AC-3E42-8CD9-3158-AD6B6E5053DC}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -307,6 +317,18 @@ Global
 		{244D0DD3-DCE9-433B-A2C3-31B56FADF7E4}.Release|x64.Build.0 = Release|Any CPU
 		{244D0DD3-DCE9-433B-A2C3-31B56FADF7E4}.Release|x86.ActiveCfg = Release|Any CPU
 		{244D0DD3-DCE9-433B-A2C3-31B56FADF7E4}.Release|x86.Build.0 = Release|Any CPU
+		{85D62EAD-95CE-685F-AB50-0BDCBA1A311A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{85D62EAD-95CE-685F-AB50-0BDCBA1A311A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{85D62EAD-95CE-685F-AB50-0BDCBA1A311A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{85D62EAD-95CE-685F-AB50-0BDCBA1A311A}.Debug|x64.Build.0 = Debug|Any CPU
+		{85D62EAD-95CE-685F-AB50-0BDCBA1A311A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{85D62EAD-95CE-685F-AB50-0BDCBA1A311A}.Debug|x86.Build.0 = Debug|Any CPU
+		{85D62EAD-95CE-685F-AB50-0BDCBA1A311A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{85D62EAD-95CE-685F-AB50-0BDCBA1A311A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{85D62EAD-95CE-685F-AB50-0BDCBA1A311A}.Release|x64.ActiveCfg = Release|Any CPU
+		{85D62EAD-95CE-685F-AB50-0BDCBA1A311A}.Release|x64.Build.0 = Release|Any CPU
+		{85D62EAD-95CE-685F-AB50-0BDCBA1A311A}.Release|x86.ActiveCfg = Release|Any CPU
+		{85D62EAD-95CE-685F-AB50-0BDCBA1A311A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -331,6 +353,7 @@ Global
 		{86FADDB9-8C48-3296-9D7A-0CCB0B9B68E3} = {0828626A-BAD8-4E02-99DC-3AAA15073223}
 		{78239BC2-4B4A-6970-816C-4C1F26157596} = {436DDD81-054F-492E-8F7A-B9445413E3B2}
 		{244D0DD3-DCE9-433B-A2C3-31B56FADF7E4} = {436DDD81-054F-492E-8F7A-B9445413E3B2}
+		{85D62EAD-95CE-685F-AB50-0BDCBA1A311A} = {13659C36-5EDE-471A-9727-7D9A5254B993}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E4CDB648-EF1A-4ADE-B6EA-D4E9D668E676}

@@ -16,3 +16,6 @@ include/*
 
 # Build logs
 *.binlog
+
+# Local nuget
+nuget/local/
