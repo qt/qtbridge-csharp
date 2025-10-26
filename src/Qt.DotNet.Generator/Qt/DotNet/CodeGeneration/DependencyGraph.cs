@@ -257,9 +257,11 @@ namespace Qt.DotNet.CodeGeneration
                 }
             }
 
-            await Task.WhenAll(
-                assembly.ExportedTypes
+            var exportedTypes = assembly.ExportedTypes
                 .Where(x => x.DeclaringType == null)
+                .Append(TypeOf<TypeCast>());
+
+            await Task.WhenAll(exportedTypes
                 .Select(x => Task.Run(async () => await AddEdgeAsync(Root, x))));
 
             if (!Edges.Any())
