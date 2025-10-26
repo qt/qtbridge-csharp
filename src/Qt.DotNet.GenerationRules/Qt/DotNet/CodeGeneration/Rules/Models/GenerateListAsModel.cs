@@ -9,6 +9,7 @@ using System.Text;
 namespace Qt.DotNet.CodeGeneration.Rules.Models
 {
     using Extensions;
+    using Text;
     using static Placeholders;
     using static Traits;
 
@@ -39,7 +40,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Models
             // Build role-name list from property names (camelCase), avoiding duplicates and
             // clashing with the reserved "item" role.
             var rawRoleNames = typeProperties
-                .Select(p => p.Name.FromPascalCase().ToCamelCase())
+                .Select(p => p.Name.ConvertCase(CaseStyle.Pascal, CaseStyle.Camel))
                 .Where(n => !string.Equals(n, "item", StringComparison.Ordinal))
                 .ToList();
             var distinctRoleNames = new List<string>(rawRoleNames.Count);
@@ -184,7 +185,7 @@ QVariant {type.MFn(Ns | Name)}::data(const QModelIndex &index, int role) const
             // Generate safe property branches
             var dataBranches = new StringBuilder();
             foreach (var typeProperty in typeProperties) {
-                var roleName = typeProperty.Name.FromPascalCase().ToCamelCase();
+                var roleName = typeProperty.Name.ConvertCase(CaseStyle.Pascal, CaseStyle.Camel);
                 var roleIdx = distinctRoleNames.FindIndex(n =>
                     string.Equals(n, roleName, StringComparison.Ordinal));
                 if (roleIdx < 0)

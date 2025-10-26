@@ -7,7 +7,7 @@ using System.Reflection;
 
 namespace Qt.DotNet
 {
-    using CodeGeneration;
+    using Text;
 
     public abstract class ListModel : Model
     {
@@ -58,7 +58,7 @@ namespace Qt.DotNet
                             ++i;
                             _RoleMap[Roles.UserRole + i] = prop;
                             _RoleNames[Roles.UserRole + i] = prop.Name
-                                .FromPascalCase().ToCamelCase();
+                                .ConvertCase(CaseStyle.Pascal, CaseStyle.Camel);
                         }
                     }
                 }

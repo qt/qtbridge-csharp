@@ -8,6 +8,7 @@ using System.Reflection;
 namespace Qt.DotNet.CodeGeneration.MetaFunctions
 {
     using Extensions;
+    using Text;
     using static Traits;
 
     public class Property : MetaFunction
@@ -22,8 +23,8 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
                 Get | Func => $"fnGet{prop.Name}_{prop.UniqueId()}",
                 Set | Func => $"fnSet{prop.Name}_{prop.UniqueId()}",
                 Set => $"set{prop.Name}",
-                Signal => $"{prop.Name.FromPascalCase().ToCamelCase()}Changed",
-                _ => prop.Name.FromPascalCase().ToCamelCase()
+                Signal => $"{prop.Name.ConvertCase(CaseStyle.Pascal, CaseStyle.Camel)}Changed",
+                _ => prop.Name.ConvertCase(CaseStyle.Pascal, CaseStyle.Camel)
             },
             _ => null
         };

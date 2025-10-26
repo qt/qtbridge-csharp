@@ -5,11 +5,10 @@
 
 using System.Reflection;
 using Qt.DotNet;
+using Qt.DotNet.Text;
 
 namespace Qt
 {
-    using DotNet.CodeGeneration;
-
     namespace DotNet
     {
         public partial class Adapter
@@ -53,7 +52,7 @@ namespace Qt
 
             public static void LoadFromModule(string uri, string typeName)
             {
-                Instance.LoadFromModule(uri, typeName.FromCamelCase().ToPascalCase());
+                Instance.LoadFromModule(uri, typeName.ConvertCase(CaseStyle.Camel, CaseStyle.Pascal));
             }
 
             public static bool WaitForExit(int timeout = -1)

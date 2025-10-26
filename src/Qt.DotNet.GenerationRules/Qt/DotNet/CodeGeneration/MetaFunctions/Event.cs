@@ -7,6 +7,7 @@ using System.Reflection;
 
 namespace Qt.DotNet.CodeGeneration.MetaFunctions
 {
+    using Text;
     using static Traits;
 
     public class Event : MetaFunction
@@ -17,7 +18,7 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
             {
                 Handler => $"{ev.Name}EventHandler",
                 Handler | Var => $"handler{ev.Name}",
-                Signal => ev.Name.FromPascalCase().ToCamelCase(),
+                Signal => ev.Name.ConvertCase(CaseStyle.Pascal, CaseStyle.Camel),
                 Src => ev.Name,
                 _ => ev.Name
             },

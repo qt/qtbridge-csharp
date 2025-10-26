@@ -8,6 +8,7 @@ using System.Reflection;
 namespace Qt.DotNet.CodeGeneration.MetaFunctions
 {
     using Extensions;
+    using Text;
     using static Traits;
 
     public class Method : MetaFunction
@@ -18,7 +19,7 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
             {
                 Func => $"fn{func.Name}_{func.UniqueId()}",
                 Src => func.Name,
-                _ => func.Name.FromPascalCase().ToCamelCase()
+                _ => func.Name.ConvertCase(CaseStyle.Pascal, CaseStyle.Camel)
             },
             _ => null
         };

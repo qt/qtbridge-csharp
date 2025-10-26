@@ -8,6 +8,7 @@ using System.Reflection;
 
 namespace Qt.DotNet.CodeGeneration.MetaFunctions
 {
+    using Text;
     using static Traits;
 
     public class Signals : MetaFunction
@@ -20,7 +21,7 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
                     Src => a.NamedArguments
                         .FirstOrDefault(x => x.MemberName == "Name")
                         .TypedValue.Value as string ?? string.Empty,
-                    Signal => Eval(src, Src).FromPascalCase().ToCamelCase(),
+                    Signal => Eval(src, Src).ConvertCase(CaseStyle.Pascal, CaseStyle.Camel),
                     _ => null
                 },
             _ => null

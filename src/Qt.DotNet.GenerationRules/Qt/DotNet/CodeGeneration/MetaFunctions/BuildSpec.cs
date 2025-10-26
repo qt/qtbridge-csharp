@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace Qt.DotNet.CodeGeneration.MetaFunctions
 {
+    using Text;
     using static Traits;
 
     public class BuildSpec : MetaFunction
@@ -18,7 +19,7 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
                 _ when traits.HasTraits(Target) => Regex
                     .Replace(type.Assembly?.GetName()?.Name ?? "Qt.DotNet.App",
                         @"[\W_]|(?<=[a-z])(?=[A-Z])", ".")
-                    .Split('.').ToSnakeCase(),
+                    .Split('.').ToCase(CaseStyle.Snake),
                 _ when traits.HasTraits(Version) => "1.0",
                 _ => null
             },

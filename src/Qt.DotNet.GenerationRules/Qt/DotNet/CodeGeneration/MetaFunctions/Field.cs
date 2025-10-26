@@ -7,6 +7,7 @@ using System.Reflection;
 
 namespace Qt.DotNet.CodeGeneration.MetaFunctions
 {
+    using Text;
     using static Traits;
 
     public class Field : MetaFunction
@@ -19,7 +20,7 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
                 Get | Func => $"fnGet{field.Name}",
                 Set | Func => $"fnSet{field.Name}",
                 Set => $"set{field.Name}",
-                _ => field.Name.FromPascalCase().ToCamelCase()
+                _ => field.Name.ConvertCase(CaseStyle.Pascal, CaseStyle.Camel)
             },
             _ => null
         };
