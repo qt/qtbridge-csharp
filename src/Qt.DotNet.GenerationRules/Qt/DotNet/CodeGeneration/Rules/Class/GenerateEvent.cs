@@ -23,7 +23,6 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
                 return Error();
             var type = src.ReflectedType;
             if (ev.EventHandlerType.DelegateSignature()?.ToArray() is not { Length: 3 } evTypes
-                || evTypes[0] != TypeOf(typeof(void)) || evTypes[1] != TypeOf<object>()
                 || !evTypes[2].IsAssignableTo(TypeOf<EventArgs>())) {
                 return Error();
             }
