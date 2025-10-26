@@ -97,8 +97,14 @@ int main(int argc, char *argv[])
     QtDotNet::call<void>(""Qt.DotNet.Adapter, Qt.DotNet.Adapter"", ""SetMainThread"");
 
     {mainCpp[new(MainBeforeAppExec) { Sorted = false }]}
+    QObject::connect(&app, &QGuiApplication::aboutToQuit, &qmlEngine, &QQmlEngine::quit);
 
-    return app.exec();
+    auto res = app.exec();
+    dotnetThread->wait();
+#ifdef Q_OS_WINDOWS
+    ExitProcess(res);
+#endif
+    return res;
 }}
 ";
             return Ok;
