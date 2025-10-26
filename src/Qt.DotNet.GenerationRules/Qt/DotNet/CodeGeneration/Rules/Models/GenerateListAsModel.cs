@@ -122,7 +122,7 @@ int {type.MFn(Ns | Name)}::rowCount(const QModelIndex &parent) const
     // Qt's beginRemoveRows()/endRemoveRows() contract holds.
     if (d && d->rowCountOverride >= 0)
         return d->rowCountOverride;
-    return {sizeAccessor}();
+    return {sizeAccessor}(false);
 }}
 
 QVariant {type.MFn(Ns | Name)}::data(const QModelIndex &index, int role) const
@@ -131,9 +131,7 @@ QVariant {type.MFn(Ns | Name)}::data(const QModelIndex &index, int role) const
         return QVariant();
 
     if (role == Qt::UserRole)
-        {(itemType.IsValue() ? $@"{Wrap}
-        return QVariant({itemAccessor}(index.row()));" : $@"{Wrap}
-        return QVariant::fromValue<QObject *>({itemAccessor}(index.row()));")}
+        return QVariant::fromValue({itemAccessor}(index.row()));
 {propertyGuard}{dataBranches}
     return QVariant();
 }}
@@ -196,13 +194,10 @@ QVariant {type.MFn(Ns | Name)}::data(const QModelIndex &index, int role) const
                 // Without guard: "{itemAccessor}(index.row())->" (direct access)
                 var getterTarget = needsGuard ? "it->" : $"{itemAccessor}(index.row())->";
                 var getterName = distinctRoleNames[roleIdx];
-                var returnExpression = typeProperty.PropertyType.IsValue()
-                    ? $"{getterTarget}{getterName}()" // value type
-                    : $"QVariant::fromValue<QObject *>({getterTarget}{getterName}())"; // object
 
                 dataBranches.AppendLine($@"
     if (role == Qt::UserRole + {roleIdx + 1})
-        return {returnExpression};");
+        return QVariant::fromValue({getterTarget}{getterName}());");
             }
 
             return (propertyGuard, dataBranches.ToString());

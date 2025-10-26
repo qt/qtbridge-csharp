@@ -24,8 +24,6 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
 
             var type = src.ReflectedType;
             var returnType = func.ReturnType;
-            var star = returnType.IsValue() ? "" : "*";
-
             if (func.GetParameters() is not { } args)
                 return Error();
 
@@ -34,10 +32,8 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
             if (type.GetPlaceholder(MethodDeclarations) is not { } methods)
                 return Error();
             methods += $@"
-Q_INVOKABLE {returnType.MFn(Ns | Name)} {star}{func.MFn(Name)}({string.Join(", ", args
-    .Select(arg => $@"{Wrap}
-        {arg.ParameterType.MFn(Ns | Name)} {(arg.ParameterType.IsValue() ? "" : "*")}{Wrap}
-        {arg.MFn(Name)}"))}) const;
+Q_INVOKABLE {returnType.MFn(Ns | Name | Arg)} {func.MFn(Name)}({string.Join(", ", args
+    .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name | Arg)} {arg.MFn(Name | Src)}"))}) const;
 {Blank}";
 
             ////////////////////////////////////////////////////////////////////////////////////////
@@ -57,20 +53,20 @@ mutable QDotNetFunction<{returnType.MFn(Ns | Name)}{args switch
             if (type.GetPlaceholder(MethodsImplementation) is not { } implementation)
                 return Error();
             implementation += $@"
-{returnType.MFn(Ns | Name)} {star}{type.MFn(Ns | Name)}::{func.MFn(Name)}({string.Join(", ", args
-    .Select(arg => $@"{Wrap}
-        {arg.ParameterType.MFn(Ns | Name)} {(arg.ParameterType.IsValue() ? "" : "*")}{Wrap}
-        {arg.MFn(Name)}"))}) const
+{returnType.MFn(Ns | Name | Arg)} {type.MFn(Ns | Name)}::{func.MFn(Name)}({string.Join(", ", args
+    .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name | Arg)} {arg.MFn(Name | Src)}"))}) const
 {{
     {(returnType.Is(typeof(void)) ? string.Empty :
         "auto result = ")}method(""{func.MFn(Src)}"", d->{func.MFn(Func)}).invoke(*this{args switch
         {
             { Length: > 0 } => ", " + string.Join(", ", args
-                .Select(arg => $@"{(arg.ParameterType.IsValue() ? "" : "*")}{arg.MFn(Name)}")),
+                .Select(arg => $@"{arg.ParameterType.MFn(Star)}{arg.MFn(Name)}")),
             _ => string.Empty
         }});
 {(returnType.Is(typeof(void)) ? Wrap
-    : returnType.IsValue() ? $"{Tab}return result;" : $"{Tab}return d->asQObject(result);")}
+    : !returnType.IsObject() ? $"{Tab}return result;"
+    : returnType.Is<object>() ? $"{Tab}return Convert::toVariant(result);"
+    : $"{Tab}return Convert::moveToHeap(result, this);")}
 }}
 {Blank}";
 

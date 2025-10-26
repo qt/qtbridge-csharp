@@ -20,13 +20,18 @@ namespace Qt.DotNet.Extensions
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
             return type.IsPrimitive || type.Is<decimal>()
-                || type.Is(typeof(void)) || type.Is<string>()
+                || type.Is(typeof(void)) || type.Is<string>() || type.Is<object>()
                 || type.Is<ModelIndex>() || type.Is<DateTime>() || type.Is<Uri>();
         }
 
         public static bool IsValue(this Type type)
         {
             return IsBuiltIn(type) || type.IsEnum;
+        }
+
+        public static bool IsObject(this Type type)
+        {
+            return type.Is<object>() || !type.IsValue();
         }
 
         public static string FormatName(this Type type, string separator,

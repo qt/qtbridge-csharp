@@ -24,20 +24,19 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
 
             var type = src.ReflectedType;
             var fieldType = field.FieldType;
-            var star = fieldType.IsValue() ? "" : "*";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             if (type.GetPlaceholder(PropertyDeclarations) is not { } properties)
                 return Error();
             properties += $@"
-Q_PROPERTY({fieldType.MFn(Ns | Name)} {star}{field.MFn()} {Wrap}
+Q_PROPERTY({fieldType.MFn(Ns | Name | Arg)} {field.MFn()} {Wrap}
     READ {field.MFn(Get)} {Wrap}
 {(field.IsLiteral || field.IsInitOnly ? string.Empty : $@" {Wrap}
     WRITE {field.MFn(Set)}")})
-{fieldType.MFn(Ns | Name)} {star}{field.MFn(Get)}() const;
+{fieldType.MFn(Ns | Name | Arg)} {field.MFn(Get)}() const;
 {(field.IsLiteral || field.IsInitOnly ? string.Empty : $@"{Wrap}
-void {field.MFn(Set)}({fieldType.MFn(Ns | Name)} {star}value);")}
+void {field.MFn(Set)}({fieldType.MFn(Ns | Name | Arg)} value);")}
 {Blank}";
 
             ////////////////////////////////////////////////////////////////////////////////////////
@@ -50,34 +49,28 @@ mutable QDotNetFunction<{fieldType.MFn(Ns | Name)}, QDotNetRef> {Wrap}
 {(field.IsLiteral || field.IsInitOnly ? string.Empty : $@"{Wrap}
 mutable QDotNetFunction<void, QDotNetRef, {fieldType.MFn(Ns | Name)}> {Wrap}
     {field.MFn(Set | Func)} = nullptr;")}";
-            if (!fieldType.IsValue()) {
-                privateMembers += $@"
-mutable {fieldType.MFn(Ns | Name)} *cached{field.MFn(Src)} = nullptr;";
-            }
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             if (type.GetPlaceholder(MethodsImplementation) is not { } implementation)
                 return Error();
             implementation += $@"
-{fieldType.MFn(Ns | Name)} {star}{type.MFn(Ns | Name)}::{field.MFn(Get)}() const
+{fieldType.MFn(Ns | Name | Arg)} {type.MFn(Ns | Name)}::{field.MFn(Get)}() const
 {{
-    {(fieldType.IsValue() ? Wrap : $@"{Wrap}
-    if (d->cached{field.MFn(Src)} && d->cached{field.MFn(Src)}->isValid())
-        return d->cached{field.MFn(Src)};")}
     auto result = fieldGet<{fieldType.MFn(Ns | Name)}>({Wrap}
         ""{field.MFn(Src)}"", d->{field.MFn(Get | Func)})
         .invoke(nullptr, *this);
-    {(fieldType.IsValue() ? "return result;" : $@"{Wrap}
-    return d->cached{field.MFn(Src)} = d->asQObject(result);")}
-
+    return {(
+        !fieldType.IsObject() ? "result"
+        : fieldType.Is<object>() ? "Convert::toVariant(result)"
+        : "Convert::moveToHeap(result, this)")};
 }}
 {(field.IsLiteral || field.IsInitOnly ? Wrap : $@"
-void {type.MFn(Ns | Name)}::{field.MFn(Set)}({fieldType.MFn(Ns | Name)} {star}value)
+void {type.MFn(Ns | Name)}::{field.MFn(Set)}({fieldType.MFn(Ns | Name | Arg)} value)
 {{
-    {(fieldType.IsValue() ? Wrap : $"d->cached{field.MFn(Src)} = value;")}
     fieldSet<{fieldType.MFn(Ns | Name)}>(""{field.MFn(Src)}"", d->{field.MFn(Set | Func)})
-        .invoke(nullptr, *this, {star}value);
+        .invoke(nullptr, *this, {Wrap}
+{(fieldType.Is<object>() ? $"Convert::fromVariant(value)" : $"{fieldType.MFn(Star)}value")});
 }}")}
 {Blank}";
 

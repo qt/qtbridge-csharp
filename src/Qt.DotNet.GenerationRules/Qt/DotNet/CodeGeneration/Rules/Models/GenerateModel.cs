@@ -250,7 +250,8 @@ mutable QDotNetFunction<QDotNetObject, QModelIndex, int> {func.MFn(Func)} = null
             implementation += $@"
 QVariant {type.MFn(Ns | Name)}::data(const QModelIndex &index, int role) const
 {{
-    return Convert::toVariant(method(""Data"", d->{func.MFn(Func)}).invoke(*this, index, role));
+    return Convert::toVariant(
+        method(""Data"", d->{func.MFn(Func)}).invoke(*this, index, role), this);
 }}
 {Blank}";
             return Ok;

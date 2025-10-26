@@ -110,6 +110,8 @@ public:
     {publicDecl[(Placeholder)new(CtorDeclarations)]}
     ~{type.MFn(Name)}() override;
 
+    Q_INVOKABLE const QDotNetObject *asDotNetObject() const;
+
     {publicDecl[(Placeholder)new(PropertyDeclarations)]}
     {publicDecl[(Placeholder)new(MethodDeclarations)]}
     {publicDecl[(Placeholder)new(SignalDeclarations)]}
@@ -139,9 +141,6 @@ struct {type.MFn(Ns | Name | Private)}
     {type.MFn(Name)} *q;
     {type.MFn(Name | Private)}({type.MFn(Name)} *q);
     ~{type.MFn(Name | Private)}();
-{Blank}
-    template<typename T>
-    T *asQObject(T &obj);
 {Blank}
     {(!type.Implements<INotifyPropertyChanged>() ? ""
         : "void onPropertyChanged(const QString &propertyName);")}
@@ -197,13 +196,9 @@ namespace {src.MFn(Ns)}
     {implementation[new(PublicDtor)]}
 }}
 
-template<typename T>
-T *{type.MFn(Ns | Name | Private)}::asQObject(T &obj)
+const QDotNetObject *{type.MFn(Ns | Name)}::asDotNetObject() const
 {{
-    auto *qobj = new T(std::move(obj));
-    if (QJSEngine::objectOwnership(q) == QJSEngine::JavaScriptOwnership)
-        QJSEngine::setObjectOwnership(qobj, QJSEngine::JavaScriptOwnership);
-    return qobj;
+    return this;
 }}
 
 void {type.MFn(Ns | Name)}::connectNotify(const QMetaMethod &signal)

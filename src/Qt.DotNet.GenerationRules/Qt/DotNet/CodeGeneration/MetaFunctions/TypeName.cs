@@ -18,6 +18,12 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
             if (src is not Type type || type.IsRootNode())
                 return null;
 
+            if (traits.HasTraits(Star) && !type.IsEnum)
+                return type.IsValue() ? "" : "*";
+
+            if (traits.HasTraits(Arg))
+                return $"{src.MFn((TraitFlags)traits & ~Arg)}{(type.IsEnum ? "" : $" *{Wrap}")}";
+
             if (traits.HasTraits(Src)) {
                 if (traits.HasTraits(Fqn))
                     return type.AssemblyQualifiedName;

@@ -168,7 +168,7 @@ namespace Test_Qt.DotNet.Generator
 
             // data(): item role returns QObject*
             Assert.MatchesRegex(new Regex(@"QVariant\s+Test::NameList::data\s*\([^)]*\)\s*const[\s\"
-                + @"S]*role\s*==\s*Qt::UserRole[\s\S]*QVariant::fromValue<QObject\s*\*>\s*\(\s*item"
+                + @"S]*role\s*==\s*Qt::UserRole[\s\S]*QVariant::fromValue\s*\(\s*item"
                 + @"\s*\(\s*index\.row\(\)\s*\)\s*\)", RegexOptions.Singleline), cpp,
                 "data() returns no QVariant::fromValue<QObject*>(item(index.row())) for item role.");
 

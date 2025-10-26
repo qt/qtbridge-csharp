@@ -17,6 +17,8 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
             Type type when type.IsBuiltIn() => type switch
             {
                 _ when traits.HasTraits(Src) => type.FullName,
+                _ when traits.HasTraits(Star) => "",
+                _ when type.Is<object>()  => traits.HasTraits(Arg) ? "QVariant" : "QDotNetObject",
                 _ when type.Is<sbyte>() => "qint8",
                 _ when type.Is<byte>() => "quint8",
                 _ when type.Is<short>() => "qint16",

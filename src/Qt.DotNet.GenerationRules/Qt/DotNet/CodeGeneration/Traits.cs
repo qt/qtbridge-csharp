@@ -11,7 +11,7 @@ namespace Qt.DotNet.CodeGeneration
     {
         Name, Src, Dir, Event, File, Fqn, Func, Get,
         Item, Ns, Private, Set, Signal, Target, Version, NoArgs,
-        Handler, Var, Init, Enum
+        Handler, Var, Init, Enum, Star, Arg
     }
 
     [Flags]
@@ -37,6 +37,8 @@ namespace Qt.DotNet.CodeGeneration
         Handler = 1 << TraitIndex.Handler,
         Var = 1 << TraitIndex.Var,
         Init = 1 << TraitIndex.Init,
-        Enum = 1 << TraitIndex.Enum
+        Enum = 1 << TraitIndex.Enum,
+        Star = 1 << TraitIndex.Star,
+        Arg = 1 << TraitIndex.Arg
     }
 }

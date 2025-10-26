@@ -113,6 +113,7 @@ namespace Qt.DotNet.CodeGeneration
             TypeOf<INotifyPropertyChanged>(),
             TypeOf<string>(),
             TypeOf<ValueType>(),
+            TypeOf<object>(),
             TypeOf(typeof(void))
         });
 

@@ -34,16 +34,6 @@ namespace Qt.DotNet.CodeGeneration.Rules
 #include <QDotNetType>
 #include <QDotNetArray>
 #include <QUrl>
-
-namespace QtDotNet
-{{
-    template<typename T>
-    QObject *as(QDotNetObject &obj, bool addRef = true) {{
-        if (obj.type().is<T>())
-            return new T(obj.cast<T>(addRef));
-        return nullptr;
-    }}
-}}
 ";
             return Ok;
         }

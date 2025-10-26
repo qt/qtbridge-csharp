@@ -27,17 +27,8 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
 
             var type = src.ReflectedType;
             var propType = prop.PropertyType;
-            var star = propType.IsValue() ? "" : "*";
-
-            var propParams = prop.GetIndexParameters();
-            var args = string.Join(", ", propParams
-                .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name)} {Wrap}
-                    {(arg.ParameterType.IsValue() ? "" : "*")}{arg.MFn(Name)}"));
-            var argNames = string.Join(", ", propParams
-                .Select(arg => arg.MFn(Name)));
-            var argTypes = string.Join(", ", propParams
-                .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name)} {Wrap}
-                    {(arg.ParameterType.IsValue() ? "" : "*")}"));
+            if (prop.GetIndexParameters() is not { } args)
+                return Error();
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -45,10 +36,13 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
                 return Error();
             methods += $@"
 {(!prop.CanRead ? Wrap : $@"{Wrap}
-Q_INVOKABLE {propType.MFn(Ns | Name)} {star}{prop.MFn(Get)}({args}) const;
+Q_INVOKABLE {propType.MFn(Ns | Name | Arg)} {prop.MFn(Get)}({string.Join(", ", args
+    .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name | Arg)} {arg.MFn(Name | Src)}"))}) const;
 {Blank}")}
 {(!prop.CanWrite ? Wrap : $@"{Wrap}
-Q_INVOKABLE void {prop.MFn(Set)}({args}, {propType.MFn(Ns | Name)} {star}value);
+Q_INVOKABLE void {prop.MFn(Set)}({string.Join(", ", args
+    .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name | Arg)} {arg.MFn(Name | Src)}"))},
+    {propType.MFn(Ns | Name | Arg)} value);
 {Blank}")}";
 
             ////////////////////////////////////////////////////////////////////////////////////////
@@ -56,9 +50,19 @@ Q_INVOKABLE void {prop.MFn(Set)}({args}, {propType.MFn(Ns | Name)} {star}value);
             if (type.GetPlaceholder(PrivateMemberDeclarations) is not { } privateMembers)
                 return Error();
             privateMembers += $@"
-{(prop.CanRead ? $@"mutable QDotNetFunction<{propType.MFn(Ns | Name)}, {argTypes}> {Wrap}
+{(prop.CanRead ? $@"mutable QDotNetFunction<{propType.MFn(Ns | Name)}{args switch
+            {
+                { Length: > 0 } => ", " + string
+                    .Join(", ", args.Select(arg => arg.ParameterType.MFn(Ns | Name))),
+                _ => string.Empty
+            }}> {Wrap}
     {prop.MFn(Get | Func)} = nullptr;" : Wrap)}
-{(prop.CanWrite ? $@"mutable QDotNetFunction<void, {argTypes}, {propType.MFn(Ns | Name)}> {Wrap}
+{(prop.CanWrite ? $@"mutable QDotNetFunction<void{args switch
+            {
+                { Length: > 0 } => ", " + string
+                    .Join(", ", args.Select(arg => arg.ParameterType.MFn(Ns | Name))),
+                _ => string.Empty
+            }}, {propType.MFn(Ns | Name)}> {Wrap}
     {prop.MFn(Set | Func)} = nullptr;" : Wrap)}";
 
             ////////////////////////////////////////////////////////////////////////////////////////
@@ -67,20 +71,32 @@ Q_INVOKABLE void {prop.MFn(Set)}({args}, {propType.MFn(Ns | Name)} {star}value);
                 return Error();
             implementation += $@"
 {(prop.CanRead ? $@"{Wrap}
-{propType.MFn(Ns | Name)} {star}{type.MFn(Ns | Name)}::{prop.MFn(Get)}({args}) const
+{propType.MFn(Ns | Name | Arg)} {type.MFn(Ns | Name)}::{prop.MFn(Get)}({string.Join(", ", args
+    .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name | Arg)} {arg.MFn(Name | Src)}"))}) const
 {{
     auto result = method(""{prop.MFn(Src | Get)}"", d->{prop.MFn(Get | Func)})
-        .invoke(*this, {argNames});
-    {(propType.IsValue() ? "return result;" : $"return d->asQObject(result);")}
+        .invoke(*this{args switch
+            {
+                { Length: > 0 } => ", " + string.Join(", ", args
+                    .Select(arg => $@"{arg.ParameterType.MFn(Star)}{arg.MFn(Name)}")),
+                _ => string.Empty
+            }});
+    {(!propType.IsObject() ? "return result;"
+    : propType.Is<object>() ? $"return Convert::toVariant(result);"
+    : $"return Convert::moveToHeap(result, this);")}
 }}" : string.Empty)}
-
-{(prop.CanWrite ? $@"{Wrap}
-void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({args}, {propType.MFn(Ns | Name)} {star}value)
+{(prop.CanWrite ? $@"
+void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({string.Join(", ", args
+    .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name | Arg)} {arg.MFn(Name | Src)}"))}, {propType.MFn(Ns | Name | Arg)} value)
 {{
     method(""{prop.MFn(Src | Set)}"", d->{prop.MFn(Set | Func)})
-        .invoke(*this, {argNames}, {star}value);
-}}" : string.Empty)}
-{Blank}";
+        .invoke(*this{args switch
+    {
+        { Length: > 0 } => ", " + string.Join(", ", args
+            .Select(arg => $@"{arg.ParameterType.MFn(Star)}{arg.MFn(Name)}")),
+        _ => string.Empty
+    }}, {(propType.Is<object>() ? $"Convert::fromVariant(value)" : $"{propType.MFn(Star)}value")});
+}}" : string.Empty)}{Blank}";
 
             return Ok;
         }

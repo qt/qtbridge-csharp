@@ -24,9 +24,12 @@ namespace Qt.DotNet
         public static object FromSingle(float value) => value;
         public static object FromDouble(double value) => value;
         public static object FromDateTime(DateTime value) => value;
+        public static object FromUri(Uri value) => value;
+        public static object FromModelIndex(ModelIndex value) => value;
+        public static object FromChar(char value) => value;
         public static object FromString(string value) => value;
 
-        internal static bool IsValue<T>(object obj) where T : struct => obj is T;
+        internal static bool IsValue<T>(object obj) => obj is T;
         public static bool IsBoolean(object obj) => obj is bool;
         public static bool IsSByte(object obj) => obj is sbyte;
         public static bool IsByte(object obj) => obj is byte;
@@ -39,17 +42,22 @@ namespace Qt.DotNet
         public static bool IsSingle(object obj) => obj is float;
         public static bool IsDouble(object obj) => obj is double;
         public static bool IsDateTime(object obj) => obj is DateTime;
+        public static bool IsUri(object obj) => obj is Uri;
+        public static bool IsModelIndex(object obj) => obj is ModelIndex;
+        public static bool IsChar(object obj) => obj is char;
         public static bool IsString(object obj) => obj is string;
 
-        internal static T ToValue<T>(object obj) where T : struct
+        internal static T ToValue<T>(object obj, T defaultValue = default)
         {
+            if (obj == null)
+                return defaultValue;
             if (IsValue<T>(obj))
                 return (T)obj;
             try {
                 return (T)Convert.ChangeType(obj, typeof(T), CultureInfo.InvariantCulture);
             } catch (Exception e) when (e is InvalidCastException
                 or FormatException or OverflowException) {
-                return default;
+                return defaultValue;
             }
         }
 
@@ -65,6 +73,9 @@ namespace Qt.DotNet
         public static float ToSingle(object obj) => ToValue<float>(obj);
         public static double ToDouble(object obj) => ToValue<double>(obj);
         public static DateTime ToDateTime(object obj) => ToValue<DateTime>(obj);
+        public static Uri ToUri(object obj) => ToValue<Uri>(obj);
+        public static ModelIndex ToModelIndex(object obj) => ToValue<ModelIndex>(obj);
+        public static char ToChar(object obj) => ToValue<char>(obj);
         public static string ToString(object obj) => obj as string ?? obj?.ToString() ?? "";
 
         public static object[] ToArray(object obj)
@@ -101,6 +112,9 @@ namespace Qt.DotNet
                 || t == typeof(float)
                 || t == typeof(double)
                 || t == typeof(DateTime)
+                || t == typeof(Uri)
+                || t == typeof(ModelIndex)
+                || t == typeof(char)
                 || t == typeof(string);
         }
     }

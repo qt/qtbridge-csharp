@@ -61,9 +61,6 @@ QQmlListProperty<QObject> nestedQmlElements();
             //
             if (type.GetPlaceholder(MethodDeclarations) is not { } methods)
                 return Error();
-            methods += $@"
-Q_INVOKABLE QDotNetRef *asDotNetObject();
-{Blank}";
             if (type.Implements<IQmlElement>()) {
                 methods += $@"
 void classBegin() override;
@@ -95,13 +92,6 @@ QQmlListProperty<QObject> {type.MFn(Ns | Name)}::nestedQmlElements()
 }}
 {Blank}";
 
-            implementation += $@"
-QDotNetRef *{type.MFn(Ns | Name)}::asDotNetObject()
-{{
-    return this;
-}}
-{Blank}";
-
             if (type.Implements<IQmlElement>()) {
                 implementation += $@"
 void {type.MFn(Ns | Name)}::classBegin()
@@ -111,21 +101,14 @@ void {type.MFn(Ns | Name)}::classBegin()
 
 void {type.MFn(Ns | Name)}::componentComplete()
 {{
-    QList<QDotNetRef *> dotNetObjs;
+    QList<const QDotNetObject *> dotNetObjs;
     for (QObject *qObj : d->nestedQmlElements) {{
         if (!qObj)
             continue;
-        auto *mObj = qObj->metaObject();
-        if (!mObj)
+        const QDotNetObject *dnObj = Convert::asDotNetObject(qObj);
+        if (!dnObj || !dnObj->isValid())
             continue;
-        int mIdx = mObj->indexOfMethod(""asDotNetObject()"");
-        if (mIdx == -1)
-            continue;
-        QDotNetRef *dotNetObj = nullptr;
-        if (!qObj->metaObject()->method(mIdx).invoke(qObj, Q_RETURN_ARG(QDotNetRef *, dotNetObj)))
-            continue;
-        if (dotNetObj)
-            dotNetObjs << dotNetObj;
+        dotNetObjs << dnObj;
     }}
     QDotNetArray<QDotNetRef> nestedObjs(dotNetObjs.size());
     for (int i = 0; i < dotNetObjs.size(); ++i)

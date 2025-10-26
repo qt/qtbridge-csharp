@@ -11,13 +11,14 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
 
     public class Parameter : MetaFunction
     {
-        protected override string Eval(object src, Enum traits) => src switch
+        protected override string Eval(object src, Enum traits)
         {
-            ParameterInfo arg => traits switch
-            {
-                _ => string.IsNullOrWhiteSpace(arg.Name) ? $"arg{arg.Position}" : arg.Name
-            },
-            _ => null
-        };
+            if (src is not ParameterInfo arg)
+                return null;
+            string argName = string.IsNullOrWhiteSpace(arg.Name) ? $"arg{arg.Position}" : arg.Name;
+            if (!arg.ParameterType.Is<object>() || traits.HasTraits(Src))
+                return argName;
+            return $"Convert::fromVariant({argName})";
+        }
     }
 }

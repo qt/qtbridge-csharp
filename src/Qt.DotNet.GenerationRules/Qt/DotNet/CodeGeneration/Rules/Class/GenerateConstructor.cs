@@ -31,7 +31,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
                 return Error();
             ctorDeclarations += $@"
 {type.MFn(Name)}({string.Join(", ", args
-    .Select(arg => $"{arg.ParameterType.MFn(Ns | Name)} {arg.MFn(Name)}"))});
+    .Select(arg => $"{arg.ParameterType.MFn(Ns | Name | Arg)} {arg.MFn(Name | Src)}"))});
 {Blank}";
 
             ////////////////////////////////////////////////////////////////////////////////////////
@@ -40,7 +40,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
                 return Error();
             ctors += $@"
 {type.MFn(Ns | Name)}::{type.MFn(Name)}({string.Join(", ", args
-    .Select(arg => $"{arg.ParameterType.MFn(Ns | Name)} {arg.MFn(Name)}"))}) :
+    .Select(arg => $"{arg.ParameterType.MFn(Ns | Name | Arg)} {arg.MFn(Name | Src)}"))}) :
     QDotNetObject(constructor<{type.MFn(Ns | Name)}{args switch
     {
         { Length: > 0 } => ", " + string

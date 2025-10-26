@@ -25,19 +25,20 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
                 return Error();
             var type = src.ReflectedType;
             var propType = prop.PropertyType;
-            var star = propType.IsValue() ? "" : "*";
+            var cacheType = propType.IsValue() ? TypeOf<object>() : propType;
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             if (type.GetPlaceholder(PropertyDeclarations) is not { } properties)
                 return Error();
             properties += $@"
-Q_PROPERTY({propType.MFn(Ns | Name)} {star}{prop.MFn()}{(
+Q_PROPERTY({propType.MFn(Ns | Name | Arg)} {prop.MFn()}{(
     !prop.CanRead ? string.Empty : $" READ {prop.MFn(Get)}")}{(
     !prop.CanWrite ? string.Empty : $" WRITE {prop.MFn(Set)}")}{(
     !prop.IsNotifiable() ? string.Empty : $" NOTIFY {prop.MFn(Signal)}")})
-{(!prop.CanRead ? Wrap : $"{propType.MFn(Ns | Name)} {star}{prop.MFn(Get)}() const;")}
-{(!prop.CanWrite ? Wrap : $"void {prop.MFn(Set)}({propType.MFn(Ns | Name)} {star}value);")}
+{(!prop.CanRead ? Wrap : $"{propType.MFn(Ns | Name | Arg)} {prop.MFn(Get)}() const;")}
+{(!prop.CanRead ? Wrap : $"{propType.MFn(Ns | Name | Arg)} {prop.MFn(Get)}(bool cached) const;")}
+{(!prop.CanWrite ? Wrap : $"void {prop.MFn(Set)}({propType.MFn(Ns | Name | Arg)} value);")}
 {(!prop.IsNotifiable() ? Wrap : $@"{Wrap}
 {BkSpc}#ifndef Q_MOC_RUN
 {BkSpc}#  define PROPERTY_{prop.MFn(Src)}
@@ -61,11 +62,10 @@ PROPERTY_{prop.MFn(Src)} Q_SIGNAL void {prop.MFn(Signal)}();
 {(!prop.CanRead ? Wrap : $@"{Wrap}
 mutable QDotNetFunction<{propType.MFn(Ns | Name)}> {prop.MFn(Get | Func)} = nullptr;")}
 {(!prop.CanWrite ? Wrap : $@"{Wrap}
-mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} = nullptr;")}";
-            if (!propType.IsValue()) {
-                privateMembers += $@"
-mutable {propType.MFn(Ns | Name)} *cached{prop.MFn(Src)} = nullptr;";
-            }
+mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} = nullptr;")}
+{(!prop.CanRead || !propType.IsObject() ? Wrap
+: $@"mutable {cacheType.MFn(Ns | Name | Arg)} cached{prop.MFn(Src)} {Wrap}
+    = Convert::Object<{cacheType.MFn(Ns | Name)}>::null();")}";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -74,21 +74,33 @@ mutable {propType.MFn(Ns | Name)} *cached{prop.MFn(Src)} = nullptr;";
 
             implementation += $@"
 {(!prop.CanRead ? Wrap : $@"{Wrap}
-{propType.MFn(Ns | Name)} {star}{type.MFn(Ns | Name)}::{prop.MFn(Get)}() const
+{propType.MFn(Ns | Name | Arg)} {type.MFn(Ns | Name)}::{prop.MFn(Get)}() const
 {{
-    {(propType.IsValue() ? Wrap : $@"{Wrap}
-    if (d->cached{prop.MFn(Src)} && d->cached{prop.MFn(Src)}->isValid())
-        return d->cached{prop.MFn(Src)};")}
+    return {prop.MFn(Get)}({(prop.IsNotifiable() ? "true" : "false")});
+}}
+
+{propType.MFn(Ns | Name | Arg)} {type.MFn(Ns | Name)}::{prop.MFn(Get)}(bool cached) const
+{{
+    {(!propType.IsObject() ? Wrap : $@"{Wrap}
+    if (cached && Convert::Object<{cacheType.MFn(Ns | Name)}>::isValid(d->cached{prop.MFn(Src)}))
+        return Convert::Object<{cacheType.MFn(Ns | Name)}>{Wrap}
+            ::toValue<{propType.MFn(Ns | Name | Arg)}>(d->cached{prop.MFn(Src)});")}
     auto result = method(""{prop.MFn(Src | Get)}"", d->{prop.MFn(Get | Func)}).invoke(*this);
-    {(propType.IsValue() ? "return result;" : $@"{Wrap}
-    return d->cached{prop.MFn(Src)} = d->asQObject(result);")}
+    return {(!propType.IsObject() ? Wrap : $@"{Wrap}
+        Convert::Object<{cacheType.MFn(Ns | Name)}>{Wrap}::{Wrap}
+        toValue<{propType.MFn(Ns | Name | Arg)}>(d->cached{prop.MFn(Src)} = ")}{(
+            !propType.IsObject() ? "result"
+            : propType.Is<object>() ? "Convert::toVariant(result)"
+            : "Convert::moveToHeap(result, this)")}{(!propType.IsObject() ? "" : ")")};
 }}
 {Blank}")}
 {(!prop.CanWrite ? Wrap : $@"{Wrap}
-void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({propType.MFn(Ns | Name)} {star}value)
+void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({propType.MFn(Ns | Name | Arg)} value)
 {{
-    {(propType.IsValue() ? Wrap : $"d->cached{prop.MFn(Src)} = value;")}
-    method(""{prop.MFn(Src | Set)}"", d->{prop.MFn(Set | Func)}).invoke(*this, {star}value);
+    {(!prop.CanRead || !propType.IsObject() ? Wrap : $@"{Wrap}
+    d->cached{prop.MFn(Src)} = {(propType.IsObject() ? "value" : "QVariant::fromValue(value)")};")}
+    method(""{prop.MFn(Src | Set)}"", d->{prop.MFn(Set | Func)}).invoke(*this, {Wrap}
+        {(propType.Is<object>() ? $"Convert::fromVariant(value)" : $"{propType.MFn(Star)}value")});
 }}
 {Blank}")}";
 
@@ -112,7 +124,8 @@ if (signalTag == ""PROPERTY_{prop.MFn(Src)}"") {{
                 return Error();
             notifiers += $@"
 if (propertyName == ""{prop.MFn(Src)}"") {{
-    {(propType.IsValue() ? Wrap : $@"cached{prop.MFn(Src)} = nullptr;")}
+    {(!prop.CanRead || !propType.IsObject() ? Wrap : $@"{Wrap}
+    cached{prop.MFn(Src)} = Convert::Object<{cacheType.MFn(Ns | Name)}>::null();")}
     QMetaMethod::fromSignal(&{type.MFn(Ns | Name)}::{prop.MFn(Signal)})
         .invoke(q, Qt::DirectConnection);
     return;
