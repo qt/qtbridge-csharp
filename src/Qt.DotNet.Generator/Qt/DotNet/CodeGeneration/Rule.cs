@@ -18,6 +18,8 @@ namespace Qt.DotNet.CodeGeneration
     {
         public virtual int Priority => 0;
 
+        public virtual IEnumerable<MemberInfo> DependsOn => [];
+
         public abstract bool Matches(MemberInfo src);
 
         public virtual async Task<Result> ExecuteAsync(MemberInfo src)
@@ -89,6 +91,7 @@ namespace Qt.DotNet.CodeGeneration
                 SourceTypes = null;
                 SourceMembers = null;
                 SourceRules.Clear();
+                SourceStatus = null;
             }
 
             public static DirectoryInfo TargetDir { get; private set; }
@@ -111,10 +114,16 @@ namespace Qt.DotNet.CodeGeneration
                 var nodes = SourceGraph.Where(x => !x.Key.IsRootNode());
                 SourceTypes = new(nodes.Select(x => x.Key));
                 SourceMembers = new(nodes.SelectMany(x => x.Value));
-                var tests = SourceTypes.Union(SourceMembers).Prepend(SourceGraph.Root)
+                var sources = SourceTypes.Union(SourceMembers).Prepend(SourceGraph.Root);
+                var tests = sources
                     .SelectMany(x => AllRules
                     .Select(y => new { Source = x, Rule = y }));
                 _ = Parallel.ForEach(tests, t => Match(t.Source, t.Rule));
+                SourceStatus = sources.ToDictionary(x => x, x => new TaskCompletionSource<bool>(
+                    TaskCreationOptions.RunContinuationsAsynchronously));
+
+                // TO-DO: Check source dependency circularity
+
                 return await RunBatchesAsync();
             }
 
@@ -123,6 +132,7 @@ namespace Qt.DotNet.CodeGeneration
             private static ConcurrentQueue<Type> SourceTypes { get; set; } = null;
             private static ConcurrentQueue<MemberInfo> SourceMembers { get; set; } = null;
 
+            private static Dictionary<MemberInfo, TaskCompletionSource<bool>> SourceStatus = null;
 
             private class RuleList : ConcurrentPriorityList<Rule, int> { }
 
@@ -150,21 +160,31 @@ namespace Qt.DotNet.CodeGeneration
                 return true;
             }
 
+            private static bool Status(MemberInfo source, bool status)
+            {
+                SourceStatus[source].TrySetResult(status);
+                return status;
+            }
+
             private static async Task<bool> RunBatchAsync(IEnumerable<MemberInfo> batch)
             {
                 var results = await Task.WhenAll(batch.Select(source => Task.Run(async () =>
                 {
                     if (!SourceRules.TryGetValue(source, out var rules)) {
                         Results.Add(new() { Source = source, Message = "No matching rules" });
-                        return false;
+                        return Status(source, true);
                     }
                     foreach (var rule in rules) {
+                        foreach (var dependency in rule.DependsOn) {
+                            if (!await SourceStatus[dependency].Task)
+                                return Status(source, false);
+                        }
                         var res = new Result(await rule.ExecuteAsync(source)) { Source = source };
                         Results.Add(res);
                         if (res is { Succeeded: false })
-                            return false;
+                            return Status(source, false);
                     }
-                    return true;
+                    return Status(source, true);
                 })));
                 return !results.Contains(false);
             }
