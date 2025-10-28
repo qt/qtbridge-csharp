@@ -45,11 +45,13 @@ namespace Test_Qt.DotNet.Generator.Support
         /// <param name="sourceRefs">List of reference assemblies</param>
         /// <param name="extraRefs">Additional directories to search for assembly references.</param>
         /// <param name="referencesWithAliases">Aliased references (extern alias support).</param>
+        /// <param name="extraRules">Array of custom none build-in rules to apply.</param>
         /// <param name="ct">Cancellation token.</param>
         /// <returns>Generated code and metadata.</returns>
         public static async Task<Result> GenerateAsync(string[] sources,
             Assembly[] sourceRefs = null, string[] extraRefs = null,
             List<(string Alias, string Path)> referencesWithAliases = null,
+            Type[] extraRules = null,
             CancellationToken ct = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sources.ToString(), nameof(sources));
@@ -136,6 +138,10 @@ namespace Test_Qt.DotNet.Generator.Support
             MetaFunction.Register<BasicTypes>();
             foreach (var t in typeof(GenerateIndexer).Assembly.ExportedTypes)
                 _ = t.TryRegisterAsRule() || t.TryRegisterAsMetaFunction();
+
+            // Register additional none build-in rules
+            foreach (var t in extraRules ?? [])
+                _ = t.TryRegisterAsRule();
 
             // 4. Build dependency graph and run rules
             await DependencyGraph.CreateAsync(metadataLoadContext, sourceAssembly,
