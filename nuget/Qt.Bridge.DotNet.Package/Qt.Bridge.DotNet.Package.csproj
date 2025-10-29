@@ -103,6 +103,47 @@
 
   </ItemGroup>
 
+  <PropertyGroup>
+    <!-- We are only packing Windows x64 for now, derive form $(RuntimeIdentifier) later -->
+    <QtRid>win-x64</QtRid>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(QtInstallRoot)' != '' AND Exists('$(QtInstallRoot)')">
+    <!-- Qt BIN: DLLs, Tools (inkl. windeployqt.exe). Doku/PDBs raus. -->
+    <None Include="$(QtInstallRoot)\bin\**\*"
+          Exclude="$(QtInstallRoot)\bin\**\*.pdb;$(QtInstallRoot)\bin\**\*.ilk;$(QtInstallRoot)\bin\**\*.exp"
+          Pack="true"
+          PackagePath="runtimes\$(QtRid)\native\qt\bin\" />
+
+    <!-- Qt LIB inkl. CMake Configs (lib/cmake/Qt6/**) -->
+    <None Include="$(QtInstallRoot)\lib\**\*"
+          Exclude="$(QtInstallRoot)\lib\**\*.pdb;$(QtInstallRoot)\lib\**\*.ilk"
+          Pack="true"
+          PackagePath="runtimes\$(QtRid)\native\qt\lib\" />
+
+    <!-- Qt HEADERS -->
+    <None Include="$(QtInstallRoot)\include\**\*"
+          Pack="true"
+          PackagePath="runtimes\$(QtRid)\native\qt\include\" />
+
+    <!-- Qt PLUGINS / QML / MKSPECS / MODULES / METATYPES -->
+    <None Include="$(QtInstallRoot)\plugins\**\*"
+          Pack="true"
+          PackagePath="runtimes\$(QtRid)\native\qt\plugins\" />
+    <None Include="$(QtInstallRoot)\qml\**\*"
+          Pack="true"
+          PackagePath="runtimes\$(QtRid)\native\qt\qml\" />
+    <None Include="$(QtInstallRoot)\mkspecs\**\*"
+          Pack="true"
+          PackagePath="runtimes\$(QtRid)\native\qt\mkspecs\" />
+    <None Include="$(QtInstallRoot)\modules\**\*"
+          Pack="true"
+          PackagePath="runtimes\$(QtRid)\native\qt\modules\" />
+    <None Include="$(QtInstallRoot)\metatypes\**\*"
+          Pack="true"
+          PackagePath="runtimes\$(QtRid)\native\qt\metatypes\" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="NuGet.CommandLine" Version="6.14.0" GeneratePathProperty="true">
       <PrivateAssets>all</PrivateAssets>
@@ -113,6 +154,11 @@
   <ItemGroup>
     <UpToDateCheckInput Include="@(None)" />
   </ItemGroup>
+
+  <Target Name="WarnIfQtInstallRootMissing" BeforeTargets="Pack">
+    <Warning Condition="'$(QtInstallRoot)' == '' OR !Exists('$(QtInstallRoot)\')"
+             Text="QtInstallRoot is not set or invalid. Qt will NOT be included in the NuGet package." />
+  </Target>
 
   <Target Name="CopyPackage" AfterTargets="Pack">
     <Message Importance="high" Text="Copying package $(OutputPath)..\$(PackageId).$(PackageVersion).nupkg to $(MSBuildThisFileDirectory)nuget\local..." />

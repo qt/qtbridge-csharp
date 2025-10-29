@@ -182,7 +182,7 @@
     <PropertyGroup>
       <CMakeCmd>
         CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
-        SET CMAKE_PREFIX_PATH=$(QtDir);$(CMAKE_PREFIX_PATH)
+        SET CMAKE_PREFIX_PATH=$(QtDir);%CMAKE_PREFIX_PATH%"
         CD "$(IntermediateOutputPath)qtdotnet\native\build"
         cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake
       </CMakeCmd>
@@ -212,7 +212,7 @@
     </ItemGroup>
     <MSBuild Condition="'$(CMakeBuild)' != 'true'"
       Projects="@(NativeProject)" BuildInParallel="false" StopOnFirstFailure="true"
-      Properties="Platform=x64;CL_MP=true" Targets="Build" />
+      Properties="Platform=x64;Configuration=Release;CL_MP=true" Targets="Build" />
   </Target>
   <!-- END QtDotNetBuild-->
 
@@ -230,7 +230,7 @@
     <PropertyGroup>
       <MSBuildCmd>msbuild "$(NativeApp).vcxproj"</MSBuildCmd>
       <MSBuildCmd>$(MSBuildCmd) -t:BuiltProjectOutputGroup</MSBuildCmd>
-      <MSBuildCmd>$(MSBuildCmd) -p:Configuration=$(Configuration)</MSBuildCmd>
+      <MSBuildCmd>$(MSBuildCmd) -p:Configuration=Release</MSBuildCmd>
       <MSBuildCmd>$(MSBuildCmd) -getProperty:TargetPath</MSBuildCmd>
       <MSBuildCmd>
         CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
@@ -277,7 +277,7 @@
         >CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL</VcVarsCmd>
       <DeployCmd>"$(QtDir)\bin\windeployqt.exe"</DeployCmd>
       <DeployCmd>$(DeployCmd) --qmldir "$(ProjectDir.TrimEnd('\'))"</DeployCmd>
-      <DeployCmd>$(DeployCmd) --no-translations</DeployCmd>
+      <DeployCmd>$(DeployCmd) --no-translations --release</DeployCmd>
       <DeployCmd>$(DeployCmd) --no-compiler-runtime</DeployCmd>
       <DeployCmd>$(DeployCmd) "$(RunCommand)"</DeployCmd>
       <DeployCmd>$(DeployCmd) &gt; NUL</DeployCmd>
