@@ -66,6 +66,48 @@
 
   <!--
   //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtCheckVisualStudioWorkloads
+  -->
+  <Target Name="QtCheckVisualStudioWorkloads"
+          BeforeTargets="QtDotNetGenerate"
+          Condition="'$(OS)'=='Windows_NT' and '$(QtVsCheckWorkloads)'=='true'">
+
+    <Warning Condition="!Exists('$(VsWhereExe)')"
+             Text="vswhere.exe not found '$(VsWhereExe)'. Ignore workload check." />
+    <PropertyGroup Condition="!Exists('$(VsWhereExe)')">
+      <SkipWorkloadCheck>true</SkipWorkloadCheck>
+    </PropertyGroup>
+
+    <!-- Desktop C++ -->
+    <Exec Condition="'$(SkipWorkloadCheck)'!='true'"
+          Command="&quot;$(VsWhereExe)&quot; -nologo -products * -format json -requires &quot;$(DesktopWorkload)&quot;"
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="VsDesktopJson" />
+    </Exec>
+
+    <Error Condition="'$(SkipWorkloadCheck)'!='true'
+           and ($([System.String]::Copy('$(VsDesktopJson)').Trim()) == ''
+           or $([System.String]::Copy('$(VsDesktopJson)').Trim()) == '[]')"
+           Text="Missing workload: Desktop development with C++. Please install via the Visual Studio Installer." />
+
+    <!-- Optional: cross-platform C++ -->
+    <Exec Condition="'$(SkipWorkloadCheck)'!='true' and '$(QtVsCheckCrossPlat)'=='true'"
+          Command="&quot;$(VsWhereExe)&quot; -nologo -products * -format json -requires &quot;$(CrossPlatformWorkload)&quot;"
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="VsCrossJson" />
+    </Exec>
+
+    <Error Condition="'$(SkipWorkloadCheck)'!='true' and '$(QtVsCheckCrossPlat)'=='true'
+           and ($([System.String]::Copy('$(VsCrossJson)').Trim()) == ''
+           or $([System.String]::Copy('$(VsCrossJson)').Trim()) == '[]')"
+           Text="Missing workload: Linux, Mac, and embedded development with C++. Please install via the Visual Studio Installer." />
+  </Target>
+  <!-- END QtCheckVisualStudioWorkloads -->
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
   // QtDotNetGenerate
   -->
   <Target Name="QtDotNetGenerate" AfterTargets="CoreCompile" BeforeTargets="_CreateAppHost"
@@ -123,8 +165,7 @@
     <Message Importance="high" Text="Qt/.NET: Building native code..." />
 
     <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
-      <VsWhereCmd
-        >"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe"</VsWhereCmd>
+      <VsWhereCmd>"$(VsWhereExe)"</VsWhereCmd>
       <VsWhereCmd>$(VsWhereCmd) -latest</VsWhereCmd>
       <VsWhereCmd>$(VsWhereCmd) -property installationPath</VsWhereCmd>
     </PropertyGroup>
@@ -219,8 +260,7 @@
     <Message Importance="high" Text="Qt/.NET: Deploying Qt..." />
 
     <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
-      <VsWhereCmd
-        >"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe"</VsWhereCmd>
+      <VsWhereCmd>"$(VsWhereExe)"</VsWhereCmd>
       <VsWhereCmd>$(VsWhereCmd) -latest</VsWhereCmd>
       <VsWhereCmd>$(VsWhereCmd) -property installationPath</VsWhereCmd>
     </PropertyGroup>

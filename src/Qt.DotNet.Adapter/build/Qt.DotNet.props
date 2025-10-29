@@ -42,6 +42,18 @@
     <QtQmlSourceDir>qtdotnet\native\source\qml\</QtQmlSourceDir>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <QtVsCheckWorkloads>true</QtVsCheckWorkloads>
+    <DesktopWorkload>Microsoft.VisualStudio.Workload.NativeDesktop</DesktopWorkload>
+
+    <QtVsCheckCrossPlat>false</QtVsCheckCrossPlat>
+    <CrossPlatformWorkload>Microsoft.VisualStudio.Workload.NativeCrossPlat</CrossPlatformWorkload>
+
+    <ProgramFilesX86>$([MSBuild]::GetProgramFiles32())</ProgramFilesX86>
+    <VsWhereExe>$(ProgramFilesX86)\Microsoft Visual Studio\Installer\vswhere.exe</VsWhereExe>
+
+  </PropertyGroup>
+
   <ItemGroup>
     <!-- Add QML files to the build -->
     <Qml Include="**\*.qml" />
