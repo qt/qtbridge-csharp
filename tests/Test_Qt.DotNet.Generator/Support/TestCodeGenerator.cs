@@ -145,8 +145,12 @@ namespace Test_Qt.DotNet.Generator.Support
             Directory.CreateDirectory(targetDirectory);
 
             var rulesSucceeded = await Rules.RunAllAsync(targetDirectory);
-            if (!rulesSucceeded)
-                throw new InvalidOperationException("Running generation rules failed.");
+            if (!rulesSucceeded) {
+                var messages = Rules.Results.Where(result => !result.Succeeded)
+                    .Select(result => result.Message);
+                throw new InvalidOperationException(
+                    $"Running generation rules failed. Error: {string.Join("\r\n", messages)}");
+            }
 
             // Capture outputs in memory
             var sink = new MemorySink();

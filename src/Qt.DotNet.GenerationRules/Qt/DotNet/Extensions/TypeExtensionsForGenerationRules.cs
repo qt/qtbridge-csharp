@@ -114,7 +114,7 @@ namespace Qt.DotNet.Extensions
                 .Any(a => a.TryProperty(nameof(QmlElementAttribute.Singleton), out bool ok) && ok);
         }
 
-        private static readonly Regex QmlRegex = new(@"^(?!\d)\w+$", RegexOptions.Compiled);
+        private static readonly Regex QmlRegex = new("^[A-Z][A-Za-z0-9_]*$", RegexOptions.Compiled);
 
         public static string QmlElementName(this Type self)
         {

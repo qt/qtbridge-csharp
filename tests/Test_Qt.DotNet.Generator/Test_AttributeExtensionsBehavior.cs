@@ -45,6 +45,15 @@ namespace Test_Qt.DotNet.Generator
             }
         """;
 
+        private static string SetupSource(string value) => $$"""
+            using Qt.Quick;
+            namespace Test
+            {
+                [Qt.Quick.QmlElement(Name = "{{value}}")]
+                public class Foo { }
+            }
+         """;
+
         private static readonly Assembly AdapterAssembly = typeof(QmlElementAttribute).Assembly;
 
         public TestContext TestContext { get; set; }
@@ -104,6 +113,116 @@ namespace Test_Qt.DotNet.Generator
 
             var nonGeneric = (string)attr.Property(nameof(QmlElementAttribute.Name));
             Assert.AreEqual("Foo", nonGeneric);
+        }
+
+        [TestMethod,
+            DataRow(""),
+            DataRow(" Foo"),
+            DataRow("Foo "),
+            DataRow("Foo Bar"),
+            DataRow("foo"),
+            DataRow("_Foo"),
+            DataRow("9Foo")
+        ]
+        public async Task InvalidQmlElementName_ShouldFailGeneration(string invalid)
+        {
+            var source = SetupSource(invalid);
+            var exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
+                TestCodeGenerator.GenerateAsync([source],
+                    sourceRefs: [typeof(QmlElementAttribute).Assembly],
+                    ct: TestContext.CancellationTokenSource.Token)
+            );
+
+            Assert.Contains("QmlElement.Name", exception.Message);
+            Assert.Contains("is invalid.", exception.Message);
+        }
+
+        [TestMethod,
+            DataRow("Foo_"),
+            DataRow("Foo_Bar"),
+            DataRow("Foo1"),
+            DataRow("Foo_1")
+        ]
+        public async Task ValidQmlElementName_WithUnderscoresOrNumIsAllowed(string value)
+        {
+            var source = SetupSource(value);
+            var result = await TestCodeGenerator.GenerateAsync(
+                [source],
+                sourceRefs: [typeof(QmlElementAttribute).Assembly],
+                ct: TestContext.CancellationTokenSource.Token);
+
+            Assert.IsNotNull(result);
+            Assert.IsNotNull(result.SourceAssembly.GetType("Test.Foo"));
+        }
+
+        [TestMethod]
+        public async Task ValidName_Emits_QML_NAMED_ELEMENT()
+        {
+            const string src = """
+                using Qt.Quick;
+                namespace Test
+                {
+                    [Qt.Quick.QmlElement(Name = "Foo")]
+                    public class Foo { }
+                }
+            """;
+
+            var result = await TestCodeGenerator.GenerateAsync(
+                [src], sourceRefs: [typeof(QmlElementAttribute).Assembly],
+                ct: TestContext.CancellationTokenSource.Token);
+
+            Assert.IsTrue(result.Sink.Files.TryGetValue("source/hpp/test/foo.h", out var hpp));
+            Assert.Contains("QML_NAMED_ELEMENT(Foo)", hpp);
+            Assert.DoesNotContain("QML_ELEMENT", hpp);
+        }
+
+        [TestMethod]
+        public async Task MissingName_Emits_QML_ELEMENT()
+        {
+            const string src = """
+                using Qt.Quick;
+                namespace Test
+                {
+                    [Qt.Quick.QmlElement]
+                    public class Foo { }
+                }
+            """;
+
+            var result = await TestCodeGenerator.GenerateAsync(
+                [src], sourceRefs: [typeof(QmlElementAttribute).Assembly],
+                ct: TestContext.CancellationTokenSource.Token);
+
+            Assert.IsTrue(result.Sink.Files.TryGetValue("source/hpp/test/foo.h", out var hpp));
+            Assert.Contains("QML_ELEMENT", hpp);
+            Assert.DoesNotContain("QML_NAMED_ELEMENT(", hpp);
+        }
+
+        [TestMethod]
+        public async Task Singleton_Absent_DoesNotEmitMacro_Present_Does()
+        {
+            const string src = """
+                using Qt.Quick;
+                namespace Test
+                {
+                    [Qt.Quick.QmlElement(Name = "Foo")]
+                    public class Foo { }
+
+                    [Qt.Quick.QmlElement(Name = "Bar", Singleton = true)]
+                    public class Bar { }
+                }
+            """;
+
+            var result = await TestCodeGenerator.GenerateAsync(
+                [src], sourceRefs: [typeof(QmlElementAttribute).Assembly],
+                ct: TestContext.CancellationTokenSource.Token);
+
+            Assert.IsTrue(result.Sink.Files.TryGetValue("source/hpp/test/foo.h", out var hpp));
+            Assert.Contains("QML_NAMED_ELEMENT(Foo)", hpp);
+            Assert.DoesNotContain("QML_SINGLETON", hpp);
+
+            Assert.IsTrue(result.Sink.Files.TryGetValue("source/hpp/test/bar.h", out hpp));
+            Assert.Contains("QML_NAMED_ELEMENT(Bar)", hpp);
+            Assert.Contains("QML_SINGLETON", hpp);
         }
     }
 }

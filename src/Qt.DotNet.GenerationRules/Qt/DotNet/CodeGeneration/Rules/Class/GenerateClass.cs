@@ -10,6 +10,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
 {
     using MetaFunctions;
     using Extensions;
+    using Quick;
     using static Placeholders;
     using static Traits;
 
@@ -23,7 +24,8 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
-            if (type.IsQmlElement()) {
+            var isQmlElement = type.IsQmlElement();
+            if (isQmlElement) {
                 if (Root.GetPlaceholder(IncludeDirs) is not { } includeDirs)
                     return Error();
                 includeDirs += $"include_directories({Hpp}/{type.MFn(Ns | Dir)})";
@@ -32,6 +34,25 @@ namespace Qt.DotNet.CodeGeneration.Rules.Class
                     return Error();
                 includes += "#include <QtQml/qqmlregistration.h>";
             }
+
+            ////////////////////////////////////////////////////////////////////////////////////////
+            // Precompute QML macros and validate provided Name (fail fast on invalid)
+            var elementName = isQmlElement ? type.QmlElementName() : null;
+            var nameProvided = isQmlElement && type.QtAttributeData<QmlElementAttribute>()
+                .Any(a => a.HasProperty(nameof(QmlElementAttribute.Name)));
+
+            if (nameProvided && string.IsNullOrWhiteSpace(elementName)) {
+                return Error($"QmlElement.Name on '{type.MFn(Src | Fqn)}' is invalid. It must "
+                    + "start with an uppercase letter and contain only letters, digits, or '_'.");
+            }
+
+            var qmlElementMacro = Wrap.ToString();
+            if (isQmlElement) {
+                qmlElementMacro = !string.IsNullOrEmpty(elementName)
+                    ? $"QML_NAMED_ELEMENT({elementName})"
+                    : "QML_ELEMENT";
+            }
+            var qmlSingletonMacro = type.IsQmlSingleton() ? "QML_SINGLETON" : Wrap.ToString();
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -79,10 +100,8 @@ class {type.MFn(Ns | Name)} :
     public QDotNetObject
 {{
     Q_OBJECT
-    {(!type.IsQmlElement() ? Wrap : type.QmlElementName() is not { Length: > 0 } elementName
-        ? "QML_ELEMENT"
-        : $"QML_NAMED_ELEMENT({elementName})")}
-    {(type.IsQmlSingleton() ? "QML_SINGLETON" : Wrap)}
+    {qmlElementMacro}
+    {qmlSingletonMacro}
     {publicDecl[(Placeholder)new(TypeTraits)]}
 public:
     Q_DOTNET_OBJECT({type.MFn(Name)},
