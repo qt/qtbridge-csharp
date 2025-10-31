@@ -114,13 +114,16 @@ namespace Qt.DotNet.Extensions
                 .Any(a => a.TryProperty(nameof(QmlElementAttribute.Singleton), out bool ok) && ok);
         }
 
+        private static readonly Regex QmlRegex = new(@"^(?!\d)\w+$", RegexOptions.Compiled);
+
         public static string QmlElementName(this Type self)
         {
             if (self == null)
                 throw new ArgumentNullException(nameof(self));
             return self.QtAttributeData<QmlElementAttribute>()
-                .Select(a => a.Property<string>(nameof(QmlElementAttribute.Name)))
-                .FirstOrDefault(x => x is { Length: > 0 } && Regex.IsMatch(x, @"^(?!\d)\w+$"));
+                .Select(a =>
+                    a.TryProperty<string>(nameof(QmlElementAttribute.Name), out var n) ? n : null)
+                .FirstOrDefault(name => name is { Length: > 0 } && QmlRegex.IsMatch(name));
         }
 
         public static bool IsList(this Type self, out Type itemType)
