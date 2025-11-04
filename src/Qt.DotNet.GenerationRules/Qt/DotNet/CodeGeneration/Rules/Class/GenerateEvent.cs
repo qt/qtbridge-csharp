@@ -48,7 +48,7 @@ EVENT_{ev.MFn(Src)} Q_SIGNAL void {ev.MFn(Signal)}(QObject *qEvArgs);
             privateIncludes += "#include <QMetaMethod>";
             privateIncludes += "#include <QDotNetEventArgs>";
             privateIncludes += "#include <QDotNetSignal>";
-            privateIncludes += "#include <event_dispatch.h>";
+            privateIncludes += "#include <object_dispatch.h>";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -92,7 +92,7 @@ void {type.MFn(Ns | Name | Private)}::{ev.MFn(Handler)}::handleEvent(
     //   * Event-to-signal mapping and property change notifications need to run on d->q's thread.
     QMetaObject::invokeMethod(d->q, [=]() mutable {{
 
-        QObject *qEvArgs = QtDotNet::eventDispatch(args);
+        QObject *qEvArgs = QtDotNet::objectDispatch(args);
         if (!qEvArgs)
             return;
         {(!argsType.Is<PropertyChangedEventArgs>() ? Wrap : $@"{Wrap}

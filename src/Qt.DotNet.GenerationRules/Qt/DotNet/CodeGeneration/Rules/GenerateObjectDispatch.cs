@@ -8,28 +8,26 @@ using System.Reflection;
 namespace Qt.DotNet.CodeGeneration.Rules
 {
     using MetaFunctions;
-    using Qt.DotNet.Extensions;
+    using Extensions;
     using static Placeholders;
     using static Traits;
 
-    public class GenerateEventDispatch : GenerateBuildSpec
+    public class GenerateObjectDispatch : GenerateBuildSpec
     {
         public override int Priority => base.Priority + 1;
         public override Result Execute(MemberInfo _)
         {
-            var dispatchHppPath = "hpp/event_dispatch.h";
-            var dispatchCppPath = "cpp/event_dispatch.cpp";
+            var dispatchHppPath = "hpp/object_dispatch.h";
+            var dispatchCppPath = "cpp/object_dispatch.cpp";
 
             if (Root.GetPlaceholder(SourceFiles) is not { } sourceFiles)
                 return Error();
             sourceFiles += dispatchHppPath;
             sourceFiles += dispatchCppPath;
 
-            var eventTypes = SourceGraph.NodeSet<EventInfo>()
-                .Select(e => e.EventHandlerType.DelegateSignature().ToArray())
-                .Where(s => s.Length == 3 && s[0] == TypeOf(typeof(void))
-                    && s[1] == TypeOf<object>() && s[2].IsAssignableTo(TypeOf<EventArgs>()))
-                .Select(s => s[2])
+            var allTypes = SourceGraph.NodeSet<Type>()
+                .Where(type => !type.IsEnum && !type.IsRootNode()
+                    && !type.IsAssignableTo(TypeOf<Delegate>()))
                 .Distinct()
                 .OrderBy(t => t.AssemblyQualifiedName, StringComparer.Ordinal)
                 .ToList();
@@ -37,25 +35,25 @@ namespace Qt.DotNet.CodeGeneration.Rules
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             var dispatchHpp = new FilePlaceholder(
-                EventDispatchHeader, Root, $"{Root.MFn(Dir)}{dispatchHppPath}");
+                ObjectDispatchHeader, Root, $"{Root.MFn(Dir)}{dispatchHppPath}");
             dispatchHpp += $@"
 #pragma once
 #include <builtin_types.h>
 
 namespace QtDotNet
 {{
-    QObject *eventDispatch(QDotNetObject &args);
+    QObject *objectDispatch(QDotNetObject &args);
 }}
 ";
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             var dispatchCpp = new FilePlaceholder(
-                EventDispatchSource, Root, $"{Root.MFn(Dir)}{dispatchCppPath}");
+                ObjectDispatchSource, Root, $"{Root.MFn(Dir)}{dispatchCppPath}");
             dispatchCpp += $@"
-#include <event_dispatch.h>
+#include <object_dispatch.h>
 #include <QHash>
 
-{dispatchCpp[new() { Distinct = true, Content = eventTypes.Select(t => $@"
+{dispatchCpp[new() { Distinct = true, Content = allTypes.Select(t => $@"
 #include <{t.MFn(Ns | Dir)}{t.MFn(File)}.h>") }]}
 
 using Factory = QObject *(*)(QDotNetObject &);
@@ -64,7 +62,7 @@ static const QHash<QString, Factory>& registry()
 {{
     static const QHash<QString, Factory> reg = {{
         {string.Join(@",
-        ", eventTypes.Select(t => $@"{{
+        ", allTypes.Select(t => $@"{{
             QStringLiteral(""{t.MFn(Src | Fqn)}""),
             [](QDotNetObject& obj) -> QObject *
             {{
@@ -75,7 +73,7 @@ static const QHash<QString, Factory>& registry()
     return reg;
 }}
 
-QObject *QtDotNet::eventDispatch(QDotNetObject &args)
+QObject *QtDotNet::objectDispatch(QDotNetObject &args)
 {{
     const QString key = args.type().assemblyQualifiedName();
     if (const auto it = registry().constFind(key); it != registry().cend())

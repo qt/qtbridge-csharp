@@ -20,8 +20,8 @@ namespace Qt.DotNet.CodeGeneration
         ConvertHeader,
         ConvertSource
             ,
-        EventDispatchHeader,
-        EventDispatchSource
+        ObjectDispatchHeader,
+        ObjectDispatchSource
             ,
         MainCpp
             , MainIncludes
