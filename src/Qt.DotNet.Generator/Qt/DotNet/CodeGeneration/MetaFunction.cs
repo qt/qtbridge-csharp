@@ -47,6 +47,8 @@ namespace Qt.DotNet.CodeGeneration
         public static Type TypeOf(string name) => Rule.TypeOf(name);
         public static Type TypeOf(Type t) => Rule.TypeOf(t);
         public static Type TypeOf<T>() => Rule.TypeOf<T>();
+
+        protected const char Wrap = Placeholder.Wrap;
     }
 
     public static class MetaFunctionExtensions

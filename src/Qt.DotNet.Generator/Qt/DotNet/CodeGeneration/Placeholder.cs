@@ -61,7 +61,7 @@ namespace Qt.DotNet.CodeGeneration
                 };
             }
 
-            text = Regex.Replace(text, $@"{Wrap}(?:\r?\n[ ]*)?", "");
+            text = Regex.Replace(text, $@"{Wrap}\s*", "");
             text = text.Trim('\r', '\n', ' ').Replace($"\r\n{Blank}", $"{Blank}") + End;
             text = Regex.Replace(text, @"(?<=\n)[ ]+(?=[\uE000-\uEFFF])", "");
             text = Regex.Replace(text, @"(?<=\n)\r?\n", $"{Blank}");
