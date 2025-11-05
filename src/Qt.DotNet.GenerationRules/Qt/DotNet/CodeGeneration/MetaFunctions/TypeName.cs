@@ -10,7 +10,7 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
     using Extensions;
     using static Traits;
 
-    public class TypeName : MetaFunction
+    public class TypeName : CppMetaFunction
     {
         public override int Priority => int.MaxValue;
         protected override string Eval(object src, Enum traits)
@@ -37,14 +37,14 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
             StringBuilder typeName = new();
             if (traits.HasTraits(Ns)) {
                 if (type.Namespace is { Length: > 0 })
-                    typeName.Append(type.FormatNamespace("::"));
+                    typeName.Append(type.FormatNamespace("::", ns => Sanitize(ns)));
                 else
                     typeName.Append("QtDotNet::Global");
             }
             if (traits.HasTraits(Ns | Name))
                 typeName.Append("::");
             if (traits.HasTraits(Name)) {
-                typeName.Append(type.FormatName("_"));
+                typeName.Append(type.FormatName("_", n => Sanitize(n)));
                 if (traits.HasTraits(Private))
                     typeName.Append("Private");
                 if (traits.HasTraits(Init))

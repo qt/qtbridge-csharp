@@ -9,7 +9,7 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
 {
     using static Traits;
 
-    public class Parameter : MetaFunction
+    public class Parameter : CppMetaFunction
     {
         protected override string Eval(object src, Enum traits)
         {

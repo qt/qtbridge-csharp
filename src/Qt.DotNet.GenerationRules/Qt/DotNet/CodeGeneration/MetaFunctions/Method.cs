@@ -11,7 +11,7 @@ namespace Qt.DotNet.CodeGeneration.MetaFunctions
     using Text;
     using static Traits;
 
-    public class Method : MetaFunction
+    public class Method : CppMetaFunction
     {
         protected override string Eval(object src, Enum traits) => src switch
         {

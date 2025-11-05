@@ -14,6 +14,15 @@ namespace Qt.DotNet.CodeGeneration
     {
         protected abstract string Eval(object src, Enum traits);
         public virtual int Priority => 0;
+        protected virtual string Sanitize(string evalResult) => evalResult;
+
+        private ConcurrentSet<string> Exceptions { get; } = new();
+
+        protected string Unsafe(string value)
+        {
+            Exceptions.Add(value);
+            return value;
+        }
 
         private static ConcurrentPriorityList<MetaFunction, int> MetaFunctions { get; } = new();
 
@@ -37,6 +46,8 @@ namespace Qt.DotNet.CodeGeneration
             foreach (var mFn in MetaFunctions) {
                 if (mFn.Eval(src, traits) is not { } value)
                     continue;
+                if (!mFn.Exceptions.Contains(value))
+                    value = mFn.Sanitize(value);
                 Cache.TryAdd((src, traits), value);
                 return value;
             }
@@ -64,6 +75,8 @@ namespace Qt.DotNet.CodeGeneration
         public static bool TryRegisterAsMetaFunction(this Type mFnType)
         {
             if (!mFnType.IsAssignableTo(typeof(MetaFunction)))
+                return false;
+            if (!mFnType.IsClass || mFnType.IsAbstract)
                 return false;
             if (Activator.CreateInstance(mFnType) is not MetaFunction mFn)
                 return false;

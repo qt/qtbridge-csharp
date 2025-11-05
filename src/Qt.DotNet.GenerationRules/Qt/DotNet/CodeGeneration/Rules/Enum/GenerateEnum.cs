@@ -34,7 +34,7 @@ namespace Qt.DotNet.CodeGeneration.Rules.Enum
                     long s64 => int.MinValue <= s64 && s64 <= int.MaxValue,
                     _ => false
                 })
-                .Select(x => $"{x.Name} = {x.Value}")
+                .Select(x => $"{x.Name.MFn(Enum)} = {x.Value}")
                 .ToList();
             if (!enumValues.Any())
                 return Error();
