@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 namespace Qt.DotNet.CodeGeneration
 {
     using Utils.Concurrent;
+    using Utils.Collections;
     using Utils.Collections.Concurrent;
 
     public abstract class Rule : IPrioritizable<int>
@@ -122,7 +123,31 @@ namespace Qt.DotNet.CodeGeneration
                 SourceStatus = sources.ToDictionary(x => x, x => new TaskCompletionSource<bool>(
                     TaskCreationOptions.RunContinuationsAsynchronously));
 
-                // TO-DO: Check source dependency circularity
+                var sourceRulesGraph = SourceRules.ToDictionary(
+                    sr => sr.Key,
+                    sr => sr.Value.SelectMany(r => r.DependsOn.Where(src => src != null)));
+
+                // Check source dependency circularities
+                if (sourceRulesGraph.FindCycle() is { } cycle && cycle.Any()) {
+                    Results.Add(new()
+                    {
+                        Source = cycle.First(),
+                        Message = "Circular dependency detected"
+                    });
+                    return false;
+                }
+
+                // Check source dependency dead-ends
+                var deadEnds = sourceRulesGraph
+                    .Where(n => n.Value.Any(d => !sourceRulesGraph.ContainsKey(d)));
+                if (deadEnds.Any()) {
+                    Results.Add(new()
+                    {
+                        Source = deadEnds.First().Key,
+                        Message = "Unresolved dependency detected"
+                    });
+                    return false;
+                }
 
                 return await RunBatchesAsync();
             }
@@ -175,9 +200,23 @@ namespace Qt.DotNet.CodeGeneration
                         return Status(source, true);
                     }
                     foreach (var rule in rules) {
-                        foreach (var dependency in rule.DependsOn) {
-                            if (!await SourceStatus[dependency].Task)
+                        foreach (var dependency in rule.DependsOn.Where(src => src != null)) {
+                            if (!SourceStatus.TryGetValue(dependency, out var dependencyStatus)) {
+                                Results.Add(new()
+                                {
+                                    Source = source,
+                                    Message = $"Dependency not in source set: {dependency}"
+                                });
                                 return Status(source, false);
+                            }
+                            if (!await dependencyStatus.Task.ConfigureAwait(false)) {
+                                Results.Add(new()
+                                {
+                                    Source = source,
+                                    Message = $"Dependency failed: {dependency}"
+                                });
+                                return Status(source, false);
+                            }
                         }
                         var res = new Result(await rule.ExecuteAsync(source)) { Source = source };
                         Results.Add(res);
