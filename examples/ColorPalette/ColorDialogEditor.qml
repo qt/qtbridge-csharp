@@ -32,7 +32,7 @@ Popup {
     }
 
     function updateColor(resObj) {
-        let resColor = TypeCast.asColorResource(resObj)
+        let resColor = TypeCast.as_ColorPalette_ColorResource(resObj)
         if (resColor == null)
             return;
         newColor = false

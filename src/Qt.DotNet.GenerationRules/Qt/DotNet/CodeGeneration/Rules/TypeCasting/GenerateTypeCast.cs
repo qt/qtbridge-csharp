@@ -7,6 +7,7 @@ using System.Reflection;
 
 namespace Qt.DotNet.CodeGeneration.Rules.TypeCasting
 {
+    using Extensions;
     using static Placeholders;
     using static Traits;
 
@@ -21,15 +22,14 @@ namespace Qt.DotNet.CodeGeneration.Rules.TypeCasting
                 return Error();
 
             var typeCast = TypeOf<TypeCast>();
-
-            // TO-DO: Generate unique names for cast functions
+            var castName = $"as_{type.FormatNamespace("_")}_{type.MFn(Name)}";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             if (typeCast.GetPlaceholder(MethodDeclarations) is not { } methods)
                 return Error();
             methods += $@"
-Q_INVOKABLE {type.MFn(Ns | Name)} *as{type.MFn(Name)}(QObject *obj);
+Q_INVOKABLE {type.MFn(Ns | Name)} *{castName}(QObject *obj);
 {Blank}";
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -42,7 +42,7 @@ Q_INVOKABLE {type.MFn(Ns | Name)} *as{type.MFn(Name)}(QObject *obj);
             if (typeCast.GetPlaceholder(MethodsImplementation) is not { } implementation)
                 return Error();
             implementation += $@"
-{type.MFn(Ns | Name)} *{typeCast.MFn(Ns | Name)}::as{type.MFn(Name)}(QObject *qObj)
+{type.MFn(Ns | Name)} *{typeCast.MFn(Ns | Name)}::{castName}(QObject *qObj)
 {{
     return Convert::as<{type.MFn(Ns | Name)}>(qObj);
 }}
