@@ -2,7 +2,7 @@
   "profiles": {
     "Qt.DotNet.Generator": {
       "commandName": "Project",
-      "commandLineArgs": "--source \"$(SolutionDir)\\tests\\GeneratorTestApp\\obj\\Debug\\net8.0\\GeneratorTestApp.dll\" --graphviz dependency_graph.pdf --rules \"$(ProjectDir)\\..\\Qt.DotNet.GenerationRules\\bin\\$(Configuration)\\$(TargetFramework)\\Qt.DotNet.GenerationRules.dll\" --target \"$(SolutionDir)\\tests\\GeneratorTestApp\\obj\\Debug\\net8.0\\qtdotnet\\native\""
+      "commandLineArgs": "--source \"$(SolutionDir)\\tests\\GeneratorTestApp\\obj\\Debug\\net8.0\\GeneratorTestApp.dll\" --rules \"$(ProjectDir)\\..\\Qt.DotNet.GenerationRules\\bin\\$(Configuration)\\$(TargetFramework)\\Qt.DotNet.GenerationRules.dll\" --target \"$(SolutionDir)\\tests\\GeneratorTestApp\\obj\\Debug\\net8.0\\qtdotnet\\native\""
     }
   }
 }

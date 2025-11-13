@@ -32,9 +32,4 @@
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 
-  <PropertyGroup>
-    <QtGenCmd Condition="'$(QtGenCmd)' != '' AND '$(Configuration)' == 'Debug'"
-      >$(QtGenCmd) --graphviz "$(IntermediateOutputPath)qtdotnet\dependency_graph.pdf"</QtGenCmd>
-  </PropertyGroup>
-
 </Project>

@@ -23,10 +23,7 @@ namespace Qt.DotNet.CodeGeneration
             SourceFileNotFound,
             GraphBuildError,
             GenerationError,
-            OutputError,
-#if DEBUG
-            GraphVizError = 99
-#endif
+            OutputError
         }
 
         private static void Error(string msg)
@@ -48,9 +45,6 @@ namespace Qt.DotNet.CodeGeneration
 
         public enum Options
         {
-#if DEBUG
-            Graphviz,
-#endif
             Source, Ref, Exclude, Target, Rules
         }
 
@@ -82,14 +76,7 @@ namespace Qt.DotNet.CodeGeneration
                 Options.Exclude, new Option<string[]>(
                     "--exclude", "Exclude type from dependency graph")
                 { Arity = ArgumentArity.ZeroOrMore }
-            },
-#if DEBUG
-            {
-                Options.Graphviz, new Option<string>(
-                    "--graphviz", "Debug visualization")
-                { Arity = ArgumentArity.ZeroOrOne }
             }
-#endif
         };
 
         private static async Task<int> Main(string[] args)
@@ -127,18 +114,7 @@ namespace Qt.DotNet.CodeGeneration
             await DependencyGraph.CreateAsync(loader, sourceAssembly, excludedTypes);
             if (Rules.SourceGraph == null)
                 return Error(ctx, ExitCode.GraphBuildError, "Graph build error");
-#if DEBUG
-            if (ctx.TryGetValue(Options.Graphviz, out string graphVizPath)) {
-                try {
-                    GraphViz
-                        .FromDependencyGraph(Rules.SourceGraph)
-                        .ToPdfFile(graphVizPath);
-                } catch (Exception ex) {
-                    return Error(ctx, ExitCode.GraphVizError,
-                        $"Error generating GraphViz content: '{ex.Message}'");
-                }
-            }
-#endif
+
             if (!ctx.TryGetValue(Options.Target, out string targetPath))
                 return ExitCode.Ok;
 
