@@ -9,11 +9,11 @@ using System;
 namespace Qt
 {
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-    public class ExcludeAttribute : Attribute
+    public class IgnoreTypeAttribute : Attribute
     {
-        public ExcludeAttribute(params Type[] excludedTypes)
+        public IgnoreTypeAttribute(params Type[] excludedTypes)
         { }
-        public ExcludeAttribute(params string[] excludedTypeNames)
+        public IgnoreTypeAttribute(params string[] excludedTypeNames)
         { }
         public bool Inherited { get; set; } = false;
     }
@@ -35,7 +35,7 @@ namespace Qt
             | AttributeTargets.Event;
     }
 
-    [AttributeUsage(TypeAttributeTarget | MemberAttributeTarget, AllowMultiple = false)]
+    [AttributeUsage(TypeAttributeTarget, AllowMultiple = false)]
     public class IncludeAttribute : Attribute
     {
         private const AttributeTargets TypeAttributeTarget
@@ -44,6 +44,11 @@ namespace Qt
             | AttributeTargets.Interface
             | AttributeTargets.Enum
             | AttributeTargets.Delegate;
+    }
+
+    [AttributeUsage(MemberAttributeTarget, AllowMultiple = false)]
+    internal class EnableAttribute : IncludeAttribute
+    {
         private const AttributeTargets MemberAttributeTarget
             = AttributeTargets.Constructor
             | AttributeTargets.Method

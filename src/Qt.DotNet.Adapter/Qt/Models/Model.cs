@@ -10,27 +10,27 @@ namespace Qt.DotNet
     [Include]
     public class ModelChangeEventArgs : EventArgs
     {
-        [Include]
+        [Enable]
         public Model.EventAction Action { get; init; }
-        [Include]
+        [Enable]
         public ModelIndex Parent { get; init; }
-        [Include]
+        [Enable]
         public int First { get; init; }
-        [Include]
+        [Enable]
         public int Last { get; init; }
-        [Include]
+        [Enable]
         public ModelIndex DestinationParent { get; init; }
-        [Include]
+        [Enable]
         public int DestinationChild { get; init; }
-        [Include]
+        [Enable]
         public ModelIndex TopLeft { get; init; }
-        [Include]
+        [Enable]
         public ModelIndex BottomRight { get; init; }
-        [Include]
+        [Enable]
         public List<int> Roles { get; init; }
-        [Include]
+        [Enable]
         public Model.HeaderOrientation Orientation { get; init; }
-        [Include]
+        [Enable]
         public bool Synchronized { get; set; } = false;
     }
 
@@ -188,7 +188,7 @@ namespace Qt.DotNet
             throw new NotImplementedException();
         }
 
-        [Include]
+        [Enable]
         public event EventHandler<ModelChangeEventArgs> ModelChanged;
 
         private enum Sync { None, Enter, Exit }

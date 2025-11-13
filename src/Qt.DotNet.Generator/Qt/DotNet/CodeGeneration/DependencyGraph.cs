@@ -68,7 +68,7 @@ namespace Qt.DotNet.CodeGeneration
         private Type AttribCompilerGenerated => lazy.Get(() => AttribCompilerGenerated, ()
             => TypeOf<CompilerGeneratedAttribute>());
         private Type AttribExclude => lazy.Get(() => AttribExclude, ()
-            => TypeOf<Qt.ExcludeAttribute>());
+            => TypeOf<Qt.IgnoreTypeAttribute>());
         private Type AttribIgnore => lazy.Get(() => AttribIgnore, ()
             => TypeOf<Qt.IgnoreAttribute>());
 
@@ -146,19 +146,6 @@ namespace Qt.DotNet.CodeGeneration
             return type.GetGenericTypeDefinition() == baseType;
         }
 
-        private bool IsDerived(Type type, Type baseType)
-        {
-            if (type.IsAssignableTo(baseType))
-                return true;
-            if (!type.IsConstructedGenericType || !baseType.IsGenericTypeDefinition)
-                return false;
-            if (type.GenericTypeArguments.Length != baseType.GetGenericArguments().Length)
-                return false;
-            if (!baseType.MakeGenericType(type.GenericTypeArguments).IsAssignableFrom(type))
-                return false;
-            return true;
-        }
-
         private bool IsExcluded(Type type)
         {
             if (type.QtAttributeData<IncludeAttribute>().Any())
@@ -176,7 +163,11 @@ namespace Qt.DotNet.CodeGeneration
                 return true;
             if (ExcludedTypes.Any(x => IsSame(type, x)))
                 return true;
-            if (ExcludedBaseTypes.Any(x => IsDerived(type, x)))
+            if (ExcludedBaseTypes.Any(x => type.IsDerivedFrom(x)))
+                return true;
+            if (ExcludedTypes.Any(x => type.IsNestedIn(x)))
+                return true;
+            if (ExcludedBaseTypes.Any(x => type.IsNestedIn(x)))
                 return true;
             if (IsIgnored(type))
                 return true;
@@ -244,7 +235,7 @@ namespace Qt.DotNet.CodeGeneration
                         var ignoreType = ignoreTypeData.Value switch
                         {
                             Type type => type,
-                            string typeName => TypeOf(typeName),
+                            string name => TypeOf(name) ?? TypeOf(assembly.GetType(name)),
                             _ => null
                         };
                         if (ignoreType == null)

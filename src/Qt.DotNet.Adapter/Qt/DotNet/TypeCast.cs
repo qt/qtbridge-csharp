@@ -12,7 +12,7 @@ namespace Qt.DotNet
     [QmlElement(Singleton = true)]
     public class TypeCast
     {
-        [Include]
+        [Enable]
         public TypeCast() { }
     }
 }
