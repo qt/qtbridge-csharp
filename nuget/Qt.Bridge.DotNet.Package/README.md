@@ -4,7 +4,7 @@ Bring **QML/Qt Quick** to **C#/.NET** with a single package. This bundle ships:
 
 - **.NET adapter** to host the Qt/QML engine from managed code.
 - **Source/code generator** that discovers your C# types and exposes them to QML.
-- **Filtering rules** (`[Qt.Include]`, `[Qt.Ignore]`, `[Qt.Exclude]`) to control what becomes visible to QML.
+- **Filtering rules** (`[Qt.Include]`, `[Qt.Ignore]`, `[Qt.IgnoreType]`) to control what becomes visible to QML.
 - **C++ include headers** used by the native side of the bridge.
 - A **minimal, open-source Qt Quick runtime subset** sufficient to load and run QML (no full or commercial Qt installation).
 
@@ -36,7 +36,7 @@ Bring **QML/Qt Quick** to **C#/.NET** with a single package. This bundle ships:
 2. **Mark types/members** you want to expose to QML using attributes:
    - `[Qt.Include]` – opt–in a type or a specific member.
    - `[Qt.Ignore]` – remove a type or member.
-   - `[assembly: Qt.Exclude(...)]` – remove one or more types by rule; supports `Inherited = true`.
+   - `[assembly: Qt.IgnoreType(...)]` – remove one or more types, or entire type hierarchies by rule; supports `Inherited = true`.
 3. **Add your QML** (e.g., `Main.qml`) to the project.
 4. **Build & run.** The generator creates the interop surface; the adapter boots the QML engine and loads your entry file.
 
