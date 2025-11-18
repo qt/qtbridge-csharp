@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+****************************************************************************************************
+ Copyright (C) 2025 The Qt Company Ltd.
+ SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+****************************************************************************************************
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- //////// Default version selection //////// -->
+
+  <PropertyGroup Condition="'$(SelectVersion)' == ''">
+    <SelectVersion>0.1-alpha</SelectVersion>
+  </PropertyGroup>
+
+  <!-- //////// BEGIN Versions //////// -->
+
+  <!-- 0.1-alpha -->
+  <PropertyGroup Condition="$(SelectVersion.StartsWith('0.1-alpha'))">
+    <Qt_Major>0</Qt_Major>
+    <Qt_Minor>1</Qt_Minor>
+    <Qt_Patch>0</Qt_Patch>
+    <Qt_Tag>alpha</Qt_Tag>
+    <Qt_BuildEpoch Condition="$(SelectVersion.EndsWith('-auto-build'))">2025-11-19</Qt_BuildEpoch>
+  </PropertyGroup>
+
+  <!-- 0.2-beta (TBD) -->
+
+  <!-- 0.3-beta (TBD) -->
+
+  <!-- 1.0 (TBD) -->
+
+  <!-- //////// END Versions //////// -->
+
+  <PropertyGroup>
+
+    <!-- //////// Auto build number calculation //////// -->
+
+    <!-- Default auto build resolution: 10 mins in units of 100-nsecs (hnsecs) -->
+    <Qt_BuildResolution Condition="'$(Qt_BuildResolution)' == ''"
+      >6000000000</Qt_BuildResolution>
+
+    <!-- Current UTC date/time in hnsecs -->
+    <Qt_Now Condition="'$(Qt_BuildEpoch)' != ''"
+      >$([System.DateTime]::UtcNow.ToFileTimeUtc())</Qt_Now>
+
+    <!-- Version epoch in hnsecs -->
+    <Qt_Epoch Condition="'$(Qt_BuildEpoch)' != ''"
+      >$([System.DateTime]::Parse('$(Qt_BuildEpoch)').ToFileTimeUtc())</Qt_Epoch>
+
+    <!-- Timestamp in hnsecs -->
+    <Qt_TimestampHns Condition="'$(Qt_BuildEpoch)' != ''"
+      >$([MSBuild]::Subtract($(Qt_Now), $(Qt_Epoch)))</Qt_TimestampHns>
+
+    <!-- Timestamp in build resolution units -->
+    <Qt_Timestamp Condition="'$(Qt_BuildEpoch)' != ''"
+      >$([MSBuild]::Divide($(Qt_TimestampHns), $(Qt_BuildResolution)))</Qt_Timestamp>
+
+    <!-- //////// Version formats //////// -->
+
+    <!-- MAJOR.MINOR.PATCH -->
+    <Version>$(Qt_Major).$(Qt_Minor).$(Qt_Patch)</Version>
+
+    <!-- MAJOR.MINOR.PATCH-TAG -->
+    <Version Condition="'$(Qt_Tag)' != ''"
+      >$(Qt_Major).$(Qt_Minor).$(Qt_Patch)-$(Qt_Tag)</Version>
+
+    <!-- MAJOR.MINOR.PATCH.TIMESTAMP -->
+    <Version Condition="'$(Qt_Timestamp)' != '' AND '$(Qt_Tag)' == ''"
+      >$(Qt_Major).$(Qt_Minor).$(Qt_Patch).$(Qt_Timestamp)</Version>
+
+    <!-- MAJOR.MINOR.PATCH.TIMESTAMP-TAG -->
+    <Version Condition="'$(Qt_Timestamp)' != '' AND '$(Qt_Tag)' != ''"
+      >$(Qt_Major).$(Qt_Minor).$(Qt_Patch).$(Qt_Timestamp)-$(Qt_Tag)</Version>
+
+    <!-- MAJOR.MINOR.PATCH.BUILD -->
+    <Version Condition="'$(Qt_Build)' != '' AND '$(Qt_Tag)' == ''"
+      >$(Qt_Major).$(Qt_Minor).$(Qt_Patch).$(Qt_Build)</Version>
+
+    <!-- MAJOR.MINOR.PATCH.BUILD-TAG -->
+    <Version Condition="'$(Qt_Build)' != '' AND '$(Qt_Tag)' != ''"
+      >$(Qt_Major).$(Qt_Minor).$(Qt_Patch).$(Qt_Build)-$(Qt_Tag)</Version>
+
+    <SelectedVersion>$(Version)</SelectedVersion>
+
+  </PropertyGroup>
+
+  <!-- Set assembly attribute for access in source code -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>SelectedVersion</_Parameter1>
+      <_Parameter2>$(SelectedVersion)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

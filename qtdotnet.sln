@@ -33,8 +33,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solution", "solution", "{0F
 		.gitignore = .gitignore
 		HOW-TO attribs.md = HOW-TO attribs.md
 		HOW-TO debug generated code.md = HOW-TO debug generated code.md
+		HOW-TO versions.md = HOW-TO versions.md
 		NuGet.Config = NuGet.Config
 		README.md = README.md
+		qt_version.props = qt_version.props
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0828626A-BAD8-4E02-99DC-3AAA15073223}"
