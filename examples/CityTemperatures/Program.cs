@@ -6,19 +6,14 @@
 using System.Reflection;
 using Qt.Quick;
 
-namespace GeneratorTestApp
+namespace CityTemperatures
 {
-    public class Program
+    internal class Program
     {
         static void Main(string[] args)
         {
-            Qml.LoadFromRootModule("Main");
+            Qml.LoadFromRootModule("CityTemperatures");
             Qml.WaitForExit();
-        }
-
-        public void Load(string uri, string type)
-        {
-            _ = Task.Run(() => Qml.LoadFromModule(uri, type));
         }
     }
 }

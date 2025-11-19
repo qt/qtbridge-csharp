@@ -9,7 +9,7 @@ using System.Diagnostics;
 using OpenMeteo;
 using Qt.DotNet.Utils;
 
-namespace PackageTestApp
+namespace CityTemperatures
 {
     public class Weather : INotifyPropertyChanged
     {

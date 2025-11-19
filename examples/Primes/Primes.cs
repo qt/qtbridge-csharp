@@ -8,7 +8,7 @@ using Qt.DotNet;
 using Qt.DotNet.Utils;
 using Qt.Quick;
 
-namespace GeneratorTestApp
+namespace PrimesApp
 {
     public class Primes : ListModel<Prime>, INotifyPropertyChanged
     {

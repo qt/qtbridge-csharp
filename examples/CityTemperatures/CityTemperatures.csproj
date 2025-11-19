@@ -7,6 +7,8 @@
 -->
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_version.props))" />
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
@@ -16,7 +18,18 @@
 
   <ItemGroup>
     <PackageReference Include="OpenMeteo.dotnet" Version="2.0.0" />
-    <PackageReference Include="Qt.Bridge.DotNet" Version="0.1.0" />
   </ItemGroup>
+
+  <ItemGroup Condition="'$(SolutionName)' != 'qtdotnet'">
+    <PackageReference Include="Qt.Bridge.DotNet" Version="$(SelectedVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(SolutionName)' == 'qtdotnet'">
+    <ProjectReference Include="..\..\src\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
+    <ProjectReference Include="..\..\src\Qt.DotNet.Generator\Qt.DotNet.Generator.csproj" />
+    <ProjectReference Include="..\..\src\Qt.DotNet.GenerationRules\Qt.DotNet.GenerationRules.csproj" />
+  </ItemGroup>
+  <Import Condition="'$(SolutionName)' == 'qtdotnet'"
+    Project="..\..\src\Qt.DotNet.Adapter\build\Qt.DotNet.targets" />
 
 </Project>

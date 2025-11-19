@@ -5,7 +5,10 @@
  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 ****************************************************************************************************
 -->
+
 <Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_version.props))" />
 
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
@@ -17,18 +20,18 @@
     <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference
-      Include="..\..\src\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
-    <ProjectReference
-      Include="..\..\src\Qt.DotNet.Generator\Qt.DotNet.Generator.csproj" />
-    <ProjectReference
-      Include="..\..\src\Qt.DotNet.GenerationRules\Qt.DotNet.GenerationRules.csproj" />
-    <ProjectReference
-      Include="..\..\utils\LazyFactory\LazyFactory.csproj" />
+  <ItemGroup Condition="'$(SolutionName)' != 'qtdotnet'">
+    <PackageReference Include="Qt.Bridge.DotNet" Version="$(SelectedVersion)" />
   </ItemGroup>
 
-  <Import Project="..\..\src\Qt.DotNet.Adapter\build\Qt.DotNet.targets"/>
+  <ItemGroup Condition="'$(SolutionName)' == 'qtdotnet'">
+    <ProjectReference Include="..\..\src\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
+    <ProjectReference Include="..\..\src\Qt.DotNet.Generator\Qt.DotNet.Generator.csproj" />
+    <ProjectReference Include="..\..\src\Qt.DotNet.GenerationRules\Qt.DotNet.GenerationRules.csproj" />
+    <ProjectReference Include="..\..\utils\LazyFactory\LazyFactory.csproj" />
+  </ItemGroup>
+  <Import Condition="'$(SolutionName)' == 'qtdotnet'"
+    Project="..\..\src\Qt.DotNet.Adapter\build\Qt.DotNet.targets" />
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 

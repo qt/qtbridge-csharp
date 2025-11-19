@@ -1,9 +1,0 @@
-{
-  "profiles": {
-    "GeneratorTestApp": {
-      "commandName": "Project",
-      "nativeDebugging": true,
-      "hotReloadEnabled": false
-    }
-  }
-}

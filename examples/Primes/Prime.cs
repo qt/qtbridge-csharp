@@ -7,7 +7,7 @@ using System.ComponentModel;
 using Qt.DotNet.Utils;
 using Qt.Quick;
 
-namespace GeneratorTestApp
+namespace PrimesApp
 {
     public class Prime : INotifyPropertyChanged
     {

@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "UserViewQml": {
-      "commandName": "Project",
-      "nativeDebugging": false
-    }
-  }
-}

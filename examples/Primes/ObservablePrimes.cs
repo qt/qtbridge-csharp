@@ -5,7 +5,7 @@
 
 using System.Collections.ObjectModel;
 
-namespace GeneratorTestApp
+namespace PrimesApp
 {
     public class ObservablePrimes
     {

@@ -6,14 +6,19 @@
 using System.Reflection;
 using Qt.Quick;
 
-namespace PackageTestApp
+namespace PrimesApp
 {
-    internal class Program
+    public class Program
     {
         static void Main(string[] args)
         {
-            Qml.LoadFromRootModule("CityTemperatures");
+            Qml.LoadFromRootModule("Main");
             Qml.WaitForExit();
+        }
+
+        public void Load(string uri, string type)
+        {
+            _ = Task.Run(() => Qml.LoadFromModule(uri, type));
         }
     }
 }
