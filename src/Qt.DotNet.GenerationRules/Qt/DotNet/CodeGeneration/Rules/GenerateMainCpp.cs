@@ -71,19 +71,24 @@ int main(int argc, char *argv[])
     QStringList args;
     for (int i = 0; i < argc; ++i)
         args << argv[i];
+    int dotNetResult = -1;
+    bool dotNetExited = false;
     auto *dotnetThread = QThread::create(
-        [&args, &app, &dotNetHost, &assemblyPath]()
+        [&args, &app, &dotNetHost, &assemblyPath, &dotNetResult, &dotNetExited]()
         {{
             dotNetHost.loadApp(assemblyPath, args);
-            int result = dotNetHost.runApp();
-            app.exit(result);
+            dotNetResult = dotNetHost.runApp();
+            dotNetExited = true;
+            app.exit(dotNetResult);
         }});
     dotnetThread->start();
 
     int tries = 0;
     constexpr int maxTries = 10000; // ~1 sec total
-    while (!dotNetHost.isReady() && tries++ < maxTries)
+    while (!dotNetExited && !dotNetHost.isReady() && tries++ < maxTries)
         QThread::usleep(100);
+    if (dotNetExited)
+        return dotNetResult;
     if (!dotNetHost.isReady()) {{
         qCritical() << "".NET host not ready after timeout."";
         return -2;
@@ -98,6 +103,9 @@ int main(int argc, char *argv[])
 
     {mainCpp[new(MainBeforeAppExec) { Sorted = false }]}
     QObject::connect(&app, &QGuiApplication::aboutToQuit, &qmlEngine, &QQmlEngine::quit);
+
+    if (dotNetExited)
+        return dotNetResult;
 
     auto res = app.exec();
     dotnetThread->wait();
