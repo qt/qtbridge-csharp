@@ -173,22 +173,29 @@
       <Output TaskParameter="ConsoleOutput" ItemName="VsWhereOutput" />
     </Exec>
     <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
-      <CMakeBuild>true</CMakeBuild>
       <VsInstallRoot Condition="Exists('%(VsWhereOutput.Identity)')">%(VsWhereOutput.Identity)</VsInstallRoot>
     </PropertyGroup>
+    <PropertyGroup Condition="'$(VsInstallRoot)' == '' OR '$(QtBuildSystem)' == 'ninja'">
+      <CMakeBuild>true</CMakeBuild>
+    </PropertyGroup>
 
-    <!-- TO_DO: allow choice of project generator (VS or Ninja) -->
     <MakeDir Directories="$(IntermediateOutputPath)qtdotnet\native\build" />
+    <RemoveDir Directories="$(IntermediateOutputPath)qtdotnet\native\bin" />
+    <MakeDir Directories="$(IntermediateOutputPath)qtdotnet\native\bin" />
     <PropertyGroup>
       <CMakeCmd>
         CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
         SET CMAKE_PREFIX_PATH=$(QtDir);%CMAKE_PREFIX_PATH%"
         CD "$(IntermediateOutputPath)qtdotnet\native\build"
-        cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake
+      </CMakeCmd>
+      <CMakeCmd Condition="'$(CMakeBuild)' != 'true'">
+        $(CMakeCmd)
+        cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G "Visual Studio 17 2022"
       </CMakeCmd>
       <CMakeCmd Condition="'$(CMakeBuild)' == 'true'">
         $(CMakeCmd)
-        cmake --build .
+        cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G Ninja -DCMAKE_BUILD_TYPE=Release
+        cmake --build . --parallel
       </CMakeCmd>
     </PropertyGroup>
     <Exec Command="$(CMakeCmd)" EchoOff="true" IgnoreExitCode="true">
@@ -196,13 +203,13 @@
     </Exec>
     <Error Condition="'$(CMakeResult)' != '0'" Text="Error building native code!" />
 
-    <ItemGroup>
+    <ItemGroup Condition="'$(CMakeBuild)' != 'true'">
       <NativeSln Include="$(IntermediateOutputPath)qtdotnet\native\build\*.sln" />
     </ItemGroup>
-    <PropertyGroup>
+    <PropertyGroup Condition="'$(CMakeBuild)' != 'true'">
       <NativeApp>%(NativeSln.RelativeDir)%(NativeSln.Filename)</NativeApp>
     </PropertyGroup>
-    <ItemGroup>
+    <ItemGroup Condition="'$(CMakeBuild)' != 'true'">
       <NativeProject Include="$(NativeApp)_tooling.vcxproj;
                               $(NativeApp)_qmlimportscan.vcxproj;
                               $(NativeApp)_autogen.vcxproj;
@@ -227,24 +234,19 @@
 
     <Message Importance="high" Text="Qt/.NET: Replacing native host binary..." />
 
+    <ItemGroup>
+      <QtNativeBinary Include="$(IntermediateOutputPath)qtdotnet\native\bin\*.exe" />
+    </ItemGroup>
     <PropertyGroup>
-      <MSBuildCmd>msbuild "$(NativeApp).vcxproj"</MSBuildCmd>
-      <MSBuildCmd>$(MSBuildCmd) -t:BuiltProjectOutputGroup</MSBuildCmd>
-      <MSBuildCmd>$(MSBuildCmd) -p:Configuration=Release</MSBuildCmd>
-      <MSBuildCmd>$(MSBuildCmd) -getProperty:TargetPath</MSBuildCmd>
-      <MSBuildCmd>
-        CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
-        $(MSBuildCmd) &gt; "$(NativeApp)_targetpath.txt"
-      </MSBuildCmd>
+      <QtNativeHostPath Condition="Exists('%(QtNativeBinary.FullPath)')"
+        >%(QtNativeBinary.FullPath)</QtNativeHostPath>
     </PropertyGroup>
-    <Exec
-      Command="$(MSBuildCmd)" EchoOff="true" IgnoreExitCode="true" />
+    <Error Condition="'$(QtNativeHostPath)' == ''"
+      Text="ERROR: Missing native host binary" />
+    <Touch Files="$(QtNativeHostPath)" />
     <PropertyGroup>
-      <AppHostSourcePath Condition="Exists('$(NativeApp)_targetpath.txt')"
-        >$([System.IO.File]::ReadAllText('$(NativeApp)_targetpath.txt')
-        .Replace('%0D', '').Split('%0A')[0])</AppHostSourcePath>
+      <AppHostSourcePath>$(QtNativeHostPath)</AppHostSourcePath>
     </PropertyGroup>
-    <Touch Files="$(AppHostSourcePath)" />
   </Target>
   <!-- END QtDotNetReplaceBinary-->
 

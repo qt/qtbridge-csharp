@@ -40,6 +40,8 @@
 
     <QtQmlFilesCs>qtdotnet\csharp\QmlFiles.cs</QtQmlFilesCs>
     <QtQmlSourceDir>qtdotnet\native\source\qml\</QtQmlSourceDir>
+
+    <QtBuildSystem Condition="'$(QtBuildSystem)' == ''">ninja</QtBuildSystem>
   </PropertyGroup>
 
   <PropertyGroup>

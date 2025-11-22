@@ -69,6 +69,13 @@ target_link_libraries({Root.MFn(Target)} PRIVATE
     Qt6::Qml
     Qt6::Quick
     {cmake[new(Libraries)]}
+)
+
+add_custom_command(
+  TARGET {Root.MFn(Target)}
+  POST_BUILD
+  COMMAND ${{CMAKE_COMMAND}}
+  ARGS -E copy $<TARGET_FILE:{Root.MFn(Target)}> ../bin
 )";
 #if DEBUG
             cmake += $@"
