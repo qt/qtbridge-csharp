@@ -81,6 +81,7 @@
     <!-- Desktop C++ -->
     <Exec Condition="'$(SkipWorkloadCheck)'!='true'"
           Command="&quot;$(VsWhereExe)&quot; -nologo -products * -format json -requires &quot;$(DesktopWorkload)&quot;"
+          StandardOutputImportance="low"
           ConsoleToMSBuild="true"
           IgnoreExitCode="true">
       <Output TaskParameter="ConsoleOutput" PropertyName="VsDesktopJson" />
@@ -94,6 +95,7 @@
     <!-- Optional: cross-platform C++ -->
     <Exec Condition="'$(SkipWorkloadCheck)'!='true' and '$(QtVsCheckCrossPlat)'=='true'"
           Command="&quot;$(VsWhereExe)&quot; -nologo -products * -format json -requires &quot;$(CrossPlatformWorkload)&quot;"
+          StandardOutputImportance="low"
           ConsoleToMSBuild="true"
           IgnoreExitCode="true">
       <Output TaskParameter="ConsoleOutput" PropertyName="VsCrossJson" />
