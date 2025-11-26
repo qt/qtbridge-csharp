@@ -45,14 +45,7 @@ namespace Qt.DotNet.CodeGeneration.Rules
             }
 ]}
 
-#define EMBED_HASH_HI_PART_UTF8 ""c3ab8ff13720e8ad9047dd39466b3c89""
-#define EMBED_HASH_LO_PART_UTF8 ""74e592c2fa383d4a3960714caef0c4f2""
-#define EMBED_HASH_FULL_UTF8 (EMBED_HASH_HI_PART_UTF8 EMBED_HASH_LO_PART_UTF8)
-constexpr int EMBED_SZ = sizeof(EMBED_HASH_FULL_UTF8) / sizeof(EMBED_HASH_FULL_UTF8[0]);
-constexpr int EMBED_MAX = (EMBED_SZ > 1025 ? EMBED_SZ : 1025);
-static char appName[EMBED_MAX] = EMBED_HASH_FULL_UTF8;
-static const char hi_part[] = EMBED_HASH_HI_PART_UTF8;
-static const char lo_part[] = EMBED_HASH_LO_PART_UTF8;
+QT_DOTNET_HOST(appName);
 
 int main(int argc, char *argv[])
 {{
