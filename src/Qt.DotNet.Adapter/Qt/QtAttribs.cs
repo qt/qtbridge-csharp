@@ -62,5 +62,7 @@ namespace Qt
     {
         public string MainIncludes { get; set; }
         public string MainBeforeAppExec { get; set; }
+        public string Packages { get; set; }
+        public string Libraries { get; set; }
     }
 }
