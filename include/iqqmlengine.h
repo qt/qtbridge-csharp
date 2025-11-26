@@ -6,7 +6,7 @@
 #pragma once
 
 #ifndef QT_QUICK_LIB
-struct IQQmlApplicationEngine {};
+struct IQQmlEngine {};
 #else
 
 #include "qdotnetinterface.h"
@@ -17,7 +17,7 @@ struct IQQmlApplicationEngine {};
 #   pragma GCC diagnostic ignored "-Wconversion"
 #endif
 #include <QElapsedTimer>
-#include <QQmlApplicationEngine>
+#include <QQmlEngine>
 #include <QThread>
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop
@@ -25,16 +25,16 @@ struct IQQmlApplicationEngine {};
 
 #include <functional>
 
-struct IQQmlApplicationEngine : public QDotNetNativeInterface<QQmlApplicationEngine>
+struct IQQmlEngine : public QDotNetNativeInterface<QQmlEngine>
 {
     static inline const QString &AssemblyQualifiedName =
-        QStringLiteral("Qt.Quick.IQQmlApplicationEngine, Qt.DotNet.Adapter");
+        QStringLiteral("Qt.Quick.IQQmlEngine, Qt.DotNet.Adapter");
 
     bool exited = false;
     int exitCode = -1;
 
-    IQQmlApplicationEngine()
-        : QDotNetNativeInterface<QQmlApplicationEngine>(AssemblyQualifiedName,
+    IQQmlEngine()
+        : QDotNetNativeInterface<QQmlEngine>(AssemblyQualifiedName,
             QDotNetAdapter::instance().qmlEngine(), false)
     {
         init();
@@ -45,13 +45,13 @@ struct IQQmlApplicationEngine : public QDotNetNativeInterface<QQmlApplicationEng
         if (engine == nullptr)
             return;
 
-        QObject::connect(engine, &QQmlApplicationEngine::exit,
+        QObject::connect(engine, &QQmlEngine::exit,
             [this](int code)
             {
                 exitCode = code;
                 exited = true;
             });
-        QObject::connect(engine, &QQmlApplicationEngine::quit,
+        QObject::connect(engine, &QQmlEngine::quit,
             [this]()
             {
                 exitCode = 0;
@@ -60,7 +60,7 @@ struct IQQmlApplicationEngine : public QDotNetNativeInterface<QQmlApplicationEng
         setCallback<void, QString, QString>("LoadFromModule", [this](void *data,
             const QString &uri, const QString &typeName)
             {
-                auto *qmlEngine = reinterpret_cast<QQmlApplicationEngine *>(data);
+                auto *qmlEngine = reinterpret_cast<QQmlEngine *>(data);
                 if (!qmlEngine)
                     return;
                 QMetaObject::invokeMethod(qmlEngine, "loadFromModule", Qt::BlockingQueuedConnection,
@@ -72,9 +72,9 @@ struct IQQmlApplicationEngine : public QDotNetNativeInterface<QQmlApplicationEng
                     return false;
                 QElapsedTimer timer;
                 timer.start();
-                while (!timer.hasExpired(timeout) && !IQQmlApplicationEngine::exited)
+                while (!timer.hasExpired(timeout) && !IQQmlEngine::exited)
                     QThread::usleep(100);
-                return IQQmlApplicationEngine::exited;
+                return IQQmlEngine::exited;
             });
         setCallback<void>("ProcessEvents", [this](void *data)
             {
@@ -84,9 +84,9 @@ struct IQQmlApplicationEngine : public QDotNetNativeInterface<QQmlApplicationEng
 
     static void staticInit(QDotNetInterface *sta)
     {
-        static IQQmlApplicationEngine qmlEngine;
-        sta->setCallback<IQQmlApplicationEngine>("QQmlApplicationEngine_Get",
-            [](void *) { return IQQmlApplicationEngine(qmlEngine); });
+        static IQQmlEngine qmlEngine;
+        sta->setCallback<IQQmlEngine>("QQmlEngine_Get",
+            [](void *) { return IQQmlEngine(qmlEngine); });
     }
 };
 #endif

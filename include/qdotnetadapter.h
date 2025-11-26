@@ -13,9 +13,9 @@
 #endif
 #include <QCoreApplication>
 #ifdef QT_QUICK_LIB
-#include <QQmlApplicationEngine>
+#include <QQmlEngine>
 #else
-struct QQmlApplicationEngine {};
+struct QQmlEngine {};
 #endif
 #include <QDir>
 #include <QList>
@@ -67,14 +67,14 @@ public:
     }
 
     static void init(const QString &assemblyPath, const QString &typeAndAssemblyName,
-        QDotNetHost *externalHost = nullptr, QQmlApplicationEngine *qml = nullptr)
+        QDotNetHost *externalHost = nullptr, QQmlEngine *qml = nullptr)
     {
         init(assemblyPath, typeAndAssemblyName, typeAndAssemblyName, externalHost, qml);
     }
 
     static void init(const QString &assemblyPath, const QString &assemblyName,
         const QString &typeName, QDotNetHost *externalHost = nullptr,
-        QQmlApplicationEngine *qml = nullptr)
+        QQmlEngine *qml = nullptr)
     {
         if (instance().isValid())
             return;
@@ -348,7 +348,7 @@ public:
         return fnGetObject(obj, path);
     }
 
-    QQmlApplicationEngine *qmlEngine() const
+    QQmlEngine *qmlEngine() const
     {
         return qml;
     }
@@ -392,7 +392,7 @@ private:
     static inline const QString defaultTypeName = QLatin1String("Qt.DotNet.Adapter");
 
     mutable void *staticInterface = nullptr;
-    mutable QQmlApplicationEngine *qml = nullptr;
+    mutable QQmlEngine *qml = nullptr;
 
 public:
     inline static std::function<void *()> ctor_staticInterface = nullptr;

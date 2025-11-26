@@ -15,10 +15,10 @@ namespace Qt
         {
             public partial interface IStatic
             {
-                Qt.Quick.IQQmlApplicationEngine QQmlApplicationEngine_Get();
+                Qt.Quick.IQQmlEngine QQmlEngine_Get();
             }
-            public static Qt.Quick.IQQmlApplicationEngine QQmlApplicationEngine() =>
-                Static.QQmlApplicationEngine_Get();
+            public static Qt.Quick.IQQmlEngine QQmlEngine() =>
+                Static.QQmlEngine_Get();
         }
     }
 
@@ -26,7 +26,7 @@ namespace Qt
     {
         using static DotNet.Adapter;
 
-        public interface IQQmlApplicationEngine
+        public interface IQQmlEngine
         {
             void LoadFromModule(string uri, string typeName);
             bool WaitForExit(int timeout = -1);
@@ -35,12 +35,12 @@ namespace Qt
 
         public static class Qml
         {
-            private static IQQmlApplicationEngine _Instance;
-            private static IQQmlApplicationEngine Instance
+            private static IQQmlEngine _Instance;
+            private static IQQmlEngine Instance
             {
                 get
                 {
-                    _Instance ??= Static.QQmlApplicationEngine_Get();
+                    _Instance ??= Static.QQmlEngine_Get();
                     return _Instance;
                 }
             }

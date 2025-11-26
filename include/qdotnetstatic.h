@@ -7,7 +7,7 @@
 
 #include "qdotnetinterface.h"
 #include "qdotnetobject.h"
-#include "iqqmlapplicationengine.h"
+#include "iqqmlengine.h"
 
 #include <functional>
 
@@ -22,7 +22,7 @@ public:
     QDotNetStatic() : QDotNetInterface(AssemblyQualifiedName, nullptr)
     {
 #ifdef QT_QUICK_LIB
-        IQQmlApplicationEngine::staticInit(this);
+        IQQmlEngine::staticInit(this);
 #endif
     }
 };
