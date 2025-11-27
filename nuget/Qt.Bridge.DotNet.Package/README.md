@@ -25,7 +25,7 @@ Bring **QML/Qt Quick** to **C#/.NET** with a single package. This bundle ships:
 
 ```bash
 # Project folder
- dotnet add package Qt.Bridge.DotNet --version 0.1.0
+dotnet add package Qt.Bridge.DotNet --prerelease
 ```
 
 ---
@@ -51,7 +51,7 @@ Bring **QML/Qt Quick** to **C#/.NET** with a single package. This bundle ships:
 ---
 
 ## Future plans
-- TODO: Fill out once we're ready to publish 0.1.0
+- TODO: Fill out once we're ready to publish
 
 ---
 

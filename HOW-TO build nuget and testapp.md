@@ -86,34 +86,23 @@ Build the test app as a smoke test:
 
 ```bat
 :: Build the test app (adjust the path if different)
-dotnet build -c Release tests\PackageTestApp\PackageTestApp.csproj
+dotnet build -c Release examples\Primes\Primes.csproj
 ```
 
 ---
 
-## 4) Pack the NuGet
-
-From the **same prompt**:
-
-```bat
-:: Generates .nupkg into .\nuget\local
-dotnet pack -c Release nuget\Qt.Bridge.DotNet.Package\Qt.Bridge.DotNet.Package.csproj -p:PackageVersion=0.1.0
-```
-
----
-
-## 5) Test the package locally with the sample app
+## 4) Test the package locally with the sample app
 
 From the **same prompt**:
 
 ```bat
 :: Build & run the sample app
-dotnet run --project tests\PackageTestApp\PackageTestApp.csproj -c Release
+dotnet run --project examples\Primes\Primes.csproj -c Release
 ```
 
 ---
 
-## 6) Publish to nuget.org (optional)
+## 5) Publish to nuget.org (optional)
 
 ```bat
 :: Push the package
