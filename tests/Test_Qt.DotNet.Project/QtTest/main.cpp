@@ -5,57 +5,47 @@
 
 #include <QCoreApplication>
 #include <QDebug>
-#include <QDir>
-#include <QFile>
-#include <QFileInfo>
-#include <QString>
 #include <QTest>
 
-#include <QDotNetHost>
-#include <QDotNetAdapter>
-#include <QDotNetStatic>
+#include "QtTestSetupBase.h"
 
-QT_DOTNET_HOST(appName);
-
-class Test_QtTest : public QObject
+class Test_QtTest : public QObject, protected QtTestSetupBase
 {
     Q_OBJECT
-private:
-    QString assemblyPath;
-    QString assemblyName;
-    QDotNetHost *dotNetHost = nullptr;
+
 private slots:
     void initTestCase()
     {
-        dotNetHost = new QDotNetHost();
+        initHost();
+        QVERIFY2(locateAssembly(), "Managed test assembly not found");
     }
+
     void assemblyExists()
     {
-        assemblyPath = QDir(QCoreApplication::applicationDirPath()).filePath(appName);
-        QVERIFY(QFile::exists(assemblyPath));
-        assemblyName = QFileInfo(assemblyPath).completeBaseName();
+        QVERIFY2(QFile::exists(assemblyPath), "Cannot find target assembly");
     }
+
     void dotnetMain()
     {
-        QVERIFY(dotNetHost->loadApp(assemblyPath));
-        QCOMPARE(dotNetHost->runApp(), 0);
+        QVERIFY2(runAppSynchronous(), "Managed test entry point failed");
     }
+
     void initAdapter()
     {
-        QDotNetAdapter::instance().init(
-            QDir(QCoreApplication::applicationDirPath()).filePath("Qt.DotNet.Adapter.dll"),
-            "Qt.DotNet.Adapter", "Qt.DotNet.Adapter", dotNetHost);
-        QVERIFY(QDotNetAdapter::instance().isValid());
+        QVERIFY2(QtTestSetupBase::initAdapter(nullptr, false),
+            "Failed to initialize Qt/.NET adapter");
         qInfo() << QString("Hello World from C++!");
     }
+
     void callStatic()
     {
         auto fortyTwo = QString("%1, %2").arg("QtTest.FortyTwo", assemblyName);
         QCOMPARE(QtDotNet::call<int>(fortyTwo, "get_Value"), 42);
     }
+
     void cleanupTestCase()
     {
-        dotNetHost->unload();
+        unloadHost();
     }
 };
 

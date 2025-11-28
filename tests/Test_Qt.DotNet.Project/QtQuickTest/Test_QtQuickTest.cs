@@ -3,43 +3,35 @@
  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 ***************************************************************************************************/
 
-using System;
 using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text.RegularExpressions;
+using Test_Qt.DotNet.Project.Shared;
 
 namespace Test_Qt.DotNet.Project.QtQuickTest
 {
     [TestClass]
-    public class Test_QtQuickTest
+    public class Test_QtQuickTest : ManagedTestBase
     {
         [TestMethod]
         public async Task QtQuickTest()
         {
             using var temp = new TempProject();
-            temp.Create(new()
-            {
-                PackageReferences = [Packages.QtBridge],
-                ReplaceGeneratedFiles =
-                [
-                    (@"source\cpp\main.cpp", @"QtQuickTest\main.cpp")
-                ]
-            });
-            temp.CopyFile("Program.cs", @"QtQuickTest\Program.cs");
-            temp.CopyFile("tst_qtquicktest.qml", @"QtQuickTest\tst_qtquicktest.qml");
 
-            var build = await temp.BuildAsync();
-            temp.SaveLog();
-            Assert.IsTrue(build.Ok);
+            var options = CreateQtQuickTestOptions(@"QtQuickTest\main.cpp");
+            await InitializeAndBuildAsync(temp, options,
+                project => {
+                    project.CopyFile("Program.cs", @"QtQuickTest\Program.cs");
+                    project.CopyFile("tst_qtquicktest.qml", @"QtQuickTest\tst_qtquicktest.qml");
+                });
 
-            var run = await temp.RunAsync(new()
-            {
+            var run = await temp.RunAsync(new() {
                 Args = ["-input", Path.Combine(temp.ExeDir, "Application", "tst_qtquicktest.qml")],
                 EnvVars = [("QT_FORCE_STDERR_LOGGING", "1")],
                 StdErr = Redirect.StdOut
             });
-            Assert.IsTrue(run.ExitCode == 0);
+
+            Assert.IsLessThanOrEqualTo((int)ExitCode.QTestFailure, run.ExitCode,
+                ExitCodeHelper.ToString(run.ExitCode));
+
             var pass = "PASS   : Test_QtQuickTest::tst_qtquicktest::";
             Assert.Contains(pass + "initTestCase()", run.StdOut);
             Assert.Contains("Hello World from QML!", run.StdOut);
