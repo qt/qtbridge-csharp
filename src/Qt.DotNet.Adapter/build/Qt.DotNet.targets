@@ -43,7 +43,6 @@
   // QtDotNetAddQmlFiles
   -->
   <Target Name="QtDotNetAddQmlFiles" BeforeTargets="CoreCompile" DependsOnTargets="QtDotNetSetupQml"
-    Inputs="@(Qml)" Outputs="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlFilesCs)"
     Condition="'$(DesignTimeBuild)' != 'true'">
     <!-- Copy QML files to native source dir -->
     <Copy Condition="'@(Qml)' != ''"
@@ -114,8 +113,6 @@
   -->
   <Target Name="QtDotNetGenerate" AfterTargets="CoreCompile" BeforeTargets="_CreateAppHost"
     DependsOnTargets="QtDotNetAddQmlFiles"
-    Inputs="$(TargetPath);$(ProjectDir)$(IntermediateOutputPath)$(TargetFileName)"
-    Outputs="@(QtDotNetNativeSource)"
     Condition="'$(DesignTimeBuild)' != 'true'">
 
     <Message Importance="high" Text="Qt/.NET: Generating native code..." />
@@ -161,7 +158,6 @@
   -->
   <Target Name="QtDotNetBuild"
     DependsOnTargets="QtDotNetGenerate" BeforeTargets="_CreateAppHost"
-    Inputs="@(QtDotNetNativeSource)" Outputs="@(QtDotNetNativeBuild)"
     Condition="'$(DesignTimeBuild)' != 'true'">
 
     <Message Importance="high" Text="Qt/.NET: Building native code..." />
@@ -182,7 +178,6 @@
     </PropertyGroup>
 
     <MakeDir Directories="$(IntermediateOutputPath)qtdotnet\native\build" />
-    <RemoveDir Directories="$(IntermediateOutputPath)qtdotnet\native\bin" />
     <MakeDir Directories="$(IntermediateOutputPath)qtdotnet\native\bin" />
     <PropertyGroup>
       <CMakeCmd>
@@ -222,19 +217,6 @@
     <MSBuild Condition="'$(CMakeBuild)' != 'true'"
       Projects="@(NativeProject)" BuildInParallel="false" StopOnFirstFailure="true"
       Properties="Platform=x64;Configuration=Release;CL_MP=true" Targets="Build" />
-  </Target>
-  <!-- END QtDotNetBuild-->
-
-  <!--
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-  // QtDotNetReplaceBinary
-  -->
-  <Target Name="QtDotNetReplaceBinary"
-    AfterTargets="QtDotNetBuild" BeforeTargets="_CreateAppHost"
-    Inputs="$(TargetPath)" Outputs="$(AppHostSourcePath)"
-    Condition="'$(DesignTimeBuild)' != 'true'">
-
-    <Message Importance="high" Text="Qt/.NET: Replacing native host binary..." />
 
     <ItemGroup>
       <QtNativeBinary Include="$(IntermediateOutputPath)qtdotnet\native\bin\*.exe" />
@@ -243,14 +225,12 @@
       <QtNativeHostPath Condition="Exists('%(QtNativeBinary.FullPath)')"
         >%(QtNativeBinary.FullPath)</QtNativeHostPath>
     </PropertyGroup>
-    <Error Condition="'$(QtNativeHostPath)' == ''"
-      Text="ERROR: Missing native host binary" />
-    <Touch Files="$(QtNativeHostPath)" />
-    <PropertyGroup>
+
+    <PropertyGroup Condition="'$(QtNativeHostPath)' != ''">
       <AppHostSourcePath>$(QtNativeHostPath)</AppHostSourcePath>
     </PropertyGroup>
   </Target>
-  <!-- END QtDotNetReplaceBinary-->
+  <!-- END QtDotNetBuild-->
 
   <!--
   //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -258,7 +238,6 @@
   -->
   <Target Name="QtDotNetDeploy"
     AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="QtDotNetBuild"
-    Inputs="$(RunCommand)" Outputs="$(TargetDir)qtdeploy.txt"
     Condition="'$(DesignTimeBuild)' != 'true'">
 
     <Message Importance="high" Text="Qt/.NET: Deploying Qt..." />
