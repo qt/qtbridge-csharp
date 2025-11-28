@@ -10,6 +10,7 @@ global using Task = System.Threading.Tasks.Task;
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Test_Qt.DotNet.Project
 {
@@ -26,6 +27,11 @@ namespace Test_Qt.DotNet.Project
             return target
                 .Children.OfType<BuildTask>()
                 .SelectMany(t => t.GetMessages()).Select(m => m.Text);
+        }
+
+        public static bool HasMessage(this Target target, Regex pattern)
+        {
+            return target.GetMessages().Any(msg => pattern.Match(msg).Success);
         }
 
         public static IEnumerable<BuildTask> GetTasks(this Target target, string taskName)
