@@ -174,10 +174,19 @@
     <Delete Files="@(PkgToClean)" />
   </Target>
 
+  <ItemGroup>
+    <None Remove="catalogs.json" />
+  </ItemGroup>
+
   <Target Name="UpdatePackageFiles" BeforeTargets="_GetPackageFiles">
     <ItemGroup>
       <None Pack="true" Include="..\..\include\**\*"
         PackagePath="include\" Visible="false" />
+    </ItemGroup>
+    <ItemGroup Condition="!Exists('$(QtInstallRoot)\translations\catalogs.json')">
+      <None Include="catalogs.json"
+            Pack="true"
+            PackagePath="tools\$(QtRid)\native\qt\translations\" Visible="false" />
     </ItemGroup>
   </Target>
 
