@@ -1,4 +1,4 @@
-# Qt.Bridge.DotNet - QML for .NET 8+
+# __PACKAGE_ID__ - QML for .NET 8+
 
 Bring **QML/Qt Quick** to **C#/.NET** with a single package. This bundle ships:
 
@@ -25,7 +25,7 @@ Bring **QML/Qt Quick** to **C#/.NET** with a single package. This bundle ships:
 
 ```bash
 # Project folder
-dotnet add package Qt.Bridge.DotNet --prerelease
+dotnet add package __PACKAGE_ID__ --version __PACKAGE_VERSION__
 ```
 
 ---

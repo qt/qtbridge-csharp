@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_version.props))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_template.targets))" />
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -103,10 +104,6 @@
 
     <!-- 4) Native Qt.DotNet headers (added in target UpdatePackageFiles) -->
 
-    <!-- 5) README -->
-    <None Include="README.md" Pack="true"
-          PackagePath="" />
-
   </ItemGroup>
 
   <PropertyGroup>
@@ -177,6 +174,33 @@
   <ItemGroup>
     <None Remove="catalogs.json" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Placholder - Do not remove! -->
+    <!-- Final README.md to be included in the NuGet package -->
+    <None Include="README.md" Pack="true" PackagePath="" Visible="false"/>
+
+    <!-- Template remains in the project but is not packed into the NuGet -->
+    <None Include="README.template.md" Pack="false" />
+  </ItemGroup>
+
+  <Target Name="GenerateReadme" BeforeTargets="_GetPackageFiles">
+
+    <ItemGroup>
+      <!-- Tokens for README generation -->
+      <QtTemplateToken Remove="@(QtTemplateToken)" />
+      <QtTemplateToken Include="__PACKAGE_ID__">
+        <ReplacementValue>$(PackageId)</ReplacementValue>
+      </QtTemplateToken>
+      <QtTemplateToken Include="__PACKAGE_VERSION__">
+        <ReplacementValue>$(PackageVersion)</ReplacementValue>
+      </QtTemplateToken>
+    </ItemGroup>
+
+    <QtTemplateFile Template="README.template.md"
+                    OutputFileName="README.md"
+                    Tokens="@(QtTemplateToken)" />
+  </Target>
 
   <Target Name="UpdatePackageFiles" BeforeTargets="_GetPackageFiles">
     <ItemGroup>

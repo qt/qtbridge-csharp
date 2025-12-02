@@ -19,3 +19,4 @@ include/*
 
 # Local nuget
 nuget/local/
+nuget/Qt.Bridge.DotNet.Package/README.md
