@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <!--
+      QtTemplateFile: Explicitly replaces specified tokens in a template file and writes the result
+      to OutputFileName.
+
+      Tokens: ITaskItem[]
+        - ItemSpec = string to be replaced (e.g., "__PACKAGE_VERSION__")
+        - Metadata "ReplacementValue" = target value
+    -->
+
+  <UsingTask TaskName="QtTemplateFile"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Template ParameterType="System.String" Required="true" />
+      <OutputFileName ParameterType="System.String" Required="true" />
+      <Tokens ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="false" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Collections.Generic" />
+      <Using Namespace="Microsoft.Build.Framework" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+
+        const string MetadataReplacementValue = "ReplacementValue";
+        try {
+            if (File.Exists(Template)) {
+                string content = File.ReadAllText(Template);
+
+                if (Tokens != null) {
+                    foreach (ITaskItem taskItem in Tokens) {
+                        var token = taskItem.ItemSpec;
+                        if (string.IsNullOrEmpty(token))
+                            continue;
+                        content = content.Replace(token,
+                            taskItem.GetMetadata(MetadataReplacementValue) ?? "");
+                    }
+                }
+
+                var dir = Path.GetDirectoryName(OutputFileName);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                    Directory.CreateDirectory(dir);
+
+                File.WriteAllText(OutputFileName, content);
+                Log.LogMessage(MessageImportance.Low,
+                    "Template '{0}' processed and written to '{1}'.", Template, OutputFileName);
+            } else {
+                Log.LogError("Template file '{0}' does not exist.", Template);
+            }
+        } catch (System.Exception ex) {
+            Log.LogErrorFromException(ex, true);
+        }
+
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+</Project>
