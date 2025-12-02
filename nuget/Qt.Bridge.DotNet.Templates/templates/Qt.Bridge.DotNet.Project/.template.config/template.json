@@ -1,0 +1,22 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "The Qt Company Ltd.",
+    "identity": "Qt.Bridge.DotNet.Project",
+    "groupIdentity": "Qt.Bridge.DotNet.App",
+    "name": "Qt.Bridge.DotNet App",
+    "description": "Creates a Qt.Bridge.DotNet application project.",
+    "shortName": "qtbridgedotnetproj",
+    "classifications": [ "Qt.Bridge", "Desktop", "CMake" ],
+    "sourceName": "NewProject",
+    "preferNameDirectory": true,
+    "tags": {
+        "language": "C#",
+        "type": "project"
+    },
+    "precedence": 900,
+    "primaryOutputs": [
+        {
+            "path": "NewProject.csproj"
+        }
+    ]
+}

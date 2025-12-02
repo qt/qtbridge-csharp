@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Qt.Bridge.DotNet" Version="__PACKAGE_VERSION__" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Main.qml"/>
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+
+</Project>

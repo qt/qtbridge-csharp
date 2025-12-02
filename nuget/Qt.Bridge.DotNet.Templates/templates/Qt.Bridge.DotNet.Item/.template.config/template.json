@@ -1,0 +1,25 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "The Qt Company Ltd.",
+    "identity": "Qt.Bridge.DotNet.QMLFile",
+    "groupIdentity": "Qt.Bridge.DotNet.Item.Qml",
+    "name": "Qt.Bridge.DotNet QML File (.qml)",
+    "description": "Adds a new QML file to a Qt.Bridge.DotNet project.",
+    "shortName": "qtbridgedotnetqml",
+    "classifications": [ "Qt.Bridge", "QML", "Item" ],
+    "sourceName": "NewFile",
+    "tags": {
+        "language": "C#",
+        "type": "item"
+    },
+    "primaryOutputs": [ { "path": "NewFile.qml" } ],
+    "symbols": {
+        "FileName": {
+            "type": "parameter",
+            "datatype": "string",
+            "description": "Name of the QML file (without extension).",
+            "defaultValue": "NewFile",
+            "fileRename": "NewFile"
+        }
+    }
+}
