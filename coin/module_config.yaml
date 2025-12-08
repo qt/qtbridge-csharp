@@ -1,0 +1,19 @@
+version: 2
+tags: [git]
+accept_configuration:
+  condition: property
+  property: features
+  not_contains_value: Disable
+
+instructions:
+
+  Build:
+    - type: Group
+      instructions:
+        - !include "{{qt-labs/qtdotnet}}/common_env.yaml"
+        - !include "{{qt-labs/qtdotnet}}/build_dotnet.yaml"
+      enable_if:
+        condition: property
+        property: features
+        contains_value: RunAsPlatformDependency
+  Test: []

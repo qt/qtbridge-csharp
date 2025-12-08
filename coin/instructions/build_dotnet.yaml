@@ -1,0 +1,38 @@
+type: Group
+instructions:
+
+  - type: EnvironmentVariable
+    variableName: CMAKE_PREFIX_PATH
+    variableValue: "\\users\\qt\\work\\install"
+  - type: EnvironmentVariable
+    variableName: QtInstallRoot
+    variableValue: "\\users\\qt\\work\\install"
+
+  - type: ChangeDirectory
+    directory: "{{.AgentWorkingDir}}/qt-labs/qtdotnet"
+    maxTimeInSeconds: 300
+    maxTimeBetweenOutput: 120
+    userMessageOnFailure: >
+      Failed to change to qtdotnet dir
+
+  - type: ExecuteCommand
+    command: ["dotnet", "build", "-c", "Debug"]
+    maxTimeInSeconds: 6000
+    maxTimeBetweenOutput: 1200
+    userMessageOnFailure: >
+      Failed to build qtdotnet for debug target.
+
+  - type: ExecuteCommand
+    command: ["dotnet", "build", "-c", "Release"]
+    maxTimeInSeconds: 6000
+    maxTimeBetweenOutput: 1200
+    userMessageOnFailure: >
+      Failed to build qtdotnet for release target.
+    # Allow test failure until NativeDesktop package is merged to qt5
+  - type: ExecuteCommand
+    command: ["dotnet", "test", "-c", "Release", "--no-build"]
+    ignoreExitCode: true
+    maxTimeInSeconds: 6000
+    maxTimeBetweenOutput: 1200
+    userMessageOnFailure: >
+      Failed to run test for release target.

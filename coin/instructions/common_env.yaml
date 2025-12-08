@@ -1,0 +1,11 @@
+type: Group
+instructions:
+  - type: EnvironmentVariable
+    variableName: QTEST_ENVIRONMENT
+    variableValue: "ci"
+  - type: AppendToEnvironmentVariable
+    variableName: PATH
+    variableValue: ";{{.AgentWorkingDir}}\\install\\bin"
+  - type: EnvironmentVariable
+    variableName: QTDIR
+    variableValue: "{{.AgentWorkingDir}}\\install"
