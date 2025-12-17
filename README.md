@@ -18,7 +18,7 @@
 
 ### Tools and installation package
 
-1. Open [`qtdotnet.sln`](qtdotnet.sln) solution in Visual Studio
+1. Open [`qtbridge-csharp.sln`](qtbridge-csharp.sln) solution in Visual Studio
 2. Build tools and installation package
     * Select menu option: ___Build___ > ___Build Solution___
     * Or press `Ctrl`+`Shift`+`B`

@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace Test_Utils
 {
-    using Qt.DotNet.Utils;
+    using Qt.Bridge.Utils;
 
     [TestClass]
     public partial class Test_LazyFactory

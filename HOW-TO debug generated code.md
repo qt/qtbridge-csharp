@@ -22,10 +22,10 @@ To debug ***FooBar***'s generated code:
 
     * For example: right-click on ***FooBar***, select *"Open in Terminal"* and run the following:
 
-          devenv .\obj\Debug\net8.0\qtdotnet\native\build\foo_bar.sln
+          devenv .\obj\Debug\net8.0\qt\native\build\foo_bar.sln
 
     * We should now have two Visual Studio instances running side-by-side:
-        - **VS#1** with the *qtdotnet.sln* solution
+        - **VS#1** with the *qtbridge-csharp.sln* solution
         - **VS#2** with the *foo_bar.sln* solution
 
 3. Switch to **VS#2** and press F5.

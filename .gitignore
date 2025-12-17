@@ -19,6 +19,6 @@ include/*
 
 # Local nuget
 nuget/local/
-nuget/Qt.Bridge.DotNet.Package/README.md
-nuget/Qt.Bridge.DotNet.Templates/README.md
-nuget/Qt.Bridge.DotNet.Templates/templates/Qt.Bridge.DotNet.Project/NewProject.csproj
+nuget/Qt.Bridge.CSharp.Package/README.md
+nuget/Qt.Bridge.CSharp.Templates/README.md
+nuget/Qt.Bridge.CSharp.Templates/templates/Qt.Bridge.CSharp.Project/NewProject.csproj

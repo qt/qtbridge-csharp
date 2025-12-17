@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+****************************************************************************************************
+ Copyright (C) 2025 The Qt Company Ltd.
+ SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+****************************************************************************************************
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <!-- We are only supporting Windows x64 for now, derive form $(RuntimeIdentifier) later -->
+    <_QtRid>win-x64</_QtRid>
+    <QtPackgeRoot>$(MSBuildThisFileDirectory)..\..\tools\$(_QtRid)\native\qt</QtPackgeRoot>
+    <QtDir Condition="'$(QtDir)' == '' and Exists('$(QtPackgeRoot)\lib\cmake\Qt6\Qt6Config.cmake')"
+      >$(QtPackgeRoot)</QtDir>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)Qt.Bridge.props"/>
+</Project>

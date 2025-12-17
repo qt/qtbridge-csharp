@@ -6,7 +6,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Qt.DotNet.Utils.Collections.Concurrent
+namespace Qt.Bridge.Utils.Collections.Concurrent
 {
     public interface IPrioritizable<TPrio>
         where TPrio : IComparable<TPrio>, IEquatable<TPrio>

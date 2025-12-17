@@ -5,7 +5,7 @@
 
 using System.Collections;
 
-namespace Qt.DotNet.Utils.Collections
+namespace Qt.Bridge.Utils.Collections
 {
     public static class GraphExtensions
     {

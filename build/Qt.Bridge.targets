@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+****************************************************************************************************
+ Copyright (C) 2025 The Qt Company Ltd.
+ SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+****************************************************************************************************
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Import
+    Condition="'$(QtDotNetPropsImported)' != 'true'"
+    Project="$(MSBuildThisFileDirectory)Qt.Bridge.props"/>
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtBridgeSetupQml
+  -->
+  <Target Name="QtBridgeSetupQml" Outputs="@(Qml);@(QmlModule)">
+    <ItemGroup>
+      <!-- Set QML file properties -->
+      <Qml>
+        <IsRoot Condition="'%(RelativeDir)' == ''">true</IsRoot>
+        <IsRoot Condition="'%(RelativeDir)' != ''">false</IsRoot>
+      </Qml>
+      <Qml>
+        <SourceDir Condition="%(IsRoot)">Application\</SourceDir>
+        <SourceDir Condition="!%(IsRoot)">%(RelativeDir)</SourceDir>
+      </Qml>
+      <Qml>
+        <Uri>$([System.String]::Copy(%(SourceDir))
+                .Replace('\','/').Replace('/','.').Trim('.'))</Uri>
+        <TypeName>%(FileName)</TypeName>
+      </Qml>
+      <QmlModule Include="%(Qml.Uri)">
+        <IsRoot>%(Qml.IsRoot)</IsRoot>
+        <SourceDir>%(Qml.SourceDir)</SourceDir>
+      </QmlModule>
+    </ItemGroup>
+  </Target>
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtBridgeAddQmlFiles
+  -->
+  <Target Name="QtBridgeAddQmlFiles" BeforeTargets="CoreCompile" DependsOnTargets="QtBridgeSetupQml"
+    Condition="'$(DesignTimeBuild)' != 'true'">
+    <!-- Copy QML files to native source dir -->
+    <Copy Condition="'@(Qml)' != ''"
+      SourceFiles="$(ProjectDir)%(RelativeDir)%(Filename)%(Extension)"
+      DestinationFolder="$(IntermediateOutputPath)$(QtQmlSourceDir)%(SourceDir)" />
+    <MakeDir Condition="'@(Qml)' != ''"
+      Directories="$(IntermediateOutputPath)qt\csharp" />
+    <!-- Add C# source with paths of QML files; this will be an input for code generation -->
+    <WriteLinesToFile Condition="'@(Qml)' != ''" Overwrite="true" WriteOnlyWhenDifferent="false"
+      File="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlFilesCs)"
+      Lines="@(Qml->'[assembly: Qt.Quick.QmlFile(
+    Uri = &quot;%(Uri)&quot;, TypeName = &quot;%(TypeName)&quot;, IsRoot = %(IsRoot),
+    Path = @&quot;%(SourceDir)%(Filename)%(Extension)&quot;)]')" />
+    <ItemGroup>
+      <Compile Condition="'@(Qml)' != ''"
+        Include="$(IntermediateOutputPath)qt\csharp\QmlFiles.cs" />
+    </ItemGroup>
+  </Target>
+  <!-- END QtBridgeAddQmlFiles -->
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtCheckVisualStudioWorkloads
+  -->
+  <Target Name="QtCheckVisualStudioWorkloads"
+          BeforeTargets="QtBridgeGenerate"
+          Condition="'$(OS)'=='Windows_NT' and '$(QtVsCheckWorkloads)'=='true'">
+
+    <Warning Condition="!Exists('$(VsWhereExe)')"
+             Text="vswhere.exe not found '$(VsWhereExe)'. Ignore workload check." />
+    <PropertyGroup Condition="!Exists('$(VsWhereExe)')">
+      <SkipWorkloadCheck>true</SkipWorkloadCheck>
+    </PropertyGroup>
+
+    <!-- Desktop C++ -->
+    <Exec Condition="'$(SkipWorkloadCheck)'!='true'"
+          Command="&quot;$(VsWhereExe)&quot; -nologo -products * -format json -requires &quot;$(DesktopWorkload)&quot;"
+          StandardOutputImportance="low"
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="VsDesktopJson" />
+    </Exec>
+
+    <Error Condition="'$(SkipWorkloadCheck)'!='true'
+           and ($([System.String]::Copy('$(VsDesktopJson)').Trim()) == ''
+           or $([System.String]::Copy('$(VsDesktopJson)').Trim()) == '[]')"
+           Text="Missing workload: Desktop development with C++. Please install via the Visual Studio Installer." />
+
+    <!-- Optional: cross-platform C++ -->
+    <Exec Condition="'$(SkipWorkloadCheck)'!='true' and '$(QtVsCheckCrossPlat)'=='true'"
+          Command="&quot;$(VsWhereExe)&quot; -nologo -products * -format json -requires &quot;$(CrossPlatformWorkload)&quot;"
+          StandardOutputImportance="low"
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="VsCrossJson" />
+    </Exec>
+
+    <Error Condition="'$(SkipWorkloadCheck)'!='true' and '$(QtVsCheckCrossPlat)'=='true'
+           and ($([System.String]::Copy('$(VsCrossJson)').Trim()) == ''
+           or $([System.String]::Copy('$(VsCrossJson)').Trim()) == '[]')"
+           Text="Missing workload: Linux, Mac, and embedded development with C++. Please install via the Visual Studio Installer." />
+  </Target>
+  <!-- END QtCheckVisualStudioWorkloads -->
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtBridgeGenerate
+  -->
+  <Target Name="QtBridgeGenerate" AfterTargets="CoreCompile" BeforeTargets="_CreateAppHost"
+    DependsOnTargets="QtBridgeAddQmlFiles"
+    Condition="'$(DesignTimeBuild)' != 'true'">
+
+    <Message Importance="high" Text="Qt Bridge: Generating native code..." />
+
+    <Error Condition="'$(QtDotNetGen)' == '' OR !Exists('$(QtDotNetGen)')"
+      Text="Error: Qt Bridge code generator tool not found" />
+    <Error Condition="'$(QtDotNetGenRules)' == '' OR !Exists('$(QtDotNetGenRules)')"
+      Text="Error: Qt Bridge code generations rules not found" />
+    <Error Condition="'$(QtDotNetAdapter)' == '' OR !Exists('$(QtDotNetAdapter)')"
+      Text="Error: Qt/.NET Adapter not found" />
+    <Error Condition="'$(QtDotNetLib)' == '' OR !Exists('$(QtDotNetLib)/qdotnethost.h')"
+      Text="Error: Qt/.NET C++ Library not found" />
+
+    <PropertyGroup>
+      <ProjectIntermediateDir>$(ProjectDir)$(IntermediateOutputPath)</ProjectIntermediateDir>
+      <QtGenCmd
+        >$(QtGenCmd) --source "$(ProjectIntermediateDir)$(TargetFileName)"</QtGenCmd>
+      <QtGenCmd
+        >$(QtGenCmd) --target "$(ProjectIntermediateDir)qt\native"</QtGenCmd>
+      <QtGenCmd
+        >$(QtGenCmd) @(_ResolvedProjectReferencePaths->'--ref &quot;%(Identity)&quot;', ' ')</QtGenCmd>
+      <QtGenCmd
+        >$(QtGenCmd) @(RuntimeCopyLocalItems->'--ref &quot;%(Identity)&quot;', ' ')</QtGenCmd>
+    </PropertyGroup>
+
+    <Message Importance="high" Text="$(QtGenCmd)" />
+    <Exec Command="$(QtGenCmd)" EchoOff="true" IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="QtGenResult" />
+    </Exec>
+    <Error Condition="'$(QtGenResult)' != '0'" Text="Error generating native code!" />
+    <WriteLinesToFile Overwrite="true" WriteOnlyWhenDifferent="true"
+      File="$(IntermediateOutputPath)qt\native\source\qtdotnet.cmake"
+      Lines="include_directories(&quot;$(QtDotNetLib.Replace('\', '/'))&quot;)" />
+    <ItemGroup>
+      <QtDotNetNativeSource Include="$(IntermediateOutputPath)qt\native\source\**\*" />
+    </ItemGroup>
+  </Target>
+  <!-- END QtBridgeGenerate-->
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtBridgeBuild
+  -->
+  <Target Name="QtBridgeBuild"
+    DependsOnTargets="QtBridgeGenerate" BeforeTargets="_CreateAppHost"
+    Condition="'$(DesignTimeBuild)' != 'true'">
+
+    <Message Importance="high" Text="Qt Bridge: Building native code..." />
+
+    <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
+      <VsWhereCmd>"$(VsWhereExe)"</VsWhereCmd>
+      <VsWhereCmd>$(VsWhereCmd) -latest</VsWhereCmd>
+      <VsWhereCmd>$(VsWhereCmd) -property installationPath</VsWhereCmd>
+    </PropertyGroup>
+    <Exec Condition="'$(VsInstallRoot)' == ''" Command="$(VsWhereCmd)" ConsoleToMsBuild="true">
+      <Output TaskParameter="ConsoleOutput" ItemName="VsWhereOutput" />
+    </Exec>
+    <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
+      <VsInstallRoot Condition="Exists('%(VsWhereOutput.Identity)')">%(VsWhereOutput.Identity)</VsInstallRoot>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(VsInstallRoot)' == '' OR '$(QtBuildSystem)' == 'ninja'">
+      <CMakeBuild>true</CMakeBuild>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(IntermediateOutputPath)qt\native\build" />
+    <MakeDir Directories="$(IntermediateOutputPath)qt\native\bin" />
+    <PropertyGroup>
+      <CMakeCmd>
+        CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
+        SET CMAKE_PREFIX_PATH=$(QtDir);%CMAKE_PREFIX_PATH%"
+        CD "$(IntermediateOutputPath)qt\native\build"
+      </CMakeCmd>
+      <CMakeCmd Condition="'$(CMakeBuild)' != 'true'">
+        $(CMakeCmd)
+        cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G "Visual Studio 17 2022"
+      </CMakeCmd>
+      <CMakeCmd Condition="'$(CMakeBuild)' == 'true'">
+        $(CMakeCmd)
+        cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G Ninja -DCMAKE_BUILD_TYPE=Release
+        cmake --build . --parallel
+      </CMakeCmd>
+    </PropertyGroup>
+    <Exec Command="$(CMakeCmd)" EchoOff="true" IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="CMakeResult" />
+    </Exec>
+    <Error Condition="'$(CMakeResult)' != '0'" Text="Error building native code!" />
+
+    <ItemGroup Condition="'$(CMakeBuild)' != 'true'">
+      <NativeSln Include="$(IntermediateOutputPath)qt\native\build\*.sln" />
+    </ItemGroup>
+    <PropertyGroup Condition="'$(CMakeBuild)' != 'true'">
+      <NativeApp>%(NativeSln.RelativeDir)%(NativeSln.Filename)</NativeApp>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(CMakeBuild)' != 'true'">
+      <NativeProject Include="$(NativeApp)_tooling.vcxproj;
+                              $(NativeApp)_qmlimportscan.vcxproj;
+                              $(NativeApp)_autogen.vcxproj;
+                              $(NativeApp)_automoc_json_extraction.vcxproj;
+                              $(NativeApp).vcxproj" />
+      <NativeProject Remove="@(NativeProject)" Condition="!Exists('%(NativeProject.FullPath)')" />
+    </ItemGroup>
+    <MSBuild Condition="'$(CMakeBuild)' != 'true'"
+      Projects="@(NativeProject)" BuildInParallel="false" StopOnFirstFailure="true"
+      Properties="Platform=x64;Configuration=Release;CL_MP=true" Targets="Build" />
+
+    <ItemGroup>
+      <QtNativeBinary Include="$(IntermediateOutputPath)qt\native\bin\*.exe" />
+    </ItemGroup>
+    <PropertyGroup>
+      <QtNativeHostPath Condition="Exists('%(QtNativeBinary.FullPath)')"
+        >%(QtNativeBinary.FullPath)</QtNativeHostPath>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(QtNativeHostPath)' != ''">
+      <AppHostSourcePath>$(QtNativeHostPath)</AppHostSourcePath>
+    </PropertyGroup>
+  </Target>
+  <!-- END QtBridgeBuild-->
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtBridgeDeploy
+  -->
+  <Target Name="QtBridgeDeploy"
+    AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="QtBridgeBuild"
+    Condition="'$(DesignTimeBuild)' != 'true'">
+
+    <Message Importance="high" Text="Qt Bridge: Deploying Qt..." />
+
+    <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
+      <VsWhereCmd>"$(VsWhereExe)"</VsWhereCmd>
+      <VsWhereCmd>$(VsWhereCmd) -latest</VsWhereCmd>
+      <VsWhereCmd>$(VsWhereCmd) -property installationPath</VsWhereCmd>
+    </PropertyGroup>
+    <Exec Condition="'$(VsInstallRoot)' == ''" Command="$(VsWhereCmd)" ConsoleToMsBuild="true">
+      <Output TaskParameter="ConsoleOutput" ItemName="VsWhereOutput" />
+    </Exec>
+    <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
+      <VsInstallRoot Condition="Exists('%(VsWhereOutput.Identity)')"
+        >%(VsWhereOutput.Identity)</VsInstallRoot>
+    </PropertyGroup>
+
+    <PropertyGroup>
+      <VcVarsCmd Condition="'$(VsInstallRoot)' != ''"
+        >CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL</VcVarsCmd>
+      <DeployCmd>"$(QtDir)\bin\windeployqt.exe"</DeployCmd>
+      <DeployCmd>$(DeployCmd) --qmldir "$(ProjectDir.TrimEnd('\'))"</DeployCmd>
+      <DeployCmd>$(DeployCmd) --no-translations --release</DeployCmd>
+      <DeployCmd>$(DeployCmd) --no-compiler-runtime</DeployCmd>
+      <DeployCmd>$(DeployCmd) "$(RunCommand)"</DeployCmd>
+      <DeployCmd>$(DeployCmd) &gt; NUL</DeployCmd>
+    </PropertyGroup>
+    <Exec Command="
+          $(VcVarsCmd)
+          $(DeployCmd)"
+      WorkingDirectory="$(TargetDir)" IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="DeployResult" />
+    </Exec>
+    <Error Condition="'$(DeployResult)' != '0'" Text="Error deploying Qt binaries!" />
+    <Exec WorkingDirectory="$(TargetDir)" IgnoreExitCode="true"
+      Command="$(DeployCmd) --list relative &gt; qtdeploy.txt 2&gt; NUL" />
+
+    <ItemGroup>
+      <QmlDeploy Condition="'@(Qml)' != ''"
+        Include="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlSourceDir)%(Qml.SourceDir)*">
+        <SourceDir>%(Qml.SourceDir)</SourceDir>
+      </QmlDeploy>
+    </ItemGroup>
+    <Copy Condition="'@(QmlDeploy)' != ''"
+      SourceFiles="%(Identity)"
+      DestinationFolder="$(TargetDir)%(SourceDir)" />
+    <WriteLinesToFile Condition="'@(QmlDeploy)' != ''"
+      File="$(TargetDir)qtdeploy.txt" Overwrite="false"
+      Lines="%(SourceDir)%(Filename)%(Extension)" />
+  </Target>
+  <!-- END QtBridgeDeploy-->
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtBridgeClean
+  -->
+  <Target Name="QtBridgeClean" AfterTargets="Clean">
+    <RemoveDir Directories="$(IntermediateOutputPath)qt" />
+    <ReadLinesFromFile Condition="Exists('$(TargetDir)qtdeploy.txt')"
+      File="$(TargetDir)qtdeploy.txt">
+      <Output TaskParameter="Lines" ItemName="QtDeploy"/>
+    </ReadLinesFromFile>
+    <Delete Files="@(QtDeploy->'$(TargetDir)%(Identity)')" />
+    <Delete Files="$(TargetDir)qtdeploy.txt" />
+    <RemoveDir Condition="$([System.String]::Copy('%(QtDeploy.Identity)').Contains('\'))"
+       Directories="$(TargetDir)$([System.IO.Path]::GetDirectoryName(%(QtDeploy.Identity)).Split('\')[0])" />
+  </Target>
+  <!-- END QtBridgeClean-->
+
+</Project>

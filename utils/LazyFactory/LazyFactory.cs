@@ -8,7 +8,7 @@ using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace Qt.DotNet.Utils
+namespace Qt.Bridge.Utils
 {
     public sealed class LazyFactory : INotifyPropertyChanged
     {

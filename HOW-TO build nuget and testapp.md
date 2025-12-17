@@ -3,7 +3,7 @@
 This guide documents the steps used to:
 
 1) **Build a minimal Qt 6** from source (subset of modules)
-2) **Build** the **Qt.DotNet** solution (adapter, generator, rules)
+2) **Build** the **Qt Bridge for C#** solution (adapter, generator, rules)
 3) **Pack** a **NuGet** package
 4) **Build/Run** the **test application** against the local package
 
@@ -70,13 +70,13 @@ set QtInstallRoot=D:\work\qt6-install
 
 ---
 
-## 3) Build the Qt.DotNet solution
+## 3) Build the Qt Bridge for C# solution
 
 From the **same prompt**:
 
 ```bat
-:: Go to your Qt.DotNet source checkout
-pushd D:\work\qtdotnet
+:: Go to your Qt Bridge for C# source checkout
+pushd D:\work\qtbridge-csharp
 
 :: Restore and build (Release)
 dotnet build -c Release
@@ -144,7 +144,7 @@ set QtInstallRoot=
 
 That's it-after completing the steps above, you'll have:
 - A locally built Qt install at `%QtInstallRoot%`
-- A **Release** build of **Qt.DotNet**
+- A **Release** build of the **Qt Bridge for C#**
 - A **NuGet** package in `nuget\local`
 - A test application built against that package
 

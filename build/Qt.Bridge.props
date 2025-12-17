@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+****************************************************************************************************
+ Copyright (C) 2025 The Qt Company Ltd.
+ SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+****************************************************************************************************
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <QtDotNetPropsImported>true</QtDotNetPropsImported>
+
+    <!-- TO_DO: implement detection of Qt installation(s) -->
+    <QtDir Condition="'$(QtDir)' == ''">C:\lib\qt\6.8.0\msvc2022_64</QtDir>
+
+    <QtDotNetSolutionDir Condition="'$(SolutionDir)' != '' AND Exists('$(SolutionDir)qtbridge-csharp.sln')"
+      >$(SolutionDir)</QtDotNetSolutionDir>
+    <QtDotNetSolutionDir Condition="'$(QtDotNetSolutionDir)' == '' AND Exists('$(MSBuildThisFileDirectory)..\..\qtbridge-csharp.sln')"
+      >$(MSBuildThisFileDirectory)..\..\</QtDotNetSolutionDir>
+
+    <QtDotNetGen>$(MSBuildThisFileDirectory)qbgen.exe</QtDotNetGen>
+    <QtDotNetGen Condition="!Exists('$(QtDotNetGen)') AND '$(QtDotNetSolutionDir)' != ''"
+      >$(QtDotNetSolutionDir)src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen.exe</QtDotNetGen>
+
+    <QtDotNetGenRules>$(MSBuildThisFileDirectory)Qt.Bridge.CSharp.GenerationRules.dll</QtDotNetGenRules>
+    <QtDotNetGenRules Condition="!Exists('$(QtDotNetGenRules)') AND '$(QtDotNetSolutionDir)' != ''"
+      >$(QtDotNetSolutionDir)src\Qt.Bridge.CSharp.GenerationRules\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.CSharp.GenerationRules.dll</QtDotNetGenRules>
+
+    <QtDotNetAdapter>$(MSBuildThisFileDirectory)Qt.DotNet.Adapter.dll</QtDotNetAdapter>
+    <QtDotNetAdapter Condition="!Exists('$(QtDotNetAdapter)') AND '$(QtDotNetSolutionDir)' != ''"
+      >$(QtDotNetSolutionDir)src\Qt.DotNet.Adapter\bin\$(Configuration)\$(TargetFramework)\Qt.DotNet.Adapter.dll</QtDotNetAdapter>
+
+    <QtDotNetLib>$(MSBuildThisFileDirectory)../../include</QtDotNetLib>
+    <QtDotNetLib Condition="!Exists('$(QtDotNetLib)/qdotnethost.h') AND '$(QtDotNetSolutionDir)' != ''"
+      >$(QtDotNetSolutionDir)include</QtDotNetLib>
+
+    <QtGenCmd>"$(QtDotNetGen)"</QtGenCmd>
+    <QtGenCmd>$(QtGenCmd) --ref "$(QtDotNetAdapter)"</QtGenCmd>
+    <QtGenCmd>$(QtGenCmd) --rules "$(QtDotNetGenRules)"</QtGenCmd>
+
+    <QtQmlFilesCs>qt\csharp\QmlFiles.cs</QtQmlFilesCs>
+    <QtQmlSourceDir>qt\native\source\qml\</QtQmlSourceDir>
+
+    <QtBuildSystem Condition="'$(QtBuildSystem)' == ''">ninja</QtBuildSystem>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <QtVsCheckWorkloads>true</QtVsCheckWorkloads>
+    <DesktopWorkload>Microsoft.VisualStudio.Workload.NativeDesktop</DesktopWorkload>
+
+    <QtVsCheckCrossPlat>false</QtVsCheckCrossPlat>
+    <CrossPlatformWorkload>Microsoft.VisualStudio.Workload.NativeCrossPlat</CrossPlatformWorkload>
+
+    <ProgramFilesX86>$([MSBuild]::GetProgramFiles32())</ProgramFilesX86>
+    <VsWhereExe>$(ProgramFilesX86)\Microsoft Visual Studio\Installer\vswhere.exe</VsWhereExe>
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Add QML files to the build -->
+    <Qml Include="**\*.qml" />
+    <!-- Remove copies in output dirs -->
+    <Qml Remove="$(BaseOutputPath)**\*.qml" />
+    <Qml Remove="$(BaseIntermediateOutputPath)**\*.qml" />
+    <!-- Add QML files to up-to-date check of VS -->
+    <UpToDateCheckInput Set="Qml" Include="@(Qml)" />
+    <UpToDateCheckOutput Set="Qml" Include="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlFilesCs)" />
+    <!-- Add reference to source files for incremental build -->
+    <QtDotNetNativeSource
+      Include="$(IntermediateOutputPath)qt\native\source\CMakeLists.txt
+              ;$(IntermediateOutputPath)qt\native\source\**\*" />
+    <!-- Add reference to build files for incremental build -->
+    <QtDotNetNativeBuild
+      Include="$(IntermediateOutputPath)qt\native\build\CMakeCache.txt
+              ;$(IntermediateOutputPath)qt\native\build\**\*" />
+  </ItemGroup>
+
+</Project>

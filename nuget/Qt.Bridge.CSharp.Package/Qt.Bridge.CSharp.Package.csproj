@@ -1,0 +1,239 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_version.props))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_template.targets))" />
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>QtGroup.Qt.Bridge.CSharp.win-x64</PackageId>
+    <Authors>The Qt Company</Authors>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Description>Qt Bridge for C# (Windows x64)</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Set="NuPkg" Include="$(MSBuildThisFileFullPath)" />
+    <UpToDateCheckOutput Set="NuPkg" Include="$(OutputPath)..\$(PackageId).$(PackageVersion).nupkg" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <BuildDependsOn>Clean;$(BuildDependsOn)</BuildDependsOn>
+    <GenerateNuspecDependsOn
+      >CleanPackage;UpdatePackageFiles;$(GenerateNuspecDependsOn)</GenerateNuspecDependsOn>
+  </PropertyGroup>
+
+  <ItemGroup>
+
+    <!-- 1) Consumer libs -> lib\$(TargetFramework)\ -->
+    <None Pack="true"
+          Include="..\..\src\Qt.Bridge.CSharp.Api\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.CSharp.Api.dll"
+          PackagePath="lib\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Adapter\bin\$(Configuration)\$(TargetFramework)\Qt.DotNet.Adapter.dll"
+          PackagePath="lib\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\utils\Collections\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.Utils.Collections.dll"
+          PackagePath="lib\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\utils\Concurrent\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.Utils.Concurrent.dll"
+          PackagePath="lib\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\utils\LazyFactory\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.Utils.LazyFactory.dll"
+          PackagePath="lib\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\utils\Text\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.Utils.Text.dll"
+          PackagePath="lib\$(TargetFramework)\" Visible="false" />
+
+    <!-- 2) Build-time tool & deps -> build/$(TargetFramework)/ -->
+    <None Pack="true"
+          Include="..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen.exe"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen.dll"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen.runtimeconfig.json"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen.deps.json"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+
+    <!-- generator's own dependencies -->
+    <None Pack="true"
+          Include="..\..\src\Qt.Bridge.CSharp.Api\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.CSharp.Api.dll"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\src\Qt.DotNet.Adapter\bin\$(Configuration)\$(TargetFramework)\Qt.DotNet.Adapter.dll"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\src\Qt.Bridge.CSharp.GenerationRules\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.CSharp.GenerationRules.dll"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\utils\Collections\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.Utils.Collections.dll"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\utils\Concurrent\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.Utils.Concurrent.dll"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\utils\LazyFactory\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.Utils.LazyFactory.dll"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\utils\Text\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.Utils.Text.dll"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\System.CommandLine.dll"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\System.Collections.Immutable.dll"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\System.Reflection.MetadataLoadContext.dll"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\System.Reflection.Metadata.dll"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
+          Include="..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\System.IO.Hashing.dll"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+
+    <!-- 3) MSBuild props & targets (auto-import) -->
+    <None Pack="true"
+          Include="..\..\build\Qt.Bridge.props"
+          PackagePath="build\$(TargetFramework)\Qt.Bridge.props" Visible="false" />
+    <None Pack="true"
+          Include="..\..\build\Qt.Bridge.targets"
+          PackagePath="build\$(TargetFramework)\Qt.Bridge.targets" Visible="false" />
+    <None Pack="true"
+          Include="..\..\build\QtGroup.Qt.Bridge.CSharp.win-x64.props"
+          PackagePath="build\$(TargetFramework)\QtGroup.Qt.Bridge.CSharp.win-x64.props" Visible="false" />
+    <None Pack="true"
+          Include="..\..\build\QtGroup.Qt.Bridge.CSharp.win-x64.targets"
+          PackagePath="build\$(TargetFramework)\QtGroup.Qt.Bridge.CSharp.win-x64.targets" Visible="false" />
+
+    <!-- 4) Native Qt.DotNet headers (added in target UpdatePackageFiles) -->
+
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- We are only packing Windows x64 for now, derive form $(RuntimeIdentifier) later -->
+    <QtRid>win-x64</QtRid>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(QtInstallRoot)' != '' AND Exists('$(QtInstallRoot)')">
+    <!-- Qt BIN: DLLs, Tools (inkl. windeployqt.exe). Doku/PDBs raus. -->
+    <None Include="$(QtInstallRoot)\bin\**\*"
+          Exclude="$(QtInstallRoot)\bin\**\*.pdb;$(QtInstallRoot)\bin\**\*.ilk;$(QtInstallRoot)\bin\**\*.exp"
+          Pack="true"
+          PackagePath="tools\qt\bin\" Visible="false" />
+
+    <!-- Qt LIB inkl. CMake Configs (lib/cmake/Qt6/**) -->
+    <None Include="$(QtInstallRoot)\lib\**\*"
+          Exclude="$(QtInstallRoot)\lib\**\*.pdb;$(QtInstallRoot)\lib\**\*.ilk"
+          Pack="true"
+          PackagePath="tools\qt\lib\" Visible="false" />
+
+    <!-- Qt HEADERS -->
+    <None Include="$(QtInstallRoot)\include\**\*"
+          Pack="true"
+          PackagePath="tools\qt\include\" Visible="false" />
+
+    <!-- Qt PLUGINS / QML / MKSPECS / MODULES / METATYPES -->
+    <None Include="$(QtInstallRoot)\plugins\**\*"
+          Pack="true"
+          PackagePath="tools\qt\plugins\" Visible="false" />
+    <None Include="$(QtInstallRoot)\qml\**\*"
+          Pack="true"
+          PackagePath="tools\qt\qml\" Visible="false" />
+    <None Include="$(QtInstallRoot)\mkspecs\**\*"
+          Pack="true"
+          PackagePath="tools\qt\mkspecs\" Visible="false" />
+    <None Include="$(QtInstallRoot)\modules\**\*"
+          Pack="true"
+          PackagePath="tools\qt\modules\" Visible="false" />
+    <None Include="$(QtInstallRoot)\metatypes\**\*"
+          Pack="true"
+          PackagePath="tools\qt\metatypes\" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NuGet.CommandLine" Version="6.14.0" GeneratePathProperty="true">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Include="@(None)" />
+  </ItemGroup>
+
+  <Target Name="WarnIfQtInstallRootMissing" BeforeTargets="Pack">
+    <Warning Condition="'$(QtInstallRoot)' == '' OR !Exists('$(QtInstallRoot)\')"
+             Text="QtInstallRoot is not set or invalid. Qt will NOT be included in the NuGet package." />
+  </Target>
+
+  <Target Name="CleanPackage">
+    <ItemGroup>
+      <PkgToClean Include="$(OutputPath)..\*.nupkg" />
+      <PkgToClean Remove="$(OutputPath)..\$(PackageId).$(PackageVersion).nupkg" />
+    </ItemGroup>
+    <Delete Files="@(PkgToClean)" />
+  </Target>
+
+  <ItemGroup>
+    <None Remove="catalogs.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Placholder - Do not remove! -->
+    <!-- Final README.md to be included in the NuGet package -->
+    <None Include="README.md" Pack="true" PackagePath="" Visible="false"/>
+
+    <!-- Template remains in the project but is not packed into the NuGet -->
+    <None Include="README.template.md" Pack="false" />
+  </ItemGroup>
+
+  <Target Name="GenerateReadme" BeforeTargets="_GetPackageFiles">
+
+    <ItemGroup>
+      <!-- Tokens for README generation -->
+      <QtTemplateToken Remove="@(QtTemplateToken)" />
+      <QtTemplateToken Include="__PACKAGE_ID__">
+        <ReplacementValue>$(PackageId)</ReplacementValue>
+      </QtTemplateToken>
+      <QtTemplateToken Include="__PACKAGE_VERSION__">
+        <ReplacementValue>$(PackageVersion)</ReplacementValue>
+      </QtTemplateToken>
+    </ItemGroup>
+
+    <QtTemplateFile Template="README.template.md"
+                    OutputFileName="README.md"
+                    Tokens="@(QtTemplateToken)" />
+  </Target>
+
+  <Target Name="UpdatePackageFiles" BeforeTargets="_GetPackageFiles">
+    <ItemGroup>
+      <None Pack="true" Include="..\..\include\**\*"
+        PackagePath="include\" Visible="false" />
+    </ItemGroup>
+    <ItemGroup Condition="!Exists('$(QtInstallRoot)\translations\catalogs.json')">
+      <None Include="catalogs.json"
+            Pack="true"
+            PackagePath="tools\qt\translations\" Visible="false" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CopyPackage" AfterTargets="Pack">
+    <Message Importance="high" Text="Copying package $(OutputPath)..\$(PackageId).$(PackageVersion).nupkg to $(MSBuildThisFileDirectory)nuget\local..." />
+    <RemoveDir Directories="$(NuGetPackageRoot)$(PackageId)" />
+    <RemoveDir Directories="$(MSBuildThisFileDirectory)..\local\$(PackageId)" />
+    <PropertyGroup>
+      <NuGetInitCmd>"$(PkgNuGet_CommandLine)\tools\nuget.exe" init</NuGetInitCmd>
+      <NuGetInitCmd>$(NuGetInitCmd) "$(MSBuildThisFileDirectory)$(OutputPath).."</NuGetInitCmd>
+      <NuGetInitCmd>$(NuGetInitCmd) "$(MSBuildThisFileDirectory)..\local"</NuGetInitCmd>
+    </PropertyGroup>
+    <Exec Command="$(NuGetInitCmd)" />
+  </Target>
+</Project>

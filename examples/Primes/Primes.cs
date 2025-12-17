@@ -4,8 +4,8 @@
 ***************************************************************************************************/
 
 using System.ComponentModel;
-using Qt.DotNet;
-using Qt.DotNet.Utils;
+using Qt.Bridge.Models;
+using Qt.Bridge.Utils;
 using Qt.Quick;
 
 namespace PrimesApp

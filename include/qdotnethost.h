@@ -419,7 +419,7 @@ private:
 
     static void defaultErrorWriter(const char_t *message)
     {
-        qWarning() << "Qt/.NET: HostError:" << QSTR(message);
+        qWarning() << "Qt/.NET: Host error:" << QSTR(message);
     }
 
     static QString writeTempFile(const QString &text, const QString &fileNameTemplate)

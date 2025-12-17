@@ -7,11 +7,6 @@ using System;
 using System.ComponentModel;
 using UserViewLib;
 
-using Qt.DotNet;
-using Qt.DotNet.Utils;
-using Qt.MetaObject;
-using Qt.Quick;
-
 namespace UserViewQml
 {
     public class UserEventArgs : EventArgs

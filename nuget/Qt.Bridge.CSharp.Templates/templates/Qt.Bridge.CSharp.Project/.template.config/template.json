@@ -1,0 +1,22 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "The Qt Company Ltd.",
+    "identity": "Qt.Bridge.CSharp.Project",
+    "groupIdentity": "Qt.Bridge.CSharp.App",
+    "name": "Qt.Bridge.CSharp App",
+    "description": "Creates a Qt.Bridge.CSharp application project.",
+    "shortName": "qt",
+    "classifications": [ "Qt.Bridge", "Desktop", "CMake" ],
+    "sourceName": "NewProject",
+    "preferNameDirectory": true,
+    "tags": {
+        "language": "C#",
+        "type": "project"
+    },
+    "precedence": 900,
+    "primaryOutputs": [
+        {
+            "path": "NewProject.csproj"
+        }
+    ]
+}

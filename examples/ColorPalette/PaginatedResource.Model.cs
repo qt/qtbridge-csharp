@@ -4,8 +4,9 @@
 ***************************************************************************************************/
 
 using Refit;
+using Qt.Bridge.Models;
+using Qt.Bridge.Text;
 using Qt.DotNet;
-using Qt.DotNet.Text;
 
 namespace ColorPalette
 {

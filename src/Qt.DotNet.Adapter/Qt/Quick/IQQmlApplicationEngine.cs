@@ -4,8 +4,8 @@
 ***************************************************************************************************/
 
 using System.Reflection;
+using Qt.Bridge.Utils.Text;
 using Qt.DotNet;
-using Qt.DotNet.Text;
 
 namespace Qt
 {
@@ -60,7 +60,7 @@ namespace Qt
                 return Instance.WaitForExit(timeout);
             }
 
-            internal static void ProcessEvents()
+            public static void ProcessEvents()
             {
                 if (Adapter.IsMainThread)
                     Instance.ProcessEvents();

@@ -20,18 +20,17 @@
     <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(SolutionName)' != 'qtdotnet'">
-    <PackageReference Include="Qt.Bridge.DotNet" Version="$(SelectedVersion)" />
+  <ItemGroup Condition="'$(SolutionName)' != 'qtbridge-csharp'">
+    <PackageReference Include="QtGroup.Qt.Bridge.CSharp.win-x64" Version="$(SelectedVersion)" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(SolutionName)' == 'qtdotnet'">
+  <ItemGroup Condition="'$(SolutionName)' == 'qtbridge-csharp'">
     <ProjectReference Include="..\..\src\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
-    <ProjectReference Include="..\..\src\Qt.DotNet.Generator\Qt.DotNet.Generator.csproj" />
-    <ProjectReference Include="..\..\src\Qt.DotNet.GenerationRules\Qt.DotNet.GenerationRules.csproj" />
+    <ProjectReference Include="..\..\src\Qt.Bridge.CSharp.Generator\Qt.Bridge.CSharp.Generator.csproj" />
+    <ProjectReference Include="..\..\src\Qt.Bridge.CSharp.GenerationRules\Qt.Bridge.CSharp.GenerationRules.csproj" />
     <ProjectReference Include="..\..\utils\LazyFactory\LazyFactory.csproj" />
   </ItemGroup>
-  <Import Condition="'$(SolutionName)' == 'qtdotnet'"
-    Project="..\..\src\Qt.DotNet.Adapter\build\Qt.DotNet.targets" />
+  <Import Condition="'$(SolutionName)' == 'qtbridge-csharp'" Project="..\..\build\Qt.Bridge.targets" />
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 

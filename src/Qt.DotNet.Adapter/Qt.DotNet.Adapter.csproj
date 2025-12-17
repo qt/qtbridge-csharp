@@ -16,6 +16,10 @@
     <RootNamespace></RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\utils\Text\Text.csproj" />
+  </ItemGroup>
+
   <PropertyGroup Condition="'$(SolutionDir)' == ''">
     <SolutionDir>$(MSBuildThisFileDirectory)\..\..\</SolutionDir>
   </PropertyGroup>
@@ -26,12 +30,6 @@
   <Target Name="CleanPostBuild" AfterTargets="Clean">
     <Delete Files="$(SolutionDir)bin\$(AssemblyName).dll" />
   </Target>
-
-  <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-      <_Parameter1>Test_Qt.DotNet.Adapter</_Parameter1>
-    </AssemblyAttribute>
-  </ItemGroup>
 
   <Import Project="includegen.targets" />
 

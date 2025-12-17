@@ -5,7 +5,7 @@
 
 using System.Diagnostics;
 
-namespace Qt.DotNet.Utils.Concurrent
+namespace Qt.Bridge.Utils.Concurrent
 {
     public static class Timestamp
     {

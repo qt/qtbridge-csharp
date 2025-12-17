@@ -3,7 +3,7 @@
 
 namespace Test_Utils
 {
-    using Qt.DotNet.Utils.Collections.Concurrent;
+    using Qt.Bridge.Utils.Collections.Concurrent;
 
     [TestClass]
     public class Test_ConcurrentSet

@@ -7,7 +7,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using OpenMeteo;
-using Qt.DotNet.Utils;
+using Qt.Bridge.Utils;
 
 namespace CityTemperatures
 {

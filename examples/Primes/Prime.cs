@@ -4,7 +4,7 @@
 ***************************************************************************************************/
 
 using System.ComponentModel;
-using Qt.DotNet.Utils;
+using Qt.Bridge.Utils;
 using Qt.Quick;
 
 namespace PrimesApp

@@ -6,7 +6,7 @@
 using System.Collections;
 using System.Collections.Concurrent;
 
-namespace Qt.DotNet.Utils.Collections.Concurrent
+namespace Qt.Bridge.Utils.Collections.Concurrent
 {
     public class ConcurrentSet<T> : IReadOnlyCollection<T>
     {

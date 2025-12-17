@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Qt.Bridge.CSharp.Generator": {
+      "commandName": "Project",
+      "commandLineArgs": "--source \"$(SolutionDir)\\examples\\Tutorial\\obj\\Debug\\net8.0\\Tutorial.dll\" --rules \"$(ProjectDir)\\..\\Qt.Bridge.CSharp.GenerationRules\\bin\\$(Configuration)\\$(TargetFramework)\\Qt.Bridge.CSharp.GenerationRules.dll\" --target \"$(SolutionDir)\\examples\\Tutorial\\obj\\Debug\\net8.0\\qt\\native\""
+    }
+  }
+}
