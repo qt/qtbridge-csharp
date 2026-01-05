@@ -10,8 +10,8 @@ instructions:
   Build:
     - type: Group
       instructions:
-        - !include "{{qt-labs/qtdotnet}}/common_env.yaml"
-        - !include "{{qt-labs/qtdotnet}}/build_dotnet.yaml"
+        - !include "{{qt/qtbridge-csharp}}/common_env.yaml"
+        - !include "{{qt/qtbridge-csharp}}/build_csharp.yaml"
       enable_if:
         condition: property
         property: features
