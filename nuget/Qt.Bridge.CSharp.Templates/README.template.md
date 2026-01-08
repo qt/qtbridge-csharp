@@ -27,14 +27,18 @@ If you contribute to the code of Qt Bridge for C# you will additionally need the
 
 ---
 
-## What you get
+## Features Included
 
-- **Project template** - `Qt.Bridge.CSharp Project`
-  - Minimal C# app wired to Qt Quick / QML.
-  - Entry QML (`Main.qml`) + bootstrap `Program.cs`.
+### **Project Template: `Qt.Bridge.CSharp Project`**
+A ready-to-use **C# project template** pre-configured for integration with **Qt Quick/QML**, including:
+- Minimal C# application structure
+- Default **entry QML file** (`Main.qml`)
+- Bootstrap logic in `Program.cs` for seamless initialization
 
-- **Item template** - `Qt.Bridge.CSharp QML File (.qml)`
-  - Adds a new `.qml` file and lets the build integrate it automatically.
+### **Item Template: `Qt.Bridge.CSharp QML File (.qml)`**
+A template for adding **new QML files** to your project, with:
+- Automatic build system integration of newly created `.qml` files
+- Streamlined workflow for extending QML-based UIs
 
 ---
 
