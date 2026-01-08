@@ -1,4 +1,31 @@
-# __PACKAGE_ID__ - Qt Bridges for C# (.NET 8+)
+# Qt Bridge - C#
+
+> Copyright (C) 2025 The Qt Company Ltd.
+> SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+This is a pre-release implementation of Qt Bridges for C#. By
+installing this package, you agree to the terms and conditions stated in
+https://www.qt.io/terms-conditions. These terms and conditions also apply to
+the Qt Framework, which is used as a major dependency in this package.
+
+The Qt Bridge for C# is built using the .NET SDK and Runtime, which are developed and maintained by Microsoft and .NET Foundation
+
+No Microsoft code or binaries are redistributed as part of Qt Bridge for C#.
+.NET and C# are trademarks of Microsoft Corporation.
+This project is not affiliated with or endorsed by Microsoft.
+
+An application built with Qt Bridge for C# will include the following packages licensed under the MIT license:
+  - System.Reflection.MetadataLoadContext
+  - System.CommandLine
+  - System.IO.Hashing
+
+If you contribute to the code of Qt Bridge for C# you will additionally need the following packages licensed under the MIT license:
+  - Microsoft.NET.Test.Sdk
+  - MSTest.TestFramework
+  - Microsoft.CodeAnalysis.CSharp
+  - coverlet.collector
+
+---
 
 Bring **QML/Qt Quick** to **C#/.NET** with a single package. This bundle ships:
 
@@ -61,16 +88,3 @@ dotnet add package __PACKAGE_ID__ --version __PACKAGE_VERSION__
 - CI-tested on the supported runtimes/OSes; see release notes for specifics.
 
 Issues/feedback welcome - please file an issue with your OS, .NET, and Qt details.
-
----
-
-## Licensing
-
-This package bundles components under the open-source license. Review the included license files for details and choose the option that applies to your use case. The Qt Quick runtime subset is provided under the respective open-source terms.
-
----
-
-## Acknowledgments
-
-© The Qt Company Ltd. and contributors.
-Qt is a trademark of The Qt Company Ltd. All other trademarks are the property of their respective owners.

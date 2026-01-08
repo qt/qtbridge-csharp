@@ -1,6 +1,31 @@
-# Qt Bridge for C# &mdash; Templates
+# Qt Bridge - C# Templates
 
-Official `dotnet new` templates to build Qt/QML apps with C#/.NET using **QtGroup.Qt.Bridge.CSharp.win-x64**.
+> Copyright (C) 2025 The Qt Company Ltd.
+> SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+This package provides pre-release .NET CLI templates for creating projects that use Qt Bridges for C#.
+By installing this package, you agree to the terms and conditions stated in
+https://www.qt.io/terms-conditions. These terms and conditions also apply to
+the Qt Framework, which is used as a major dependency in this package.
+
+The Qt Bridge for C# is built using the .NET SDK and Runtime, which are developed and maintained by Microsoft and .NET Foundation
+
+No Microsoft code or binaries are redistributed as part of Qt Bridge for C#.
+.NET and C# are trademarks of Microsoft Corporation.
+This project is not affiliated with or endorsed by Microsoft.
+
+An application built with Qt Bridge for C# will include the following packages licensed under the MIT license:
+  - System.Reflection.MetadataLoadContext
+  - System.CommandLine
+  - System.IO.Hashing
+
+If you contribute to the code of Qt Bridge for C# you will additionally need the following packages licensed under the MIT license:
+  - Microsoft.NET.Test.Sdk
+  - MSTest.TestFramework
+  - Microsoft.CodeAnalysis.CSharp
+  - coverlet.collector
+
+---
 
 ## What you get
 
@@ -88,16 +113,3 @@ dotnet new uninstall __PACKAGE_ID__
 ## Versioning & support
 
 Issues/feedback welcome — please file an issue with your OS, .NET, and Qt details.
-
----
-
-## Licensing
-
-This package bundles components under the open-source license. Review the included license files for details and choose the option that applies to your use case. The Qt Quick runtime subset is provided under the respective open-source terms.
-
----
-
-## Acknowledgments
-
-© The Qt Company Ltd. and contributors.
-Qt is a trademark of The Qt Company Ltd. All other trademarks are the property of their respective owners.
