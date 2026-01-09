@@ -16,4 +16,5 @@ instructions:
         condition: property
         property: features
         contains_value: RunAsPlatformDependency
-  Test: []
+  Test:
+    - !include "{{qt/qtbase}}/run_license_check.yaml"
