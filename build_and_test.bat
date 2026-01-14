@@ -1,3 +1,6 @@
+REM Copyright (C) 2026 The Qt Company Ltd.
+REM SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
+
 @echo off
 setlocal enabledelayedexpansion
 

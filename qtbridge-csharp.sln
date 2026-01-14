@@ -1,6 +1,9 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
+
+# Copyright (C) 2026 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
+
 VisualStudioVersion = 17.4.33403.182
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "include", "include", "{63F4FEA7-5B8B-4496-988E-B84410C50D42}"
@@ -100,6 +103,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "how-to", "how-to", "{429F92
 		HOW-TO attribs.md = HOW-TO attribs.md
 		HOW-TO build nuget and testapp.md = HOW-TO build nuget and testapp.md
 		HOW-TO debug generated code.md = HOW-TO debug generated code.md
+		HOW-TO Qt Bridge for C#.md = HOW-TO Qt Bridge for C#.md
 		HOW-TO versions.md = HOW-TO versions.md
 	EndProjectSection
 EndProject
@@ -126,7 +130,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "coin", "coin", "{AEC4DC9D-A
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "instructions", "instructions", "{1BD0459D-1782-4A90-83CB-E28A2FC828E4}"
 	ProjectSection(SolutionItems) = preProject
-		coin\instructions\build_dotnet.yaml = coin\instructions\build_dotnet.yaml
+		coin\instructions\build_csharp.yaml = coin\instructions\build_csharp.yaml
 		coin\instructions\common_env.yaml = coin\instructions\common_env.yaml
 	EndProjectSection
 EndProject
