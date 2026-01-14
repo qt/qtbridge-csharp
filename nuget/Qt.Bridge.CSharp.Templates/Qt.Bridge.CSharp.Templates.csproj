@@ -17,6 +17,8 @@
     <PackageId>QtGroup.Qt.Bridge.CSharp.Templates</PackageId>
     <Authors>The Qt Company</Authors>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <Description>Qt Bridge for C# - Templates</Description>
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <PackageType>Template</PackageType>
@@ -43,6 +45,8 @@
     <!-- Placholder - Do not remove! -->
     <!-- Final README.md to be included in the NuGet package -->
     <None Include="README.md" Pack="true" PackagePath="" Visible="false"/>
+    <None Include="icon.png" Pack="true" PackagePath="" Visible="false"/>
+    <None Include="LICENSE.txt" Pack="true" PackagePath="" Visible="false"/>
 
     <!-- Templates remain in the project but are not packed into the NuGet -->
     <None Include="README.template.md" Pack="false" />

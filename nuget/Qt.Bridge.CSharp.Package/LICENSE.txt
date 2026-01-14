@@ -1,0 +1,12 @@
+Qt Bridge for C# is available under the Qt Commercial License or the
+GNU Lesser General Public License v3.0-only (LGPL-3.0-only).
+
+For commercial licensing, see:
+https://www.qt.io/terms-conditions
+https://www.qt.io/licensing/
+
+For LGPL-3.0-only, see:
+https://www.gnu.org/licenses/lgpl-3.0.html
+
+This file does not replace the full license terms. Use is subject to the
+applicable license.
