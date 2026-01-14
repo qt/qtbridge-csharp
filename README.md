@@ -73,7 +73,7 @@ for VS 2022**, set `QtInstallRoot` to the Qt installation prefix (the folder tha
 then continue with **Build the Qt Bridge for C#**.
 
 ```bat
-set QtInstallRoot=D:\Qt\6.6.0\msvc2019_64
+set QtInstallRoot=D:\Qt\6.11.0\msvc2022_64
 ```
 
 #### Building Qt 6 from source
