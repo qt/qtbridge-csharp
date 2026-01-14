@@ -1,28 +1,7 @@
 # Qt Bridge - C#
 
 > Copyright (C) 2025 The Qt Company Ltd.
-> SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
-
-This is a pre-release implementation of Qt Bridge for C#.
-By installing this package, you agree to the terms and conditions stated at https://www.qt.io/terms-conditions.
-These terms and conditions also apply to the Qt Framework, which is used as a major dependency in this package.
-
-The Qt Bridge for C# is built using the .NET SDK and Runtime, which are developed and maintained by Microsoft and the .NET Foundation.
-
-No Microsoft code or binaries are redistributed as part of Qt Bridge for C#.
-.NET and C# are trademarks of Microsoft Corporation.
-This project is not affiliated with or endorsed by Microsoft.
-
-An application built with Qt Bridge for C# includes the following packages licensed under the MIT License:
-  - System.Reflection.MetadataLoadContext
-  - System.CommandLine
-  - System.IO.Hashing
-
-If you contribute to the Qt Bridge for C# codebase, you will also need the following packages licensed under the MIT License:
-  - Microsoft.NET.Test.Sdk
-  - MSTest.TestFramework
-  - Microsoft.CodeAnalysis.CSharp
-  - coverlet.collector
+> SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 ## Contents
 
@@ -231,3 +210,31 @@ dotnet new uninstall QtGroup.Qt.Bridge.CSharp.Templates
 ## Stay in touch
 
 You can reach us on the Qt Forum, specifically in the [Qt Bridges category](https://forum.qt.io/category/78/qt-bridges).
+
+## Terms and Conditions
+
+This is a pre-release implementation of Qt Bridge for C#. By installing this
+package, you agree to the terms and conditions stated at
+https://www.qt.io/terms-conditions. These terms and conditions also apply to
+the Qt Framework, which is used as a major dependency in this package.
+
+The Qt Bridge for C# is built using the .NET SDK and Runtime, which are
+developed and maintained by Microsoft and the .NET Foundation.
+
+No Microsoft code or binaries are redistributed as part of Qt Bridge for C#.
+.NET and C# are trademarks of Microsoft Corporation. This project is not
+affiliated with or endorsed by Microsoft.
+
+An application built with Qt Bridge for C# includes the following packages
+licensed under the MIT License:
+  - System.Reflection.MetadataLoadContext
+  - System.CommandLine
+  - System.IO.Hashing
+
+If you contribute to the Qt Bridge for C# codebase, you will also need the
+following packages licensed under the MIT License:
+  - Microsoft.NET.Test.Sdk
+  - MSTest.TestFramework
+  - Microsoft.CodeAnalysis.CSharp
+  - coverlet.collector
+
