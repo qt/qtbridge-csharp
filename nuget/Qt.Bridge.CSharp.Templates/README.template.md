@@ -1,7 +1,7 @@
 # Qt Bridge - C# Templates
 
-> Copyright (C) 2025 The Qt Company Ltd.
-> SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+> Copyright (C) 2026 The Qt Company Ltd.
+> SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GFDL-1.3-no-invariants-only
 
 This package provides pre-release .NET CLI templates for creating projects that use Qt Bridges for C#.
 By installing this package, you agree to the terms and conditions stated in
@@ -71,7 +71,7 @@ dotnet new install __PACKAGE_ID__ --force
 ### Create a project
 
 ```bash
-dotnet new qtapp -n MyQtApp
+dotnet new qt -n MyQtApp
 cd MyQtApp
 dotnet build
 dotnet run

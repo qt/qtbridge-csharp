@@ -1,7 +1,7 @@
 # Qt Bridge - C#
 
 > Copyright (C) 2026 The Qt Company Ltd.
-> SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+> SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GFDL-1.3-no-invariants-only
 
 This is a pre-release implementation of Qt Bridge for C#.
 By installing this package, you agree to the terms and conditions stated in https://www.qt.io/terms-conditions.

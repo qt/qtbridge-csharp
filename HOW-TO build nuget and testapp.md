@@ -1,5 +1,8 @@
 # Building the NuGet Package and Test Application (Windows, .NET 8)
 
+> Copyright (C) 2026 The Qt Company Ltd.
+> SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GFDL-1.3-no-invariants-only
+
 This guide documents the steps used to:
 
 1) **Build a minimal Qt 6** from source (subset of modules)
@@ -16,7 +19,7 @@ This guide documents the steps used to:
 - **Visual Studio 2022** (Desktop development with C++) with the **x64 Native Tools Command Prompt**
 - **.NET SDK 8+** (`dotnet --version`)
 - **Git**
-- **CMake** & **ninja** (installed with VS; available in the native tools prompt)
+- **CMake** & **Ninja** (installed with VS; available in the native tools prompt)
 - **Python** & **Perl** (required by Qt build tooling) - see Qt's system requirements
 - Sufficient disk space (Qt build can require tens of GB)
 
@@ -37,7 +40,7 @@ mkdir qt6-source
 mkdir qt6-build
 mkdir qt6-install
 
-:: Clone Qt meta-repo (Qt6 uses the qt5 meta-repo name)
+:: Clone Qt meta-repo (Qt 6 uses the qt5 meta-repo name)
 git clone git://code.qt.io/qt/qt5.git qt6-source
 
 :: Initialize only the modules we need
@@ -54,7 +57,7 @@ cmake --install .
 ```
 
 **Notes**
-- You can add `-D CMAKE_BUILD_PARALLEL_LEVEL=N` to speed up builds (or use `cmake --build . --parallel`).
+- You can add `-DCMAKE_BUILD_PARALLEL_LEVEL=N` to speed up builds (or use `cmake --build . --parallel`).
 - If you run into generator issues, you can specify `-G "Ninja"` and install Ninja.
 - The above turns off Qt tests/examples to keep the build lean.
 

@@ -1,9 +1,7 @@
-<!--************************************************************************************************
- Copyright (C) 2025 The Qt Company Ltd.
- SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
-*************************************************************************************************-->
-
 # Version management
+
+> Copyright (C) 2026 The Qt Company Ltd.
+> SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GFDL-1.3-no-invariants-only
 
 The file `qt_version.props` implements a centralized version management that can be shared between
 all relevant projects.
