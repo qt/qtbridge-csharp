@@ -8,9 +8,6 @@
   <PropertyGroup>
     <QtDotNetPropsImported>true</QtDotNetPropsImported>
 
-    <!-- TO_DO: implement detection of Qt installation(s) -->
-    <QtDir Condition="'$(QtDir)' == ''">C:\lib\qt\6.8.0\msvc2022_64</QtDir>
-
     <QtDotNetSolutionDir Condition="'$(SolutionDir)' != '' AND Exists('$(SolutionDir)qtbridge-csharp.sln')"
       >$(SolutionDir)</QtDotNetSolutionDir>
     <QtDotNetSolutionDir Condition="'$(QtDotNetSolutionDir)' == '' AND Exists('$(MSBuildThisFileDirectory)..\..\qtbridge-csharp.sln')"

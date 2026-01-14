@@ -6,9 +6,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
   <PropertyGroup>
-    <!-- We are only supporting Windows x64 for now, derive form $(RuntimeIdentifier) later -->
-    <_QtRid>win-x64</_QtRid>
-    <QtPackgeRoot>$(MSBuildThisFileDirectory)..\..\tools\$(_QtRid)\native\qt</QtPackgeRoot>
+    <QtPackgeRoot>$(MSBuildThisFileDirectory)..\..\tools\qt</QtPackgeRoot>
     <QtDir Condition="'$(QtDir)' == '' and Exists('$(QtPackgeRoot)\lib\cmake\Qt6\Qt6Config.cmake')"
       >$(QtPackgeRoot)</QtDir>
   </PropertyGroup>

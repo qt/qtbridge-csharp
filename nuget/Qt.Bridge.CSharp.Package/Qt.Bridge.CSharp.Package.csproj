@@ -1,4 +1,4 @@
-﻿<!--
+<!--
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 -->
@@ -123,11 +123,6 @@
     <!-- 4) Native Qt.DotNet headers (added in target UpdatePackageFiles) -->
 
   </ItemGroup>
-
-  <PropertyGroup>
-    <!-- We are only packing Windows x64 for now, derive form $(RuntimeIdentifier) later -->
-    <QtRid>win-x64</QtRid>
-  </PropertyGroup>
 
   <ItemGroup Condition="'$(QtInstallRoot)' != '' AND Exists('$(QtInstallRoot)')">
     <!-- Qt BIN: DLLs, Tools (inkl. windeployqt.exe). Doku/PDBs raus. -->
