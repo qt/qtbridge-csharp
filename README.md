@@ -60,7 +60,7 @@ Qt Bridge is distributed as a NuGet package. You can add it to your project as a
 
 ```bat
 # Project folder
-dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.1.0-alpha
+dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.1.0.1-alpha
 ```
 
 ### Importing Qt Bridge as a local package reference
@@ -168,7 +168,7 @@ dotnet new install QtGroup.Qt.Bridge.CSharp.Templates
 
 From a **local .nupkg**:
 ```bat
-dotnet new install D:\work\qtbridge-csharp\nuget\local\QtGroup.Qt.Bridge.CSharp.Templates\0.1.0-alpha\QtGroup.Qt.Bridge.CSharp.Templates.0.1.0-alpha.nupkg
+dotnet new install D:\work\qtbridge-csharp\nuget\local\QtGroup.Qt.Bridge.CSharp.Templates\0.1.0.1-alpha\QtGroup.Qt.Bridge.CSharp.Templates.0.1.0.1-alpha.nupkg
 ```
 
 Verify installation:
