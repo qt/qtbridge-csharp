@@ -42,11 +42,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Placholder - Do not remove! -->
-    <!-- Final README.md to be included in the NuGet package -->
-    <None Include="README.md" Pack="true" PackagePath="" Visible="false"/>
     <None Include="icon.png" Pack="true" PackagePath="" Visible="false"/>
     <None Include="LICENSE.txt" Pack="true" PackagePath="" Visible="false"/>
+
+    <!-- Placholder - Do not remove! -->
+    <!-- Final README.md and project file to be included in the NuGet package -->
+    <None Include="README.md" Pack="true" PackagePath="" Visible="false"/>
+    <None Include="templates/Qt.Bridge.CSharp.Project/NewProject.csproj"
+          Pack="true" PackagePath="content\Qt.Bridge.CSharp.Project" Visible="false"/>
 
     <!-- Templates remain in the project but are not packed into the NuGet -->
     <None Include="README.template.md" Pack="false" />
