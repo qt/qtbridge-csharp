@@ -35,6 +35,7 @@ Currently, only **Windows x64 and .NET 8+** are supported, with plans to extend 
 
 ## Requirements
 
+- Windows 11 (`x64`)
 - **Visual Studio 2022** (Desktop development with C++) with the **x64 Native Tools Command Prompt** (required because Qt Bridge generates C++ code)
 - **.NET SDK 8+** (`dotnet --version`)
 - **Git**
