@@ -77,7 +77,7 @@
 
     <!-- Desktop C++ -->
     <Exec Condition="'$(SkipWorkloadCheck)'!='true'"
-          Command="&quot;$(VsWhereExe)&quot; -nologo -products * -format json -requires &quot;$(DesktopWorkload)&quot;"
+          Command="&quot;$(VsWhereExe)&quot; -nologo -latest -products * -format json -requires &quot;$(DesktopWorkload)&quot;"
           StandardOutputImportance="low"
           ConsoleToMSBuild="true"
           IgnoreExitCode="true">
@@ -163,6 +163,8 @@
     <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
       <VsWhereCmd>"$(VsWhereExe)"</VsWhereCmd>
       <VsWhereCmd>$(VsWhereCmd) -latest</VsWhereCmd>
+      <VsWhereCmd>$(VsWhereCmd) -products *</VsWhereCmd>
+      <VsWhereCmd>$(VsWhereCmd) -requires &quot;$(DesktopWorkload)&quot;</VsWhereCmd>
       <VsWhereCmd>$(VsWhereCmd) -property installationPath</VsWhereCmd>
     </PropertyGroup>
     <Exec Condition="'$(VsInstallRoot)' == ''" Command="$(VsWhereCmd)" ConsoleToMsBuild="true">

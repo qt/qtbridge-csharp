@@ -41,7 +41,7 @@
 
   <PropertyGroup>
     <QtVsCheckWorkloads>true</QtVsCheckWorkloads>
-    <DesktopWorkload>Microsoft.VisualStudio.Workload.NativeDesktop</DesktopWorkload>
+    <DesktopWorkload>Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core</DesktopWorkload>
 
     <QtVsCheckCrossPlat>false</QtVsCheckCrossPlat>
     <CrossPlatformWorkload>Microsoft.VisualStudio.Workload.NativeCrossPlat</CrossPlatformWorkload>
