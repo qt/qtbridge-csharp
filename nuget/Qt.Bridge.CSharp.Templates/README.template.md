@@ -1,16 +1,24 @@
-# Qt Bridge - C# Templates - Pre Release
+<!--
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GFDL-1.3-no-invariants-only
+-->
 
-> Copyright (C) 2026 The Qt Company Ltd.
-> SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GFDL-1.3-no-invariants-only
+# Qt Bridge for C# Templates &ndash; Pre-Release
+
+Qt Bridge for C# is a bridge between C# and QML, designed to write application logic in C# while
+using Qt Quick for the UI. The bridging mechanism is based on interoperability between C# and C++.
 
 ## Contents
+
+### **Project Template: `Qt.Bridge.CSharp Project`**
+A template for creating a new **C# and QML application** project, with:
+- QML file `Main.qml` with a simple application UI.
+- C# module `Program.cs` with a `Main()` function that loads the QML UI.
 
 ### **Item Template: `Qt.Bridge.CSharp QML File (.qml)`**
 A template for adding **new QML files** to your project, with:
 - Automatic build system integration of newly created `.qml` files
 - Streamlined workflow for extending QML-based UIs
-
----
 
 ## How to use
 
@@ -61,7 +69,8 @@ MyQtApp/
 dotnet new qml --FileName=MainPage
 ```
 
-This creates `MainPage.qml`. The build integrates QML files automatically (they'll be registered and copied alongside your app).
+This creates `MainPage.qml`. The build integrates QML files automatically (they'll be registered
+and copied alongside your app).
 
 ### Uninstall the templates
 
@@ -69,19 +78,33 @@ This creates `MainPage.qml`. The build integrates QML files automatically (they'
 dotnet new uninstall __PACKAGE_ID__
 ```
 
----
-
 ## Platforms & requirements
 
 - **Runtime:** .NET 8 or newer.
 - **OS:** Windows only. Platform availability depends on the packaged Qt runtime.
 - **Tooling:** `dotnet` SDK 8+, a C++ toolchain for native build steps is required.
 
----
-
 ## Stay in touch
 
-You can reach us on the Qt Forum, specifically in the [Qt Bridges category](https://forum.qt.io/category/78/qt-bridges).
+You can reach us on the Qt Forum, specifically in the
+[Qt Bridges category](https://forum.qt.io/category/78/qt-bridges).
+
+## License
+
+    Copyright (C) 2026 The Qt Company Ltd.
+    SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
+
+Qt Bridge for C# is available under the Qt Commercial License
+or the GNU Lesser General Public License v3.0-only (`LGPL-3.0-only`).
+
+For commercial licensing, see:
+  - https://www.qt.io/terms-conditions
+  - https://www.qt.io/licensing/
+
+For `LGPL-3.0-only`, see:
+  - https://www.gnu.org/licenses/lgpl-3.0.html
+
+This information does not replace the full license terms. Use is subject to the applicable license.
 
 ## Terms and Conditions
 
@@ -99,16 +122,16 @@ right holders.
 The Qt Bridge for C# is built using the .NET SDK and Runtime, which are developed and maintained by
 Microsoft and .NET Foundation
 
-No Microsoft code or binaries are redistributed as part of Qt Bridge for C#. .NET and C# are
-trademarks of Microsoft Corporation. This project is not affiliated with, or endorsed by Microsoft.
+.NET and C# are trademarks of Microsoft Corporation. This project is not affiliated with, or
+endorsed by Microsoft.
 
-An application built with Qt Bridge for C# will include the following packages licensed under the
+The Qt Bridge for C# package includes the following modules in binary form, licensed under the
 MIT license:
   - System.Reflection.MetadataLoadContext
   - System.CommandLine
   - System.IO.Hashing
 
-If you contribute to the code of Qt Bridge for C# you will additionally need the following packages
+If you contribute to the code of Qt Bridge for C#, you will additionally need the following packages
 licensed under the MIT license:
   - Microsoft.NET.Test.Sdk
   - MSTest.TestFramework
