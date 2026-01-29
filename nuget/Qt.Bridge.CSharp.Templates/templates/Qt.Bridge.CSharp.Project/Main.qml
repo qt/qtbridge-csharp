@@ -1,14 +1,24 @@
-﻿import QtQuick
-import QtQuick.Layouts
+﻿//#if ( CopyrightHeader )
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
+//#endif
+import QtQuick
 import QtQuick.Controls
+//#if ( SampleCode )
+import QtQuick.Layouts
+//#endif
 
 ApplicationWindow {
     id: win
     visible: true
-    width: 365
-    height: 510
     title: "Qt Bridge for C#"
+//#if ( SampleCode )
+    width: 365; height: 510
     color: "#121212"
+//#else
+    width: 640; height: 480
+//#endif
+//#if ( SampleCode )
 
     ColumnLayout {
         anchors.fill: parent
@@ -77,4 +87,5 @@ ApplicationWindow {
             onClicked: Counter.clicks += 1
         }
     }
+//#endif
 }

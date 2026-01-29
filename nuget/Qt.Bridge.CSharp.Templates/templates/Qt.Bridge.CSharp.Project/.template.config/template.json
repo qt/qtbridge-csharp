@@ -1,22 +1,41 @@
 {
     "$schema": "http://json.schemastore.org/template",
-    "author": "The Qt Company Ltd.",
+    "author": "qt.io",
     "identity": "Qt.Bridge.CSharp.Project",
     "groupIdentity": "Qt.Bridge.CSharp.App",
-    "name": "Qt.Bridge.CSharp App",
-    "description": "Creates a Qt.Bridge.CSharp application project.",
+    "name": "QML Application",
+    "description": "A project for creating a C# + QML application.",
     "shortName": "qt",
-    "classifications": [ "Qt.Bridge", "Desktop", "CMake" ],
+    "classifications": [ "QML", "Qt", "Windows", "Desktop" ],
     "sourceName": "NewProject",
     "preferNameDirectory": true,
     "tags": {
         "language": "C#",
         "type": "project"
     },
-    "precedence": 900,
+    "constraints": {
+        "win-only": {
+            "type": "os",
+            "args": "Windows"
+        }
+    },
     "primaryOutputs": [
         {
             "path": "NewProject.csproj"
         }
-    ]
+    ],
+    "symbols": {
+        "SampleCode": {
+            "type": "parameter",
+            "datatype": "bool",
+            "defaultValue": "false",
+            "displayName": "Add sample code to project",
+            "description": "Select this option to add sample code to the C# and QML source files."
+        },
+        "CopyrightHeader":{
+            "type": "computed",
+            "datatype":"bool",
+            "value": "false"
+        }
+    }
 }
