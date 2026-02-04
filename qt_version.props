@@ -19,7 +19,7 @@
     <Qt_Minor>1</Qt_Minor>
     <Qt_Patch>0</Qt_Patch>
     <Qt_BuildEpoch Condition="$(SelectVersion.EndsWith('-auto-build'))">2026-01-15</Qt_BuildEpoch>
-    <Qt_Build Condition="!$(SelectVersion.EndsWith('-auto-build'))">1</Qt_Build>
+    <Qt_Build Condition="!$(SelectVersion.EndsWith('-auto-build'))">2</Qt_Build>
     <Qt_Tag>alpha</Qt_Tag>
   </PropertyGroup>
 
