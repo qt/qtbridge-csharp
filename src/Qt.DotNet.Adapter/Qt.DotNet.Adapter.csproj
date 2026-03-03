@@ -18,17 +18,6 @@
     <ProjectReference Include="..\..\utils\Text\Text.csproj" />
   </ItemGroup>
 
-  <PropertyGroup Condition="'$(SolutionDir)' == ''">
-    <SolutionDir>$(MSBuildThisFileDirectory)\..\..\</SolutionDir>
-  </PropertyGroup>
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="MKDIR $(SolutionDir)bin 2&gt; NUL&#xD;&#xA;COPY $(OutputPath)$(AssemblyName).dll $(SolutionDir)bin\$(AssemblyName).dll&#xD;&#xA;" />
-  </Target>
-  <Target Name="CleanPostBuild" AfterTargets="Clean">
-    <Delete Files="$(SolutionDir)bin\$(AssemblyName).dll" />
-  </Target>
-
   <Import Project="includegen.targets" />
 
 </Project>

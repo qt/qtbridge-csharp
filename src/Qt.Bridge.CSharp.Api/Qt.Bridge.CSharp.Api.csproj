@@ -22,8 +22,4 @@
     <ProjectReference Include="..\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
   </ItemGroup>
 
-  <PropertyGroup Condition="'$(SolutionDir)' == ''">
-    <SolutionDir>$(MSBuildThisFileDirectory)\..\..\</SolutionDir>
-  </PropertyGroup>
-
 </Project>
