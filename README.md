@@ -16,10 +16,14 @@ using Qt Quick for the UI. The bridging mechanism is based on interoperability b
 1. [Installing Qt Bridge](#installing-qt-bridge)
     1. [Importing Qt Bridge as a package reference](#importing-qt-bridge-as-a-package-reference)
     1. [Importing Qt Bridge as a local package reference](#importing-qt-bridge-as-a-local-package-reference)
-        1. [Building Qt 6 from source](#building-qt-6-from-source)
         1. [Using an existing Qt installation](#using-an-existing-qt-installation)
+        1. [Building Qt 6 from source on Windows](#building-qt-6-from-source-on-windows)
+        1. [Building Qt 6 from source on Linux (Ubuntu / WSL)](#building-qt-6-from-source-on-linux-ubuntu--wsl)
 1. [Running examples](#running-examples)
 1. [Using dotnet CLI templates](#using-dotnet-cli-templates)
+1. [Troubleshooting](#troubleshooting)
+1. [What gets packaged](#what-gets-packaged)
+1. [Clean up](#clean-up)
 1. [Stay in touch](#stay-in-touch)
 
 ## Introduction
@@ -34,17 +38,21 @@ Detailed documentation can be found
 
 ## Supported platforms
 
-Currently, only **Windows x64 and .NET 8+** are supported, with plans to extend support in the
-future.
+The currently supported workflow is:
+
+- **Windows x64 with .NET 8+**
+- **Linux x64 with .NET 8+** (validated on Ubuntu and WSL/Ubuntu)
 
 ## Requirements
 
-- Windows 11 (`x64`)
-- **Visual Studio 2022** (Desktop development with C++) with the
-  **x64 Native Tools Command Prompt** (required because Qt Bridge generates C++ code)
+- Windows 11 (`x64`) or Ubuntu/WSL (`x64`)
 - **.NET SDK 8+** (`dotnet --version`)
 - **Git**
-- **CMake** & **Ninja** (installed with VS; available in the native tools prompt)
+- **CMake** & **Ninja**
+- A C++ toolchain:
+  - Windows: **Visual Studio 2022** (Desktop development with C++) and
+    **x64 Native Tools Command Prompt**
+  - Ubuntu/WSL: `build-essential` (or equivalent)
 - **Python** & **Perl** (required only if you build Qt from source); see Qt's system requirements
 - Sufficient disk space (Qt build can require tens of GB)
 
@@ -65,9 +73,14 @@ dependency using a package reference.
 
 #### Add via dotnet CLI
 
-```bat
-# Project folder
-dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.1.0.1-alpha
+Choose the package that matches your RID (runtime identifier):
+
+```bash
+# Windows x64
+dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.1.0.2-alpha
+
+# Linux x64 (Ubuntu / WSL)
+dotnet add package QtGroup.Qt.Bridge.CSharp.linux-x64 --version 0.1.0.2-alpha
 ```
 
 ### Importing Qt Bridge as a local package reference
@@ -76,83 +89,138 @@ dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.1.0.1-alpha
 
 If you already have a Qt 6 installation that includes `qtbase`, `qtsvg`, `qtshadertools`,
 `qtdeclarative`, `qtquick3d`, `qtquick3dphysics`, and `qtquicktimeline`, you can skip building Qt
-from source. In the **x64 Native Tools Command Prompt for VS 2022**, set `QtInstallRoot` to the Qt
-installation prefix (the folder that contains `bin`, `lib`, and `include`), then continue with
-**Build the Qt Bridge for C#**.
+from source. Set `QtInstallRoot` to the Qt installation prefix (the folder that contains `bin`,
+`lib`, and `include`), then continue with **Build the Qt Bridge for C#**.
 
+Windows (`cmd` / Native Tools Prompt):
 ```bat
 set QtInstallRoot=D:\Qt\6.11.0\msvc2022_64
 ```
 
-#### Building Qt 6 from source
+Linux / WSL (`bash`):
+```bash
+export QtInstallRoot=~/work/qt6-install
+```
+
+#### Building Qt 6 from source on Windows
 
 > The paths below use `D:\work` for demonstration. Adjust as needed. All commands are meant to run
 from the **x64 Native Tools Command Prompt for VS 2022**.
 
-1. **Build Qt 6 (subset) from source**
+```bat
+:: Choose a working directory
+set WORKDIR=D:\work
+pushd %WORKDIR%
 
-    Open **x64 Native Tools Command Prompt for VS 2022** and run:
+:: Create Qt source/build/install folders
+mkdir qt6-source
+mkdir qt6-build
+mkdir qt6-install
 
-    ```bat
-    # Choose a working directory
-    pushd D:\work
+:: Clone Qt meta-repo (Qt 6 uses the qt5 meta-repo name)
+git clone https://code.qt.io/qt/qt5.git qt6-source
 
-    # Clone the Qt Bridge for C# repository
-    git clone https://codereview.qt-project.org/qt/qtbridge-csharp
+:: Initialize only the modules we need
+cd qt6-source
+init-repository --module-subset=qtbase,qtsvg,qtshadertools,qtdeclarative,qtquick3d,qtquick3dphysics,qtquicktimeline
 
-    # Create Qt source/build/install folders
-    mkdir qt6-source
-    mkdir qt6-build
-    mkdir qt6-install
+:: Configure out-of-source build
+cd ..\qt6-build
+..\qt6-source\configure -prefix ..\qt6-install -release -opensource -confirm-license -submodules qtbase,qtsvg,qtshadertools,qtdeclarative,qtquick3d,qtquick3dphysics,qtquicktimeline -- -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF
 
-    # Clone Qt meta-repo (Qt 6 uses the qt5 meta-repo name)
+:: Build and install
+cmake --build .
+cmake --install .
+```
+
+> You can add `-DCMAKE_BUILD_PARALLEL_LEVEL=N` to speed up builds
+> (or use `cmake --build . --parallel`). If you run into generator issues, you can specify
+> `-G "Ninja"` and install Ninja. The above turns off Qt tests/examples to keep the build lean.
+
+#### Building Qt 6 from source on Linux (Ubuntu / WSL)
+
+If you build on Ubuntu / WSL, install the .NET SDK first:
+
+```bash
+sudo apt-get update && sudo apt-get install -y dotnet-sdk-8.0
+```
+
+1. **Install required build dependencies**
+
+    ```bash
+    sudo apt update
+    sudo apt install -y \
+      cmake ninja-build build-essential python3 pkg-config \
+      libegl-dev libgl-dev libglu1-mesa-dev mesa-common-dev \
+      libopengl-dev libglx-dev \
+      libx11-dev libx11-xcb-dev libxext-dev libxrender-dev libxi-dev \
+      libxcb1-dev libxcb-cursor-dev libxcb-glx0-dev libxcb-keysyms1-dev \
+      libxcb-image0-dev libxcb-shm0-dev libxcb-icccm4-dev libxcb-sync-dev \
+      libxcb-xfixes0-dev libxcb-shape0-dev libxcb-randr0-dev \
+      libxcb-render-util0-dev libxcb-util-dev libxcb-xkb-dev \
+      libxkbcommon-dev libxkbcommon-x11-dev
+    ```
+
+2. **Clone and initialize the required Qt modules**
+
+    ```bash
+    mkdir -p ~/work
+    cd ~/work
+
     git clone https://code.qt.io/qt/qt5.git qt6-source
-
-    # Initialize only the modules we need
     cd qt6-source
-    init-repository --module-subset=qtbase,qtsvg,qtshadertools,qtdeclarative,qtquick3d,qtquick3dphysics,qtquicktimeline
+    ./init-repository --module-subset=qtbase,qtsvg,qtshadertools,qtdeclarative,qtquick3d,qtquick3dphysics,qtquicktimeline
+    ```
 
-    # Configure out-of-source build
-    cd ..\qt6-build
-    ..\qt6-source\configure -prefix ..\qt6-install -release -opensource -confirm-license -submodules qtbase,qtsvg,qtshadertools,qtdeclarative,qtquick3d,qtquick3dphysics,qtquicktimeline -- -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF
+3. **Configure an out-of-source build**
 
-    # Build and install
-    cmake --build .
+    ```bash
+    cd ~/work
+    mkdir -p qt6-build qt6-install
+    cd qt6-build
+
+    ../qt6-source/configure \
+      -prefix ../qt6-install \
+      -release \
+      -opensource \
+      -confirm-license \
+      -submodules qtbase,qtsvg,qtshadertools,qtdeclarative,qtquick3d,qtquick3dphysics,qtquicktimeline \
+      -- -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF
+    ```
+
+4. **Build and install**
+
+    ```bash
+    cmake --build . --parallel
     cmake --install .
     ```
 
-    > You can add `-DCMAKE_BUILD_PARALLEL_LEVEL=N` to speed up builds
-    > (or use `cmake --build . --parallel`). If you run into generator issues, you can specify
-    > `-G "Ninja"` and install Ninja. The above turns off Qt tests/examples to keep the build lean.
+The resulting Qt installation is placed in `~/work/qt6-install` and contains the usual `bin`,
+`lib`, `include`, `plugins`, and `qml` directories.
 
-2. **Set the Qt environment for the session**
+> If `configure` fails with an OpenGL-related error, make sure the OpenGL and X11 / XCB
+> development packages listed above are installed, then remove `CMakeCache.txt` and `CMakeFiles/`
+> and run `configure` again.
 
-    Use the **same** native tools prompt you used to build Qt:
+#### Build Qt Bridge for C#
 
-    ```bat
-    set QtInstallRoot=D:\work\qt6-install
-    ```
+After Qt is available and `QtInstallRoot` is set in your current shell, run from this repository
+root:
 
-    If you used an existing Qt installation, set `QtInstallRoot` to that path instead.
+```bash
+dotnet build -c Release
+```
 
-3. **Build the Qt Bridge for C#**
+#### Add the local NuGet package source
 
-    From the **same prompt**:
+- In Visual Studio, select *Tools* | *Options* | *NuGet Package Manager* | *Package Sources*.
+- Add a source named, for example, *Local Package Source* with path `<repo-root>/nuget/local`.
 
-    ```bat
-    # Go to your Qt Bridge for C# source checkout
-    pushd D:\work\qtbridge-csharp
+CLI alternative:
 
-    # Restore and build (Release)
-    dotnet build -c Release
-    ```
-
-4. **Add the local NuGet Package Sources directory to Visual Studio**
-    - In Visual Studio, select *Tools* | *Options*.
-    - In the Options dialog, select *NuGet Package Manager*.
-    - In the NuGet Package Manager settings, select *Package Sources*.
-    - In *Package Sources*, add a new item, give it a *Name* like *Local Package Source*, and set
-      the *Source* path to *D:\work\qtbridge-csharp\nuget\local*.
+```bash
+dotnet nuget add source ./nuget/local --name QtBridgeLocal
+```
 
 At this point, the Qt Bridge and Qt packages are ready, and any projects referencing Qt Bridge for
 C# can be built successfully.
@@ -162,9 +230,42 @@ C# can be built successfully.
 The **examples** directory contains simple projects implemented with Qt Bridge for C#. For instance,
 to build and run the *Primes* test application:
 
-```bat
-# Build the test app (adjust the path if different)
-dotnet build -c Release examples\Primes\Primes.csproj
+```bash
+# Build and run the test app (adjust the path if different)
+dotnet build -c Release examples/Primes/Primes.csproj
+dotnet run --project examples/Primes/Primes.csproj -c Release
+```
+
+### Linux / WSL runtime notes (Qt platform plugins)
+
+- `wayland` is optional. If your Qt build/package does not include the Wayland platform plugin,
+  startup can still work with `xcb`.
+- On Ubuntu/WSL, install runtime dependency:
+
+```bash
+sudo apt update
+sudo apt install -y libxcb-cursor0
+```
+
+- In WSL2, make sure GUI forwarding is available (WSLg / X server), then force `xcb`:
+
+```bash
+QT_QPA_PLATFORM=xcb ./examples/Primes/bin/Release/net8.0/Primes
+```
+
+- If startup reports `QFontDatabase: Cannot find font directory .../tools/qt/lib/fonts`, the Qt
+  package does not have bundled fonts on that system. Point Qt to a system font directory before
+  launching the app, for example:
+
+```bash
+export QT_QPA_FONTDIR=/usr/share/fonts/truetype/ubuntu
+QT_QPA_PLATFORM=xcb ./examples/Primes/bin/Release/net8.0/Primes
+```
+
+- For headless validation only (no GUI):
+
+```bash
+QT_QPA_PLATFORM=offscreen ./examples/Primes/bin/Release/net8.0/Primes
 ```
 
 ## Using dotnet CLI templates
@@ -174,23 +275,23 @@ These templates are installed and used via the dotnet CLI (the dotnet command-li
 ### Install the templates
 
 From a **NuGet feed**:
-```bat
+```bash
 dotnet new install QtGroup.Qt.Bridge.CSharp.Templates
 ```
 
 From a **local .nupkg**:
-```bat
-dotnet new install D:\work\qtbridge-csharp\nuget\local\QtGroup.Qt.Bridge.CSharp.Templates\0.1.0.1-alpha\QtGroup.Qt.Bridge.CSharp.Templates.0.1.0.1-alpha.nupkg
+```bash
+dotnet new install ./nuget/local/QtGroup.Qt.Bridge.CSharp.Templates/<version>/QtGroup.Qt.Bridge.CSharp.Templates.<version>.nupkg
 ```
 
 Verify installation:
-```bat
+```bash
 dotnet new list
 ```
 
 ### Create a project
 
-```bat
+```bash
 dotnet new qt -n MyQtApp
 cd MyQtApp
 dotnet build
@@ -207,7 +308,7 @@ MyQtApp/
 
 ### Add a QML item to an existing project
 
-```bat
+```bash
 dotnet new qml --FileName=MainPage
 ```
 
@@ -216,8 +317,55 @@ copied alongside your app).
 
 ### Uninstall the templates
 
-```bat
+```bash
 dotnet new uninstall QtGroup.Qt.Bridge.CSharp.Templates
+```
+
+## Troubleshooting
+
+- **C++ toolchain not detected**:
+  - Windows: use the *x64 Native Tools* prompt.
+  - Ubuntu/WSL: ensure `build-essential`, `cmake`, and `ninja-build` are installed.
+- **Missing Python/Perl**: Install them and ensure they are on `PATH` before running
+  `init-repository`/`configure`.
+- **Rebuild Qt from scratch**: Delete `qt6-build` and `qt6-install`, then run `configure` again.
+- **Linux/WSL runtime plugin errors**:
+  - Install runtime dependency: `sudo apt install -y libxcb-cursor0`
+  - Force `xcb`: `QT_QPA_PLATFORM=xcb ./examples/Primes/bin/Release/net8.0/Primes`
+  - Headless startup check: `QT_QPA_PLATFORM=offscreen ./examples/Primes/bin/Release/net8.0/Primes`
+- **Tests fail because the temp path contains spaces**:
+  - The test harness requires a temp root without spaces.
+  - Set `QTBRIDGE_TEST_ROOT` to a writable directory without spaces before running tests.
+  - Windows: `set QTBRIDGE_TEST_ROOT=C:\temp`
+  - Ubuntu / WSL: `export QTBRIDGE_TEST_ROOT=/tmp`
+- **WSL GUI**: Make sure GUI forwarding is available (WSLg or X server).
+
+## What gets packaged
+
+The NuGet contains:
+
+- **.NET adapter** (host Qt/QML engine from C#)
+- **Generator** (discovers your types and emits interop glue)
+- **Filtering rules** (Include/Ignore/Exclude attributes)
+- **C++ include headers** for the native bridge
+- A **minimal open-source Qt Quick runtime subset** sufficient to run QML
+
+All parts are versioned together to ensure compatibility.
+
+## Clean up
+
+To revert environment changes:
+
+Windows:
+
+```bat
+set QtInstallRoot=
+```
+
+Ubuntu / WSL:
+
+```bash
+unset QtInstallRoot
 ```
 
 ## Stay in touch
