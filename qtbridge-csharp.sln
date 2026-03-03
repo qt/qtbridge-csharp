@@ -111,8 +111,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{EE16DD31
 	ProjectSection(SolutionItems) = preProject
 		build\Qt.Bridge.props = build\Qt.Bridge.props
 		build\Qt.Bridge.targets = build\Qt.Bridge.targets
-		build\QtGroup.Qt.Bridge.CSharp.win-x64.props = build\QtGroup.Qt.Bridge.CSharp.win-x64.props
-		build\QtGroup.Qt.Bridge.CSharp.win-x64.targets = build\QtGroup.Qt.Bridge.CSharp.win-x64.targets
+		build\QtGroup.Qt.Bridge.CSharp.props = build\QtGroup.Qt.Bridge.CSharp.props
+		build\QtGroup.Qt.Bridge.CSharp.targets = build\QtGroup.Qt.Bridge.CSharp.targets
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".config", ".config", "{2E936378-4914-4BDB-9EE9-6C25D6B69F06}"

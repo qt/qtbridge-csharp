@@ -111,10 +111,10 @@
           Include="..\..\build\Qt.Bridge.targets"
           PackagePath="build\$(TargetFramework)\Qt.Bridge.targets" Visible="false" />
     <None Pack="true"
-          Include="..\..\build\QtGroup.Qt.Bridge.CSharp.win-x64.props"
+          Include="..\..\build\QtGroup.Qt.Bridge.CSharp.props"
           PackagePath="build\$(TargetFramework)\QtGroup.Qt.Bridge.CSharp.win-x64.props" Visible="false" />
     <None Pack="true"
-          Include="..\..\build\QtGroup.Qt.Bridge.CSharp.win-x64.targets"
+          Include="..\..\build\QtGroup.Qt.Bridge.CSharp.targets"
           PackagePath="build\$(TargetFramework)\QtGroup.Qt.Bridge.CSharp.win-x64.targets" Visible="false" />
 
     <!-- 4) Native Qt.DotNet headers (added in target UpdatePackageFiles) -->
