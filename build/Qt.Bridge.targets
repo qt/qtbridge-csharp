@@ -67,7 +67,7 @@
   -->
   <Target Name="QtCheckVisualStudioWorkloads"
           BeforeTargets="QtBridgeGenerate"
-          Condition="'$(OS)'=='Windows_NT' and '$(QtVsCheckWorkloads)'=='true'">
+          Condition="'$(QtHostIsWindows)' == 'true' and '$(QtVsCheckWorkloads)'=='true'">
 
     <Warning Condition="!Exists('$(VsWhereExe)')"
              Text="vswhere.exe not found '$(VsWhereExe)'. Ignore workload check." />
@@ -160,53 +160,61 @@
 
     <Message Importance="high" Text="Qt Bridge: Building native code..." />
 
-    <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
+    <PropertyGroup>
+      <QtNativeBuildDir>$(IntermediateOutputPath)qt/native/build</QtNativeBuildDir>
+      <QtNativeSourceDir>$(IntermediateOutputPath)qt/native/source</QtNativeSourceDir>
+      <QtNativeBinDir>$(IntermediateOutputPath)qt/native/bin</QtNativeBinDir>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' == ''">
       <VsWhereCmd>"$(VsWhereExe)"</VsWhereCmd>
       <VsWhereCmd>$(VsWhereCmd) -latest</VsWhereCmd>
       <VsWhereCmd>$(VsWhereCmd) -products *</VsWhereCmd>
       <VsWhereCmd>$(VsWhereCmd) -requires &quot;$(DesktopWorkload)&quot;</VsWhereCmd>
       <VsWhereCmd>$(VsWhereCmd) -property installationPath</VsWhereCmd>
     </PropertyGroup>
-    <Exec Condition="'$(VsInstallRoot)' == ''" Command="$(VsWhereCmd)" ConsoleToMsBuild="true">
+    <Exec Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' == '' and Exists('$(VsWhereExe)')"
+          Command="$(VsWhereCmd)" ConsoleToMsBuild="true" IgnoreExitCode="true">
       <Output TaskParameter="ConsoleOutput" ItemName="VsWhereOutput" />
     </Exec>
-    <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
+    <PropertyGroup Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' == ''">
       <VsInstallRoot Condition="Exists('%(VsWhereOutput.Identity)')">%(VsWhereOutput.Identity)</VsInstallRoot>
     </PropertyGroup>
-    <PropertyGroup Condition="'$(VsInstallRoot)' == '' OR '$(QtBuildSystem)' == 'ninja'">
-      <CMakeBuild>true</CMakeBuild>
+    <Warning Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' == '' and '$(QtBuildSystem)' != 'ninja'"
+             Text="Visual Studio installation not found; falling back to Ninja generator." />
+    <PropertyGroup Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' != '' and '$(QtBuildSystem)' != 'ninja'">
+      <QtCMakeGenerator>Visual Studio 17 2022</QtCMakeGenerator>
+    </PropertyGroup>
+    <PropertyGroup>
+      <QtVcVarsCmd Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' != '' and Exists('$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat')"
+        >CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL &amp;&amp; </QtVcVarsCmd>
+      <QtCMakeGenerator Condition="'$(QtCMakeGenerator)' == ''">Ninja</QtCMakeGenerator>
+      <QtCMakeExtraArgs Condition="'$(QtCMakeGenerator)' == 'Ninja'">-DCMAKE_BUILD_TYPE=Release</QtCMakeExtraArgs>
     </PropertyGroup>
 
-    <MakeDir Directories="$(IntermediateOutputPath)qt\native\build" />
-    <MakeDir Directories="$(IntermediateOutputPath)qt\native\bin" />
+    <MakeDir Directories="$(QtNativeBuildDir)" />
+    <MakeDir Directories="$(QtNativeBinDir)" />
+
     <PropertyGroup>
-      <CMakeCmd>
-        CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL
-        SET CMAKE_PREFIX_PATH=$(QtDir);%CMAKE_PREFIX_PATH%"
-        CD "$(IntermediateOutputPath)qt\native\build"
-      </CMakeCmd>
-      <CMakeCmd Condition="'$(CMakeBuild)' != 'true'">
-        $(CMakeCmd)
-        cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G "Visual Studio 17 2022"
-      </CMakeCmd>
-      <CMakeCmd Condition="'$(CMakeBuild)' == 'true'">
-        $(CMakeCmd)
-        cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G Ninja -DCMAKE_BUILD_TYPE=Release
-        cmake --build . --parallel
-      </CMakeCmd>
+      <QtCMakeConfigureCmd Condition="'$(QtHostIsWindows)' == 'true'">$(QtVcVarsCmd)set "CMAKE_PREFIX_PATH=$(QtDir);%CMAKE_PREFIX_PATH%" &amp;&amp; cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G &quot;$(QtCMakeGenerator)&quot; $(QtCMakeExtraArgs)</QtCMakeConfigureCmd>
+      <QtCMakeConfigureCmd Condition="'$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true'">CMAKE_PREFIX_PATH=&quot;$(QtDir):$CMAKE_PREFIX_PATH&quot; cmake ../source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G &quot;$(QtCMakeGenerator)&quot; $(QtCMakeExtraArgs)</QtCMakeConfigureCmd>
     </PropertyGroup>
-    <Exec Command="$(CMakeCmd)" EchoOff="true" IgnoreExitCode="true">
+    <Exec Command="$(QtCMakeConfigureCmd)" WorkingDirectory="$(QtNativeBuildDir)" EchoOff="true" IgnoreExitCode="true">
       <Output TaskParameter="ExitCode" PropertyName="CMakeResult" />
     </Exec>
-    <Error Condition="'$(CMakeResult)' != '0'" Text="Error building native code!" />
+    <Error Condition="'$(CMakeResult)' != '0'" Text="Error configuring native code!" />
 
-    <ItemGroup Condition="'$(CMakeBuild)' != 'true'">
-      <NativeSln Include="$(IntermediateOutputPath)qt\native\build\*.sln" />
+    <PropertyGroup>
+      <QtUseMsBuildGenerator Condition="'$(QtHostIsWindows)' == 'true' and '$(QtCMakeGenerator)' != 'Ninja'">true</QtUseMsBuildGenerator>
+      <QtUseMsBuildGenerator Condition="'$(QtUseMsBuildGenerator)' == ''">false</QtUseMsBuildGenerator>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(QtUseMsBuildGenerator)' == 'true'">
+      <NativeSln Include="$(QtNativeBuildDir)\*.sln" />
     </ItemGroup>
-    <PropertyGroup Condition="'$(CMakeBuild)' != 'true'">
+    <PropertyGroup Condition="'$(QtUseMsBuildGenerator)' == 'true'">
       <NativeApp>%(NativeSln.RelativeDir)%(NativeSln.Filename)</NativeApp>
     </PropertyGroup>
-    <ItemGroup Condition="'$(CMakeBuild)' != 'true'">
+    <ItemGroup Condition="'$(QtUseMsBuildGenerator)' == 'true'">
       <NativeProject Include="$(NativeApp)_tooling.vcxproj;
                               $(NativeApp)_qmlimportscan.vcxproj;
                               $(NativeApp)_autogen.vcxproj;
@@ -214,17 +222,29 @@
                               $(NativeApp).vcxproj" />
       <NativeProject Remove="@(NativeProject)" Condition="!Exists('%(NativeProject.FullPath)')" />
     </ItemGroup>
-    <MSBuild Condition="'$(CMakeBuild)' != 'true'"
+    <MSBuild Condition="'$(QtUseMsBuildGenerator)' == 'true'"
       Projects="@(NativeProject)" BuildInParallel="false" StopOnFirstFailure="true"
       Properties="Platform=x64;Configuration=Release;CL_MP=true" Targets="Build" />
+    <Exec Condition="'$(QtUseMsBuildGenerator)' != 'true'"
+      Command="$(QtVcVarsCmd)cmake --build . --parallel"
+      WorkingDirectory="$(QtNativeBuildDir)" EchoOff="true" IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="CMakeResult" />
+    </Exec>
+    <Error Condition="'$(QtUseMsBuildGenerator)' != 'true' and '$(CMakeResult)' != '0'" Text="Error building native code!" />
 
-    <ItemGroup>
-      <QtNativeBinary Include="$(IntermediateOutputPath)qt\native\bin\*.exe" />
+    <PropertyGroup>
+      <QtNativeHostPath Condition="'$(QtHostIsWindows)' == 'true' and Exists('$(QtNativeBinDir)/$(AssemblyName).exe')">$(QtNativeBinDir)/$(AssemblyName).exe</QtNativeHostPath>
+      <QtNativeHostPath Condition="('$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true') and Exists('$(QtNativeBinDir)/$(AssemblyName)')">$(QtNativeBinDir)/$(AssemblyName)</QtNativeHostPath>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(QtNativeHostPath)' == ''">
+      <QtNativeBinary Condition="'$(QtHostIsWindows)' == 'true'" Include="$(QtNativeBinDir)\*.exe" />
+      <QtNativeBinary Condition="'$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true'" Include="$(QtNativeBinDir)/*" />
+      <QtNativeBinary Remove="@(QtNativeBinary)" Condition="'%(Extension)' == '.so' OR '%(Extension)' == '.dylib' OR '%(Extension)' == '.dll' OR '%(Extension)' == '.a' OR '%(Extension)' == '.json'" />
     </ItemGroup>
     <PropertyGroup>
-      <QtNativeHostPath Condition="Exists('%(QtNativeBinary.FullPath)')"
-        >%(QtNativeBinary.FullPath)</QtNativeHostPath>
+      <QtNativeHostPath Condition="'$(QtNativeHostPath)' == '' and Exists('%(QtNativeBinary.FullPath)')">%(QtNativeBinary.FullPath)</QtNativeHostPath>
     </PropertyGroup>
+    <Error Condition="'$(QtNativeHostPath)' == ''" Text="Error locating native host binary in $(QtNativeBinDir)." />
 
     <PropertyGroup Condition="'$(QtNativeHostPath)' != ''">
       <AppHostSourcePath>$(QtNativeHostPath)</AppHostSourcePath>
@@ -241,21 +261,25 @@
     Condition="'$(DesignTimeBuild)' != 'true'">
 
     <Message Importance="high" Text="Qt Bridge: Deploying Qt..." />
+    <PropertyGroup>
+      <QtNativeBuildDir>$(IntermediateOutputPath)qt/native/build</QtNativeBuildDir>
+    </PropertyGroup>
 
-    <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
+    <PropertyGroup Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' == ''">
       <VsWhereCmd>"$(VsWhereExe)"</VsWhereCmd>
       <VsWhereCmd>$(VsWhereCmd) -latest</VsWhereCmd>
       <VsWhereCmd>$(VsWhereCmd) -property installationPath</VsWhereCmd>
     </PropertyGroup>
-    <Exec Condition="'$(VsInstallRoot)' == ''" Command="$(VsWhereCmd)" ConsoleToMsBuild="true">
+    <Exec Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' == '' and Exists('$(VsWhereExe)')"
+          Command="$(VsWhereCmd)" ConsoleToMsBuild="true" IgnoreExitCode="true">
       <Output TaskParameter="ConsoleOutput" ItemName="VsWhereOutput" />
     </Exec>
-    <PropertyGroup Condition="'$(VsInstallRoot)' == ''">
+    <PropertyGroup Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' == ''">
       <VsInstallRoot Condition="Exists('%(VsWhereOutput.Identity)')"
         >%(VsWhereOutput.Identity)</VsInstallRoot>
     </PropertyGroup>
 
-    <PropertyGroup>
+    <PropertyGroup Condition="'$(QtHostIsWindows)' == 'true'">
       <VcVarsCmd Condition="'$(VsInstallRoot)' != ''"
         >CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL</VcVarsCmd>
       <DeployCmd>"$(QtDir)\bin\windeployqt.exe"</DeployCmd>
@@ -265,15 +289,27 @@
       <DeployCmd>$(DeployCmd) "$(RunCommand)"</DeployCmd>
       <DeployCmd>$(DeployCmd) &gt; NUL</DeployCmd>
     </PropertyGroup>
-    <Exec Command="
+    <Exec Condition="'$(QtHostIsWindows)' == 'true' and Exists('$(QtDir)\bin\windeployqt.exe')"
+      Command="
           $(VcVarsCmd)
           $(DeployCmd)"
       WorkingDirectory="$(TargetDir)" IgnoreExitCode="true">
       <Output TaskParameter="ExitCode" PropertyName="DeployResult" />
     </Exec>
-    <Error Condition="'$(DeployResult)' != '0'" Text="Error deploying Qt binaries!" />
-    <Exec WorkingDirectory="$(TargetDir)" IgnoreExitCode="true"
+    <Error Condition="'$(QtHostIsWindows)' == 'true' and Exists('$(QtDir)\bin\windeployqt.exe') and '$(DeployResult)' != '0'" Text="Error deploying Qt binaries!" />
+    <Message Condition="'$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true'" Importance="high"
+             Text="Qt Bridge: deploying runtime dependencies via CMake install." />
+    <Exec Condition="'$(QtHostIsWindows)' == 'true' and Exists('$(QtDir)\bin\windeployqt.exe')" WorkingDirectory="$(TargetDir)" IgnoreExitCode="true"
       Command="$(DeployCmd) --list relative &gt; qtdeploy.txt 2&gt; NUL" />
+    <Exec Condition="'$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true'"
+          Command="cmake --install . --prefix &quot;$(TargetDir)&quot;"
+          WorkingDirectory="$(QtNativeBuildDir)" IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="DeployResult" />
+    </Exec>
+    <Error Condition="('$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true') and '$(DeployResult)' != '0'" Text="Error deploying Qt binaries with CMake install!" />
+    <Exec Condition="('$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true') and Exists('$(QtNativeBuildDir)/install_manifest.txt')"
+          Command="sed -e &quot;s#^$(TargetDir.Replace('\', '/').TrimEnd('/'))/##&quot; &quot;$(QtNativeBuildDir)/install_manifest.txt&quot; &gt;&gt; &quot;$(TargetDir)qtdeploy.txt&quot;"
+          IgnoreExitCode="true" />
 
     <ItemGroup>
       <QmlDeploy Condition="'@(Qml)' != ''"
@@ -302,8 +338,9 @@
     </ReadLinesFromFile>
     <Delete Files="@(QtDeploy->'$(TargetDir)%(Identity)')" />
     <Delete Files="$(TargetDir)qtdeploy.txt" />
-    <RemoveDir Condition="$([System.String]::Copy('%(QtDeploy.Identity)').Contains('\'))"
-       Directories="$(TargetDir)$([System.IO.Path]::GetDirectoryName(%(QtDeploy.Identity)).Split('\')[0])" />
+    <RemoveDir Condition="$([System.String]::Copy('%(QtDeploy.Identity)').Contains('\') OR
+                        $([System.String]::Copy('%(QtDeploy.Identity)').Contains('/')))"
+       Directories="$(TargetDir)$([System.IO.Path]::GetDirectoryName(%(QtDeploy.Identity)).Replace('\', '/').Split('/')[0])" />
   </Target>
   <!-- END QtBridgeClean-->
 

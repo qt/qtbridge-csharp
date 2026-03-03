@@ -7,15 +7,24 @@
 
   <PropertyGroup>
     <QtDotNetPropsImported>true</QtDotNetPropsImported>
+    <QtHostIsWindows Condition="'$(OS)' == 'Windows_NT'">true</QtHostIsWindows>
+    <QtHostIsWindows Condition="'$(QtHostIsWindows)' == ''">false</QtHostIsWindows>
+    <QtHostIsLinux Condition="$([MSBuild]::IsOSPlatform('Linux'))">true</QtHostIsLinux>
+    <QtHostIsLinux Condition="'$(QtHostIsLinux)' == ''">false</QtHostIsLinux>
+    <QtHostIsMacOS Condition="$([MSBuild]::IsOSPlatform('OSX'))">true</QtHostIsMacOS>
+    <QtHostIsMacOS Condition="'$(QtHostIsMacOS)' == ''">false</QtHostIsMacOS>
 
     <QtDotNetSolutionDir Condition="'$(SolutionDir)' != '' AND Exists('$(SolutionDir)qtbridge-csharp.sln')"
       >$(SolutionDir)</QtDotNetSolutionDir>
     <QtDotNetSolutionDir Condition="'$(QtDotNetSolutionDir)' == '' AND Exists('$(MSBuildThisFileDirectory)..\..\qtbridge-csharp.sln')"
       >$(MSBuildThisFileDirectory)..\..\</QtDotNetSolutionDir>
 
-    <QtDotNetGen>$(MSBuildThisFileDirectory)qbgen.exe</QtDotNetGen>
-    <QtDotNetGen Condition="!Exists('$(QtDotNetGen)') AND '$(QtDotNetSolutionDir)' != ''"
+    <QtDotNetGen Condition="'$(QtHostIsWindows)' == 'true'">$(MSBuildThisFileDirectory)qbgen.exe</QtDotNetGen>
+    <QtDotNetGen Condition="'$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true'">$(MSBuildThisFileDirectory)qbgen</QtDotNetGen>
+    <QtDotNetGen Condition="!Exists('$(QtDotNetGen)') AND '$(QtDotNetSolutionDir)' != '' AND '$(QtHostIsWindows)' == 'true'"
       >$(QtDotNetSolutionDir)src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen.exe</QtDotNetGen>
+    <QtDotNetGen Condition="!Exists('$(QtDotNetGen)') AND '$(QtDotNetSolutionDir)' != '' AND ('$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true')"
+      >$(QtDotNetSolutionDir)src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen</QtDotNetGen>
 
     <QtDotNetGenRules>$(MSBuildThisFileDirectory)Qt.Bridge.CSharp.GenerationRules.dll</QtDotNetGenRules>
     <QtDotNetGenRules Condition="!Exists('$(QtDotNetGenRules)') AND '$(QtDotNetSolutionDir)' != ''"
@@ -40,14 +49,15 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <QtVsCheckWorkloads>true</QtVsCheckWorkloads>
+    <QtVsCheckWorkloads Condition="'$(QtHostIsWindows)' == 'true'">true</QtVsCheckWorkloads>
+    <QtVsCheckWorkloads Condition="'$(QtVsCheckWorkloads)' == ''">false</QtVsCheckWorkloads>
     <DesktopWorkload>Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core</DesktopWorkload>
 
     <QtVsCheckCrossPlat>false</QtVsCheckCrossPlat>
     <CrossPlatformWorkload>Microsoft.VisualStudio.Workload.NativeCrossPlat</CrossPlatformWorkload>
 
-    <ProgramFilesX86>$([MSBuild]::GetProgramFiles32())</ProgramFilesX86>
-    <VsWhereExe>$(ProgramFilesX86)\Microsoft Visual Studio\Installer\vswhere.exe</VsWhereExe>
+    <ProgramFilesX86 Condition="'$(QtHostIsWindows)' == 'true'">$([MSBuild]::GetProgramFiles32())</ProgramFilesX86>
+    <VsWhereExe Condition="'$(QtHostIsWindows)' == 'true'">$(ProgramFilesX86)\Microsoft Visual Studio\Installer\vswhere.exe</VsWhereExe>
 
   </PropertyGroup>
 

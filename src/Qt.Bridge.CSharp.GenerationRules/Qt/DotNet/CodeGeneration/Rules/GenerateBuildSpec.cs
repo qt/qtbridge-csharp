@@ -73,6 +73,19 @@ target_link_libraries({Root.MFn(Target)} PRIVATE
     {cmake[new(Libraries)]}
 )
 
+install(TARGETS {Root.MFn(Target)}
+    BUNDLE DESTINATION .
+    LIBRARY DESTINATION .
+    RUNTIME DESTINATION .
+)
+
+qt_generate_deploy_app_script(
+    TARGET {Root.MFn(Target)}
+    OUTPUT_SCRIPT deploy_script
+    NO_UNSUPPORTED_PLATFORM_ERROR
+)
+install(SCRIPT ${{deploy_script}})
+
 add_custom_command(
   TARGET {Root.MFn(Target)}
   POST_BUILD
