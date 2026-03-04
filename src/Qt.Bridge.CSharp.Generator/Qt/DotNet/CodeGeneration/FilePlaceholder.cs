@@ -47,9 +47,9 @@ namespace Qt.Bridge.CodeGeneration
                 .Replace($"{Tab}", IndentChars);
             text = Regex.Replace(text, $@"[ ]*{BkSpc}", "");
             text = Regex.Replace(text, @"(?<=\n)[ \t]*\r?\n", "")
-                .Replace($"{Blank}", "\r\n")
+                .Replace($"{Blank}", Environment.NewLine)
                 .TrimEnd('\r', '\n', ' ')
-                + (NewLineEof ? "\r\n" : "");
+                + (NewLineEof ? Environment.NewLine : "");
 
             return await sink.WriteAsync(Target, text, Encoding, ForceWrite, cancelToken)
                 .ConfigureAwait(false);

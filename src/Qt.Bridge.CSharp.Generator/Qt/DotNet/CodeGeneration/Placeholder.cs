@@ -223,10 +223,10 @@ namespace Qt.Bridge.CodeGeneration
                 if (Distinct)
                     blocks = blocks.Distinct(Comparer);
             }
-            text = string.Join("\r\n", blocks);
+            text = string.Join(Environment.NewLine, blocks);
             var lines = text
                 .Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-            text = string.Join("\r\n", lines
+            text = string.Join(Environment.NewLine, lines
                 .Select(x => $"{new string(Tab, Indent)}{x}"));
             return text;
         }
