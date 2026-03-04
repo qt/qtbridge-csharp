@@ -7,10 +7,13 @@
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wconversion"
 #endif
+#include <cstddef>
 #include <QtGlobal>
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop
 #endif
+
+using std::nullptr_t;
 
 #ifdef Q_OS_WINDOWS
 #   define char_t char16_t

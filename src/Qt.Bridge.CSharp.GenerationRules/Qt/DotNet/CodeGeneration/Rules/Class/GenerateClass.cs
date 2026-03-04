@@ -64,9 +64,9 @@ namespace Qt.Bridge.CodeGeneration.Rules.Class
                 return Error();
             forwardDeclBaseOf += $@"
 template<>
-constexpr bool is_base_of_v<QDotNetRef, {type.MFn(Ns | Name)}> = true;
+inline constexpr bool is_base_of_v<QDotNetRef, {type.MFn(Ns | Name)}> = true;
 template<>
-constexpr bool is_base_of_v<QDotNetObject, {type.MFn(Ns | Name)}> = true;
+inline constexpr bool is_base_of_v<QDotNetObject, {type.MFn(Ns | Name)}> = true;
 ";
             ////////////////////////////////////////////////////////////////////////////////////////
             //

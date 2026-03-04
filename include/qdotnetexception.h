@@ -19,7 +19,7 @@ class QDotNetException : public QException, public QDotNetRef
 {
 public:
     QDotNetException()
-        : QDotNetException({ "System.Exception" })
+        : QDotNetException(QStringLiteral("System.Exception"))
     {}
 
     QDotNetException(const QString &type)

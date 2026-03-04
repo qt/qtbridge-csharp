@@ -165,6 +165,8 @@ QObject::connect(q, &{type.MFn(Ns | Name)}::modelChanged, [q](QObject *evObj)
             emit q->headerDataChanged(
                 (Qt::Orientation)args->orientation(), args->first(), args->last());
             break;
+        case {typeof(Model.EventAction).MFn(Ns | Name)}::NoAction:
+            break;
         }}
         args->setSynchronized(true);
     }}
