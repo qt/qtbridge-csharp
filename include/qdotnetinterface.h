@@ -47,6 +47,20 @@ public:
         return *this;
     }
 
+    template<typename TFn>
+    static void *asHandle(TFn fn)
+    {
+        // setInterfaceMethod stores callback handles as void*.
+        // GCC is stricter than MSVC here, so make the function-pointer conversion explicit.
+        return reinterpret_cast<void *>(fn);
+    }
+
+    static void *asHandle(std::nullptr_t)
+    {
+        // Keep nullptr cleanup callbacks well-typed across compilers.
+        return nullptr;
+    }
+
     template<typename T>
     T *dataAs()
     {
@@ -88,7 +102,7 @@ public:
 
         adapter().setInterfaceMethod(
             *this, methodName, parameters,
-            callback->delegate(), callback->cleanUp(), callback);
+            asHandle(callback->delegate()), asHandle(callback->cleanUp()), callback);
     }
 
 private:
@@ -112,7 +126,7 @@ struct QDotNetNativeInterface : public QDotNetInterface
     }
 
     QDotNetNativeInterface(const QString &interfaceName, T *data, bool doCleanUp = true)
-        : QDotNetInterface(interfaceName, data, doCleanUp ? cleanUp : nullptr)
+        : QDotNetInterface(interfaceName, data, asHandle(doCleanUp ? cleanUp : nullptr))
     {
     }
 

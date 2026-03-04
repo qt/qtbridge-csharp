@@ -114,31 +114,32 @@ struct Convert
             return obj;
         }}
     }};
+}};
 
-    template<>
-    struct Object<QDotNetObject>
+// Explicit specialization must be at namespace scope (GCC/Clang are strict here).
+template<>
+struct Convert::Object<QDotNetObject>
+{{
+    static QVariant null() {{ return QVariant(); }}
+
+    static bool isValid(const QVariant &obj)
     {{
-        static QVariant null() {{ return QVariant(); }}
-
-        static bool isValid(const QVariant &obj)
-        {{
-            if (!obj.isValid())
+        if (!obj.isValid())
+            return false;
+        if (obj.metaType().flags() & QMetaType::PointerToQObject) {{
+            if (const QDotNetObject *dnObj = Convert::asDotNetObject(obj.value<QObject *>()))
+                return dnObj->isValid();
+            else
                 return false;
-            if (obj.metaType().flags() & QMetaType::PointerToQObject) {{
-                if (const QDotNetObject *dnObj = asDotNetObject(obj.value<QObject *>()))
-                    return dnObj->isValid();
-                else
-                    return false;
-            }}
-            return true;
         }}
+        return true;
+    }}
 
-        template<typename V>
-        static V toValue(const QVariant &obj) {{ return obj.value<V>(); }}
+    template<typename V>
+    static V toValue(const QVariant &obj) {{ return obj.value<V>(); }}
 
-        template<typename V>
-        static QVariant fromValue(V value) {{ return QVariant::fromValue(value); }}
-    }};
+    template<typename V>
+    static QVariant fromValue(V value) {{ return QVariant::fromValue(value); }}
 }};
 ";
             ////////////////////////////////////////////////////////////////////////////////////////
