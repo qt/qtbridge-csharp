@@ -70,11 +70,13 @@ Window {
             required property string label
             required property string uri
             required property string type
+            width: menuView.width
+            height: menuView.height / (menu.count + 1)
             text: label
             font.pixelSize: height / 3
             background: Rectangle {
-                implicitWidth: menuView.width
-                implicitHeight: menuView.height / (menu.count + 1)
+                width: menuOption.width
+                height: menuOption.height
                 color: menuOption.down ? "#157efb" : "#53d769"
                 border.color: Qt.lighter(color, 1.1)
                 border.width: 1

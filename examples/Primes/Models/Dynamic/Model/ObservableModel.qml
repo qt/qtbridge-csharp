@@ -76,13 +76,18 @@ Window {
         anchors.topMargin: buttonGroups.height + 16
         cellWidth: width / 10
         cellHeight: height / 10
-        model: vm.items  // Bind to the ViewModel's items
+        Component.onCompleted: view.model = vm.items
 
         // Animation for item insertion
         add: Transition {
             SequentialAnimation {
                 // Highlight the item briefly on insertion
-                ScriptAction { script: ViewTransition.item.pulseHighlight() }
+                ScriptAction {
+                    script: {
+                        if (ViewTransition.item && ViewTransition.item.pulseHighlight)
+                            ViewTransition.item.pulseHighlight()
+                    }
+                }
 
                 // Fade in and scale animation
                 NumberAnimation {
@@ -135,7 +140,12 @@ Window {
         move: Transition {
             SequentialAnimation {
                 // Highlight the item briefly on move
-                ScriptAction { script: ViewTransition.item.pulseHighlight() }
+                ScriptAction {
+                    script: {
+                        if (ViewTransition.item && ViewTransition.item.pulseHighlight)
+                            ViewTransition.item.pulseHighlight()
+                    }
+                }
 
                 // Smooth movement animation
                 NumberAnimation {
