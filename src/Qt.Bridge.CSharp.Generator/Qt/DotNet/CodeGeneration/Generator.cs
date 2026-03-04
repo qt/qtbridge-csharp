@@ -14,6 +14,28 @@ namespace Qt.Bridge.CodeGeneration
 
     internal static class Generator
     {
+        private static IEnumerable<string> ResolveRefAssemblies(IEnumerable<string> refs)
+        {
+            foreach (var reference in refs ?? []) {
+                if (string.IsNullOrWhiteSpace(reference))
+                    continue;
+
+                if (Directory.Exists(reference)) {
+                    foreach (var dll in Directory.GetFiles(reference, "*.dll"))
+                        yield return dll;
+                    continue;
+                }
+
+                if (File.Exists(reference)) {
+                    var dir = Path.GetDirectoryName(Path.GetFullPath(reference));
+                    if (!string.IsNullOrEmpty(dir)) {
+                        foreach (var dll in Directory.GetFiles(dir, "*.dll"))
+                            yield return dll;
+                    }
+                }
+            }
+        }
+
         private enum ExitCode
         {
             Ok,
@@ -98,8 +120,7 @@ namespace Qt.Bridge.CodeGeneration
             var assemblies = Directory.GetFiles(RuntimeEnvironment.GetRuntimeDirectory(), "*.dll")
                 .Union(Directory.GetFiles(Environment.CurrentDirectory, "*.dll"))
                 .Union(Directory.GetFiles(srcFile.DirectoryName, "*.dll"))
-                .Union(refs.SelectMany(x => Directory.GetFiles(
-                    Directory.Exists(x) ? x : Path.GetDirectoryName(x), "*.dll")))
+                .Union(ResolveRefAssemblies(refs))
                 .ToArray();
 
             var loader = new MetadataLoadContext(new PathAssemblyResolver(assemblies));
