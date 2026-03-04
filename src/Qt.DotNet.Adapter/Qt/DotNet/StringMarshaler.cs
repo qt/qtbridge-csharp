@@ -31,6 +31,7 @@ namespace Qt.DotNet
 
         public object MarshalNativeToManaged(IntPtr ptrStr)
         {
+            // String marshaler pairs with StringToHGlobalUni / LPWStr (UTF-16).
             return Marshal.PtrToStringUni(ptrStr);
         }
 

@@ -20,6 +20,7 @@
 #include <QString>
 #include <QTemporaryFile>
 #include <QVersionNumber>
+#include <QByteArray>
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop
 #endif
@@ -54,9 +55,19 @@ public:
 
         if (!loadRuntime({}))
             return false;
+#ifdef Q_OS_WINDOWS
         const char_t *host_path = STR(appHostPath);
         const char_t *app_path = STR(appLibPath);
         const char_t *dotnet_root = (char_t *)L"C:\\Program Files\\dotnet\\";
+#else
+        // On Unix, hostfxr char_t is UTF-8 (char), not UTF-16.
+        // Keep backing QByteArray instances alive for the full native call.
+        const QByteArray hostPathUtf8 = appHostPath.toUtf8();
+        const QByteArray appPathUtf8 = appLibPath.toUtf8();
+        const char_t *host_path = reinterpret_cast<const char_t *>(hostPathUtf8.constData());
+        const char_t *app_path = reinterpret_cast<const char_t *>(appPathUtf8.constData());
+        const char_t *dotnet_root = nullptr;
+#endif
 
         int argc = 1;
         const char_t *argv[] = { host_path, nullptr };
@@ -79,9 +90,21 @@ public:
             QScopedPointerArrayDeleter<const char_t *>> argvPtr(new const char_t * [argc + 1]);
 
         auto argv = argvPtr.data();
+#ifdef Q_OS_WINDOWS
         argv[0] = STR(appPath);
         for (int i = 1; i < argc ; ++i)
             argv[i] = STR(args[i]);
+#else
+        // hostfxr_initialize_for_dotnet_command_line expects UTF-8 argv on Unix.
+        // Store UTF-8 buffers in a local list so argv pointers remain valid.
+        QList<QByteArray> utf8Args;
+        utf8Args.reserve(argc);
+        utf8Args.append(appPath.toUtf8());
+        for (int i = 1; i < argc ; ++i)
+            utf8Args.append(args[i].toUtf8());
+        for (int i = 0; i < argc; ++i)
+            argv[i] = reinterpret_cast<const char_t *>(utf8Args[i].constData());
+#endif
         argv[argc] = nullptr;
 
         auto result = fnInitApp(argc, argv, nullptr, &hostContext);

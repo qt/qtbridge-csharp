@@ -15,6 +15,7 @@ namespace Qt.DotNet
 
         public override Uri MarshalIn(nint ptr)
         {
+            // QUrl custom marshaling uses UTF-16 buffers on all platforms.
             var url = Marshal.PtrToStringUni(ptr);
             Marshal.FreeHGlobal(ptr);
             return new Uri(url);

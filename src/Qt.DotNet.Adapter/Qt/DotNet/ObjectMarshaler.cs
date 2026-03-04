@@ -38,6 +38,7 @@ namespace Qt.DotNet
             var objRef = Adapter.GetObjectRefFromPtr(objRefPtr);
             if (objRef != null)
                 return objRef.Target;
+            // Compatibility fallback for object payloads that are passed as LPWStr.
             if (Marshal.PtrToStringUni(objRefPtr) is string str)
                 return str;
             throw new ArgumentException("Invalid object reference", nameof(objRefPtr));

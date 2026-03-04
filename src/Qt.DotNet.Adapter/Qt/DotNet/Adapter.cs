@@ -12,6 +12,18 @@ using static Qt.DotNet.Adapter;
 internal class StartupHook
 {
     private static ConcurrentBag<DelegateRef> Callbacks { get; set; } = new();
+
+    private static string PtrToNativeString(IntPtr ptr)
+    {
+        if (ptr == IntPtr.Zero)
+            return string.Empty;
+        // hostfxr callbacks provide UTF-16 strings on Windows and UTF-8 strings on Unix.
+        // Using PtrToStringUni on Linux corrupts paths and type/method names.
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return Marshal.PtrToStringUni(ptr) ?? string.Empty;
+        return Marshal.PtrToStringUTF8(ptr) ?? string.Empty;
+    }
+
     public static void Initialize()
     {
         if (AppContext.GetData("QT_DOTNET_RESOLVE_FN") is not string refFnPtrHex)
@@ -38,10 +50,10 @@ internal class StartupHook
         IntPtr reserved,
         IntPtr functionHandle)
     {
-        string assemblyPath = Marshal.PtrToStringUni(assemblyPathNative);
-        string typeName = Marshal.PtrToStringUni(typeNameNative);
-        string methodName = Marshal.PtrToStringUni(methodNameNative);
-        string delegateTypeName = Marshal.PtrToStringUni(delegateTypeNative);
+        string assemblyPath = PtrToNativeString(assemblyPathNative);
+        string typeName = PtrToNativeString(typeNameNative);
+        string methodName = PtrToNativeString(methodNameNative);
+        string delegateTypeName = PtrToNativeString(delegateTypeNative);
         var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
         var type = Type.GetType(typeName);
         var delegateType = string.IsNullOrEmpty(delegateTypeName) ? typeof(EntryPointDelegate) : Type.GetType(delegateTypeName);
