@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 The Qt Company Ltd.
+  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+
+    <!-- Prefer explicit RuntimeIdentifier if provided -->
+    <QtRid Condition="'$(QtRid)' == '' AND '$(RuntimeIdentifier)' != ''"
+      >$(RuntimeIdentifier)</QtRid>
+
+    <!-- Determine architecture if RID not already set -->
+    <QtArch Condition="'$(QtRid)' == ''"
+      >$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</QtArch>
+
+    <!-- Normalize architecture -->
+    <QtArch Condition="'$(QtArch)' == 'X64'">x64</QtArch>
+    <QtArch Condition="'$(QtArch)' == 'Arm64'">arm64</QtArch>
+    <QtArch Condition="'$(QtArch)' == 'X86'">x86</QtArch>
+
+    <!-- Default architecture -->
+    <QtArch Condition="'$(QtArch)' == ''">x64</QtArch>
+
+    <!-- Construct RID if still missing -->
+    <QtRid Condition="'$(QtRid)' == '' AND $([MSBuild]::IsOSPlatform('Windows'))"
+      >win-$(QtArch)</QtRid>
+    <QtRid Condition="'$(QtRid)' == '' AND $([MSBuild]::IsOSPlatform('Linux'))"
+      >linux-$(QtArch)</QtRid>
+    <QtRid Condition="'$(QtRid)' == '' AND $([MSBuild]::IsOSPlatform('OSX'))"
+      >osx-$(QtArch)</QtRid>
+
+  </PropertyGroup>
+</Project>

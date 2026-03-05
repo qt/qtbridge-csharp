@@ -146,6 +146,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuget", "nuget", "{5A670F79
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "msbuild", "msbuild", "{4636D4AD-519C-4C9D-8320-BE23FA52159C}"
 	ProjectSection(SolutionItems) = preProject
+		qt_bridge_package.props = qt_bridge_package.props
+		qt_rid.props = qt_rid.props
 		qt_template.targets = qt_template.targets
 		qt_version.props = qt_version.props
 	EndProjectSection

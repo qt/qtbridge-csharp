@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 The Qt Company Ltd.
+  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+
+    <!-- Default package prefix -->
+    <QtBridgePackagePrefix Condition="'$(QtBridgePackagePrefix)' == ''"
+      >QtGroup.Qt.Bridge.CSharp</QtBridgePackagePrefix>
+
+    <!-- Construct package ID -->
+    <QtBridgePackageId Condition="'$(QtBridgePackageId)' == ''"
+      >$(QtBridgePackagePrefix).$(QtRid)</QtBridgePackageId>
+
+  </PropertyGroup>
+</Project>
