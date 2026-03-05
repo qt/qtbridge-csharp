@@ -56,9 +56,6 @@
 
     <!-- 2) Build-time tool & deps -> build/$(TargetFramework)/ -->
     <None Pack="true"
-          Include="..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen.exe"
-          PackagePath="build\$(TargetFramework)\" Visible="false" />
-    <None Pack="true"
           Include="..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen.dll"
           PackagePath="build\$(TargetFramework)\" Visible="false" />
     <None Pack="true"
@@ -161,13 +158,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="NuGet.CommandLine" Version="6.14.0" GeneratePathProperty="true">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup>
     <UpToDateCheckInput Include="@(None)" />
   </ItemGroup>
 
@@ -219,6 +209,14 @@
 
   <Target Name="UpdatePackageFiles" BeforeTargets="_GetPackageFiles">
     <ItemGroup>
+      <None Pack="true"
+            Include="..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen.exe"
+            Condition="Exists('..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen.exe')"
+            PackagePath="build\$(TargetFramework)\" Visible="false" />
+      <None Pack="true"
+            Include="..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen"
+            Condition="Exists('..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen')"
+            PackagePath="build\$(TargetFramework)\" Visible="false" />
       <None Pack="true" Include="..\..\include\**\*"
         PackagePath="include\" Visible="false" />
     </ItemGroup>
@@ -230,14 +228,27 @@
   </Target>
 
   <Target Name="CopyPackage" AfterTargets="Pack">
-    <Message Importance="high" Text="Copying package $(OutputPath)..\$(PackageId).$(PackageVersion).nupkg to $(MSBuildThisFileDirectory)nuget\local..." />
-    <RemoveDir Directories="$(NuGetPackageRoot)$(PackageId)" />
-    <RemoveDir Directories="$(MSBuildThisFileDirectory)..\local\$(PackageId)" />
     <PropertyGroup>
-      <NuGetInitCmd>"$(PkgNuGet_CommandLine)\tools\nuget.exe" init</NuGetInitCmd>
-      <NuGetInitCmd>$(NuGetInitCmd) "$(MSBuildThisFileDirectory)$(OutputPath).."</NuGetInitCmd>
-      <NuGetInitCmd>$(NuGetInitCmd) "$(MSBuildThisFileDirectory)..\local"</NuGetInitCmd>
+      <PackedNupkg>$(PackageOutputPath)$(PackageId).$(PackageVersion).nupkg</PackedNupkg>
+      <LocalFeedRoot>$(MSBuildThisFileDirectory)..\local</LocalFeedRoot>
+      <PackageIdLower>$([System.String]::Copy('$(PackageId)').ToLowerInvariant())</PackageIdLower>
+      <PackageVersionLower>$([System.String]::Copy('$(PackageVersion)').ToLowerInvariant())</PackageVersionLower>
+      <PackageFileLower>$(PackageIdLower).$(PackageVersionLower).nupkg</PackageFileLower>
     </PropertyGroup>
-    <Exec Command="$(NuGetInitCmd)" />
+
+    <Message Importance="high"
+             Text="Copy $(PackedNupkg) to $(LocalFeedRoot)\$(PackageId)\$(PackageVersion), $(LocalFeedRoot)\$(PackageIdLower)\$(PackageVersionLower), and $(LocalFeedRoot)" />
+    <RemoveDir Directories="$(NuGetPackageRoot)$(PackageId);$(NuGetPackageRoot)$(PackageIdLower)"
+               ContinueOnError="WarnAndContinue" />
+    <RemoveDir Directories="$(LocalFeedRoot)\$(PackageId)"
+               ContinueOnError="WarnAndContinue" />
+    <RemoveDir Directories="$(LocalFeedRoot)\$(PackageIdLower)"
+               ContinueOnError="WarnAndContinue" />
+    <Copy SourceFiles="$(PackedNupkg)"
+          DestinationFolder="$(LocalFeedRoot)\$(PackageId)\$(PackageVersion)" />
+    <Copy SourceFiles="$(PackedNupkg)"
+          DestinationFiles="$(LocalFeedRoot)\$(PackageIdLower)\$(PackageVersionLower)\$(PackageFileLower)" />
+    <Copy SourceFiles="$(PackedNupkg)"
+          DestinationFolder="$(LocalFeedRoot)" />
   </Target>
 </Project>

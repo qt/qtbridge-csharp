@@ -9,6 +9,7 @@ debug/
 release/
 bin/
 obj/
+.nuget/
 
 # Generated Headers
 include/*
