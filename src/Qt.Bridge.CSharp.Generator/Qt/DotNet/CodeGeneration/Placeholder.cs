@@ -225,7 +225,7 @@ namespace Qt.Bridge.CodeGeneration
             }
             text = string.Join("\r\n", blocks);
             var lines = text
-                .Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries);
+                .Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
             text = string.Join("\r\n", lines
                 .Select(x => $"{new string(Tab, Indent)}{x}"));
             return text;
