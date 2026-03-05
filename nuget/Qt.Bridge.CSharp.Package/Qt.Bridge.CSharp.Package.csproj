@@ -142,6 +142,9 @@
           PackagePath="tools\qt\include\" Visible="false" />
 
     <!-- Qt PLUGINS / QML / MKSPECS / MODULES / METATYPES -->
+    <None Include="$(QtInstallRoot)\libexec\**\*"
+          Pack="true"
+          PackagePath="tools\qt\libexec\" Visible="false" />
     <None Include="$(QtInstallRoot)\plugins\**\*"
           Pack="true"
           PackagePath="tools\qt\plugins\" Visible="false" />
