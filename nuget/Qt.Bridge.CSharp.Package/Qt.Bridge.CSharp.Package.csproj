@@ -7,18 +7,20 @@
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_version.props))" />
   <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_template.targets))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_rid.props))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_bridge_package.props))" />
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <IsPackable>true</IsPackable>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageId>QtGroup.Qt.Bridge.CSharp.win-x64</PackageId>
+    <PackageId>$(QtBridgePackageId)</PackageId>
     <Authors>The Qt Company</Authors>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <Description>Qt Bridge for C# (Windows x64)</Description>
+    <Description>Qt Bridge for C# ($(QtRid))</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -112,10 +114,10 @@
           PackagePath="build\$(TargetFramework)\Qt.Bridge.targets" Visible="false" />
     <None Pack="true"
           Include="..\..\build\QtGroup.Qt.Bridge.CSharp.props"
-          PackagePath="build\$(TargetFramework)\QtGroup.Qt.Bridge.CSharp.win-x64.props" Visible="false" />
+          PackagePath="build\$(TargetFramework)\$(PackageId).props" Visible="false" />
     <None Pack="true"
           Include="..\..\build\QtGroup.Qt.Bridge.CSharp.targets"
-          PackagePath="build\$(TargetFramework)\QtGroup.Qt.Bridge.CSharp.win-x64.targets" Visible="false" />
+          PackagePath="build\$(TargetFramework)\$(PackageId).targets" Visible="false" />
 
     <!-- 4) Native Qt.DotNet headers (added in target UpdatePackageFiles) -->
 

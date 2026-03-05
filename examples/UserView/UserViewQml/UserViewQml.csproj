@@ -7,6 +7,8 @@
 <Project>
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_version.props))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_rid.props))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_bridge_package.props))" />
 
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
@@ -22,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(SolutionName)' != 'qtbridge-csharp'">
-    <PackageReference Include="QtGroup.Qt.Bridge.CSharp.win-x64" Version="$(SelectedVersion)" />
+    <PackageReference Include="$(QtBridgePackageId)" Version="$(SelectedVersion)" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(SolutionName)' == 'qtbridge-csharp'">

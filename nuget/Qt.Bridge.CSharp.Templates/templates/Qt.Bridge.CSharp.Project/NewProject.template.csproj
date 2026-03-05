@@ -5,6 +5,8 @@
 -->
 <!--#endif -->
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_rid.props))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_bridge_package.props))" />
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -15,7 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="QtGroup.Qt.Bridge.CSharp.win-x64" Version="__PACKAGE_VERSION__" />
+    <PackageReference Include="$(QtBridgePackageId)" Version="__PACKAGE_VERSION__" />
   </ItemGroup>
 
   <ItemGroup>
