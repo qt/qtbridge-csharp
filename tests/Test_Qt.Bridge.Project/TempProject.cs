@@ -196,7 +196,7 @@ namespace Test_Qt.Bridge.Project
             if (!string.IsNullOrEmpty(filename))
                 ProjectFilename = filename;
             if (!string.IsNullOrEmpty(extension))
-                ProjectFilename = extension;
+                ProjectExtension = extension;
             CreateDirectory(ProjectDir);
             WriteAllText(ProjectPath, xml);
         }
