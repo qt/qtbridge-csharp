@@ -3,6 +3,7 @@
 
 using Qt.DotNet;
 using Qt.Quick;
+using Qt.Bridge.Mime;
 
 namespace Qt.Bridge.Models
 {
@@ -28,61 +29,13 @@ namespace Qt.Bridge.Models
         [Enable]
         public List<int> Roles { get; init; }
         [Enable]
-        public Model.HeaderOrientation Orientation { get; init; }
+        public int Orientation { get; init; }
         [Enable]
         public bool Synchronized { get; set; } = false;
     }
 
     public abstract class Model
     {
-        protected static class Roles
-        {
-            public const int DisplayRole = 0;
-            public const int DecorationRole = 1;
-            public const int EditRole = 2;
-            public const int ToolTipRole = 3;
-            public const int StatusTipRole = 4;
-            public const int WhatsThisRole = 5;
-            public const int SizeHintRole = 13;
-            public const int FontRole = 6;
-            public const int TextAlignmentRole = 7;
-            public const int BackgroundRole = 8;
-            public const int ForegroundRole = 9;
-            public const int CheckStateRole = 10;
-            public const int InitialSortOrderRole = 14;
-            public const int AccessibleTextRole = 11;
-            public const int AccessibleDescriptionRole = 12;
-            public const int UserRole = 0x0100;
-        }
-
-        [Flags]
-        public enum ItemFlags : int
-        {
-            NoItemFlags = 0,
-            ItemIsSelectable = 1,
-            ItemIsEditable = 2,
-            ItemIsDragEnabled = 4,
-            ItemIsDropEnabled = 8,
-            ItemIsUserCheckable = 16,
-            ItemIsEnabled = 32,
-            ItemIsAutoTristate = 64,
-            ItemNeverHasChildren = 128,
-            ItemIsUserTristate = 256
-        }
-
-        [Include]
-        public enum HeaderOrientation : int
-        {
-            HorizontalHeader = 1,
-            VerticalHeader = 2
-        }
-
-        public enum SortOrder : int
-        {
-            Ascending = 0,
-            Descending = 1
-        }
-
         [Include]
         public enum EventAction : int
         {
@@ -105,87 +58,182 @@ namespace Qt.Bridge.Models
             HeaderDataChanged
         }
 
-        public abstract int ColumnCount(ModelIndex parent);
-        public abstract object Data(ModelIndex index, int role);
-        public abstract ModelIndex Index(int row, int column, ModelIndex parent);
-        public abstract ModelIndex Parent(ModelIndex index);
+        protected static class Roles
+        {
+            public const int DisplayRole = 0;
+            public const int DecorationRole = 1;
+            public const int EditRole = 2;
+            public const int ToolTipRole = 3;
+            public const int StatusTipRole = 4;
+            public const int WhatsThisRole = 5;
+            public const int SizeHintRole = 13;
+            public const int FontRole = 6;
+            public const int TextAlignmentRole = 7;
+            public const int BackgroundRole = 8;
+            public const int ForegroundRole = 9;
+            public const int CheckStateRole = 10;
+            public const int InitialSortOrderRole = 14;
+            public const int AccessibleTextRole = 11;
+            public const int AccessibleDescriptionRole = 12;
+            public const int UserRole = 0x0100;
+        }
+
+        protected static class ItemFlags
+        {
+            public const int NoItemFlags = 0;
+            public const int ItemIsSelectable = 1;
+            public const int ItemIsEditable = 2;
+            public const int ItemIsDragEnabled = 4;
+            public const int ItemIsDropEnabled = 8;
+            public const int ItemIsUserCheckable = 16;
+            public const int ItemIsEnabled = 32;
+            public const int ItemIsAutoTristate = 64;
+            public const int ItemNeverHasChildren = 128;
+            public const int ItemIsUserTristate = 256;
+        }
+
+        protected static class HeaderOrientation
+        {
+            public const int Horizontal = 1;
+            public const int Vertical = 2;
+        }
+
+        protected static class SortOrder
+        {
+            public const int Ascending = 0;
+            public const int Descending = 1;
+        }
+
+        protected static class MatchFlags
+        {
+            public const int MatchExactly = 0;
+            public const int MatchFixedString = 8;
+            public const int MatchContains = 1;
+            public const int MatchStartsWith = 2;
+            public const int MatchEndsWith = 3;
+            public const int MatchCaseSensitive = 16;
+            public const int MatchRegularExpression = 4;
+            public const int MatchWildcard = 5;
+            public const int MatchWrap = 32;
+            public const int MatchRecursive = 64;
+        }
+
+        protected static class DropActions
+        {
+            public const int CopyAction = 0x1;
+            public const int MoveAction = 0x2;
+            public const int LinkAction = 0x4;
+            public const int ActionMask = 0xff;
+            public const int IgnoreAction = 0x0;
+            public const int TargetMoveAction = 0x8002;
+        }
+
+        public virtual int Flags(ModelIndex index)
+            => ItemFlags.ItemIsEnabled | ItemFlags.ItemIsSelectable;
+
         public abstract int RowCount(ModelIndex parent);
 
-        public virtual ModelIndex Buddy(ModelIndex index)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual bool HasChildren(ModelIndex parent)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual ModelIndex Sibling(int row, int column, ModelIndex index)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual bool HasIndex(int row, int column, ModelIndex parent)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual bool CanFetchMore(ModelIndex parent)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual void FetchMore(ModelIndex parent)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual ItemFlags Flags(ModelIndex index)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual object HeaderData(int section, HeaderOrientation orientation, int role)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract int ColumnCount(ModelIndex parent);
 
         public virtual Dictionary<int, string> RoleNames()
-        {
-            throw new NotImplementedException();
-        }
+            => throw new NotImplementedException();
 
-        public virtual Dictionary<int, object> ItemData(ModelIndex index)
-        {
-            throw new NotImplementedException();
-        }
+        public virtual bool CanFetchMore(ModelIndex parent)
+            => throw new NotImplementedException();
 
-        public virtual bool SetData(ModelIndex index, object value, int role)
-        {
-            throw new NotImplementedException();
-        }
+        public virtual bool HasChildren(ModelIndex parent)
+            => throw new NotImplementedException();
 
-        public virtual bool SetHeaderData(
-            int section, HeaderOrientation orientation, object value, int role)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract ModelIndex Index(int row, int column, ModelIndex parent);
 
-        public virtual bool SetItemData(ModelIndex index, Dictionary<int, object> roles)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract ModelIndex Parent(ModelIndex index);
 
-        public virtual void Sort(int column, SortOrder order)
-        {
-            throw new NotImplementedException();
-        }
+        public virtual ModelIndex Sibling(int row, int column, ModelIndex index)
+            => throw new NotImplementedException();
+
+        public virtual ModelIndex Buddy(ModelIndex index)
+            => throw new NotImplementedException();
+
+        public abstract object Data(ModelIndex index, int role);
+
+        public virtual object HeaderData(int section, int orientation, int role)
+            => throw new NotImplementedException();
+
+        public virtual bool InsertRows(int row, int count, ModelIndex parent = default)
+            => throw new NotImplementedException();
+
+        public virtual bool InsertColumns(int column, int count, ModelIndex parent = default)
+            => throw new NotImplementedException();
+
+        public virtual bool MoveRows(ModelIndex sourceParent, int sourceRow, int count,
+            ModelIndex destinationParent, int destinationChild)
+            => throw new NotImplementedException();
+
+        public virtual bool MoveColumns(ModelIndex sourceParent, int sourceColumn, int count,
+            ModelIndex destinationParent, int destinationChild)
+            => throw new NotImplementedException();
+
+        public virtual bool RemoveRows(int row, int count, ModelIndex parent = default)
+            => throw new NotImplementedException();
+
+        public virtual bool RemoveColumns(int column, int count, ModelIndex parent = default)
+            => throw new NotImplementedException();
+
+        public virtual void Sort(int column, int order)
+            => throw new NotImplementedException();
+
+        public virtual void FetchMore(ModelIndex parent)
+            => throw new NotImplementedException();
 
         public virtual bool ClearItemData(ModelIndex index)
-        {
-            throw new NotImplementedException();
-        }
+            => throw new NotImplementedException();
+
+        public virtual bool SetData(ModelIndex index, object value, int role)
+            => throw new NotImplementedException();
+
+        public virtual bool SetHeaderData(int section, int orientation,
+            object value, int role)
+            => throw new NotImplementedException();
+
+        #region Unsupported overrides //////////////////////////////////////////////////////////////
+
+        internal virtual (int Width, int Height) Span(ModelIndex index)
+            => throw new NotImplementedException();
+
+        internal virtual void MultiData(ModelIndex index, IDictionary<int, object> roleDataSpan)
+            => throw new NotImplementedException();
+
+        internal virtual IDictionary<int, object> ItemData(ModelIndex index)
+            => throw new NotImplementedException();
+
+        internal virtual bool SetItemData(ModelIndex index, IDictionary<int, object> roles)
+            => throw new NotImplementedException();
+
+        internal virtual ModelIndex[] Match(ModelIndex start, int role, object value, int hits = 1,
+            int flags = (int)(MatchFlags.MatchStartsWith | MatchFlags.MatchWrap))
+            => throw new NotImplementedException();
+
+        internal virtual string[] MimeTypes()
+            => throw new NotImplementedException();
+
+        internal virtual IMimeData MimeData(ModelIndex[] indexes)
+            => throw new NotImplementedException();
+
+        internal virtual int SupportedDragActions()
+            => throw new NotImplementedException();
+
+        internal virtual int SupportedDropActions()
+            => throw new NotImplementedException();
+
+        internal virtual bool CanDropMimeData(IMimeData data, int action,
+            int row, int column, ModelIndex parent)
+            => throw new NotImplementedException();
+
+        internal virtual bool DropMimeData(IMimeData data, int action,
+            int row, int column, ModelIndex parent)
+            => throw new NotImplementedException();
+
+        #endregion Unsupported overrides ///////////////////////////////////////////////////////////
 
         [Enable]
         public event EventHandler<ModelChangeEventArgs> ModelChanged;
@@ -374,7 +422,7 @@ namespace Qt.Bridge.Models
             });
         }
 
-        protected void HeaderDataChanged(HeaderOrientation orientation, int first, int last)
+        protected void HeaderDataChanged(int orientation, int first, int last)
         {
             OnModelChanged(Sync.None, new()
             {

@@ -1,9 +1,7 @@
 // Copyright (C) 2025 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
-using System.ComponentModel;
 using System.Reflection;
-using System.Text;
 using Qt.Bridge.Models;
 
 namespace Qt.Bridge.CodeGeneration.Rules.Models
@@ -76,16 +74,78 @@ QModelIndex {type.MFn(Ns | Name | Private)}::setOwnIndex(const QModelIndex &idx)
 {Blank}";
             ////////////////////////////////////////////////////////////////////////////////////////
             //
-            foreach (var func in type.GetMethods().Where(func => func.IsOverrideOf(baseType))) {
-                var result = func switch
+            var c = new OverrideContext
+            {
+                Type = type,
+                Methods = methods,
+                PrivateMembers = privateMembers,
+                Implementation = implementation
+            };
+            foreach (var f in type.GetMethods().Where(func => func.IsOverrideOf(baseType))) {
+                var result = f switch
                 {
-                    { Name: nameof(Model.RoleNames) }
-                        => GenerateRoleNames(type, func, methods, privateMembers, implementation),
-                    { Name: nameof(Model.RowCount) }
-                        => GenerateRowCount(type, func, methods, privateMembers, implementation),
-                    { Name: nameof(Model.Data) }
-                        => GenerateData(type, func, methods, privateMembers, implementation),
-                    _ => Error()
+                    // READ model meta-data
+                    { Name: nameof(Model.RowCount) } => Gen_rowCount(c, f),
+                    { Name: nameof(Model.ColumnCount) } => Gen_columnCount(c, f),
+                    { Name: nameof(Model.RoleNames) } => Gen_roleNames(c, f),
+                    { Name: nameof(Model.CanFetchMore) } => Gen_canFetchMore(c, f),
+
+                    //// Currently unsupported overrides: remove comments when available
+                    //
+                    //{ Name: nameof(Model.Match) } => Gen_match(c, f),
+                    //{ Name: nameof(Model.MimeTypes) } => Gen_mimeTypes(c, f),
+                    //{ Name: nameof(Model.SupportedDragActions) } => Gen_supportedDragActions(c, f),
+                    //{ Name: nameof(Model.SupportedDropActions) } => Gen_supportedDropActions(c, f),
+
+                    // READ item meta-data
+                    { Name: nameof(Model.Flags) } => Gen_flags(c, f),
+                    { Name: nameof(Model.HasChildren) } => Gen_hasChildren(c, f),
+                    { Name: nameof(Model.Index) } => Gen_index(c, f),
+                    { Name: nameof(Model.Parent) } => Gen_parent(c, f),
+                    { Name: nameof(Model.Sibling) } => Gen_sibling(c, f),
+                    { Name: nameof(Model.Buddy) } => Gen_buddy(c, f),
+
+                    //// Currently unsupported overrides: remove comments when available
+                    //
+                    //{ Name: nameof(Model.CanDropMimeData) } => Gen_canDropMimeData(c, f),
+                    //{ Name: nameof(Model.MimeData) } => Gen_mimeData(c, f),
+                    //{ Name: nameof(Model.Span) } => Gen_span(c, f),
+
+                    // READ item data
+                    { Name: nameof(Model.Data) } => Gen_data(c, f),
+                    { Name: nameof(Model.HeaderData) } => Gen_headerData(c, f),
+
+                    //// Currently unsupported overrides: remove comments when available
+                    //
+                    //{ Name: nameof(Model.ItemData) } => Gen_itemData(c, f),
+                    //{ Name: nameof(Model.MultiData) } => Gen_multiData(c, f),
+
+                    // WRITE model meta-data
+                    { Name: nameof(Model.InsertRows) } => Gen_insertRows(c, f),
+                    { Name: nameof(Model.InsertColumns) } => Gen_insertColumns(c, f),
+                    { Name: nameof(Model.MoveRows) } => Gen_moveRows(c, f),
+                    { Name: nameof(Model.MoveColumns) } => Gen_moveColumns(c, f),
+                    { Name: nameof(Model.RemoveRows) } => Gen_removeRows(c, f),
+                    { Name: nameof(Model.RemoveColumns) } => Gen_removeColumns(c, f),
+                    { Name: nameof(Model.Sort) } => Gen_sort(c, f),
+
+                    // WRITE item meta-data
+                    { Name: nameof(Model.FetchMore) } => Gen_fetchMore(c, f),
+
+                    //// Currently unsupported override: remove comment when available
+                    //
+                    //{ Name: nameof(Model.DropMimeData) } => Gen_dropMimeData(c, f),
+
+                    // WRITE item data
+                    { Name: nameof(Model.ClearItemData) } => Gen_clearItemData(c, f),
+                    { Name: nameof(Model.SetData) } => Gen_setData(c, f),
+                    { Name: nameof(Model.SetHeaderData) } => Gen_setHeaderData(c, f),
+
+                    //// Currently unsupported override: remove comment when available
+                    //
+                    //{ Name: nameof(Model.SetItemData) } => Gen_setItemData(c, f),
+
+                    _ => Error($"Unexpected override: {f.Name}")
                 };
                 if (!result.Succeeded)
                     return result;
@@ -175,22 +235,79 @@ QObject::connect(q, &{type.MFn(Ns | Name)}::modelChanged, [q](QObject *evObj)
             return Ok;
         }
 
-        private Result GenerateRoleNames(Type type, MethodInfo func,
-            Placeholder methods, Placeholder privateMembers, Placeholder implementation)
+        private class OverrideContext
+        {
+            public Type Type { get; set; }
+            public Placeholder Methods { get; set; }
+            public Placeholder PrivateMembers { get; set; }
+            public Placeholder Implementation { get; set; }
+        }
+
+        private Result GenOverride(OverrideContext context, MethodInfo func,
+            string retType, string[] formalArgs, string[] fnTypes, string[] actualArgs,
+            string convert = "", bool isConst = false)
         {
             ////////////////////////////////////////////////////////////////////////////////////////
             //
-            methods += $@"
+            context.Methods += $@"
+{retType} {func.MFn(Name)}({string.Join(", ", formalArgs)}) {(isConst ? "const " : "")}override;
+{Blank}";
+            ////////////////////////////////////////////////////////////////////////////////////////
+            //
+            context.PrivateMembers += $@"
+mutable QDotNetFunction<{string.Join(", ", fnTypes)}> {func.MFn(Func)} = nullptr;";
+            ////////////////////////////////////////////////////////////////////////////////////////
+            //
+            context.Implementation += $@"
+{retType} {context.Type.MFn(Ns | Name)}::{func.MFn(Name)}({string.Join(", ", formalArgs)}){Wrap}
+{(isConst ? " const" : "")}
+{{
+    return {convert}(
+        method(""{func.MFn(Src)}"", d->{func.MFn(Func)})
+            .invoke(*this, {string.Join(", ", actualArgs)})
+    );
+}}
+{Blank}";
+            return Ok;
+        }
+
+        #region READ model meta-data ///////////////////////////////////////////////////////////////
+
+        private Result Gen_rowCount(OverrideContext context, MethodInfo func)
+        {
+            // int rowCount(const QModelIndex &parent = QModelIndex()) const = 0
+            return GenOverride(context, func,
+                "int", ["const QModelIndex &parent"],
+                ["int", "QModelIndex"], ["parent"],
+                isConst: true);
+        }
+
+        private Result Gen_columnCount(OverrideContext context, MethodInfo func)
+        {
+            // int columnCount(const QModelIndex &parent = QModelIndex()) const = 0
+            return GenOverride(context, func,
+                "int", ["const QModelIndex &parent"],
+                ["int", "QModelIndex"], ["parent"],
+                isConst: true);
+        }
+
+        private Result Gen_roleNames(OverrideContext context, MethodInfo func)
+        {
+            // QHash<int, QByteArray> roleNames() const
+
+            ////////////////////////////////////////////////////////////////////////////////////////
+            //
+            context.Methods += $@"
 QHash<int, QByteArray> roleNames() const override;
 {Blank}";
             ////////////////////////////////////////////////////////////////////////////////////////
             //
-            privateMembers += $@"
+            context.PrivateMembers += $@"
 mutable QDotNetFunction<QDotNetObject> {func.MFn(Func)} = nullptr;";
             ////////////////////////////////////////////////////////////////////////////////////////
             //
-            implementation += $@"
-QHash<int, QByteArray> {type.MFn(Ns | Name)}::roleNames() const
+            context.Implementation += $@"
+QHash<int, QByteArray> {context.Type.MFn(Ns | Name)}::roleNames() const
 {{
     static QHash<int, QByteArray> roles;
     if (!roles.empty())
@@ -211,51 +328,289 @@ QHash<int, QByteArray> {type.MFn(Ns | Name)}::roleNames() const
             return Ok;
         }
 
-        private Result GenerateRowCount(Type type, MethodInfo func,
-            Placeholder methods, Placeholder privateMembers, Placeholder implementation)
+        private Result Gen_canFetchMore(OverrideContext context, MethodInfo func)
         {
-            ////////////////////////////////////////////////////////////////////////////////////////
-            //
-            methods += $@"
-int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-{Blank}";
-            ////////////////////////////////////////////////////////////////////////////////////////
-            //
-            privateMembers += $@"
-mutable QDotNetFunction<int, QModelIndex> {func.MFn(Func)} = nullptr;";
-            ////////////////////////////////////////////////////////////////////////////////////////
-            //
-            implementation += $@"
-int {type.MFn(Ns | Name)}::rowCount(const QModelIndex &parent) const
-{{
-    return method(""RowCount"", d->{func.MFn(Func)}).invoke(*this, parent);
-}}
-{Blank}";
-            return Ok;
+            // bool canFetchMore(const QModelIndex &parent) const
+            return GenOverride(context, func,
+                "bool", ["const QModelIndex &parent"],
+                ["bool", "QModelIndex"], ["parent"],
+                isConst: true);
         }
 
-        private Result GenerateData(Type type, MethodInfo func,
-            Placeholder methods, Placeholder privateMembers, Placeholder implementation)
+        private Result Gen_match(OverrideContext context, MethodInfo func)
         {
-            ////////////////////////////////////////////////////////////////////////////////////////
-            //
-            methods += $@"
-QVariant data(const QModelIndex &index, int role) const override;
-{Blank}";
-            ////////////////////////////////////////////////////////////////////////////////////////
-            //
-            privateMembers += $@"
-mutable QDotNetFunction<QDotNetObject, QModelIndex, int> {func.MFn(Func)} = nullptr;";
-            ////////////////////////////////////////////////////////////////////////////////////////
-            //
-            implementation += $@"
-QVariant {type.MFn(Ns | Name)}::data(const QModelIndex &index, int role) const
-{{
-    return Convert::toVariant(
-        method(""Data"", d->{func.MFn(Func)}).invoke(*this, index, role), this);
-}}
-{Blank}";
-            return Ok;
+            // QModelIndexList match(const QModelIndex &start, int role, const QVariant &value,
+            //     int hits = 1,
+            //     Qt::MatchFlags flags = Qt::MatchFlags(Qt::MatchStartsWith|Qt::MatchWrap)) const
+            return Error($"Unsupported override: {func.Name}");
         }
+
+        private Result Gen_mimeTypes(OverrideContext context, MethodInfo func)
+        {
+            // QStringList mimeTypes() const
+            return Error($"Unsupported override: {func.Name}");
+        }
+
+        private Result Gen_supportedDragActions(OverrideContext context, MethodInfo func)
+        {
+            // Qt::DropActions supportedDragActions() const
+            return Error($"Unsupported override: {func.Name}");
+        }
+
+        private Result Gen_supportedDropActions(OverrideContext context, MethodInfo func)
+        {
+            // Qt::DropActions supportedDropActions() const
+            return Error($"Unsupported override: {func.Name}");
+        }
+
+        #endregion READ model meta-data ////////////////////////////////////////////////////////////
+
+        #region READ item meta-data ////////////////////////////////////////////////////////////////
+
+        private Result Gen_flags(OverrideContext context, MethodInfo func)
+        {
+            // Qt::ItemFlags flags(const QModelIndex &index) const
+            return GenOverride(context, func,
+                "Qt::ItemFlags", ["const QModelIndex &index"],
+                ["int", "QModelIndex"], ["index"],
+                convert: "static_cast<Qt::ItemFlags>", isConst: true);
+        }
+
+        private Result Gen_hasChildren(OverrideContext context, MethodInfo func)
+        {
+            // bool hasChildren(const QModelIndex &parent = QModelIndex()) const
+            return GenOverride(context, func,
+                "bool", ["const QModelIndex &parent"],
+                ["bool", "QModelIndex"], ["parent"],
+                isConst: true);
+        }
+
+        private Result Gen_index(OverrideContext context, MethodInfo func)
+        {
+            // QModelIndex index(int row, int column,
+            //     const QModelIndex &parent = QModelIndex()) const = 0
+            return GenOverride(context, func,
+                "QModelIndex", ["int row", "int column", "const QModelIndex &parent"],
+                ["QModelIndex", "int", "int", "QModelIndex"], ["row", "column", "parent"],
+                convert: "d->setOwnIndex", isConst: true);
+        }
+
+        private Result Gen_parent(OverrideContext context, MethodInfo func)
+        {
+            // QModelIndex parent(const QModelIndex &index) const = 0
+            return GenOverride(context, func,
+                "QModelIndex", ["const QModelIndex &index"],
+                ["QModelIndex", "QModelIndex"], ["index"],
+                convert: "d->setOwnIndex", isConst: true);
+        }
+
+        private Result Gen_sibling(OverrideContext context, MethodInfo func)
+        {
+            // QModelIndex sibling(int row, int column, const QModelIndex &index) const
+            return GenOverride(context, func,
+                "QModelIndex", ["int row", "int column", "const QModelIndex &index"],
+                ["QModelIndex", "int", "int", "QModelIndex"], ["row", "column", "index"],
+                convert: "d->setOwnIndex", isConst: true);
+        }
+
+        private Result Gen_buddy(OverrideContext context, MethodInfo func)
+        {
+            // QModelIndex buddy(const QModelIndex &index) const
+            return GenOverride(context, func,
+                "QModelIndex", ["const QModelIndex &index"],
+                ["QModelIndex", "QModelIndex"], ["index"],
+                convert: "d->setOwnIndex", isConst: true);
+        }
+
+        private Result Gen_span(OverrideContext context, MethodInfo func)
+        {
+            // QSize span(const QModelIndex &index) const
+            return Error($"Unsupported override: {func.Name}");
+        }
+
+        private Result Gen_canDropMimeData(OverrideContext context, MethodInfo func)
+        {
+            // bool canDropMimeData(const QMimeData *data, Qt::DropAction action,
+            //     int row, int column, const QModelIndex &parent) const
+            return Error($"Unsupported override: {func.Name}");
+        }
+
+        private Result Gen_mimeData(OverrideContext context, MethodInfo func)
+        {
+            // QMimeData * mimeData(const QModelIndexList &indexes) const
+            return Error($"Unsupported override: {func.Name}");
+        }
+
+        #endregion READ item meta-data /////////////////////////////////////////////////////////////
+
+        #region READ item data /////////////////////////////////////////////////////////////////////
+
+        private Result Gen_data(OverrideContext context, MethodInfo func)
+        {
+            // QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const = 0
+            return GenOverride(context, func,
+                "QVariant", ["const QModelIndex &index", "int role"],
+                ["QDotNetObject", "QModelIndex", "int"], ["index", "role"],
+                "Convert::toVariant", isConst: true);
+        }
+
+        private Result Gen_headerData(OverrideContext context, MethodInfo func)
+        {
+            // QVariant headerData(
+            //  int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const
+            return GenOverride(context, func,
+                "QVariant", ["int section", "Qt::Orientation orientation", "int role"],
+                ["QDotNetObject", "int", "int", "int"], ["section", "orientation", "role"],
+                convert: "Convert::toVariant", isConst: true);
+        }
+
+        private Result Gen_itemData(OverrideContext context, MethodInfo func)
+        {
+            // QMap<int, QVariant> itemData(const QModelIndex &index) const
+            return Error($"Unsupported override: {func.Name}");
+        }
+
+        private Result Gen_multiData(OverrideContext context, MethodInfo func)
+        {
+            // void multiData(const QModelIndex &index, QModelRoleDataSpan roleDataSpan) const
+            return Error($"Unsupported override: {func.Name}");
+        }
+
+        #endregion READ item data //////////////////////////////////////////////////////////////////
+
+        #region WRITE model meta-data //////////////////////////////////////////////////////////////
+
+        private Result Gen_insertRows(OverrideContext context, MethodInfo func)
+        {
+            // bool insertRows(int row, int count, const QModelIndex &parent = QModelIndex())
+            return GenOverride(context, func,
+                "bool", ["int row", "int count", "const QModelIndex &parent"],
+                ["bool", "int", "int", "QModelIndex"], ["row", "count", "parent"],
+                isConst: false);
+        }
+
+        private Result Gen_insertColumns(OverrideContext context, MethodInfo func)
+        {
+            // bool insertColumns(int column, int count, const QModelIndex &parent = QModelIndex())
+            return GenOverride(context, func,
+                "bool", ["int column", "int count", "const QModelIndex &parent"],
+                ["bool", "int", "int", "QModelIndex"], ["column", "count", "parent"],
+                isConst: false);
+        }
+
+        private Result Gen_moveRows(OverrideContext context, MethodInfo func)
+        {
+            // bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count,
+            //     const QModelIndex &destinationParent, int destinationChild)
+            return GenOverride(context, func,
+                "bool", ["const QModelIndex &sourceParent", "int sourceRow", "int count",
+                    "const QModelIndex &destinationParent", "int destinationChild"],
+                ["bool", "QModelIndex", "int", "int", "QModelIndex", "int"],
+                ["sourceParent", "sourceRow", "count", "destinationParent", "destinationChild"],
+                isConst: false);
+        }
+
+        private Result Gen_moveColumns(OverrideContext context, MethodInfo func)
+        {
+            // bool moveColumns(const QModelIndex &sourceParent, int sourceColumn, int count,
+            //     const QModelIndex &destinationParent, int destinationChild)
+            return GenOverride(context, func,
+                "bool", ["const QModelIndex &sourceParent", "int sourceColumn", "int count",
+                    "const QModelIndex &destinationParent", "int destinationChild"],
+                ["bool", "QModelIndex", "int", "int", "QModelIndex", "int"],
+                ["sourceParent", "sourceColumn", "count", "destinationParent", "destinationChild"],
+                isConst: false);
+        }
+
+        private Result Gen_removeRows(OverrideContext context, MethodInfo func)
+        {
+            // bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex())
+            return GenOverride(context, func,
+                "bool", ["int row", "int count", "const QModelIndex &parent"],
+                ["bool", "int", "int", "QModelIndex"], ["row", "count", "parent"],
+                isConst: false);
+        }
+
+        private Result Gen_removeColumns(OverrideContext context, MethodInfo func)
+        {
+            // bool removeColumns(int column, int count, const QModelIndex &parent = QModelIndex())
+            return GenOverride(context, func,
+                "bool", ["int column", "int count", "const QModelIndex &parent"],
+                ["bool", "int", "int", "QModelIndex"], ["column", "count", "parent"],
+                isConst: false);
+        }
+
+        private Result Gen_sort(OverrideContext context, MethodInfo func)
+        {
+            // void sort(int column, Qt::SortOrder order = Qt::AscendingOrder)
+            return GenOverride(context, func,
+                "void", ["int column", "Qt::SortOrder order"],
+                ["void", "int", "int"], ["column", "order"],
+                isConst: false);
+        }
+
+        #endregion WRITE model meta-data ///////////////////////////////////////////////////////////
+
+        #region WRITE item meta-data ///////////////////////////////////////////////////////////////
+
+        private Result Gen_fetchMore(OverrideContext context, MethodInfo func)
+        {
+            // void fetchMore(const QModelIndex &parent)
+            return GenOverride(context, func,
+                "void", ["const QModelIndex &parent"],
+                ["void", "QModelIndex"], ["parent"],
+                isConst: false);
+        }
+
+        private Result Gen_dropMimeData(OverrideContext context, MethodInfo func)
+        {
+            // bool dropMimeData(const QMimeData *data, Qt::DropAction action,
+            //     int row, int column, const QModelIndex &parent)
+            return Error($"Unsupported override: {func.Name}");
+        }
+
+        #endregion WRITE item meta-data ////////////////////////////////////////////////////////////
+
+        #region WRITE item data ////////////////////////////////////////////////////////////////////
+
+        private Result Gen_clearItemData(OverrideContext context, MethodInfo func)
+        {
+            // bool clearItemData(const QModelIndex &index)
+            return GenOverride(context, func,
+                "bool", ["const QModelIndex &index"],
+                ["bool", "QModelIndex"], ["index"],
+                isConst: false);
+        }
+
+        private Result Gen_setData(OverrideContext context, MethodInfo func)
+        {
+            // bool setData(const QModelIndex &index,
+            //     const QVariant &value, int role = Qt::EditRole)
+            return GenOverride(context, func,
+                "bool", ["const QModelIndex &index", "const QVariant &value", "int role"],
+                ["bool", "QModelIndex", "QDotNetObject", "int"],
+                ["index", "Convert::fromVariant(value)", "role"],
+                isConst: false);
+        }
+
+        private Result Gen_setHeaderData(OverrideContext context, MethodInfo func)
+        {
+            // bool setHeaderData(int section, Qt::Orientation orientation,
+            //     const QVariant &value, int role = Qt::EditRole)
+            return GenOverride(context, func,
+                "bool", ["int section", "Qt::Orientation orientation",
+                    "const QVariant &value", "int role"],
+                ["bool", "int", "Qt::Orientation", "QDotNetObject", "int"],
+                ["section", "orientation", "Convert::fromVariant(value)", "role"],
+                isConst: false);
+        }
+
+        private Result Gen_setItemData(OverrideContext context, MethodInfo func)
+        {
+            // bool setItemData(const QModelIndex &index, const QMap<int, QVariant> &roles)
+            return Error($"Unsupported override: {func.Name}");
+        }
+
+        #endregion WRITE item data /////////////////////////////////////////////////////////////////
     }
 }
