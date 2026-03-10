@@ -8,19 +8,26 @@
   <!-- //////// Default version selection //////// -->
 
   <PropertyGroup Condition="'$(SelectVersion)' == ''">
-    <SelectVersion>0.1-alpha</SelectVersion>
+    <SelectVersion>autoversion</SelectVersion>
   </PropertyGroup>
 
   <!-- //////// BEGIN Versions //////// -->
+
+  <!-- Auto-version (from git describe) -->
+  <PropertyGroup>
+    <Qt_AutoVersion>$(MSBuildThisFileDirectory)qt_autoversion.props</Qt_AutoVersion>
+  </PropertyGroup>
+  <Import Condition="'$(SelectVersion)' == 'autoversion' AND Exists('$(Qt_AutoVersion)')"
+    Project="$(Qt_AutoVersion)" />
 
   <!-- 0.1-alpha -->
   <PropertyGroup Condition="$(SelectVersion.StartsWith('0.1-alpha'))">
     <Qt_Major>0</Qt_Major>
     <Qt_Minor>1</Qt_Minor>
     <Qt_Patch>0</Qt_Patch>
-    <Qt_BuildEpoch Condition="$(SelectVersion.EndsWith('-auto-build'))">2026-01-15</Qt_BuildEpoch>
-    <Qt_Build Condition="!$(SelectVersion.EndsWith('-auto-build'))">2</Qt_Build>
+    <Qt_Build>2</Qt_Build>
     <Qt_Tag>alpha</Qt_Tag>
+    <Qt_BuildEpoch>2026-02-04</Qt_BuildEpoch>
   </PropertyGroup>
 
   <!-- 0.2-beta (TBD) -->
@@ -29,56 +36,79 @@
 
   <!-- 1.0 (TBD) -->
 
+  <!-- Default to 0.0.0.X -->
+  <PropertyGroup>
+    <Qt_Major Condition="'$(Qt_Major)' == ''">0</Qt_Major>
+    <Qt_Minor Condition="'$(Qt_Minor)' == ''">0</Qt_Minor>
+    <Qt_Patch Condition="'$(Qt_Patch)' == ''">0</Qt_Patch>
+  </PropertyGroup>
+
   <!-- //////// END Versions //////// -->
 
-  <PropertyGroup>
+  <!-- //////// Auto build number calculation //////// -->
 
-    <!-- //////// Auto build number calculation //////// -->
+  <PropertyGroup Condition="'$(Qt_BuildEpoch)' != '' AND '$(Qt_Build)' == ''">
 
     <!-- Default auto build resolution: 10 mins in units of 100-nsecs (hnsecs) -->
     <Qt_BuildResolution Condition="'$(Qt_BuildResolution)' == ''"
       >6000000000</Qt_BuildResolution>
 
     <!-- Current UTC date/time in hnsecs -->
-    <Qt_Now Condition="'$(Qt_BuildEpoch)' != ''"
-      >$([System.DateTime]::UtcNow.ToFileTimeUtc())</Qt_Now>
+    <Qt_Now Condition="'$(Qt_Now)' == ''">$([System.DateTime]::UtcNow.ToFileTimeUtc())</Qt_Now>
 
     <!-- Version epoch in hnsecs -->
-    <Qt_Epoch Condition="'$(Qt_BuildEpoch)' != ''"
-      >$([System.DateTime]::Parse('$(Qt_BuildEpoch)').ToFileTimeUtc())</Qt_Epoch>
+    <Qt_Epoch>$([System.DateTime]::Parse('$(Qt_BuildEpoch)').ToFileTimeUtc())</Qt_Epoch>
 
     <!-- Timestamp in hnsecs -->
-    <Qt_TimestampHns Condition="'$(Qt_BuildEpoch)' != ''"
-      >$([MSBuild]::Subtract($(Qt_Now), $(Qt_Epoch)))</Qt_TimestampHns>
+    <Qt_TimestampHns>$([MSBuild]::Subtract($(Qt_Now), $(Qt_Epoch)))</Qt_TimestampHns>
 
     <!-- Timestamp in build resolution units -->
-    <Qt_Timestamp Condition="'$(Qt_BuildEpoch)' != ''"
-      >$([MSBuild]::Divide($(Qt_TimestampHns), $(Qt_BuildResolution)))</Qt_Timestamp>
+    <Qt_Timestamp>$([MSBuild]::Divide($(Qt_TimestampHns), $(Qt_BuildResolution)))</Qt_Timestamp>
+  </PropertyGroup>
 
-    <!-- //////// Version formats //////// -->
+  <!-- Ensure int values -->
+  <PropertyGroup>
+    <Qt_MajorNum>$([MsBuild]::RightShift($(Qt_Major), 0))</Qt_MajorNum>
+    <Qt_MinorNum>$([MsBuild]::RightShift($(Qt_Minor), 0))</Qt_MinorNum>
+    <Qt_PatchNum>$([MsBuild]::RightShift($(Qt_Patch), 0))</Qt_PatchNum>
+    <Qt_BuildNum Condition="'$(Qt_Build)' != ''"
+      >$([MsBuild]::RightShift($(Qt_Build), 0))</Qt_BuildNum>
+  </PropertyGroup>
+
+  <!-- Default to 0.0.0.1 -->
+  <PropertyGroup
+    Condition="'$(Qt_MajorNum)' == '0' AND '$(Qt_MinorNum)' == '0' AND '$(Qt_PatchNum)' == '0'
+      AND ('$(Qt_Build)' == '' OR '$(Qt_BuildNum)' == '0')">
+    <Qt_Build Condition="'$(Qt_Build)' == ''">1</Qt_Build>
+    <Qt_BuildNum>1</Qt_BuildNum>
+  </PropertyGroup>
+
+  <!-- //////// Version formats //////// -->
+
+  <PropertyGroup>
 
     <!-- MAJOR.MINOR.PATCH -->
-    <Version>$(Qt_Major).$(Qt_Minor).$(Qt_Patch)</Version>
+    <Version>$(Qt_MajorNum).$(Qt_MinorNum).$(Qt_PatchNum)</Version>
 
     <!-- MAJOR.MINOR.PATCH-TAG -->
     <Version Condition="'$(Qt_Tag)' != ''"
-      >$(Qt_Major).$(Qt_Minor).$(Qt_Patch)-$(Qt_Tag)</Version>
+      >$(Qt_MajorNum).$(Qt_MinorNum).$(Qt_PatchNum)-$(Qt_Tag)</Version>
 
     <!-- MAJOR.MINOR.PATCH.TIMESTAMP -->
     <Version Condition="'$(Qt_Timestamp)' != '' AND '$(Qt_Tag)' == ''"
-      >$(Qt_Major).$(Qt_Minor).$(Qt_Patch).$(Qt_Timestamp)</Version>
+      >$(Qt_MajorNum).$(Qt_MinorNum).$(Qt_PatchNum).$(Qt_Timestamp)</Version>
 
     <!-- MAJOR.MINOR.PATCH.TIMESTAMP-TAG -->
     <Version Condition="'$(Qt_Timestamp)' != '' AND '$(Qt_Tag)' != ''"
-      >$(Qt_Major).$(Qt_Minor).$(Qt_Patch).$(Qt_Timestamp)-$(Qt_Tag)</Version>
+      >$(Qt_MajorNum).$(Qt_MinorNum).$(Qt_PatchNum).$(Qt_Timestamp)-$(Qt_Tag)</Version>
 
     <!-- MAJOR.MINOR.PATCH.BUILD -->
     <Version Condition="'$(Qt_Build)' != '' AND '$(Qt_Tag)' == ''"
-      >$(Qt_Major).$(Qt_Minor).$(Qt_Patch).$(Qt_Build)</Version>
+      >$(Qt_MajorNum).$(Qt_MinorNum).$(Qt_PatchNum).$(Qt_BuildNum)</Version>
 
     <!-- MAJOR.MINOR.PATCH.BUILD-TAG -->
     <Version Condition="'$(Qt_Build)' != '' AND '$(Qt_Tag)' != ''"
-      >$(Qt_Major).$(Qt_Minor).$(Qt_Patch).$(Qt_Build)-$(Qt_Tag)</Version>
+      >$(Qt_MajorNum).$(Qt_MinorNum).$(Qt_PatchNum).$(Qt_BuildNum)-$(Qt_Tag)</Version>
 
     <SelectedVersion>$(Version)</SelectedVersion>
 
@@ -91,5 +121,47 @@
       <_Parameter2>$(SelectedVersion)</_Parameter2>
     </AssemblyAttribute>
   </ItemGroup>
+
+  <!-- Calculate auto-version -->
+  <Target Name="QtAutoVersionCalc" Condition="'$(QtAutoVersionCalc)' == 'true'">
+    <Exec Command="git describe --tags --long" WorkingDirectory="$(MSBuildThisFileDirectory)"
+      EchoOff="true" IgnoreExitCode="true" ConsoleToMSBuild="true" StandardOutputImportance="low" >
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitOutput" />
+      <Output TaskParameter="ExitCode" PropertyName="GitResult" />
+    </Exec>
+    <PropertyGroup Condition="'$(GitResult)' == '0'">
+      <Regex
+        >^(?'MAJOR'\d+)\.(?'MINOR'\d+)\.(?'PATCH'\d+)(?:-(?'TAG'[^-]+))?-(?'BUILD'\d+)-\w+$</Regex>
+
+      <Xml><![CDATA[<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Qt_Major>${MAJOR}</Qt_Major>
+    <Qt_Minor>${MINOR}</Qt_Minor>
+    <Qt_Patch>${PATCH}</Qt_Patch>
+    <Qt_Build>${BUILD}</Qt_Build>
+    <Qt_Tag>${TAG}</Qt_Tag>
+  </PropertyGroup>
+</Project>]]></Xml>
+
+    </PropertyGroup>
+    <WriteLinesToFile Condition="'$(GitResult)' == '0'"
+      File="$(Qt_AutoVersion)"
+      Overwrite="true" WriteOnlyWhenDifferent="true"
+      Lines="$([System.Text.RegularExpressions.Regex]::Replace($(GitOutput), $(Regex), $(Xml)))" />
+    <PropertyGroup>
+      <GitOutput/>
+      <GitResult/>
+      <Regex/>
+      <Xml/>
+    </PropertyGroup>
+  </Target>
+
+  <!-- Run QtAutoVersionCalc target during Restore -->
+  <Target Name="QtRunAutoVersion"
+    BeforeTargets="_IsProjectRestoreSupported" Condition="'$(QtAutoVersionCalc)' != 'true'">
+    <MSBuild Projects="$(MSBuildThisFileFullPath)" Targets="QtAutoVersionCalc"
+      Properties="QtAutoVersionCalc=true" />
+  </Target>
 
 </Project>
