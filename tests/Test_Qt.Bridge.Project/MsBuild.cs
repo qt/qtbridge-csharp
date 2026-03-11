@@ -48,17 +48,19 @@ namespace Test_Qt.Bridge.Project
             }
         }
 
-        public static Process Start(string workDir, params string[] args)
+        public static Process Start(
+            string workDir, (string Name, string Value)[] envVars = null, params string[] args)
         {
             Init();
-            return CmdProc.Start(MsBuildPath, workDir, args);
+            return CmdProc.Start(MsBuildPath, workDir, args, envVars);
         }
 
         public static Process Start(
-            Action<string> stdOut, Action<string> stdErr, string workDir, params string[] args)
+            Action<string> stdOut, Action<string> stdErr, string workDir,
+            (string Name, string Value)[] envVars = null, params string[] args)
         {
             Init();
-            return CmdProc.Start(MsBuildPath, workDir, args, stdOut, stdErr);
+            return CmdProc.Start(MsBuildPath, workDir, args, envVars, stdOut, stdErr);
         }
     }
 }

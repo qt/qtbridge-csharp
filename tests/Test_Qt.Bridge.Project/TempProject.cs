@@ -66,9 +66,33 @@ namespace Test_Qt.Bridge.Project
 
     public class TempProject : IDisposable
     {
+        private const string TestRootEnvVar = "QTBRIDGE_TEST_ROOT";
+        private const string TestRootDirName = "qtbridge-csharp-tests";
 
-        public string ProjectRootDir { get; set; }
-            = Combine(GetDirectoryName(Assembly.GetExecutingAssembly().Location), "temp");
+        // Resolve the temp project root from QTBRIDGE_TEST_ROOT or the system temp directory,
+        // falling back to the project drive on Windows if needed, and fail fast on spaces.
+        private static string ResolveProjectRootDir()
+        {
+            var rootDir = Environment.GetEnvironmentVariable(TestRootEnvVar);
+            if (string.IsNullOrWhiteSpace(rootDir)) {
+                rootDir = Path.GetTempPath();
+
+                if (OperatingSystem.IsWindows() && rootDir.Contains(' ')) {
+                    var projectDrive = Path.GetPathRoot(FindRepoRoot());
+                    if (!string.IsNullOrWhiteSpace(projectDrive))
+                        rootDir = projectDrive;
+                }
+            }
+
+            if (rootDir.Contains(' ')) {
+                throw new InvalidOperationException($"Temp test root contains spaces: '{rootDir}'. "
+                    + $"Set {TestRootEnvVar} to a path without spaces.");
+            }
+
+            return Combine(rootDir, TestRootDirName);
+        }
+
+        public string ProjectRootDir { get; set; } = ResolveProjectRootDir();
         public string BinLogDir { get; set; }
             = Combine(GetDirectoryName(Assembly.GetExecutingAssembly().Location), "logs");
 
@@ -78,11 +102,44 @@ namespace Test_Qt.Bridge.Project
         public string ProjectDir => Combine(ProjectRootDir, ProjectFilename);
         public string ProjectPath => Combine(ProjectDir, ProjectFilename + ProjectExtension);
         private string BinLogPath => Combine(ProjectDir, "msbuild.binlog");
+        public string NuGetPackagesDir => Combine(ProjectRootDir, "pkg");
 
         public Build Log => File.Exists(BinLogPath) ? BinaryLog.ReadBuild(BinLogPath) : new();
 
         public string ExePath { get; private set; }
         public string ExeDir => GetDirectoryName(ExePath);
+
+        private static string NormalizeSeparators(string path) =>
+            path.Replace('\\', DirectorySeparatorChar).Replace('/', DirectorySeparatorChar);
+
+        private static string FindRepoRoot()
+        {
+            var dir = new DirectoryInfo(GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+            while (dir != null) {
+                if (File.Exists(Combine(dir.FullName, "qtbridge-csharp.sln")))
+                    return dir.FullName;
+                dir = dir.Parent;
+            }
+            throw new InvalidOperationException("Could not locate repository root.");
+        }
+
+        private void WriteNuGetConfig()
+        {
+            var localFeed = NormalizeSeparators(Combine(FindRepoRoot(), "nuget", "local"));
+            var globalPackages = NormalizeSeparators(NuGetPackagesDir);
+            WriteAllText(Combine(ProjectDir, "nuget.config"),
+                $@"<?xml version=""1.0"" encoding=""utf-8""?>
+<configuration>
+  <config>
+    <add key=""globalPackagesFolder"" value=""{globalPackages}"" />
+  </config>
+  <packageSources>
+    <clear />
+    <add key=""qtbridge-local"" value=""{localFeed}"" />
+  </packageSources>
+</configuration>
+");
+        }
 
         public void Create(CreationOptions options = null)
         {
@@ -121,22 +178,16 @@ namespace Test_Qt.Bridge.Project
     AfterTargets=""QtBridgeGenerate"" BeforeTargets=""QtBridgeBuild"">
     {string.Join(@"
     ", options.ReplaceGeneratedFiles
-        .Select(x => $@"<Copy
-      SourceFiles=""{GetDirectoryName(Assembly.GetExecutingAssembly().Location)}\{x.New}""
-      DestinationFiles=""$(ProjectIntermediateDir)qt\native\{x.Old}"" />"))}
+        .Select(x => $"""
+    <Copy
+      SourceFiles="{NormalizeSeparators(
+            Combine(GetDirectoryName(Assembly.GetExecutingAssembly().Location), x.New))}"
+      DestinationFiles="$(ProjectIntermediateDir)qt/native/{NormalizeSeparators(x.Old)}" />
+"""))}
   </Target>" : "")}
 </Project>
 ".Trim(' ', '\r', '\n'), options.Filename, options.Extension);
-            if (options.LocalPackages) {
-                WriteAllText($@"{ProjectDir}\nuget.config",
-                    $@"<?xml version=""1.0"" encoding=""utf-8""?>
-<configuration>
-  <config>
-    <add key=""globalPackagesFolder"" value=""packages"" />
-  </config>
-</configuration>
-");
-            }
+            WriteNuGetConfig();
         }
 
         public void Create(string xml, string filename = null, string extension = null)
@@ -203,6 +254,12 @@ namespace Test_Qt.Bridge.Project
             Reset();
         }
 
+        private (string Name, string Value)[] BuildEnvironment()
+        {
+            CreateDirectory(NuGetPackagesDir);
+            return [("NUGET_PACKAGES", NuGetPackagesDir)];
+        }
+
         private List<string> PropertyArgs(BuildOptions options)
         {
             var args = new List<string>();
@@ -238,7 +295,7 @@ namespace Test_Qt.Bridge.Project
             StringBuilder output = new();
             var msbuild = MsBuild.Start(
                 stdOut => output.AppendLine(stdOut), stdErr => output.AppendLine(stdErr),
-                ProjectDir, args.ToArray());
+                ProjectDir, BuildEnvironment(), args.ToArray());
             CancellationTokenSource cancel = options.Timeout > 0 ? new(options.Timeout) : new();
             await msbuild.WaitForExitAsync(cancel.Token);
             if (msbuild.ExitCode != 0)
@@ -275,7 +332,7 @@ namespace Test_Qt.Bridge.Project
             args.Add($"-getProperty:{name}");
             StringBuilder stdOut = new();
             var msbuild = MsBuild.Start(
-                x => stdOut.AppendLine(x), null, ProjectDir, args.ToArray());
+                x => stdOut.AppendLine(x), null, ProjectDir, BuildEnvironment(), args.ToArray());
             CancellationTokenSource cancel = options.Timeout > 0 ? new(options.Timeout) : new();
             await msbuild.WaitForExitAsync(cancel.Token);
             if (msbuild.ExitCode != 0)
