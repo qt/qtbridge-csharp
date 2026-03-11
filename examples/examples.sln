@@ -22,6 +22,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CityTemperatures", "CityTem
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Primes", "Primes\Primes.csproj", "{EB6EBA4B-967A-C5E5-DCB8-88278E2546A2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModelsAndViews", "ModelsAndViews\ModelsAndViews.csproj", "{8BB4C5FF-566D-F94C-B128-DE6C99980868}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,6 +58,10 @@ Global
 		{EB6EBA4B-967A-C5E5-DCB8-88278E2546A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EB6EBA4B-967A-C5E5-DCB8-88278E2546A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EB6EBA4B-967A-C5E5-DCB8-88278E2546A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8BB4C5FF-566D-F94C-B128-DE6C99980868}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8BB4C5FF-566D-F94C-B128-DE6C99980868}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8BB4C5FF-566D-F94C-B128-DE6C99980868}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8BB4C5FF-566D-F94C-B128-DE6C99980868}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
