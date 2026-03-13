@@ -92,9 +92,11 @@ namespace Test_Qt.Bridge.Project
             return Combine(rootDir, TestRootDirName);
         }
 
+        private static string ExecutingAssemblyDirectory =>
+            GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
+
         public string ProjectRootDir { get; set; } = ResolveProjectRootDir();
-        public string BinLogDir { get; set; }
-            = Combine(GetDirectoryName(Assembly.GetExecutingAssembly().Location), "logs");
+        public string BinLogDir { get; set; } = Combine(ExecutingAssemblyDirectory, "logs");
 
         public string ProjectFilename { get; private set; } = GetRandomFileName();
         public string ProjectExtension { get; private set; } = ".csproj";
@@ -114,7 +116,7 @@ namespace Test_Qt.Bridge.Project
 
         private static string FindRepoRoot()
         {
-            var dir = new DirectoryInfo(GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+            var dir = new DirectoryInfo(ExecutingAssemblyDirectory);
             while (dir != null) {
                 if (File.Exists(Combine(dir.FullName, "qtbridge-csharp.sln")))
                     return dir.FullName;
@@ -128,66 +130,131 @@ namespace Test_Qt.Bridge.Project
             var localFeed = NormalizeSeparators(Combine(FindRepoRoot(), "nuget", "local"));
             var globalPackages = NormalizeSeparators(NuGetPackagesDir);
             WriteAllText(Combine(ProjectDir, "nuget.config"),
-                $@"<?xml version=""1.0"" encoding=""utf-8""?>
-<configuration>
-  <config>
-    <add key=""globalPackagesFolder"" value=""{globalPackages}"" />
-  </config>
-  <packageSources>
-    <clear />
-    <add key=""qtbridge-local"" value=""{localFeed}"" />
-  </packageSources>
-</configuration>
-");
+                $"""
+                 <?xml version="1.0" encoding="utf-8"?>
+                 <configuration>
+                   <config>
+                     <add key="globalPackagesFolder" value="{globalPackages}" />
+                   </config>
+                   <packageSources>
+                     <clear />
+                     <add key="qtbridge-local" value="{localFeed}" />
+                   </packageSources>
+                 </configuration>
+                 """);
         }
 
         public void Create(CreationOptions options = null)
         {
             options ??= new();
-            Create($@"<?xml version=""1.0"" encoding=""utf-8""?>
-<Project>
-{options.BeforeSdkProps}
-  <Import Project=""Sdk.props"" Sdk=""Microsoft.NET.Sdk"" />
-{options.AfterSdkProps}
-  <PropertyGroup>
-    {options.OutputType switch
-            {
-                OutputType.Exe => "<OutputType>Exe</OutputType>",
-                OutputType.WinExe => "<OutputType>WinExe</OutputType>",
-                _ => ""
-            }}
-    <TargetFramework>{options.TargetFramework switch
-            {
-                { Length: > 0 } => options.TargetFramework,
-                _ => "net8.0"
-            }}</TargetFramework>
-    <ImplicitUsings>{(options.ImplicitUsings ? "enable" : "disable")}</ImplicitUsings>
-    <Nullable>{(options.Nullable ? "enable" : "disable")}</Nullable>
-  </PropertyGroup>
-  {(options.PackageReferences?.Any() == true
-    ? $@"<ItemGroup>
-        {string.Join(@"
-        ", options.PackageReferences
-            .Select(x => $@"<PackageReference Include=""{x.Id}"" Version=""{x.Version}"" />"))}
-  </ItemGroup>" : "")}
-{options.BeforeSdkTargets}
-  <Import Project=""Sdk.targets"" Sdk=""Microsoft.NET.Sdk"" />
-{options.AfterSdkTargets}
-{(options.ReplaceGeneratedFiles?.Any() == true ? $@"
-  <Target Name=""QtPostCodeGen""
-    AfterTargets=""QtBridgeGenerate"" BeforeTargets=""QtBridgeBuild"">
-    {string.Join(@"
-    ", options.ReplaceGeneratedFiles
-        .Select(x => $"""
-    <Copy
-      SourceFiles="{NormalizeSeparators(
-            Combine(GetDirectoryName(Assembly.GetExecutingAssembly().Location), x.New))}"
-      DestinationFiles="$(ProjectIntermediateDir)qt/native/{NormalizeSeparators(x.Old)}" />
-"""))}
-  </Target>" : "")}
-</Project>
-".Trim(' ', '\r', '\n'), options.Filename, options.Extension);
+            Create(CreateProjectXml(options), options.Filename, options.Extension);
             WriteNuGetConfig();
+        }
+
+        /// <summary>
+        /// Assembles the temporary SDK-style project file from XML fragments.
+        /// </summary>
+        private static string CreateProjectXml(CreationOptions options)
+        {
+            var sections = new[]
+            {
+                """<?xml version="1.0" encoding="utf-8"?>""",
+                "<Project>",
+                options.BeforeSdkProps,
+                """  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />""",
+                options.AfterSdkProps,
+                PropertyGroupXml(options),
+                PackageReferencesXml(options),
+                options.BeforeSdkTargets,
+                """  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />""",
+                options.AfterSdkTargets,
+                ReplaceGeneratedFilesTargetXml(options),
+                "</Project>"
+            };
+            return string.Join(Environment.NewLine, sections
+                .Where(section => !string.IsNullOrWhiteSpace(section)));
+        }
+
+        /// <summary>
+        /// Creates the main property group, including local-package restore settings when the
+        /// temp project should consume packages from the repo-local feed.
+        /// </summary>
+        private static string PropertyGroupXml(CreationOptions options)
+        {
+            var targetFramework = string.IsNullOrEmpty(options.TargetFramework)
+                ? "net8.0"
+                : options.TargetFramework;
+            var lines = new List<string> { "  <PropertyGroup>" };
+            if (OutputTypeXml(options.OutputType) is { Length: > 0 } outputType)
+                lines.Add(outputType);
+            lines.Add($"    <TargetFramework>{targetFramework}</TargetFramework>");
+            lines.Add($"    <ImplicitUsings>{(options.ImplicitUsings ? "enable" : "disable")}"
+                + "</ImplicitUsings>");
+            lines.Add($"    <Nullable>{(options.Nullable ? "enable" : "disable")}</Nullable>");
+            lines.Add("  </PropertyGroup>");
+            return string.Join(Environment.NewLine, lines);
+        }
+
+        private static string OutputTypeXml(OutputType outputType)
+        {
+            return outputType switch
+            {
+                OutputType.Exe => "    <OutputType>Exe</OutputType>",
+                OutputType.WinExe => "    <OutputType>WinExe</OutputType>",
+                _ => string.Empty
+            };
+        }
+
+        /// <summary>
+        /// Creates the package reference item group for the temporary project.
+        /// </summary>
+        private static string PackageReferencesXml(CreationOptions options)
+        {
+            if (options.PackageReferences?.Any() != true)
+                return string.Empty;
+
+            var lines = new List<string> { "  <ItemGroup>" };
+            lines.AddRange(options.PackageReferences.Select(x =>
+                   $"""    <PackageReference Include="{x.Id}" Version="{x.Version}" />"""));
+            lines.Add("  </ItemGroup>");
+            return string.Join(Environment.NewLine, lines);
+        }
+
+        /// <summary>
+        /// Creates the post-codegen target that swaps selected generated native files with tests
+        /// copied from the test assembly output.
+        /// </summary>
+        private static string ReplaceGeneratedFilesTargetXml(CreationOptions options)
+        {
+            if (options.ReplaceGeneratedFiles?.Any() != true)
+                return string.Empty;
+
+            var lines = new List<string>
+            {
+                """
+                  <Target Name="QtPostCodeGen"
+                """,
+                """
+                    AfterTargets="QtBridgeGenerate" BeforeTargets="QtBridgeBuild">
+                """
+            };
+
+            var assemblyDir = ExecutingAssemblyDirectory;
+            foreach (var file in options.ReplaceGeneratedFiles) {
+                // Copy test assets into the generated qt/native tree before the native build runs.
+                lines.Add("    <Copy");
+                lines.Add(
+                    $"""
+                           SourceFiles="{NormalizeSeparators(Combine(assemblyDir, file.New))}"
+                     """);
+                lines.Add(
+                    $"""
+                            DestinationFiles="$(ProjectIntermediateDir){
+                                NormalizeSeparators(Combine("qt", "native", file.Old))}" />
+                     """);
+            }
+            lines.Add("  </Target>");
+            return string.Join(Environment.NewLine, lines);
         }
 
         public void Create(string xml, string filename = null, string extension = null)
@@ -204,12 +271,14 @@ namespace Test_Qt.Bridge.Project
         public void Clone(string path)
         {
             if (path is not { Length: > 0 } || !File.Exists(path))
-                throw new ArgumentException();
+                throw new ArgumentException("Path cannot be null or empty and must exist.");
+            var sourceDir = GetDirectoryName(path)
+                ?? throw new ArgumentException("Path must include a parent directory.");
             Reset();
             ProjectFilename = GetFileNameWithoutExtension(path);
             ProjectExtension = GetExtension(path);
             CreateDirectory(ProjectDir);
-            GetFiles(GetDirectoryName(path), "*", SearchOption.TopDirectoryOnly)
+            GetFiles(sourceDir, "*", SearchOption.TopDirectoryOnly)
                 .ToList().ForEach(x => Copy(x, Combine(ProjectDir, GetFileName(x))));
         }
 
@@ -220,7 +289,7 @@ namespace Test_Qt.Bridge.Project
             destinationPath = NormalizeSeparators(destinationPath);
             sourcePath = NormalizeSeparators(sourcePath);
             Copy(
-                Combine(GetDirectoryName(Assembly.GetExecutingAssembly().Location), sourcePath),
+                Combine(ExecutingAssemblyDirectory, sourcePath),
                 Combine(ProjectDir, destinationPath));
         }
 
@@ -229,8 +298,10 @@ namespace Test_Qt.Bridge.Project
             if (IsPathRooted(path))
                 throw new InvalidOperationException("Path must be relative.");
             path = NormalizeSeparators(path);
-            string fullPath = Combine(ProjectDir, path);
-            CreateDirectory(GetDirectoryName(fullPath));
+            var fullPath = Combine(ProjectDir, path);
+            var directory = GetDirectoryName(fullPath)
+                ?? throw new InvalidOperationException("Could not find target directory.");
+            CreateDirectory(directory);
             WriteAllText(fullPath, contents);
         }
 
@@ -281,7 +352,7 @@ namespace Test_Qt.Bridge.Project
             return [("NUGET_PACKAGES", NuGetPackagesDir)];
         }
 
-        private List<string> PropertyArgs(BuildOptions options)
+        private static List<string> PropertyArgs(BuildOptions options)
         {
             var args = new List<string>();
             switch (options.Config) {
@@ -292,10 +363,12 @@ namespace Test_Qt.Bridge.Project
                     args.Add("-p:Configuration=Release");
                     break;
             }
-            if (options.Properties?.Any() == true) {
-                foreach (var property in options.Properties)
-                    args.Add($"-p:{property.Name}={property.Value}");
-            }
+
+            if (options.Properties?.Any() != true)
+                return args;
+
+            foreach (var property in options.Properties)
+                args.Add($"-p:{property.Name}={property.Value}");
             return args;
         }
 
@@ -326,12 +399,14 @@ namespace Test_Qt.Bridge.Project
                 if (!File.Exists(targetPath))
                     return (false, output.ToString());
             }
-            if (!string.IsNullOrEmpty(options.TargetExePath)) {
-                var targetExePath = await GetPropertyAsync(options.TargetExePath, options);
-                if (!File.Exists(targetExePath))
-                    return (false, output.ToString());
-                ExePath = targetExePath;
-            }
+
+            if (string.IsNullOrEmpty(options.TargetExePath))
+                return (true, output.ToString());
+
+            var targetExePath = await GetPropertyAsync(options.TargetExePath, options);
+            if (!File.Exists(targetExePath))
+                return (false, output.ToString());
+            ExePath = targetExePath;
             return (true, output.ToString());
         }
 
@@ -356,12 +431,12 @@ namespace Test_Qt.Bridge.Project
                 x => stdOut.AppendLine(x), null, ProjectDir, BuildEnvironment(), args.ToArray());
             CancellationTokenSource cancel = options.Timeout > 0 ? new(options.Timeout) : new();
             await msbuild.WaitForExitAsync(cancel.Token);
-            if (msbuild.ExitCode != 0)
-                return null;
-            return stdOut.ToString().Trim(' ', '\n', '\r', '\t');
+
+            return msbuild.ExitCode != 0 ? null : stdOut.ToString().Trim(' ', '\n', '\r', '\t');
         }
 
-        private Action<string> FnStream(Redirect stream, StringBuilder stdOut, StringBuilder stdErr)
+        private static Action<string> GetStreamHandler(Redirect stream, StringBuilder stdOut,
+            StringBuilder stdErr)
         {
             return stream switch
             {
@@ -377,15 +452,16 @@ namespace Test_Qt.Bridge.Project
             options ??= new();
             var exePath = options.ExePath ?? ExePath;
             var workDir = options.WorkingDir ?? ProjectDir;
-            var args = options.Args?.ToArray() ?? new string[0];
-            var envVars = options.EnvVars?.ToArray() ?? new (string, string)[0];
+            var args = options.Args?.ToArray() ?? [];
+            var envVars = options.EnvVars?.ToArray() ?? [];
 
             if (exePath == null)
                 throw new InvalidOperationException("Missing executable. Did you forget to build?");
 
             StringBuilder stdOut = new(), stdErr = new();
             var run = CmdProc.Start(exePath, workDir, args, envVars,
-                FnStream(options.StdOut, stdOut, stdErr), FnStream(options.StdErr, stdOut, stdErr));
+                GetStreamHandler(options.StdOut, stdOut, stdErr),
+                GetStreamHandler(options.StdErr, stdOut, stdErr));
             CancellationTokenSource cancel = options.Timeout > 0 ? new(options.Timeout) : new();
             await run.WaitForExitAsync(cancel.Token);
             return (run.ExitCode, stdOut.ToString(), stdErr.ToString());
