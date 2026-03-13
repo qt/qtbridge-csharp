@@ -233,12 +233,11 @@ namespace Test_Qt.Bridge.Project
 
         private void Reset()
         {
-            ProjectFilename = GetRandomFileName();
-            ProjectExtension = ".csproj";
+            var projectDir = ProjectDir;
             var t = Stopwatch.StartNew();
-            while (Directory.Exists(ProjectDir)) {
+            while (Directory.Exists(projectDir)) {
                 try {
-                    Delete(ProjectDir, true);
+                    Delete(projectDir, true);
                 } catch (IOException e) {
                     if (!e.Message.Contains("being used by another process"))
                         throw;
@@ -247,6 +246,8 @@ namespace Test_Qt.Bridge.Project
                     Thread.Sleep(100);
                 }
             }
+            ProjectFilename = GetRandomFileName();
+            ProjectExtension = ".csproj";
         }
 
         public void Dispose()
