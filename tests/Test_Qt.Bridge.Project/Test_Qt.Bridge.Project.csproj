@@ -15,15 +15,23 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="AdapterInit\Program.cs" />
     <Compile Remove="QtQuickTest\Program.cs" />
     <Compile Remove="QtTest\Program.cs" />
     <Compile Remove="StructuredData\Program.cs" />
+    <None Remove="AdapterInit\main.cpp" />
     <None Remove="QtQuickTest\main.cpp" />
     <None Remove="QtTest\main.cpp" />
     <None Remove="StructuredData\main.cpp" />
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="AdapterInit\main.cpp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="AdapterInit\Program.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="QtQuickTest\main.cpp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
