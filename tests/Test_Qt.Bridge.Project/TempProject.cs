@@ -255,6 +255,23 @@ namespace Test_Qt.Bridge.Project
             Reset();
         }
 
+        internal static void CleanupProjectRoot()
+        {
+            var projectRootDir = ResolveProjectRootDir();
+            var t = Stopwatch.StartNew();
+            while (Directory.Exists(projectRootDir)) {
+                try {
+                    Delete(projectRootDir, true);
+                } catch (IOException e) {
+                    if (!e.Message.Contains("being used by another process"))
+                        throw;
+                    if (t.ElapsedMilliseconds > 10000)
+                        Assert.Inconclusive(e.Message);
+                    Thread.Sleep(100);
+                }
+            }
+        }
+
         private (string Name, string Value)[] BuildEnvironment()
         {
             CreateDirectory(NuGetPackagesDir);

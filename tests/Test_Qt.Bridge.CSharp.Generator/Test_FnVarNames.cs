@@ -77,8 +77,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         private static string BuildToTempFile(AssemblyConfig assemblyConfig,
             ReturnConfig returnConfig, ParameterConfig parameterConfig)
         {
-            var dir = Path.Combine(Path.GetTempPath(), "QtDotNetTests", Guid.NewGuid().ToString());
-            Directory.CreateDirectory(dir);
+            var dir = TestCodeGenerator.CreatePluginTempDirectory();
             var fullPath = Path.Combine(dir, assemblyConfig.AssemblyName + ".dll");
 
             using var fs = new FileStream(fullPath, FileMode.Create, FileAccess.ReadWrite,

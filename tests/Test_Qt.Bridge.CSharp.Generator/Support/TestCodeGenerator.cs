@@ -4,6 +4,7 @@
 global using Rules = Qt.Bridge.CodeGeneration.Rule.All;
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -27,6 +28,8 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
     public static class TestCodeGenerator
     {
         private static readonly string NewLine = Environment.NewLine;
+        private static readonly ConcurrentDictionary<string, byte> TempArtifacts = new();
+        public static string PluginTempRoot => Path.Combine(Path.GetTempPath(), "QtDotNetTests");
 
         public sealed record Result(DependencyGraph Graph, MetadataLoadContext Loader,
             Assembly SourceAssembly, MemorySink Sink, string TargetDir)
@@ -104,6 +107,7 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
             var outputPath = Path.Combine(Path.GetTempPath(), assemblyName  + ".dll");
+            RegisterTempArtifact(outputPath);
             var emitResult = compilation.Emit(outputPath, cancellationToken: ct);
             if (!emitResult.Success) {
                 throw new InvalidOperationException("Emitting the test library failed:" + NewLine
@@ -147,6 +151,7 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
             var targetDirectory = Path.Combine(Path.GetTempPath(), "qtdotnet_codegen_" + Guid
                 .NewGuid().ToString("N"));
             Directory.CreateDirectory(targetDirectory);
+            RegisterTempArtifact(targetDirectory);
 
             var rulesSucceeded = await Rules.RunAllAsync(targetDirectory);
             if (!rulesSucceeded) {
@@ -162,6 +167,42 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
 
             return new Result(Rules.SourceGraph, metadataLoadContext, Assembly.LoadFile(outputPath), sink,
                 targetDirectory);
+        }
+
+        public static string CreatePluginTempDirectory()
+        {
+            var dir = Path.Combine(PluginTempRoot, Guid.NewGuid().ToString());
+            Directory.CreateDirectory(dir);
+
+            RegisterTempArtifact(dir);
+            RegisterTempArtifact(PluginTempRoot);
+
+            return dir;
+        }
+
+        public static void CleanupTempArtifacts()
+        {
+            foreach (var path in TempArtifacts.Keys.OrderByDescending(x => x.Length)) {
+                try {
+                    if (Directory.Exists(path)) {
+                        Directory.Delete(path, recursive: true);
+                        continue;
+                    }
+
+                    if (File.Exists(path))
+                        File.Delete(path);
+                } catch {
+                    // Ignore cleanup failures at assembly shutdown.
+                }
+            }
+
+            TempArtifacts.Clear();
+        }
+
+        private static void RegisterTempArtifact(string path)
+        {
+            if (!string.IsNullOrWhiteSpace(path))
+                TempArtifacts.TryAdd(path, 0);
         }
 
         private static IEnumerable<string> CreateDefaultFrameworkPaths()
