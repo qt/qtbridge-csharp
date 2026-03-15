@@ -16,11 +16,13 @@
 
   <ItemGroup>
     <Compile Remove="AdapterInit\Program.cs" />
+    <Compile Remove="CustomMarshaling\Program.cs" />
     <Compile Remove="FunctionCalls\Program.cs" />
     <Compile Remove="QtQuickTest\Program.cs" />
     <Compile Remove="QtTest\Program.cs" />
     <Compile Remove="StructuredData\Program.cs" />
     <None Remove="AdapterInit\main.cpp" />
+    <None Remove="CustomMarshaling\main.cpp" />
     <None Remove="FunctionCalls\main.cpp" />
     <None Remove="QtQuickTest\main.cpp" />
     <None Remove="QtTest\main.cpp" />
@@ -32,6 +34,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="AdapterInit\Program.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="CustomMarshaling\main.cpp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="CustomMarshaling\Program.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="FunctionCalls\main.cpp">
