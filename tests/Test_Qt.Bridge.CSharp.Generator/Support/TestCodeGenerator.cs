@@ -12,6 +12,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -29,13 +30,22 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
     {
         private static readonly string NewLine = Environment.NewLine;
         private static readonly ConcurrentDictionary<string, byte> TempArtifacts = new();
-        public static string PluginTempRoot => Path.Combine(Path.GetTempPath(), "QtDotNetTests");
+        private static readonly ConcurrentDictionary<MetadataLoadContext, byte> LoadContexts = new();
+        private static string PluginTempRoot => Path.Combine(Path.GetTempPath(), "QtDotNetTests");
 
         public sealed record Result(DependencyGraph Graph, MetadataLoadContext Loader,
-            Assembly SourceAssembly, MemorySink Sink, string TargetDir)
+            Assembly SourceAssembly, MemorySink Sink, string TargetDir) : IDisposable
         {
+            private int disposed;
+
             /// <summary>Combines all generated files into a single string.</summary>
             public string CombinedText => string.Join(NewLine + NewLine, Sink.Files.Values);
+
+            public void Dispose()
+            {
+                if (Interlocked.Exchange(ref disposed, 1) == 0)
+                    DisposeLoadContext(Loader);
+            }
         }
 
         /// <summary>
@@ -132,41 +142,48 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
             if (!hasAdapter)
                 throw new InvalidOperationException("Qt.DotNet.Adapter.dll not found.");
 
-            // Create MLC using shared helper
-            var metadataLoadContext = MetadataResolver.CreateLoadContext(extraDirectories);
-            var sourceAssembly = metadataLoadContext.LoadFromAssemblyPath(outputPath);
+            MetadataLoadContext metadataLoadContext = null;
+            try {
+                // Create MLC using shared helper
+                metadataLoadContext = MetadataResolver.CreateLoadContext(extraDirectories);
+                RegisterLoadContext(metadataLoadContext);
+                var sourceAssembly = metadataLoadContext.LoadFromAssemblyPath(outputPath);
 
-            // Register meta-functions and rules
-            MetaFunction.Register<BasicTypes>();
-            foreach (var t in typeof(GenerateIndexer).Assembly.ExportedTypes)
-                _ = t.TryRegisterAsRule() || t.TryRegisterAsMetaFunction();
+                // Register meta-functions and rules
+                MetaFunction.Register<BasicTypes>();
+                foreach (var t in typeof(GenerateIndexer).Assembly.ExportedTypes)
+                    _ = t.TryRegisterAsRule() || t.TryRegisterAsMetaFunction();
 
-            // Register additional none build-in rules
-            foreach (var t in extraRules ?? [])
-                _ = t.TryRegisterAsRule();
+                // Register additional none build-in rules
+                foreach (var t in extraRules ?? [])
+                    _ = t.TryRegisterAsRule();
 
-            // 4. Build dependency graph and run rules
-            await DependencyGraph.CreateAsync(metadataLoadContext, sourceAssembly,
-                Array.Empty<Type>());
-            var targetDirectory = Path.Combine(Path.GetTempPath(), "qtdotnet_codegen_" + Guid
-                .NewGuid().ToString("N"));
-            Directory.CreateDirectory(targetDirectory);
-            RegisterTempArtifact(targetDirectory);
+                // 4. Build dependency graph and run rules
+                await DependencyGraph.CreateAsync(metadataLoadContext, sourceAssembly,
+                    Array.Empty<Type>());
+                var targetDirectory = Path.Combine(Path.GetTempPath(), "qtdotnet_codegen_" + Guid
+                    .NewGuid().ToString("N"));
+                Directory.CreateDirectory(targetDirectory);
+                RegisterTempArtifact(targetDirectory);
 
-            var rulesSucceeded = await Rules.RunAllAsync(targetDirectory);
-            if (!rulesSucceeded) {
-                var messages = Rules.Results.Where(result => !result.Succeeded)
-                    .Select(result => result.Message);
-                throw new InvalidOperationException(
-                    $"Running generation rules failed. Error: {string.Join("\r\n", messages)}");
+                var rulesSucceeded = await Rules.RunAllAsync(targetDirectory);
+                if (!rulesSucceeded) {
+                    var messages = Rules.Results.Where(result => !result.Succeeded)
+                        .Select(result => result.Message);
+                    throw new InvalidOperationException(
+                        $"Running generation rules failed. Error: {string.Join("\r\n", messages)}");
+                }
+
+                // Capture outputs in memory
+                var sink = new MemorySink();
+                await FilePlaceholder.All.WriteAllAsync(sink, ct);
+
+                return new Result(Rules.SourceGraph, metadataLoadContext, sourceAssembly, sink,
+                    targetDirectory);
+            } catch {
+                DisposeLoadContext(metadataLoadContext);
+                throw;
             }
-
-            // Capture outputs in memory
-            var sink = new MemorySink();
-            await FilePlaceholder.All.WriteAllAsync(sink, ct);
-
-            return new Result(Rules.SourceGraph, metadataLoadContext, Assembly.LoadFile(outputPath), sink,
-                targetDirectory);
         }
 
         public static string CreatePluginTempDirectory()
@@ -182,20 +199,21 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
 
         public static void CleanupTempArtifacts()
         {
-            foreach (var path in TempArtifacts.Keys.OrderByDescending(x => x.Length)) {
+            foreach (var loadContext in LoadContexts.Keys) {
                 try {
-                    if (Directory.Exists(path)) {
-                        Directory.Delete(path, recursive: true);
-                        continue;
-                    }
-
-                    if (File.Exists(path))
-                        File.Delete(path);
+                    loadContext.Dispose();
                 } catch {
                     // Ignore cleanup failures at assembly shutdown.
                 }
             }
+            LoadContexts.Clear();
 
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            foreach (var path in TempArtifacts.Keys.OrderByDescending(x => x.Length))
+                TryDeleteArtifact(path);
             TempArtifacts.Clear();
         }
 
@@ -203,6 +221,47 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
         {
             if (!string.IsNullOrWhiteSpace(path))
                 TempArtifacts.TryAdd(path, 0);
+        }
+
+        private static void RegisterLoadContext(MetadataLoadContext loadContext)
+        {
+            if (loadContext != null)
+                LoadContexts.TryAdd(loadContext, 0);
+        }
+
+        private static void DisposeLoadContext(MetadataLoadContext loadContext)
+        {
+            if (loadContext == null)
+                return;
+
+            try {
+                LoadContexts.TryRemove(loadContext, out _);
+                loadContext.Dispose();
+            } catch {
+                // Ignore cleanup failures at assembly shutdown.
+            }
+        }
+
+        private static void TryDeleteArtifact(string path)
+        {
+            const int attempts = 3;
+            for (var i = 0; i < attempts; ++i) {
+                try {
+                    if (Directory.Exists(path)) {
+                        Directory.Delete(path, recursive: true);
+                        return;
+                    }
+
+                    if (File.Exists(path))
+                        File.Delete(path);
+                } catch (UnauthorizedAccessException) when (i < attempts - 1) {
+                    Thread.Sleep(100);
+                } catch (IOException) when (i < attempts - 1) {
+                    Thread.Sleep(100);
+                } catch (Exception e) {
+                    Trace.WriteLine($"Delete failed for '{path}': {e.GetType().Name}: {e.Message}");
+                }
+            }
         }
 
         private static IEnumerable<string> CreateDefaultFrameworkPaths()

@@ -27,7 +27,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
             }
             """;
 
-            var result = await TestCodeGenerator.GenerateAsync([source],
+            using var result = await TestCodeGenerator.GenerateAsync([source],
                 ct: TestContext.CancellationTokenSource.Token);
 
             // Make sure the generator has emitted a header and source file

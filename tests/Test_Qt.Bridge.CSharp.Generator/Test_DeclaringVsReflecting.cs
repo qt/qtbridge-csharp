@@ -39,7 +39,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task DeclaringVsReflecting()
         {
-            var result = await TestCodeGenerator.GenerateAsync([Source],
+            using var result = await TestCodeGenerator.GenerateAsync([Source],
                 sourceRefs: [typeof(INotifyPropertyChanged).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 
@@ -69,7 +69,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task OverridenProperty_UsesReflectedTypeForNotifiability()
         {
-            var result = await TestCodeGenerator.GenerateAsync([OverrideSources],
+            using var result = await TestCodeGenerator.GenerateAsync([OverrideSources],
                 sourceRefs: [typeof(INotifyPropertyChanged).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 
@@ -104,7 +104,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task MultiLevelOverride_OnlyDerivedWithINotifyIsNotifiable()
         {
-            var result = await TestCodeGenerator.GenerateAsync([TwoLevelOverrideSources],
+            using var result = await TestCodeGenerator.GenerateAsync([TwoLevelOverrideSources],
                 sourceRefs: [typeof(INotifyPropertyChanged).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 
@@ -143,7 +143,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task ShadowedProperty_UsesReflectedTypeForNotifiability()
         {
-            var result = await TestCodeGenerator.GenerateAsync([ShadowSources],
+            using var result = await TestCodeGenerator.GenerateAsync([ShadowSources],
                 sourceRefs: [typeof(INotifyPropertyChanged).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 
@@ -177,7 +177,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task AbstractProperty_Override_IsNotifiableOnDerived()
         {
-            var result = await TestCodeGenerator.GenerateAsync([AbstractOverrideSources],
+            using var result = await TestCodeGenerator.GenerateAsync([AbstractOverrideSources],
                 sourceRefs: [typeof(INotifyPropertyChanged).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 
@@ -206,7 +206,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task ExplicitInterfaceProperty_NoQPropertyGenerated()
         {
-            var result = await TestCodeGenerator.GenerateAsync([ExplicitInterfaceSources],
+            using var result = await TestCodeGenerator.GenerateAsync([ExplicitInterfaceSources],
                 sourceRefs: [typeof(INotifyPropertyChanged).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 
@@ -243,7 +243,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task ExplicitInterface_WithPublicForwarder_IsGeneratedAndNotifiable()
         {
-            var result = await TestCodeGenerator.GenerateAsync([ExplicitWithPublicForwarderSources],
+            using var result = await TestCodeGenerator.GenerateAsync([ExplicitWithPublicForwarderSources],
                 sourceRefs: [typeof(INotifyPropertyChanged).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 
@@ -268,7 +268,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task ImplicitInterface_ImplicitPublicProperty_IsGeneratedAndNotifiable()
         {
-            var result = await TestCodeGenerator.GenerateAsync([ImplicitInterfaceSources],
+            using var result = await TestCodeGenerator.GenerateAsync([ImplicitInterfaceSources],
                 sourceRefs: [typeof(INotifyPropertyChanged).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 

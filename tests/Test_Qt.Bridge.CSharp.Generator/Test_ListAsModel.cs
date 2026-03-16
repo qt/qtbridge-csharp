@@ -32,7 +32,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task ListAsModel()
         {
-            var result = await TestCodeGenerator.GenerateAsync([Source],
+            using var result = await TestCodeGenerator.GenerateAsync([Source],
                 ct: TestContext.CancellationTokenSource.Token);
             Assert.IsTrue(result.Sink.Files.TryGetValue(
                 "source/hpp/system/collections/arraylist.h", out var x) && Regex.IsMatch(x,
@@ -65,7 +65,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task ArrayOfComplexItems_DeclaresItemAndPropertyRoles_AndProvidesDataBranches()
         {
-            var result = await TestCodeGenerator.GenerateAsync([SourceWithArray],
+            using var result = await TestCodeGenerator.GenerateAsync([SourceWithArray],
                 ct: TestContext.CancellationTokenSource.Token);
 
             const string sourceFile = "source/cpp/test/array_personname.cpp";
@@ -117,7 +117,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task ListOfComplexItems_DeclaresItemAndPropertyRoles_AndProvidesDataBranches()
         {
-            var result = await TestCodeGenerator.GenerateAsync([SourceWithList],
+            using var result = await TestCodeGenerator.GenerateAsync([SourceWithList],
                 ct: TestContext.CancellationTokenSource.Token);
 
             Assert.IsTrue(result.Sink.Files.TryGetValue(File, out var cpp),
@@ -151,7 +151,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task ItemRole_ReturnsQObjectPointer_And_PersonName_DeclaresProperties()
         {
-            var result = await TestCodeGenerator.GenerateAsync([SourceWithList],
+            using var result = await TestCodeGenerator.GenerateAsync([SourceWithList],
                 ct: TestContext.CancellationTokenSource.Token);
 
             Assert.IsTrue(result.Sink.Files.TryGetValue(File, out var cpp),

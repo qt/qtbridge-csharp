@@ -55,7 +55,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task ObservableCollections_AreExposedAsQAbstractListModel()
         {
-            var result = await TestCodeGenerator.GenerateAsync([Source],
+            using var result = await TestCodeGenerator.GenerateAsync([Source],
                 sourceRefs: [typeof(ObservableCollection<>).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 
@@ -85,7 +85,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task ObservableCollection_ModelSurface_And_Wrappers_Present()
         {
-            var result = await TestCodeGenerator.GenerateAsync([Source],
+            using var result = await TestCodeGenerator.GenerateAsync([Source],
                 sourceRefs: [typeof(ObservableCollection<>).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 
@@ -114,7 +114,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task Observable_HandleCollectionChanged_Covers_All_Actions_And_Uses_Wrappers()
         {
-            var result = await TestCodeGenerator.GenerateAsync([Source],
+            using var result = await TestCodeGenerator.GenerateAsync([Source],
                 sourceRefs: [typeof(ObservableCollection<>).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 
@@ -201,7 +201,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task ObservableList_IsExposed_As_QAbstractListModel()
         {
-            var result = await TestCodeGenerator.GenerateAsync([ObservableListSource],
+            using var result = await TestCodeGenerator.GenerateAsync([ObservableListSource],
                 sourceRefs: [typeof(ObservableCollection<>).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 

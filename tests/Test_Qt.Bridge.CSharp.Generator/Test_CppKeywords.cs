@@ -31,7 +31,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task CppKeywords()
         {
-            var result = await TestCodeGenerator.GenerateAsync([Source]);
+            using var result = await TestCodeGenerator.GenerateAsync([Source]);
             Assert.Contains(@"
 class template_::noexcept_ :
 ", result.CombinedText);

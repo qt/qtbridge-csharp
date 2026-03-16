@@ -72,7 +72,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task SourceWithMissingProperty_ShouldNotFailCompilation()
         {
-            var result = await TestCodeGenerator.GenerateAsync(
+            using var result = await TestCodeGenerator.GenerateAsync(
                 [MissingSource],
                 sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
@@ -95,7 +95,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task SourceWithValidProperty_ShouldNotFailCompilation()
         {
-            var result = await TestCodeGenerator.GenerateAsync(
+            using var result = await TestCodeGenerator.GenerateAsync(
                 [ValidSource],
                 sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
@@ -144,7 +144,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         public async Task ValidQmlElementName_WithUnderscoresOrNumIsAllowed(string value)
         {
             var source = SetupSource(value);
-            var result = await TestCodeGenerator.GenerateAsync(
+            using var result = await TestCodeGenerator.GenerateAsync(
                 [source],
                 sourceRefs: [typeof(QmlElementAttribute).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
@@ -165,7 +165,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var result = await TestCodeGenerator.GenerateAsync(
+            using var result = await TestCodeGenerator.GenerateAsync(
                 [src], sourceRefs: [typeof(QmlElementAttribute).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 
@@ -186,7 +186,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var result = await TestCodeGenerator.GenerateAsync(
+            using var result = await TestCodeGenerator.GenerateAsync(
                 [src], sourceRefs: [typeof(QmlElementAttribute).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 
@@ -210,7 +210,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var result = await TestCodeGenerator.GenerateAsync(
+            using var result = await TestCodeGenerator.GenerateAsync(
                 [src], sourceRefs: [typeof(QmlElementAttribute).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 

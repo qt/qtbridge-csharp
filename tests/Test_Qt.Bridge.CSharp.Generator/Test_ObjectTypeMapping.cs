@@ -49,7 +49,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
                 """;
 
-            var result = await TestCodeGenerator.GenerateAsync([src], ct: CancellationToken);
+            using var result = await TestCodeGenerator.GenerateAsync([src], ct: CancellationToken);
             Assert.IsTrue(result.Sink.Files.TryGetValue("source/hpp/myapp/usesother.h", out var hpp));
 
             Assert.MatchesRegex(new Regex(
@@ -93,7 +93,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
                 """;
 
-            var result = await TestCodeGenerator.GenerateAsync([src], ct: CancellationToken);
+            using var result = await TestCodeGenerator.GenerateAsync([src], ct: CancellationToken);
             Assert.IsTrue(result.Sink.Files.TryGetValue("source/hpp/myapp/foo.h", out var hpp));
 
             Assert.DoesNotMatchRegex(new Regex(@"void\s+takeValues\s*\([^)]*qint32\s*\*",
@@ -115,7 +115,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
                 """;
 
-            var result = await TestCodeGenerator.GenerateAsync([src], ct: CancellationToken);
+            using var result = await TestCodeGenerator.GenerateAsync([src], ct: CancellationToken);
             Assert.IsTrue(result.Sink.Files.TryGetValue("source/hpp/myapp/bar.h", out var hpp));
 
             Assert.MatchesRegex(new Regex(@"Bar\s*\(\s*qint32\s+n\s*,\s*double\s+x\s*\)\s*;",
@@ -151,7 +151,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
                 """;
 
-            var result = await TestCodeGenerator.GenerateAsync([src], ct: CancellationToken);
+            using var result = await TestCodeGenerator.GenerateAsync([src], ct: CancellationToken);
             Assert.IsTrue(result.Sink.Files.TryGetValue("source/hpp/myapp/foo.h", out var hpp));
 
             Assert.DoesNotMatchRegex(new Regex(@"\*\s*Convert::fromVariant\s*\(",
@@ -177,7 +177,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                }
                """;
 
-            var result = await TestCodeGenerator.GenerateAsync([src], ct: CancellationToken);
+            using var result = await TestCodeGenerator.GenerateAsync([src], ct: CancellationToken);
             Assert.IsTrue(result.Sink.Files.TryGetValue("source/hpp/myapp/foo.h", out var hpp));
 
             Assert.DoesNotContain("qint32 *answer()", hpp);
@@ -201,7 +201,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                }
             """;
 
-            var result = await TestCodeGenerator.GenerateAsync([src], ct: CancellationToken);
+            using var result = await TestCodeGenerator.GenerateAsync([src], ct: CancellationToken);
             Assert.IsTrue(result.Sink.Files.TryGetValue("source/hpp/myapp/foo.h", out var hpp));
 
             Assert.DoesNotContain("qint32 *count()", hpp);

@@ -38,7 +38,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -75,7 +75,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -109,7 +109,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -142,7 +142,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -172,7 +172,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -203,7 +203,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -243,7 +243,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src],
+            using var res = await TestCodeGenerator.GenerateAsync([src],
                 sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
@@ -291,7 +291,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src],
+            using var res = await TestCodeGenerator.GenerateAsync([src],
                 sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
@@ -335,7 +335,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -365,7 +365,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -393,7 +393,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -421,7 +421,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -451,7 +451,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -482,7 +482,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -530,7 +530,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -561,7 +561,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -599,7 +599,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -632,7 +632,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -662,7 +662,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -696,7 +696,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -733,7 +733,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -765,7 +765,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -797,7 +797,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -827,7 +827,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -863,7 +863,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var g = res.Graph;
 
@@ -896,7 +896,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 
@@ -923,7 +923,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
+            using var res = await TestCodeGenerator.GenerateAsync([src], sourceRefs: [AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
             var graph = res.Graph;
 

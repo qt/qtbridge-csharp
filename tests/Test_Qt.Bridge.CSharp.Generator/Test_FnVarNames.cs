@@ -59,10 +59,10 @@ namespace Test_Qt.Bridge.CSharp.Generator
             };
 
             var cancelToken = TestContext.CancellationTokenSource.Token;
-            var r1 = await TestCodeGenerator.GenerateAsync(v1, ct: cancelToken);
+            using var r1 = await TestCodeGenerator.GenerateAsync(v1, ct: cancelToken);
             Assert.IsTrue(r1.Sink.Files.TryGetValue("source/cpp/foo.cpp", out var r1Cpp));
 
-            var r2 = await TestCodeGenerator.GenerateAsync(v2, ct: cancelToken);
+            using var r2 = await TestCodeGenerator.GenerateAsync(v2, ct: cancelToken);
             Assert.IsTrue(r2.Sink.Files.TryGetValue("source/cpp/foo.cpp", out var r2Cpp));
 
             var id1 = ExtractFn(r1Cpp, "Target");
@@ -149,7 +149,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
             """;
 
             try {
-                _ = await TestCodeGenerator.GenerateAsync(
+                using var result = await TestCodeGenerator.GenerateAsync(
                     sources: [source],
                     referencesWithAliases:
                     [

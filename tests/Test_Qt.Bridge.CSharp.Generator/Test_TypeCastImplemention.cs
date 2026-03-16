@@ -31,7 +31,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var result = await TestCodeGenerator.GenerateAsync([source],
+            using var result = await TestCodeGenerator.GenerateAsync([source],
                 ct: TestContext.CancellationTokenSource.Token);
 
             Assert.IsTrue(result.Sink.Files.TryGetValue(TypeCastHeaderPath, out _),
@@ -51,7 +51,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var result = await TestCodeGenerator.GenerateAsync([source],
+            using var result = await TestCodeGenerator.GenerateAsync([source],
                 ct: TestContext.CancellationTokenSource.Token);
 
             Assert.IsTrue(result.Sink.Files.TryGetValue(TypeCastHeaderPath, out var typeCastHeader),
@@ -71,7 +71,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var result = await TestCodeGenerator.GenerateAsync([source],
+            using var result = await TestCodeGenerator.GenerateAsync([source],
                 ct: TestContext.CancellationTokenSource.Token);
 
             Assert.IsTrue(result.Sink.Files.TryGetValue(TypeCastHeaderPath, out var typeCastHeader),
@@ -85,7 +85,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task TypeCast_Has_Qml_Singleton_Macros()
         {
-            var result = await TestCodeGenerator.GenerateAsync(["namespace T { public class X {} }"],
+            using var result = await TestCodeGenerator.GenerateAsync(["namespace T { public class X {} }"],
                 ct: TestContext.CancellationTokenSource.Token);
 
             Assert.IsTrue(result.Sink.Files.TryGetValue(TypeCastHeaderPath, out var typeCastHeader),
@@ -109,7 +109,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 }
             """;
 
-            var result = await TestCodeGenerator.GenerateAsync([source],
+            using var result = await TestCodeGenerator.GenerateAsync([source],
                 ct: TestContext.CancellationTokenSource.Token);
 
             Assert.IsTrue(result.Sink.Files.TryGetValue(TypeCastHeaderPath, out var typeCastHeader),

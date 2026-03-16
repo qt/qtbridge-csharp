@@ -109,7 +109,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task Types()
         {
-            _ = await TestCodeGenerator.GenerateAsync([Source],
+            using var result = await TestCodeGenerator.GenerateAsync([Source],
                 sourceRefs: [
                     typeof(ModelIndex).Assembly,
                     typeof(Uri).Assembly,

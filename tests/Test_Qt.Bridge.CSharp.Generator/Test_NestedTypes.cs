@@ -50,7 +50,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         [TestMethod]
         public async Task NestedTypes()
         {
-            var result = await TestCodeGenerator.GenerateAsync([Source]);
+            using var result = await TestCodeGenerator.GenerateAsync([Source]);
 
             Assert.IsTrue(result.Sink.Files.TryGetValue(
                 "source/hpp/myapp/outer_changedeventargs.h", out var hpp));

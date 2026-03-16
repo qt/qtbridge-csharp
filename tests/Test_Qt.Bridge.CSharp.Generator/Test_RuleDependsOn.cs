@@ -122,7 +122,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         public async Task DependsOn_B_Runs_After_A()
         {
             ResetTestState();
-            await TestCodeGenerator.GenerateAsync([Source],
+            using var result = await TestCodeGenerator.GenerateAsync([Source],
                 extraRules: [typeof(RuleA_Succeeds), typeof(RuleB_DependsOnA)],
                 ct: TestContext.CancellationTokenSource.Token);
 
@@ -141,7 +141,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         {
             ResetTestState();
             try {
-                _ = await TestCodeGenerator.GenerateAsync(
+                using var result = await TestCodeGenerator.GenerateAsync(
                     [Source],
                     extraRules: [typeof(RuleA_Fails), typeof(RuleB_DependsOnA)],
                     ct: TestContext.CancellationTokenSource.Token);
@@ -163,7 +163,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
 
             ResetTestState();
             try {
-                _ = await TestCodeGenerator.GenerateAsync([onlyB],
+                using var result = await TestCodeGenerator.GenerateAsync([onlyB],
                     extraRules: [typeof(RuleB_DependsOnA)],
                     ct: TestContext.CancellationTokenSource.Token);
                 Assert.Fail("Generator should have failed (missing dependency A).");
@@ -189,7 +189,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 "Cycle NOT detected: Generation did not complete fast (it is hanging).");
 
             try {
-                await generatorTaskObject;
+                using var result = await generatorTaskObject;
                 Assert.Fail("Generation completed without error despite a dependency cycle.");
             } catch (InvalidOperationException ex) {
                 Assert.Contains("fail", ex.Message, StringComparison.OrdinalIgnoreCase);
