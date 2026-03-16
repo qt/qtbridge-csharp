@@ -23,8 +23,7 @@ namespace Qt.Bridge.CodeGeneration.Rules.Class
             if (src is not Type type)
                 return Error();
 
-            var sourceFilesPlaceholder = Root.Assembly.QmlFiles().Any() && type.IsQmlElement()
-                ? QmlElementSourceFiles : SourceFiles;
+            var sourceFilesPlaceholder = type.IsQmlElement() ? QmlElementSourceFiles : SourceFiles;
             if (Root.GetPlaceholder(sourceFilesPlaceholder) is not { } sourceFiles)
                 return Error();
 
