@@ -17,6 +17,7 @@
   <ItemGroup>
     <Compile Remove="AdapterInit\Program.cs" />
     <Compile Remove="CustomMarshaling\Program.cs" />
+    <Compile Remove="DelegatesAndEvents\Program.cs" />
     <Compile Remove="FunctionCalls\Program.cs" />
     <Compile Remove="ObjectInterop\Program.cs" />
     <Compile Remove="QtQuickTest\Program.cs" />
@@ -25,6 +26,7 @@
     <Compile Remove="WrapperTypes\Program.cs" />
     <None Remove="AdapterInit\main.cpp" />
     <None Remove="CustomMarshaling\main.cpp" />
+    <None Remove="DelegatesAndEvents\main.cpp" />
     <None Remove="FunctionCalls\main.cpp" />
     <None Remove="ObjectInterop\main.cpp" />
     <None Remove="QtQuickTest\main.cpp" />
@@ -48,6 +50,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="CustomMarshaling\Program.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DelegatesAndEvents\main.cpp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DelegatesAndEvents\Program.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="FunctionCalls\main.cpp">

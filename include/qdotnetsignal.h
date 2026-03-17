@@ -19,7 +19,7 @@
 class QDotNetSignal : public QDotNetObject
 {
 public:
-    Q_DOTNET_OBJECT_INLINE(QDotNetSignal, "Qt.MetaObject.Signal, Qt.DotNet.Adapter");
+    Q_DOTNET_OBJECT_INLINE(QDotNetSignal, "Qt.MetaObject.Signal, Qt.Bridge.CSharp.Api");
 
     static QList<QDotNetSignal> fromEvent(const QString& name, QDotNetRef sender)
     {
