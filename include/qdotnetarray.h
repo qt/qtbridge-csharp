@@ -92,19 +92,30 @@ private:
         friend class QDotNetArray;
 
     public:
-        operator T()
+        operator T() const
         {
-            return value = a->get(idx);
+            cachedValue = a->get(idx);
+            return cachedValue;
         }
         T *operator->()
         {
-            value = a->get(idx);
-            return &value;
+            cachedValue = a->get(idx);
+            return &cachedValue;
+        }
+        const T *operator->() const
+        {
+            cachedValue = a->get(idx);
+            return &cachedValue;
         }
         T &operator*()
         {
-            value = a->get(idx);
-            return value;
+            cachedValue = a->get(idx);
+            return cachedValue;
+        }
+        const T &operator*() const
+        {
+            cachedValue = a->get(idx);
+            return cachedValue;
         }
         Element &operator=(const T &value)
         {
@@ -134,7 +145,7 @@ private:
         {}
         QDotNetArray* a = nullptr;
         qint32 idx;
-        T value;
+        mutable T cachedValue;
     };
 
     mutable QDotNetSafeMethod<qint32> fnLength;
