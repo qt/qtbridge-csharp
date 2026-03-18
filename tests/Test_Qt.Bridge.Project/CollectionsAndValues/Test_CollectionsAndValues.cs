@@ -4,13 +4,13 @@
 using System.IO;
 using Test_Qt.Bridge.Project.Shared;
 
-namespace Test_Qt.Bridge.Project.WrapperTypes
+namespace Test_Qt.Bridge.Project.CollectionsAndValues
 {
     [TestClass]
-    public class Test_WrapperTypes : ManagedTestBase
+    public class Test_CollectionsAndValues : ManagedTestBase
     {
         [TestMethod]
-        public async Task WrapperClasses_For_StringBuilder_And_Uri()
+        public async Task Collections_Fields_And_Value_Marshaling()
         {
             using var temp = new TempProject();
 
@@ -19,24 +19,20 @@ namespace Test_Qt.Bridge.Project.WrapperTypes
                 PackageReferences = [Packages.QtBridge],
                 ReplaceGeneratedFiles =
                 [
-                    (@"source\cpp\main.cpp", @"WrapperTypes\main.cpp"),
+                    (@"source\cpp\main.cpp", @"CollectionsAndValues\main.cpp"),
                     (@"source\hpp\QtTestSetupBase.h", @"Shared\QtTestSetupBase.h"),
                     (@"source\hpp\StringBuilder.h", @"Shared\StringBuilder.h"),
                     (@"source\cpp\StringBuilder.cpp", @"Shared\StringBuilder.cpp"),
-                    (@"source\hpp\uri.h", @"WrapperTypes\uri.h"),
-                    (@"source\cpp\uri.cpp", @"WrapperTypes\uri.cpp"),
                 ],
                 AfterSdkTargets = CMake.InjectQtSourcesTargets(
                     "hpp/QtTestSetupBase.h",
                     "hpp/StringBuilder.h",
-                    "cpp/StringBuilder.cpp",
-                    "hpp/uri.h",
-                    "cpp/uri.cpp")
+                    "cpp/StringBuilder.cpp")
             };
 
             await InitializeAndBuildAsync(temp, options, project =>
             {
-                project.CopyFile("Program.cs", Path.Combine("WrapperTypes", "Program.cs"));
+                project.CopyFile("Program.cs", Path.Combine("CollectionsAndValues", "Program.cs"));
             });
 
             var run = await temp.RunAsync(new() {
@@ -47,12 +43,15 @@ namespace Test_Qt.Bridge.Project.WrapperTypes
             Assert.IsLessThanOrEqualTo((int)ExitCode.QTestFailure, run.ExitCode,
                 ExitCodeHelper.ToString(run.ExitCode));
 
-            Assert.Contains("PASS   : Test_WrapperTypes::initTestCase()", run.StdOut);
-            Assert.Contains("PASS   : Test_WrapperTypes::useWrapperClassForStringBuilder()",
-                run.StdOut);
-            Assert.Contains("PASS   : Test_WrapperTypes::useWrapperClassForUri()", run.StdOut);
-            Assert.Contains("PASS   : Test_WrapperTypes::handleException()", run.StdOut);
-            Assert.Contains("PASS   : Test_WrapperTypes::cleanupTestCase()", run.StdOut);
+            Assert.Contains("PASS   : Test_CollectionsAndValues::initTestCase()", run.StdOut);
+            Assert.Contains("PASS   : Test_CollectionsAndValues::arrayOfInts()", run.StdOut);
+            Assert.Contains("PASS   : Test_CollectionsAndValues::arrayOfStrings()", run.StdOut);
+            Assert.Contains("PASS   : Test_CollectionsAndValues::arrayOfObjects()", run.StdOut);
+            Assert.Contains("PASS   : Test_CollectionsAndValues::fieldAccess()", run.StdOut);
+            Assert.Contains("PASS   : Test_CollectionsAndValues::modelIndexMarshal()", run.StdOut);
+            Assert.Contains("PASS   : Test_CollectionsAndValues::dateTimeMarshal()", run.StdOut);
+            Assert.Contains("PASS   : Test_CollectionsAndValues::uriMarshal()", run.StdOut);
+            Assert.Contains("PASS   : Test_CollectionsAndValues::cleanupTestCase()", run.StdOut);
         }
     }
 }

@@ -4,7 +4,7 @@
 #include <QTest>
 
 #include "QtTestSetupBase.h"
-#include "stringbuilder.h"
+#include "StringBuilder.h"
 #include "uri.h"
 
 class Test_WrapperTypes : public QObject, protected QtTestSetupBase

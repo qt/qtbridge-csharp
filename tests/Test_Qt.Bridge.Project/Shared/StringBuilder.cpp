@@ -3,7 +3,7 @@
 
 #include <qdotnetsafemethod.h>
 
-#include "stringbuilder.h"
+#include "StringBuilder.h"
 
 struct StringBuilderPrivate final
 {

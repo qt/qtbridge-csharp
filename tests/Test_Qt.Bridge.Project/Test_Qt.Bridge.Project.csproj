@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <Compile Remove="AdapterInit\Program.cs" />
+    <Compile Remove="CollectionsAndValues\Program.cs" />
     <Compile Remove="CustomMarshaling\Program.cs" />
     <Compile Remove="DelegatesAndEvents\Program.cs" />
     <Compile Remove="FunctionCalls\Program.cs" />
@@ -25,6 +26,7 @@
     <Compile Remove="StructuredData\Program.cs" />
     <Compile Remove="WrapperTypes\Program.cs" />
     <None Remove="AdapterInit\main.cpp" />
+    <None Remove="CollectionsAndValues\main.cpp" />
     <None Remove="CustomMarshaling\main.cpp" />
     <None Remove="DelegatesAndEvents\main.cpp" />
     <None Remove="FunctionCalls\main.cpp" />
@@ -33,8 +35,6 @@
     <None Remove="QtTest\main.cpp" />
     <None Remove="StructuredData\main.cpp" />
     <None Remove="WrapperTypes\main.cpp" />
-    <None Remove="WrapperTypes\stringbuilder.h" />
-    <None Remove="WrapperTypes\stringbuilder.cpp" />
     <None Remove="WrapperTypes\uri.h" />
     <None Remove="WrapperTypes\uri.cpp" />
   </ItemGroup>
@@ -44,6 +44,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="AdapterInit\Program.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="CollectionsAndValues\main.cpp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="CollectionsAndValues\Program.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="CustomMarshaling\main.cpp">
@@ -94,6 +100,12 @@
     <Content Include="Shared\QtQuickTestSetup.cpp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Shared\StringBuilder.h">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Shared\StringBuilder.cpp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
 
     <Content Include="StructuredData\main.cpp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -108,12 +120,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="WrapperTypes\Program.cs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="WrapperTypes\stringbuilder.h">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="WrapperTypes\stringbuilder.cpp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="WrapperTypes\uri.h">
