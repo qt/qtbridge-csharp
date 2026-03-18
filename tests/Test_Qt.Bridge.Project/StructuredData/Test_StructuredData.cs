@@ -22,8 +22,11 @@ namespace Test_Qt.Bridge.Project.StructuredData
                 });
 
             var run = await temp.RunAsync(new() {
-                Args    = ["-input", Path.Combine(temp.ExeDir, "Application", "tst_structureddata.qml")],
-                EnvVars = [("QT_FORCE_STDERR_LOGGING", "1")],
+                Args = ["-input", Path.Combine(temp.ExeDir, "Application", "tst_structureddata.qml")],
+                EnvVars = [
+                    ("QT_FORCE_STDERR_LOGGING", "1"),
+                    ("QML_DISABLE_DISK_CACHE", "1")
+                ],
                 StdErr  = Redirect.StdOut
             });
 

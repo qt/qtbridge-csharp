@@ -3,10 +3,22 @@
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <QStandardPaths>
 #include <QQmlEngine>
 #include <QtQuickTest>
 
 #include "QtQuickTestSetup.h"
+
+namespace
+{
+    // Enable Qt test-mode paths before Qt's
+    // generated main() creates the app object.
+    const bool testPathsEnabled = []()
+    {
+        QStandardPaths::setTestModeEnabled(true);
+        return true;
+    }();
+}
 
 class Setup_QtQuickTest : public QtQuickTestSetup
 {

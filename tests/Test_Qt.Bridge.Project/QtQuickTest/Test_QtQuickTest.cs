@@ -23,7 +23,10 @@ namespace Test_Qt.Bridge.Project.QtQuickTest
 
             var run = await temp.RunAsync(new() {
                 Args = ["-input", Path.Combine(temp.ExeDir, "Application", "tst_qtquicktest.qml")],
-                EnvVars = [("QT_FORCE_STDERR_LOGGING", "1")],
+                EnvVars = [
+                    ("QT_FORCE_STDERR_LOGGING", "1"),
+                    ("QML_DISABLE_DISK_CACHE", "1")
+                ],
                 StdErr = Redirect.StdOut
             });
 
