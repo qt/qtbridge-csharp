@@ -57,10 +57,10 @@ private slots:
         a[1] = 1;
         for (int i = 2; i < a.length(); ++i)
             a[i] = a[i - 1] + a[i - 2];
+        QCOMPARE(a[10].value(), 55);
 
-        const qint32 value = a[10];
-        QCOMPARE(value, 55);
         QVERIFY(a[10] == 55);
+        QVERIFY(a[10].value() == 55);
     }
 
     void arrayOfStrings()

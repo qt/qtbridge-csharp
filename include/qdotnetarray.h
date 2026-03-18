@@ -94,6 +94,10 @@ private:
     public:
         operator T() const
         {
+            return value();
+        }
+        T value() const
+        {
             cachedValue = a->get(idx);
             return cachedValue;
         }
