@@ -3,8 +3,8 @@
 
 using System;
 using System.Diagnostics;
-using System.Linq;
 using System.IO;
+using System.Linq;
 
 namespace Test_Qt.Bridge.Project
 {
@@ -23,7 +23,10 @@ namespace Test_Qt.Bridge.Project
         {
             if (exePath == null)
                 throw new ArgumentNullException(nameof(exePath));
-            if (!File.Exists(exePath))
+            var isPathLike = Path.IsPathRooted(exePath)
+                || exePath.Contains(Path.DirectorySeparatorChar)
+                || exePath.Contains(Path.AltDirectorySeparatorChar);
+            if (isPathLike && !File.Exists(exePath))
                 throw new InvalidOperationException($"File not found: '{exePath}'");
 
             if (workDir == null)

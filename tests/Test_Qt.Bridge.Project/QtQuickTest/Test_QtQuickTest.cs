@@ -1,6 +1,7 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
+using System;
 using System.IO;
 using Test_Qt.Bridge.Project.Shared;
 
@@ -14,11 +15,12 @@ namespace Test_Qt.Bridge.Project.QtQuickTest
         {
             using var temp = new TempProject();
 
-            var options = CreateQtQuickTestOptions(@"QtQuickTest\main.cpp");
+            var options = CreateQtQuickTestOptions(Path.Combine("QtQuickTest", "main.cpp"));
             await InitializeAndBuildAsync(temp, options,
                 project => {
-                    project.CopyFile("Program.cs", @"QtQuickTest\Program.cs");
-                    project.CopyFile("tst_qtquicktest.qml", @"QtQuickTest\tst_qtquicktest.qml");
+                    project.CopyFile("Program.cs", Path.Combine("QtQuickTest", "Program.cs"));
+                    project.CopyFile("tst_qtquicktest.qml", Path
+                        .Combine("QtQuickTest", "tst_qtquicktest.qml"));
                 });
 
             var run = await temp.RunAsync(new() {

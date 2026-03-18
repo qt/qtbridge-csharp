@@ -1,9 +1,9 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
+using System;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace Test_Qt.Bridge.Project
@@ -46,6 +46,9 @@ namespace HelloWorld
         ]
         public async Task HelloWorld_NullCodeGen(string buildSystem)
         {
+            if (!OperatingSystem.IsWindows() && buildSystem == "msbuild")
+                Assert.Inconclusive("'msbuild' generator validation is Windows-specific.");
+
             using var temp = new TempProject();
             temp.Create(new()
             {

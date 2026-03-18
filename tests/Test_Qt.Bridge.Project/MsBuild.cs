@@ -31,6 +31,10 @@ namespace Test_Qt.Bridge.Project
             lock (criticalSection) {
                 if (File.Exists(MsBuildPath))
                     return;
+                if (!OperatingSystem.IsWindows()) {
+                    MsBuildPath = "dotnet";
+                    return;
+                }
                 if (initError != null)
                     throw initError;
                 var vswherePath = Path.Combine(
@@ -52,7 +56,9 @@ namespace Test_Qt.Bridge.Project
             string workDir, (string Name, string Value)[] envVars = null, params string[] args)
         {
             Init();
-            return CmdProc.Start(MsBuildPath, workDir, args, envVars);
+            return CmdProc.Start(MsBuildPath, workDir,
+                MsBuildPath == "dotnet" ? ["msbuild", .. args] : args,
+                envVars);
         }
 
         public static Process Start(
@@ -60,7 +66,9 @@ namespace Test_Qt.Bridge.Project
             (string Name, string Value)[] envVars = null, params string[] args)
         {
             Init();
-            return CmdProc.Start(MsBuildPath, workDir, args, envVars, stdOut, stdErr);
+            return CmdProc.Start(MsBuildPath, workDir,
+                MsBuildPath == "dotnet" ? ["msbuild", .. args] : args,
+                envVars, stdOut, stdErr);
         }
     }
 }

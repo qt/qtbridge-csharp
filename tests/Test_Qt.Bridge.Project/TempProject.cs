@@ -8,12 +8,12 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using System.Text;
+using System.Threading;
 
-using static System.IO.Path;
-using static System.IO.File;
 using static System.IO.Directory;
+using static System.IO.File;
+using static System.IO.Path;
 
 namespace Test_Qt.Bridge.Project
 {
@@ -217,6 +217,8 @@ namespace Test_Qt.Bridge.Project
         {
             if (IsPathRooted(destinationPath) || IsPathRooted(sourcePath))
                 throw new InvalidOperationException("Path must be relative.");
+            destinationPath = NormalizeSeparators(destinationPath);
+            sourcePath = NormalizeSeparators(sourcePath);
             Copy(
                 Combine(GetDirectoryName(Assembly.GetExecutingAssembly().Location), sourcePath),
                 Combine(ProjectDir, destinationPath));
@@ -226,6 +228,7 @@ namespace Test_Qt.Bridge.Project
         {
             if (IsPathRooted(path))
                 throw new InvalidOperationException("Path must be relative.");
+            path = NormalizeSeparators(path);
             string fullPath = Combine(ProjectDir, path);
             CreateDirectory(GetDirectoryName(fullPath));
             WriteAllText(fullPath, contents);

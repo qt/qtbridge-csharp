@@ -1,6 +1,7 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
+using System;
 using System.IO;
 using Test_Qt.Bridge.Project.Shared;
 
@@ -14,11 +15,12 @@ namespace Test_Qt.Bridge.Project.StructuredData
         {
             using var temp = new TempProject();
 
-            var options = CreateQtQuickTestOptions(@"StructuredData\main.cpp");
+            var options = CreateQtQuickTestOptions(Path.Combine("StructuredData", "main.cpp"));
             await InitializeAndBuildAsync(temp, options,
                 project => {
-                    project.CopyFile("Program.cs", @"StructuredData\Program.cs");
-                    project.CopyFile("tst_structureddata.qml", @"StructuredData\tst_structureddata.qml");
+                    project.CopyFile("Program.cs", Path.Combine("StructuredData", "Program.cs"));
+                    project.CopyFile("tst_structureddata.qml",
+                        Path.Combine("StructuredData", "tst_structureddata.qml"));
                 });
 
             var run = await temp.RunAsync(new() {
@@ -33,7 +35,7 @@ namespace Test_Qt.Bridge.Project.StructuredData
             Assert.IsLessThanOrEqualTo((int)ExitCode.QTestFailure, run.ExitCode,
                 ExitCodeHelper.ToString(run.ExitCode));
 
-            var passPrefix = "PASS   : Test_StructuredData::tst_structureddata::";
+            const string passPrefix = "PASS   : Test_StructuredData::tst_structureddata::";
             Assert.Contains(passPrefix + "test_person_roundtrip()", run.StdOut);
             Assert.Contains(passPrefix + "test_team_roundtrip()", run.StdOut);
         }
