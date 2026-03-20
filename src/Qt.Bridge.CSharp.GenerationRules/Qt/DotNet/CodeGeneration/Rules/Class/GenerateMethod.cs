@@ -14,7 +14,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.Class
     public class GenerateMethod : GenerateClass
     {
         public override int Priority => base.Priority + 1;
-        public override bool Matches(MemberInfo src) => src is MethodInfo { IsStatic: false };
+        public override bool Matches(MemberInfo src) => src is MethodInfo { IsStatic: false }
+            && !src.ReflectedType.IsStaticClass();
         public override Result Execute(MemberInfo src)
         {
             if (src is not MethodInfo func)

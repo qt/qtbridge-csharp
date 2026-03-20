@@ -4,6 +4,7 @@
 using System.Collections;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Reflection;
 using Qt.DotNet;
 using Qt.Quick;
 
@@ -14,6 +15,12 @@ namespace Qt.Bridge.Extensions
 
     public static class TypeExtensionsForGenerationRules
     {
+        public static bool IsStaticClass(this Type type)
+        {
+            return type.IsClass && !type.IsRootNode()
+                && type.Attributes.HasFlag(TypeAttributes.Abstract | TypeAttributes.Sealed);
+        }
+
         public static bool IsBuiltIn(this Type type)
         {
             if (type == null)

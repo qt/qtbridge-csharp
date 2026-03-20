@@ -14,7 +14,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.Class
     public class GenerateEvent : GenerateClass
     {
         public override int Priority => base.Priority + 1;
-        public override bool Matches(MemberInfo src) => src is EventInfo ev;
+        public override bool Matches(MemberInfo src) => src is EventInfo ev
+            && ev.AddMethod?.IsStatic == false;
         public override Result Execute(MemberInfo src)
         {
             if (src is not EventInfo ev)
