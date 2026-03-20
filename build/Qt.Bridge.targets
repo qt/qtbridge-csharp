@@ -267,6 +267,7 @@ namespace Qt.Qml
     </PropertyGroup>
     <Error Condition="'$(QtNativeHostPath)' == ''" Text="Error locating native host binary in $(QtNativeBinDir)." />
 
+    <Touch Condition="'$(QtNativeHostPath)' != ''" Files="$(QtNativeHostPath)" />
     <PropertyGroup Condition="'$(QtNativeHostPath)' != ''">
       <AppHostSourcePath>$(QtNativeHostPath)</AppHostSourcePath>
     </PropertyGroup>
