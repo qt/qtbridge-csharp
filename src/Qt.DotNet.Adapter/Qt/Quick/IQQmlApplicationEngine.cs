@@ -29,12 +29,13 @@ namespace Qt
             void LoadFromModule(string uri, string typeName);
             bool WaitForExit(int timeout = -1);
             void ProcessEvents();
+            string Version();
         }
 
         public static class Qml
         {
             private static IQQmlEngine _Instance;
-            private static IQQmlEngine Instance
+            internal static IQQmlEngine Instance
             {
                 get
                 {
@@ -76,5 +77,10 @@ namespace Qt
                     Instance.ProcessEvents();
             }
         }
+    }
+
+    public static class Globals
+    {
+        public static Version Version => new(Qt.Quick.Qml.Instance.Version());
     }
 }

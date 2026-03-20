@@ -17,6 +17,7 @@ struct IQQmlEngine {};
 #include <QElapsedTimer>
 #include <QQmlEngine>
 #include <QThread>
+#include <QtVersion>
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop
 #endif
@@ -77,6 +78,10 @@ struct IQQmlEngine : public QDotNetNativeInterface<QQmlEngine>
         setCallback<void>("ProcessEvents", [this](void *data)
             {
                 QCoreApplication::processEvents();
+            });
+        setCallback<QString>("Version", [this](void *data)
+            {
+                return qVersion();
             });
     }
 
