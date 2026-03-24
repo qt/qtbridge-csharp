@@ -1,4 +1,4 @@
-// Copyright (C) 2025 The Qt Company Ltd.
+// Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using System.Reflection;
@@ -12,7 +12,12 @@ namespace Qt.Bridge.CodeGeneration.Rules.TypeCasting
     public class GenerateTypeCast : Class.GenerateClass
     {
         public override bool Matches(MemberInfo src)
-            => base.Matches(src) && src != TypeOf<TypeCast>();
+            => src is Type type
+                && base.Matches(src)
+                && src != TypeOf<TypeCast>()
+                && !type.IsValueType
+                && !type.IsInterface
+                && !type.IsAbstract;
         public override IEnumerable<MemberInfo> DependsOn => [TypeOf<TypeCast>()];
         public override Result Execute(MemberInfo src)
         {

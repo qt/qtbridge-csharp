@@ -57,7 +57,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
             Assert.IsTrue(result.Sink.Files.TryGetValue(TypeCastHeaderPath, out var typeCastHeader),
                 "typecast.h missing.");
 
-            Assert.MatchesRegex(new Regex(@"Q_INVOKABLE\s+[A-Za-z0-9_:]+\s*\*\s*as[A-Za-z0-9_]"
+            Assert.DoesNotMatchRegex(new Regex(@"Q_INVOKABLE\s+[A-Za-z0-9_:]+\s*\*\s*as[A-Za-z0-9_]"
                     + @"+\s*\(\s*QObject\s*\*\s*obj\s*\)\s*;", RegexOptions.Multiline),
                 typeCastHeader, "No as* invokable expected for value/enum/interface/abstract types.");
         }
