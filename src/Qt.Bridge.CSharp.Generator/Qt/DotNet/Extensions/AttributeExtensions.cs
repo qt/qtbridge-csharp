@@ -72,6 +72,17 @@ namespace Qt.Bridge.Extensions
             return argValue;
         }
 
+        public static T Property<T>(this CustomAttributeData self, string name, T defaultValue)
+        {
+            var namedArguments = self?.NamedArguments ?? new List<CustomAttributeNamedArgument>();
+            if (!self.HasProperty(name))
+                return defaultValue;
+            var arg = namedArguments.FirstOrDefault(arg => arg.MemberName == name).TypedValue;
+            if (arg.ArgumentType != TypeOf<T>() || arg.Value is not T argValue)
+                return default;
+            return argValue;
+        }
+
         public static bool TryProperty<T>(this CustomAttributeData self, string name, out T value)
         {
             value = default;

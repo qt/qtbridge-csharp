@@ -18,7 +18,7 @@ namespace Qt.Bridge.Extensions
                 {
                     Uri = x.Property<string>(nameof(QmlFileAttribute.Uri)),
                     TypeName = x.Property<string>(nameof(QmlFileAttribute.TypeName)),
-                    IsRoot = x.Property<bool>(nameof(QmlFileAttribute.IsRoot)),
+                    IsRoot = x.Property<bool>(nameof(QmlFileAttribute.IsRoot), true),
                     Path = x.Property<string>(nameof(QmlFileAttribute.Path))
                 });
         }
