@@ -338,8 +338,8 @@
     </ReadLinesFromFile>
     <Delete Files="@(QtDeploy->'$(TargetDir)%(Identity)')" />
     <Delete Files="$(TargetDir)qtdeploy.txt" />
-    <RemoveDir Condition="$([System.String]::Copy('%(QtDeploy.Identity)').Contains('\') OR
-                        $([System.String]::Copy('%(QtDeploy.Identity)').Contains('/')))"
+    <RemoveDir Condition="$([System.String]::Copy('%(QtDeploy.Identity)').Contains('\')) OR
+                        $([System.String]::Copy('%(QtDeploy.Identity)').Contains('/'))"
        Directories="$(TargetDir)$([System.IO.Path]::GetDirectoryName(%(QtDeploy.Identity)).Replace('\', '/').Split('/')[0])" />
   </Target>
   <!-- END QtBridgeClean-->
