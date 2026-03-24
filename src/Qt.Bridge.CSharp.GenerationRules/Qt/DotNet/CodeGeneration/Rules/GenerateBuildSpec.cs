@@ -1,6 +1,7 @@
 // Copyright (C) 2025 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
+using System.Diagnostics;
 using System.Reflection;
 
 namespace Qt.Bridge.CodeGeneration.Rules
@@ -20,12 +21,7 @@ namespace Qt.Bridge.CodeGeneration.Rules
         public override bool Matches(MemberInfo src) => src.IsRootNode();
         public override Result Execute(MemberInfo _)
         {
-            var rootModuleUri = Root.Assembly.QmlFiles()
-                .Where(x => x.IsRoot)
-                .Select(x => x.Uri)
-                .FirstOrDefault();
-            var hasQmlFiles = !string.IsNullOrEmpty(rootModuleUri);
-
+            Placeholder sourceFiles = null, qmlElementSourceFiles = null;
             var cmake = new FilePlaceholder(
                 BuildSpecFile, Root, $@"{Root.MFn(Dir)}/CMakeLists.txt");
             cmake += $@"
@@ -54,15 +50,15 @@ find_package(Qt6 6.6 REQUIRED COMPONENTS
 qt_standard_project_setup(REQUIRES 6.6)
 
 qt_add_executable({Root.MFn(Target)}
-    {cmake[new(SourceFiles)]}
+    {cmake[sourceFiles = new(SourceFiles)]}
 )
 
-{(!hasQmlFiles ? Wrap : $@"{Wrap}
+{(Root.Assembly.QmlRootModule() is not { Length: > 0 } rootModule ? "" : $@"{Wrap}
 qt_add_qml_module({Root.MFn(Target)}
-    URI {rootModuleUri}
+    URI {rootModule}
     VERSION {Root.MFn(Version)}
     SOURCES
-        {cmake[new(QmlElementSourceFiles)]}
+        {cmake[qmlElementSourceFiles = new(QmlElementSourceFiles)]}
 )")}
 
 target_link_libraries({Root.MFn(Target)} PRIVATE
@@ -113,6 +109,9 @@ file(GENERATE OUTPUT ALL_BUILD.vcxproj.user
     TARGET {Root.MFn(Target)}
 )";
 #endif
+            Debug.Assert(sourceFiles != null);
+            if (qmlElementSourceFiles == null)
+                sourceFiles.CreateAlias(Root, QmlElementSourceFiles);
             return Ok;
         }
     }

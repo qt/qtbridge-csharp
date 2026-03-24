@@ -9,6 +9,12 @@
     Condition="'$(QtDotNetPropsImported)' != 'true'"
     Project="$(MSBuildThisFileDirectory)Qt.Bridge.props"/>
 
+  <PropertyGroup>
+    <QtQmlRootModule Condition="'$(QtQmlRootModule)' == ''">Application</QtQmlRootModule>
+    <QtQmlRootModuleName>$([System.Text.RegularExpressions.Regex]::Replace(
+      '$(QtQmlRootModule)', '[^\w]', '_'))</QtQmlRootModuleName>
+  </PropertyGroup>
+
   <!--
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // QtBridgeSetupQml
@@ -21,7 +27,7 @@
         <IsRoot Condition="'%(RelativeDir)' != ''">false</IsRoot>
       </Qml>
       <Qml>
-        <SourceDir Condition="%(IsRoot)">Application\</SourceDir>
+        <SourceDir Condition="%(IsRoot)">$(QtQmlRootModuleName)\</SourceDir>
         <SourceDir Condition="!%(IsRoot)">%(RelativeDir)</SourceDir>
       </Qml>
       <Qml>
@@ -29,9 +35,13 @@
                 .Replace('\','/').Replace('/','.').Trim('.'))</Uri>
         <TypeName>%(FileName)</TypeName>
       </Qml>
-      <QmlModule Include="%(Qml.Uri)">
-        <IsRoot>%(Qml.IsRoot)</IsRoot>
-        <SourceDir>%(Qml.SourceDir)</SourceDir>
+    </ItemGroup>
+    <ItemGroup>
+      <QmlModule Include="@(Qml->Metadata('Uri')->Distinct())" KeepMetadata="IsRoot;SourceDir" />
+      <QmlModule Remove="$(QtQmlRootModuleName)" />
+      <QmlModule Include="$(QtQmlRootModuleName)">
+        <IsRoot>true</IsRoot>
+        <SourceDir>$(QtQmlRootModuleName)\</SourceDir>
       </QmlModule>
     </ItemGroup>
   </Target>
@@ -46,16 +56,27 @@
     <Copy Condition="'@(Qml)' != ''"
       SourceFiles="$(ProjectDir)%(RelativeDir)%(Filename)%(Extension)"
       DestinationFolder="$(IntermediateOutputPath)$(QtQmlSourceDir)%(SourceDir)" />
-    <MakeDir Condition="'@(Qml)' != ''"
+    <MakeDir Condition="'@(Qml)' != '' OR '@(QmlModule)' != ''"
       Directories="$(IntermediateOutputPath)qt\csharp" />
     <!-- Add C# source with paths of QML files; this will be an input for code generation -->
-    <WriteLinesToFile Condition="'@(Qml)' != ''" Overwrite="true" WriteOnlyWhenDifferent="false"
-      File="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlFilesCs)"
-      Lines="@(Qml->'[assembly: Qt.Quick.QmlFile(
+    <WriteLinesToFile Condition="'@(Qml)' != '' OR '@(QmlModule)' != ''" Overwrite="true"
+      WriteOnlyWhenDifferent="false" File="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlFilesCs)"
+      Lines="
+@(QmlModule->'[assembly: Qt.Quick.QmlModule(
+    Uri = &quot;%(Identity)&quot;, IsRoot = %(IsRoot), Path = @&quot;%(SourceDir)&quot;)]');
+@(Qml->'[assembly: Qt.Quick.QmlFile(
     Uri = &quot;%(Uri)&quot;, TypeName = &quot;%(TypeName)&quot;, IsRoot = %(IsRoot),
-    Path = @&quot;%(SourceDir)%(Filename)%(Extension)&quot;)]')" />
+    Path = @&quot;%(SourceDir)%(Filename)%(Extension)&quot;)]');
+namespace Qt.Qml
+{
+    public static class Modules
+    {
+        public const string Root = &quot;$(QtQmlRootModuleName)&quot;%3B
+    }
+}
+" />
     <ItemGroup>
-      <Compile Condition="'@(Qml)' != ''"
+      <Compile Condition="'@(Qml)' != '' OR '@(QmlModule)' != ''"
         Include="$(IntermediateOutputPath)qt\csharp\QmlFiles.cs" />
     </ItemGroup>
   </Target>

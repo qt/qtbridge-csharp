@@ -22,5 +22,14 @@ namespace Qt.Bridge.Extensions
                     Path = x.Property<string>(nameof(QmlFileAttribute.Path))
                 });
         }
+
+        public static string QmlRootModule(this Assembly self)
+        {
+            return self.QtAttributeData()
+                .Where(x => x.AttributeType.Is<QmlModuleAttribute>()
+                    && x.Property<bool>(nameof(QmlModuleAttribute.IsRoot), true))
+                .Select(x => x.Property<string>(nameof(QmlModuleAttribute.Uri)))
+                .FirstOrDefault();
+        }
     }
 }
