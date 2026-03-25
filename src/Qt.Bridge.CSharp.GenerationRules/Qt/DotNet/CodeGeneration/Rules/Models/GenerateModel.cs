@@ -600,7 +600,7 @@ QHash<int, QByteArray> {context.Type.MFn(Ns | Name)}::roleNames() const
             return GenOverride(context, func,
                 "bool", ["int section", "Qt::Orientation orientation",
                     "const QVariant &value", "int role"],
-                ["bool", "int", "Qt::Orientation", "QDotNetObject", "int"],
+                ["bool", "int", "int", "QDotNetObject", "int"],
                 ["section", "orientation", "Convert::fromVariant(value)", "role"],
                 isConst: false);
         }
