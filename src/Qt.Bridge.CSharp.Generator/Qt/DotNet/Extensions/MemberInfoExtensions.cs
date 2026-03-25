@@ -36,5 +36,10 @@ namespace Qt.Bridge.Extensions
                 return false;
             return true;
         }
+
+        public static bool IsIgnored(this MemberInfo i)
+        {
+            return i.QtAttributeData<Qt.IgnoreAttribute>().Any();
+        }
     }
 }

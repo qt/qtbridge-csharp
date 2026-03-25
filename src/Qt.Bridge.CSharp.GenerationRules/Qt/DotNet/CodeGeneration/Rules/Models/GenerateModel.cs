@@ -81,7 +81,9 @@ QModelIndex {type.MFn(Ns | Name | Private)}::setOwnIndex(const QModelIndex &idx)
                 PrivateMembers = privateMembers,
                 Implementation = implementation
             };
-            foreach (var f in type.GetMethods().Where(func => func.IsOverrideOf(baseType))) {
+            var overrides = type.GetMethods()
+                .Where(func => func.IsOverrideOf(baseType) && !func.IsIgnored());
+            foreach (var f in overrides) {
                 var result = f switch
                 {
                     // READ model meta-data
