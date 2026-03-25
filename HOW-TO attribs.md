@@ -29,9 +29,14 @@ public class Foo
 
 ### Generic types
 
-For generic types, e.g. `List<T>` where `T` is a type variable, the `typeof()` facility is not
-available. To ignore a generic type and all of its specializations, the string form of the generic
-type must instead be used.
+To ignore a generic type and all of its specializations, use either an open generic type definition
+or the string form of the generic type name.
+
+```csharp
+[assembly: Qt.IgnoreType(typeof(List<>))]
+```
+
+If the type cannot be referenced directly in source code, use the string form instead.
 
 ```csharp
 [assembly: Qt.IgnoreType("System.Collections.Generic.List`1")]

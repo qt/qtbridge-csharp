@@ -1,4 +1,4 @@
-// Copyright (C) 2025 The Qt Company Ltd.
+// Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using System;
@@ -6,16 +6,53 @@ using Qt.MetaObject;
 
 namespace Qt
 {
+    /// <summary>
+    /// Excludes one or more types from Qt Bridge code generation for the annotated assembly.
+    /// </summary>
+    /// <remarks>
+    /// Apply this attribute at assembly scope to remove exact types, external types, or generic
+    /// type definitions from the generated bridge surface. When <see cref="Inherited"/> is set to
+    /// <see langword="true"/>, derived classes and interface implementers are excluded as well.
+    /// If another generated type references an excluded type through a property, field, parameter,
+    /// return value, or event payload, that member is excluded too.
+    /// </remarks>
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
     public class IgnoreTypeAttribute : Attribute
     {
+        /// <summary>
+        /// Initializes the attribute with one or more types to exclude.
+        /// </summary>
+        /// <param name="excludedTypes">
+        /// Exact runtime types or open generic type definitions to exclude from generation.
+        /// </param>
         public IgnoreTypeAttribute(params Type[] excludedTypes)
         { }
+
+        /// <summary>
+        /// Initializes the attribute with one or more type names to exclude.
+        /// </summary>
+        /// <param name="excludedTypeNames">
+        /// Assembly-qualified or fully-qualified type names to exclude. This is useful when the
+        /// target type cannot be referenced directly in source code.
+        /// </param>
         public IgnoreTypeAttribute(params string[] excludedTypeNames)
         { }
+
+        /// <summary>
+        /// Gets or sets whether the exclusion also applies to derived types and implementers.
+        /// </summary>
         public bool Inherited { get; set; } = false;
     }
 
+    /// <summary>
+    /// Excludes a type or member declared in source code from Qt Bridge code generation.
+    /// </summary>
+    /// <remarks>
+    /// Apply this attribute to a type to remove the entire type from the generated surface, or to
+    /// a constructor, method, property, field, or event to remove only that member. A type-level
+    /// <see cref="IncludeAttribute"/> overrides this attribute. Member-level exclusion is local to
+    /// the annotated member and is not inherited by overrides.
+    /// </remarks>
     [AttributeUsage(TypeAttributeTarget | MemberAttributeTarget, AllowMultiple = false)]
     public class IgnoreAttribute : Attribute
     {
@@ -33,6 +70,14 @@ namespace Qt
             | AttributeTargets.Event;
     }
 
+    /// <summary>
+    /// Explicitly includes a type in Qt Bridge code generation.
+    /// </summary>
+    /// <remarks>
+    /// Use this attribute as a type-level opt-in when a type would otherwise be filtered out, for
+    /// example by <see cref="IgnoreTypeAttribute"/> or <see cref="IgnoreAttribute"/>. This
+    /// attribute is only valid on types.
+    /// </remarks>
     [AttributeUsage(TypeAttributeTarget, AllowMultiple = false)]
     public class IncludeAttribute : Attribute
     {
@@ -44,6 +89,14 @@ namespace Qt
             | AttributeTargets.Delegate;
     }
 
+    /// <summary>
+    /// Internal member-level opt-in used by bridge-owned API types.
+    /// </summary>
+    /// <remarks>
+    /// This attribute is not part of the public API. The generator treats it as a member-scoped
+    /// form of <see cref="IncludeAttribute"/> for selected constructors, methods, properties,
+    /// fields, and events declared by the bridge itself.
+    /// </remarks>
     [AttributeUsage(MemberAttributeTarget, AllowMultiple = false)]
     internal class EnableAttribute : IncludeAttribute
     {
@@ -55,12 +108,34 @@ namespace Qt
             | AttributeTargets.Event;
     }
 
+    /// <summary>
+    /// Supplies assembly-level generation metadata consumed by Qt Bridge templates.
+    /// </summary>
+    /// <remarks>
+    /// The values of this attribute are exposed to the generator as placeholders and are intended
+    /// for advanced generation customization.
+    /// </remarks>
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
     public class GenerateAttribute : Attribute
     {
+        /// <summary>
+        /// Gets or sets text inserted into the main translation unit include section.
+        /// </summary>
         public string MainIncludes { get; set; }
+
+        /// <summary>
+        /// Gets or sets text inserted before the application event loop is entered.
+        /// </summary>
         public string MainBeforeAppExec { get; set; }
+
+        /// <summary>
+        /// Gets or sets additional package identifiers required by the generated output.
+        /// </summary>
         public string Packages { get; set; }
+
+        /// <summary>
+        /// Gets or sets additional native libraries required by the generated output.
+        /// </summary>
         public string Libraries { get; set; }
     }
 }
