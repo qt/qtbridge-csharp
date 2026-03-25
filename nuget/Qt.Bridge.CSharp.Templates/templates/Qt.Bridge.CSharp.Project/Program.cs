@@ -17,7 +17,7 @@ namespace NewProject;
 
 [QObject]
 [QmlElement(Name = "Counter", Singleton = true)]
-public class Counter : INotifyPropertyChanged
+public class CounterService : INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;
 
