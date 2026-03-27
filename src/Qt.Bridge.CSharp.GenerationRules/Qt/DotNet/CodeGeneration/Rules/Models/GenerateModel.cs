@@ -24,8 +24,6 @@ namespace Qt.Bridge.CodeGeneration.Rules.Models
             var baseType = baseTypes
                 .FirstOrDefault(bt => type.IsAssignableTo(bt), TypeOf<Model>());
 
-            var funcs = type.GetMethods().Where(func => func.IsOverrideOf(baseType));
-
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             if (type.GetPlaceholder(PrivateIncludes) is not { } includes)
