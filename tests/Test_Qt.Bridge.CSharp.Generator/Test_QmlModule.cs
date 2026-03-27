@@ -24,7 +24,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
             public class Foo { public int Bar { get; set; } }
             """;
 
-            var result = await TestCodeGenerator.GenerateAsync([source],
+            using var result = await TestCodeGenerator.GenerateAsync([source],
                 sourceRefs: [typeof(Qt.Quick.QmlFileAttribute).Assembly],
                 ct: TestContext.CancellationTokenSource.Token);
 
