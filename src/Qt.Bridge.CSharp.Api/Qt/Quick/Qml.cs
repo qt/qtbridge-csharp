@@ -22,10 +22,12 @@ namespace Qt
             {
                 get
                 {
-                    if (Assembly.GetEntryAssembly()?.GetType("Qt.Qml.Modules") is not { } modules)
-                        throw new InvalidOperationException("QML module meta-data not found.");
-                    if (modules.GetField("Root")?.GetValue(null) is not string { Length: > 0 } root)
-                        throw new InvalidOperationException("Error accessing QML root module.");
+                    var root = Assembly.GetEntryAssembly()
+                        ?.GetCustomAttributes<QmlModuleAttribute>()
+                        .FirstOrDefault(a => a.IsRoot)
+                        ?.Uri;
+                    if (string.IsNullOrEmpty(root))
+                        throw new InvalidOperationException("QML root module not found.");
                     return root;
                 }
             }
