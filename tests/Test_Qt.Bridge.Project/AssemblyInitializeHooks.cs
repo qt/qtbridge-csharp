@@ -6,15 +6,12 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Test_Qt.Bridge.Project
 {
     [TestClass]
-    public static class AssemblyCleanupHooks
+    public static class AssemblyInitializeHooks
     {
-        [AssemblyCleanup]
-        public static void Cleanup()
+        [AssemblyInitialize]
+        public static void Initialize(TestContext context)
         {
-#if !DEBUG
-
             TempProject.CleanupProjectRoot();
-#endif
         }
     }
 }

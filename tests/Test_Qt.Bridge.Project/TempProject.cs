@@ -326,7 +326,9 @@ namespace Test_Qt.Bridge.Project
 
         public void Dispose()
         {
+#if !DEBUG
             Reset();
+#endif
         }
 
         internal static void CleanupProjectRoot()
