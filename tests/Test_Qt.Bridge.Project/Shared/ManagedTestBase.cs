@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
 using System;
-using System.Text;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Test_Qt.Bridge.Project.Shared
 {
@@ -126,6 +128,84 @@ namespace Test_Qt.Bridge.Project.Shared
                 ],
                 AfterSdkTargets = CMake.InjectQtSourcesTargets("hpp/QtTestSetupBase.h")
             };
+        }
+
+        protected class Msgs
+        {
+            public List<string> All { get; } = [];
+            public List<string> Fail { get; } = [];
+            public List<string> Warning { get; } = [];
+            public List<string> Skip { get; } = [];
+            public List<string> Pass { get; } = [];
+            public List<string> Info { get; } = [];
+        }
+
+        private static class TestMsgParser
+        {
+            private static readonly List<(string Pattern, Func<Msgs, List<string>> Type)> MsgTypes =
+            [
+                (@"PASS\b", msgs => msgs.Pass),
+                ("FAIL!", msgs => msgs.Fail),
+                (@"WARNING\b", msgs => msgs.Warning),
+                (@"SKIP\b", msgs => msgs.Skip),
+                (@"QDEBUG\b", msgs => msgs.Info),
+                (@"\*+ Start\b", msgs => msgs.Info),
+                (@"Config\b", msgs => msgs.Info),
+                (@"Totals\b", msgs => msgs.Info),
+                (@"\*+ Finished\b", msgs => msgs.Info)
+            ];
+
+            private static readonly Dictionary<string, Func<Msgs, List<string>>> TypeSelectors =
+                MsgTypes.Select((t, i) => (Name: $"_{i}", t.Type))
+                    .ToDictionary(x => x.Name, x => x.Type);
+
+            private static string Group(string rx) => $"(?:{rx})";
+
+            private static string Group(IEnumerable<string> rxs) => Group(string.Join("", rxs));
+
+            private static string AltGroup(IEnumerable<string> rxs) => Group(string.Join("|", rxs));
+
+            private static string TypeGroup(int i, string rx) => $"(?<_{i}>{rx})";
+
+            private static string NegativeLookAhead(string rx) => $"(?!{rx})";
+
+            private static readonly string StartOfLine = AltGroup(["^", @"(?<=\n)"]);
+
+            private static readonly string AnyChar = AltGroup([".", @"[\r\n]"]);
+
+            private static readonly string NewLine = @"\r?\n";
+
+            private static readonly string MessageStart
+                = $"{StartOfLine}{AltGroup(MsgTypes.Select((t, i) => TypeGroup(i, t.Pattern)))}";
+
+            private static readonly string MessageGuard
+                = NegativeLookAhead(AltGroup(MsgTypes.Select(t => Group([NewLine, t.Pattern]))));
+
+            private static readonly string MessageChar = Group([MessageGuard, AnyChar]);
+
+            private static readonly string MessagePattern = $"{MessageStart}{MessageChar}*";
+
+            private static readonly Regex MessageRegex = new(MessagePattern);
+
+            public static Msgs Parse(string stdOut)
+            {
+                var msgs = new Msgs();
+                foreach (Match match in MessageRegex.Matches(stdOut)) {
+                    msgs.All.Add(match.Value);
+                    foreach (var (name, selector) in TypeSelectors) {
+                        if (match.Groups[name].Success) {
+                            selector(msgs).Add(match.Value);
+                            break;
+                        }
+                    }
+                }
+                return msgs;
+            }
+        }
+
+        protected static Msgs ParseQtTestMessages(string stdOut)
+        {
+            return TestMsgParser.Parse(stdOut);
         }
     }
 }
