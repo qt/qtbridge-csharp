@@ -34,15 +34,9 @@ namespace Qt
 
         public static class Qml
         {
-            private static IQQmlEngine _Instance;
-            internal static IQQmlEngine Instance
-            {
-                get
-                {
-                    _Instance ??= Static.QQmlEngine_Get();
-                    return _Instance;
-                }
-            }
+            private static readonly Lazy<IQQmlEngine> LazyInstance =
+                new(Static.QQmlEngine_Get, isThreadSafe: true);
+            internal static IQQmlEngine Instance => LazyInstance.Value;
 
             public static string RootModule
             {
