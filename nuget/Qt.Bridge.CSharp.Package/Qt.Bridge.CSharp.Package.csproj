@@ -163,6 +163,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="NuGet.CommandLine" Version="6.14.0" GeneratePathProperty="true">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
     <UpToDateCheckInput Include="@(None)" />
   </ItemGroup>
 
@@ -235,25 +242,39 @@
   <Target Name="CopyPackage" AfterTargets="Pack">
     <PropertyGroup>
       <PackedNupkg>$(PackageOutputPath)$(PackageId).$(PackageVersion).nupkg</PackedNupkg>
+      <PackedNupkgFullPath>$(MSBuildThisFileDirectory)$(PackedNupkg)</PackedNupkgFullPath>
+      <PackageOutputFullPath>$(MSBuildThisFileDirectory)$(PackageOutputPath)</PackageOutputFullPath>
       <LocalFeedRoot>$(MSBuildThisFileDirectory)..\local</LocalFeedRoot>
+      <IsWindows>$([MSBuild]::IsOSPlatform('Windows'))</IsWindows>
       <PackageIdLower>$([System.String]::Copy('$(PackageId)').ToLowerInvariant())</PackageIdLower>
       <PackageVersionLower>$([System.String]::Copy('$(PackageVersion)').ToLowerInvariant())</PackageVersionLower>
       <PackageFileLower>$(PackageIdLower).$(PackageVersionLower).nupkg</PackageFileLower>
+      <NuGetAddCmd>"$(PkgNuGet_CommandLine)\tools\nuget.exe" add</NuGetAddCmd>
+      <NuGetAddCmd>$(NuGetAddCmd) "$(PackedNupkgFullPath)" -Source "$(LocalFeedRoot)"</NuGetAddCmd>
     </PropertyGroup>
 
     <Message Importance="high"
-             Text="Copy $(PackedNupkg) to $(LocalFeedRoot)\$(PackageId)\$(PackageVersion), $(LocalFeedRoot)\$(PackageIdLower)\$(PackageVersionLower), and $(LocalFeedRoot)" />
+             Condition="'$(IsWindows)' == 'true'"
+             Text="Publish $(PackedNupkgFullPath) to $(LocalFeedRoot) using nuget.exe add." />
+    <Message Importance="high"
+             Condition="'$(IsWindows)' != 'true'"
+             Text="Copy $(PackedNupkgFullPath) to $(LocalFeedRoot)\$(PackageId)\$(PackageVersion), $(LocalFeedRoot)\$(PackageIdLower)\$(PackageVersionLower), and $(LocalFeedRoot)" />
     <RemoveDir Directories="$(NuGetPackageRoot)$(PackageId);$(NuGetPackageRoot)$(PackageIdLower)"
                ContinueOnError="WarnAndContinue" />
     <RemoveDir Directories="$(LocalFeedRoot)\$(PackageId)"
                ContinueOnError="WarnAndContinue" />
     <RemoveDir Directories="$(LocalFeedRoot)\$(PackageIdLower)"
                ContinueOnError="WarnAndContinue" />
-    <Copy SourceFiles="$(PackedNupkg)"
+    <Exec Condition="'$(IsWindows)' == 'true'"
+          Command="$(NuGetAddCmd)" />
+    <Copy Condition="'$(IsWindows)' != 'true'"
+          SourceFiles="$(PackedNupkgFullPath)"
           DestinationFolder="$(LocalFeedRoot)\$(PackageId)\$(PackageVersion)" />
-    <Copy SourceFiles="$(PackedNupkg)"
+    <Copy Condition="'$(IsWindows)' != 'true'"
+          SourceFiles="$(PackedNupkgFullPath)"
           DestinationFiles="$(LocalFeedRoot)\$(PackageIdLower)\$(PackageVersionLower)\$(PackageFileLower)" />
-    <Copy SourceFiles="$(PackedNupkg)"
+    <Copy Condition="'$(IsWindows)' != 'true'"
+          SourceFiles="$(PackedNupkgFullPath)"
           DestinationFolder="$(LocalFeedRoot)" />
   </Target>
 </Project>

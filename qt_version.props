@@ -11,6 +11,12 @@
     <SelectVersion>autoversion</SelectVersion>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <Qt_NuGetConfig>$([MSBuild]::GetPathOfFileAbove(NuGet.Config))</Qt_NuGetConfig>
+    <RestoreConfigFile Condition="'$(RestoreConfigFile)' == '' AND '$(Qt_NuGetConfig)' != ''"
+      >$(Qt_NuGetConfig)</RestoreConfigFile>
+  </PropertyGroup>
+
   <!-- //////// BEGIN Versions //////// -->
 
   <!-- Auto-version (from git describe) -->
