@@ -94,7 +94,7 @@ namespace Qt.DotNet
             MainThread = Thread.CurrentThread;
         }
 
-        internal static bool IsMainThread => MainThread == Thread.CurrentThread;
+        public static bool IsMainThread => MainThread == Thread.CurrentThread;
 
         /// <summary>
         /// Loads a .NET assembly into memory
