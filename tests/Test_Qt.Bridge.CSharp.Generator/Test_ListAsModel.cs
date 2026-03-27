@@ -182,5 +182,119 @@ namespace Test_Qt.Bridge.CSharp.Generator
             Assert.Contains("Q_PROPERTY(QString lastName READ lastName WRITE setLastName)", hpp,
                 "Q_PROPERTY for lastName not found on Test::PersonName.");
         }
+
+        private const string SourceWithIgnoredItemProperty = """
+            using System.Collections.Generic;
+            using Qt;
+
+            namespace Test
+            {
+                public class PersonName
+                {
+                    [Qt.Ignore]
+                    public string InternalCode { get; set; }
+                    public string DisplayName { get; set; }
+                }
+
+                public class NameList : List<PersonName>
+                {}
+            }
+            """;
+
+        [TestMethod]
+        public async Task Ignored_ItemProperty_DoesNotBecome_ListModelRole()
+        {
+            using var result = await TestCodeGenerator.GenerateAsync([SourceWithIgnoredItemProperty],
+                sourceRefs: [typeof(Qt.IgnoreAttribute).Assembly],
+                ct: TestContext.CancellationTokenSource.Token);
+
+            Assert.IsTrue(result.Sink.Files.TryGetValue(File, out var cpp),
+                $"Expected generated cpp for Test::NameList not found ({File}).");
+
+            Assert.Contains("\"displayName\"", cpp);
+            Assert.DoesNotContain("\"internalCode\"", cpp);
+            Assert.DoesNotContain("internalCode(", cpp);
+        }
+
+        private const string SourceWithIgnoredOverrideItemProperty = """
+            using System.Collections.Generic;
+            using Qt;
+
+            namespace Test
+            {
+                public class BasePerson
+                {
+                    public virtual string DisplayName { get; set; }
+                    public virtual string SecretName { get; set; }
+                }
+
+                public class PersonName : BasePerson
+                {
+                    public override string DisplayName { get; set; }
+
+                    [Qt.Ignore]
+                    public override string SecretName { get; set; }
+                }
+
+                public class NameList : List<PersonName>
+                {}
+            }
+            """;
+
+        [TestMethod]
+        public async Task Ignored_OverrideItemProperty_DoesNotBecome_ListModelRole()
+        {
+            using var result = await TestCodeGenerator.GenerateAsync(
+                [SourceWithIgnoredOverrideItemProperty],
+                sourceRefs: [typeof(Qt.IgnoreAttribute).Assembly],
+                ct: TestContext.CancellationTokenSource.Token);
+
+            Assert.IsTrue(result.Sink.Files.TryGetValue(File, out var cpp),
+                $"Expected generated cpp for Test::NameList not found ({File}).");
+
+            Assert.Contains("\"displayName\"", cpp);
+            Assert.DoesNotContain("\"secretName\"", cpp);
+            Assert.DoesNotContain("secretName(", cpp);
+        }
+
+        private const string SourceWithIgnoredBaseItemProperty = """
+            using System.Collections.Generic;
+            using Qt;
+
+            namespace Test
+            {
+                public class BasePerson
+                {
+                    [Qt.Ignore]
+                    public virtual string SecretName { get; set; }
+                    public virtual string DisplayName { get; set; }
+                }
+
+                public class PersonName : BasePerson
+                {
+                    public override string SecretName { get; set; }
+                    public override string DisplayName { get; set; }
+                }
+
+                public class NameList : List<PersonName>
+                {}
+            }
+            """;
+
+        [TestMethod]
+        public async Task Ignored_BaseItemProperty_Override_BecomesListModelRole()
+        {
+            using var result = await TestCodeGenerator.GenerateAsync(
+                [SourceWithIgnoredBaseItemProperty],
+                sourceRefs: [typeof(Qt.IgnoreAttribute).Assembly],
+                ct: TestContext.CancellationTokenSource.Token);
+
+            Assert.IsTrue(result.Sink.Files.TryGetValue(File, out var cpp),
+                $"Expected generated cpp for Test::NameList not found ({File}).");
+
+            Assert.Contains("\"secretName\"", cpp, "Override of ignored base property must appear "
+                + "as a role: [Ignore] is not inherited.");
+            Assert.Contains("\"displayName\"", cpp);
+        }
     }
 }

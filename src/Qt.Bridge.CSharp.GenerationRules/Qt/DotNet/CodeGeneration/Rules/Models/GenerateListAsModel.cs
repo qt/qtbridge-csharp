@@ -32,6 +32,7 @@ namespace Qt.Bridge.CodeGeneration.Rules.Models
                     .Where(p => !p.IsStatic())
                     .Where(p => p.GetIndexParameters().Length == 0) // no indexers
                     .Where(p => p.GetGetMethod() != null)
+                    .Where(p => !p.IsIgnored())
                     .ToArray();
             }
 
