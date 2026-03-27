@@ -1,6 +1,7 @@
-// Copyright (C) 2025 The Qt Company Ltd.
+// Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
+using System.Diagnostics;
 using System.Reflection;
 using Qt.Bridge.Utils.Text;
 using Qt.DotNet;
@@ -67,6 +68,7 @@ namespace Qt
 
             public static void ProcessEvents()
             {
+                Debug.Assert(IsMainThread, "Qml.ProcessEvents() must be called from main thread.");
                 if (Adapter.IsMainThread)
                     Instance.ProcessEvents();
             }
