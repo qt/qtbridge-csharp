@@ -39,6 +39,8 @@ namespace Qt.Bridge.Models
 
         public abstract T this[int row, int col] { get; set; }
 
+        public virtual bool ClearItemData(int row, int col) => false;
+
         public virtual string RowHeader(int row) => $"R{row + 1}";
         public virtual string ColumnHeader(int column) => $"C{column + 1}";
 
@@ -273,6 +275,13 @@ namespace Qt.Bridge.Models
             return true;
         }
 
+        public sealed override bool ClearItemData(ModelIndex index)
+        {
+            if (index is not { IsValid: true })
+                return false;
+            return ClearItemData(index.Row, index.Column);
+        }
+
         [Qt.Ignore]
         public sealed override bool SetHeaderData(
             int section, int orientation, object value, int role) => default;
@@ -282,8 +291,6 @@ namespace Qt.Bridge.Models
         public sealed override bool CanFetchMore(ModelIndex parent) => default;
         [Qt.Ignore]
         public sealed override void FetchMore(ModelIndex parent) { }
-        [Qt.Ignore]
-        public sealed override bool ClearItemData(ModelIndex index) => default;
         [Qt.Ignore]
         public sealed override bool MoveColumns(
             ModelIndex sourceParent, int sourceColumn, int count,
