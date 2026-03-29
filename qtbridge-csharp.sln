@@ -154,6 +154,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "msbuild", "msbuild", "{4636
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModelsAndViews", "examples\ModelsAndViews\ModelsAndViews.csproj", "{4889FDFE-F805-9EF3-0737-B13652E5C355}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpreadsheetSandbox", "examples\SpreadsheetSandbox\SpreadsheetSandbox.csproj", "{4C5B1F35-31A5-26C6-0732-8E622765A401}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -371,6 +373,12 @@ Global
 		{4889FDFE-F805-9EF3-0737-B13652E5C355}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4889FDFE-F805-9EF3-0737-B13652E5C355}.Release|x64.ActiveCfg = Release|Any CPU
 		{4889FDFE-F805-9EF3-0737-B13652E5C355}.Release|x86.ActiveCfg = Release|Any CPU
+		{4C5B1F35-31A5-26C6-0732-8E622765A401}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C5B1F35-31A5-26C6-0732-8E622765A401}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4C5B1F35-31A5-26C6-0732-8E622765A401}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4C5B1F35-31A5-26C6-0732-8E622765A401}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C5B1F35-31A5-26C6-0732-8E622765A401}.Release|x64.ActiveCfg = Release|Any CPU
+		{4C5B1F35-31A5-26C6-0732-8E622765A401}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -408,6 +416,7 @@ Global
 		{5A670F79-161A-44AB-868D-87D0FD12A2E7} = {2E936378-4914-4BDB-9EE9-6C25D6B69F06}
 		{4636D4AD-519C-4C9D-8320-BE23FA52159C} = {2E936378-4914-4BDB-9EE9-6C25D6B69F06}
 		{4889FDFE-F805-9EF3-0737-B13652E5C355} = {436DDD81-054F-492E-8F7A-B9445413E3B2}
+		{4C5B1F35-31A5-26C6-0732-8E622765A401} = {436DDD81-054F-492E-8F7A-B9445413E3B2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E4CDB648-EF1A-4ADE-B6EA-D4E9D668E676}
