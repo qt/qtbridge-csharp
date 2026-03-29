@@ -282,6 +282,18 @@ namespace Qt.Bridge.Models
             return ClearItemData(index.Row, index.Column);
         }
 
+        protected void DataChanged(int row, int column)
+        {
+            DataChanged(row, column, row, column);
+        }
+
+        protected void DataChanged(int topRow, int leftColumn, int bottomRow, int rightColumn)
+        {
+            var topLeft = new ModelIndex(topRow, leftColumn);
+            var bottomRight = new ModelIndex(bottomRow, rightColumn);
+            DataChanged(topLeft, bottomRight);
+        }
+
         [Qt.Ignore]
         public sealed override bool SetHeaderData(
             int section, int orientation, object value, int role) => default;
