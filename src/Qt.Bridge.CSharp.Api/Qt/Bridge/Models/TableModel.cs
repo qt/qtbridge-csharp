@@ -33,31 +33,31 @@ namespace Qt.Bridge.Models
 
     public abstract class TableModel<T> : TableModel
     {
-        public abstract int Rows { get; }
+        protected abstract int Rows { get; }
 
-        public abstract int Columns { get; }
+        protected abstract int Columns { get; }
 
-        public abstract T this[int row, int col] { get; set; }
+        protected abstract T this[int row, int col] { get; set; }
 
-        public virtual bool ClearItemData(int row, int col) => false;
+        protected virtual bool ClearItemData(int row, int col) => false;
 
-        public virtual string RowHeader(int row) => $"R{row + 1}";
-        public virtual string ColumnHeader(int column) => $"C{column + 1}";
+        protected virtual string RowHeader(int row) => $"R{row + 1}";
+        protected virtual string ColumnHeader(int column) => $"C{column + 1}";
 
-        public virtual bool CanInsertRows(int row, int count) => false;
-        public virtual bool InsertRows(int row, int count) => false;
+        protected virtual bool CanInsertRows(int row, int count) => false;
+        protected virtual bool InsertRows(int row, int count) => false;
 
-        public virtual bool CanRemoveRows(int row, int count) => false;
-        public virtual bool RemoveRows(int row, int count) => false;
+        protected virtual bool CanRemoveRows(int row, int count) => false;
+        protected virtual bool RemoveRows(int row, int count) => false;
 
-        public virtual bool CanInsertColumns(int column, int count) => false;
-        public virtual bool InsertColumns(int column, int count) => false;
+        protected virtual bool CanInsertColumns(int column, int count) => false;
+        protected virtual bool InsertColumns(int column, int count) => false;
 
-        public virtual bool CanRemoveColumns(int column, int count) => false;
-        public virtual bool RemoveColumns(int column, int count) => false;
+        protected virtual bool CanRemoveColumns(int column, int count) => false;
+        protected virtual bool RemoveColumns(int column, int count) => false;
 
-        public virtual bool IsReadOnly => false;
-        public virtual bool HasItemRole => true;
+        protected virtual bool IsReadOnly => false;
+        protected virtual bool HasItemRole => true;
 
         private const int ItemRole = Roles.UserRole;
 

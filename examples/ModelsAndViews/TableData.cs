@@ -16,20 +16,20 @@ namespace ModelsAndViews
             [ "Ringo",  "Starr"     ],
         ];
 
-        public override int Rows => Items.Count;
+        protected override int Rows => Items.Count;
 
-        public override int Columns => 2;
+        protected override int Columns => 2;
 
-        public override string RowHeader(int row) => $"{row + 1}";
+        protected override string RowHeader(int row) => $"{row + 1}";
 
-        public override string ColumnHeader(int column) => column switch
+        protected override string ColumnHeader(int column) => column switch
         {
             0 => "First Name",
             1 => "Last Name",
             _ => string.Empty
         };
 
-        public override string this[int row, int col]
+        protected override string this[int row, int col]
         {
             get
             {
@@ -51,7 +51,7 @@ namespace ModelsAndViews
             }
         }
 
-        public override bool CanInsertRows(int row, int count)
+        protected override bool CanInsertRows(int row, int count)
         {
             if (row < 0 || row > Items.Count)
                 return false;
@@ -60,7 +60,7 @@ namespace ModelsAndViews
             return true;
         }
 
-        public override bool InsertRows(int row, int count)
+        protected override bool InsertRows(int row, int count)
         {
             if (!CanInsertRows(row, count))
                 return false;
@@ -72,7 +72,7 @@ namespace ModelsAndViews
             return true;
         }
 
-        public override bool CanRemoveRows(int row, int count)
+        protected override bool CanRemoveRows(int row, int count)
         {
             if (row < 0 || row >= Items.Count)
                 return false;
@@ -81,7 +81,7 @@ namespace ModelsAndViews
             return true;
         }
 
-        public override bool RemoveRows(int row, int count)
+        protected override bool RemoveRows(int row, int count)
         {
             if (!CanRemoveRows(row, count))
                 return false;
