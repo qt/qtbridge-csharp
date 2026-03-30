@@ -3,8 +3,8 @@
 
 using Refit;
 using Qt.Bridge.Models;
-using Qt.Bridge.Text;
 using Qt.DotNet;
+using Qt.Quick;
 
 namespace ColorPalette
 {
@@ -30,7 +30,7 @@ namespace ColorPalette
                 RoleMap = ResourceRoles
                     .Select((r, i) => new
                     {
-                        Role = r.ConvertCase(CaseStyle.Pascal, CaseStyle.Camel),
+                        Role = r.ToQmlPropertyName(),
                         Index = Roles.UserRole + 1 + i
                     })
                     .Prepend(new { Role = ResourceRole, Index = Roles.UserRole })
@@ -55,7 +55,7 @@ namespace ColorPalette
                         return null;
                     if (role == ResourceRole)
                         return resource;
-                    return resource[role.ConvertCase(CaseStyle.Camel, CaseStyle.Pascal)];
+                    return resource[role.ToDotNetPropertyName()];
                 }
             }
 

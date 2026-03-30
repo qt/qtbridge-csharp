@@ -1,10 +1,10 @@
-// Copyright (C) 2025 The Qt Company Ltd.
+// Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using System.Reflection;
-using Qt.Bridge.Text;
 using Qt.Bridge.Utils;
 using Qt.DotNet;
+using Qt.Quick;
 
 namespace Qt.Bridge.Models
 {
@@ -94,8 +94,7 @@ namespace Qt.Bridge.Models
                 if (HasItemRole)
                     roles[ItemRole] = "item";
                 foreach (var prop in RolePropsById) {
-                    roles[prop.Key] = prop.Value.Name
-                        .ConvertCase(CaseStyle.Pascal, CaseStyle.Camel);
+                    roles[prop.Key] = prop.Value.Name.ToQmlPropertyName();
                 }
             }
             return roles;

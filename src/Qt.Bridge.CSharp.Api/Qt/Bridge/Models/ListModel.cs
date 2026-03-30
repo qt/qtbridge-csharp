@@ -1,4 +1,4 @@
-// Copyright (C) 2025 The Qt Company Ltd.
+// Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using System.Reflection;
@@ -6,7 +6,7 @@ using Qt.DotNet;
 
 namespace Qt.Bridge.Models
 {
-    using Text;
+    using Qt.Quick;
 
     public abstract class ListModel : Model
     {
@@ -56,8 +56,7 @@ namespace Qt.Bridge.Models
                         foreach (var prop in type.GetProperties()) {
                             ++i;
                             _RoleMap[Roles.UserRole + i] = prop;
-                            _RoleNames[Roles.UserRole + i] = prop.Name
-                                .ConvertCase(CaseStyle.Pascal, CaseStyle.Camel);
+                            _RoleNames[Roles.UserRole + i] = prop.Name.ToQmlPropertyName();
                         }
                     }
                 }

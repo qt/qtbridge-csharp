@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Qt.Bridge.CSharp.Generator\Qt.Bridge.CSharp.Generator.csproj" />
+    <ProjectReference Include="..\..\utils\Text\Text.csproj" />
   </ItemGroup>
 
 </Project>

@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Reflection;
-using Qt.Bridge.Utils.Text;
 using Qt.DotNet;
 
 namespace Qt
@@ -102,7 +101,7 @@ namespace Qt
             /// </remarks>
             public static void LoadFromModule(string uri, string typeName)
             {
-                Instance.LoadFromModule(uri, typeName.ConvertCase(CaseStyle.Camel, CaseStyle.Pascal));
+                Instance.LoadFromModule(uri, typeName.NormalizeQmlTypeName());
             }
 
             /// <summary>

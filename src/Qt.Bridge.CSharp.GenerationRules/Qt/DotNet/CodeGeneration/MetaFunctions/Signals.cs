@@ -1,4 +1,4 @@
-// Copyright (C) 2025 The Qt Company Ltd.
+// Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using Qt.MetaObject;
@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace Qt.Bridge.CodeGeneration.MetaFunctions
 {
-    using Text;
+    using Utils.Text;
     using static Traits;
 
     public class Signals : CppMetaFunction
