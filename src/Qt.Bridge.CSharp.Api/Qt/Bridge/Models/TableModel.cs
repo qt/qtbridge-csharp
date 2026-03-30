@@ -229,10 +229,13 @@ namespace Qt.Bridge.Models
             if (!CanInsertRows(row, count))
                 return false;
             BeginInsertRows(parent, row, row + count - 1);
-            if (!InsertRows(row, count))
-                return false;
-            EndInsertRows();
-            return true;
+            bool ok;
+            try {
+                ok = InsertRows(row, count);
+            } finally {
+                EndInsertRows();
+            }
+            return ok;
         }
 
         public sealed override bool RemoveRows(int row, int count, ModelIndex parent = null)
@@ -242,10 +245,13 @@ namespace Qt.Bridge.Models
             if (!CanRemoveRows(row, count))
                 return false;
             BeginRemoveRows(parent, row, row + count - 1);
-            if (!RemoveRows(row, count))
-                return false;
-            EndRemoveRows();
-            return true;
+            bool ok;
+            try {
+                ok = RemoveRows(row, count);
+            } finally {
+                EndRemoveRows();
+            }
+            return ok;
         }
 
         public sealed override bool InsertColumns(int column, int count, ModelIndex parent = null)
@@ -255,10 +261,13 @@ namespace Qt.Bridge.Models
             if (!CanInsertColumns(column, count))
                 return false;
             BeginInsertColumns(parent, column, column + count - 1);
-            if (!InsertColumns(column, count))
-                return false;
-            EndInsertColumns();
-            return true;
+            bool ok;
+            try {
+                ok = InsertColumns(column, count);
+            } finally {
+                EndInsertColumns();
+            }
+            return ok;
         }
 
         public sealed override bool RemoveColumns(int column, int count, ModelIndex parent = null)
@@ -268,10 +277,13 @@ namespace Qt.Bridge.Models
             if (!CanRemoveColumns(column, count))
                 return false;
             BeginRemoveColumns(parent, column, column + count - 1);
-            if (!RemoveColumns(column, count))
-                return false;
-            EndRemoveColumns();
-            return true;
+            bool ok;
+            try {
+                ok = RemoveColumns(column, count);
+            } finally {
+                EndRemoveColumns();
+            }
+            return ok;
         }
 
         public sealed override bool ClearItemData(ModelIndex index)
