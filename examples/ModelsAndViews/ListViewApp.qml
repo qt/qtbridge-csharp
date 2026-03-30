@@ -22,15 +22,38 @@ ApplicationWindow {
             Button {
                 text: "Insert"
                 onClicked: {
-                    if (data.insertRows(1, 2))
+                    var row = view.selectionModel.currentIndex.row
+                    var at = row >= 0 ? Math.min(row + 1, view.rows) : view.rows
+                    if (!data.insertRows(at, 1))
+                        return;
+
+                    Qt.callLater(function() {
                         view.forceLayout()
+                        if (view.rows > at) {
+                            view.selectionModel.setCurrentIndex(view.index(at, 0),
+                                ItemSelectionModel.Current)
+                        }
+                    })
                 }
             }
             Button {
                 text: "Remove"
+                enabled: view.rows > 0 && view.selectionModel.currentIndex.valid
                 onClicked: {
-                    if (data.removeRows(1, 2))
+                    var row = view.selectionModel.currentIndex.row
+                    if (!data.removeRows(row, 1))
+                        return;
+
+                    Qt.callLater(function() {
                         view.forceLayout()
+                        if (view.rows > 0) {
+                            var nextRow = Math.min(row, view.rows - 1)
+                            view.selectionModel.setCurrentIndex(view.index(nextRow, 0),
+                                ItemSelectionModel.Current)
+                        } else {
+                            view.selectionModel.clearCurrentIndex()
+                        }
+                    })
                 }
             }
         }
@@ -39,6 +62,13 @@ ApplicationWindow {
             id: view
             Layout.fillWidth: true; Layout.fillHeight: true
             model: data
+            selectionModel: ItemSelectionModel { }
+            selectionBehavior: TableView.SelectRows
+            selectionMode: TableView.SingleSelection
+            Component.onCompleted: {
+                if (rows > 0)
+                    selectionModel.setCurrentIndex(index(0, 0), ItemSelectionModel.Current)
+            }
             delegate: TableViewDelegate {
                 implicitHeight: 40
                 implicitWidth: appWin.width
