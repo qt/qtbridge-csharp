@@ -97,5 +97,15 @@ namespace Qt.Bridge.Models
         {
             EndInsertRows();
         }
+
+        protected void BeginRemoveItems(int first, int last)
+        {
+            BeginRemoveRows(ModelIndex.Empty, first, last);
+        }
+
+        protected void EndRemoveItems()
+        {
+            EndRemoveRows();
+        }
     }
 }
