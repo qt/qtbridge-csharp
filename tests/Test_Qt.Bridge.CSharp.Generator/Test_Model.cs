@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -19,6 +20,30 @@ namespace Test_Qt.Bridge.CSharp.Generator
 
         private static readonly Assembly ApiAssembly = typeof(Model).Assembly;
         private static readonly Assembly AdapterAssembly = typeof(ModelIndex).Assembly;
+
+        private sealed class NameListModel(params string[] items)
+            : ListModel<string>
+        {
+            private readonly List<string> items = items.ToList();
+
+            public override int ItemCount() => items.Count;
+            public override string Data(int index) => items[index];
+        }
+
+        private sealed class NumberTableModel(int rows, int columns)
+            : TableModel<int>
+        {
+            private readonly int[,] items = new int[rows, columns];
+
+            protected override int Rows => items.GetLength(0);
+            protected override int Columns => items.GetLength(1);
+
+            protected override int this[int row, int col]
+            {
+                get => items[row, col];
+                set => items[row, col] = value;
+            }
+        }
 
         private const string SourceWithIgnoredModelOverride = """
             using System.Collections.Generic;
@@ -44,6 +69,52 @@ namespace Test_Qt.Bridge.CSharp.Generator
             }
             """;
 
+        private const string SourceWithListModelSubclass = """
+            using System.Collections.Generic;
+            using Qt.Bridge.Models;
+            using Qt.DotNet;
+
+            namespace Test
+            {
+                public class PersonName
+                {
+                    public string FirstName { get; set; }
+                }
+
+                public class NameListModel : ListModel<PersonName>
+                {
+                    private readonly List<PersonName> items =
+                    [
+                        new() { FirstName = "Ada" },
+                        new() { FirstName = "Linus" }
+                    ];
+
+                    public override int ItemCount() => items.Count;
+                    public override PersonName Data(int index) => items[index];
+                }
+            }
+            """;
+
+        private const string SourceWithTableModelSubclass = """
+            using Qt.Bridge.Models;
+            using Qt.DotNet;
+
+            namespace Test
+            {
+                public class NumberTableModel : TableModel<int>
+                {
+                    protected override int Rows => 2;
+                    protected override int Columns => 3;
+
+                    protected override int this[int row, int col]
+                    {
+                        get => row * 10 + col;
+                        set { }
+                    }
+                }
+            }
+            """;
+
         [TestMethod]
         public async Task Ignored_ModelOverride_IsNotGenerated()
         {
@@ -58,6 +129,90 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 "Non-ignored override RoleNames must appear in the generated output.");
             Assert.DoesNotContain("canFetchMore", combined,
                 "Ignored override CanFetchMore must not appear in the generated output.");
+        }
+
+        [TestMethod]
+        public async Task Ignored_ListModelBaseStubs_IsNotGeneratedFor_ListModelSubclass()
+        {
+            using var result = await TestCodeGenerator.GenerateAsync(
+                [SourceWithListModelSubclass],
+                sourceRefs: [ApiAssembly, AdapterAssembly],
+                ct: TestContext.CancellationTokenSource.Token);
+
+            Assert.IsTrue(result.Sink.Files.TryGetValue("source/cpp/test/namelistmodel.cpp",
+                out var cpp), "Expected generated cpp for Test::NameListModel was not found.");
+
+            Assert.Contains("Test::NameListModel::rowCount", cpp,
+                "ListModel subclass must still generate rowCount().");
+            Assert.Contains("Test::NameListModel::roleNames", cpp,
+                "ListModel subclass must still generate roleNames().");
+            Assert.Contains("Test::NameListModel::data", cpp,
+                "ListModel subclass must still generate data().");
+
+            Assert.DoesNotContain("Test::NameListModel::index(", cpp,
+                "ListModel base stub Index() must be skipped when marked [Qt.Ignore].");
+            Assert.DoesNotContain("Test::NameListModel::parent(", cpp,
+                "ListModel base stub Parent() must be skipped when marked [Qt.Ignore].");
+            Assert.DoesNotContain("Test::NameListModel::sibling(", cpp,
+                "ListModel base stub Sibling() must be skipped when marked [Qt.Ignore].");
+            Assert.DoesNotContain("Test::NameListModel::columnCount(", cpp,
+                "ListModel base stub ColumnCount() must be skipped when marked [Qt.Ignore].");
+            Assert.DoesNotContain("Test::NameListModel::hasChildren(", cpp,
+                "ListModel base stub HasChildren() must be skipped when marked [Qt.Ignore].");
+        }
+
+        [TestMethod]
+        public async Task Ignored_TableModelBaseStubs_IsNotGeneratedFor_TableModelSubclass()
+        {
+            using var result = await TestCodeGenerator.GenerateAsync(
+                [SourceWithTableModelSubclass],
+                sourceRefs: [ApiAssembly, AdapterAssembly],
+                ct: TestContext.CancellationTokenSource.Token);
+
+            Assert.IsTrue(result.Sink.Files.TryGetValue("source/cpp/test/numbertablemodel.cpp",
+                out var cpp), "Expected generated cpp for Test::NumberTableModel was not found.");
+
+            Assert.Contains("Test::NumberTableModel::rowCount", cpp,
+                "TableModel subclass must still generate rowCount().");
+            Assert.Contains("Test::NumberTableModel::columnCount", cpp,
+                "TableModel subclass must still generate columnCount().");
+            Assert.Contains("Test::NumberTableModel::data", cpp,
+                "TableModel subclass must still generate data().");
+
+            Assert.DoesNotContain("Test::NumberTableModel::index(", cpp,
+                "TableModel base stub Index() must be skipped when marked [Qt.Ignore].");
+            Assert.DoesNotContain("Test::NumberTableModel::parent(", cpp,
+                "TableModel base stub Parent() must be skipped when marked [Qt.Ignore].");
+            Assert.DoesNotContain("Test::NumberTableModel::sibling(", cpp,
+                "TableModel base stub Sibling() must be skipped when marked [Qt.Ignore].");
+            Assert.DoesNotContain("Test::NumberTableModel::hasChildren(", cpp,
+                "TableModel base stub HasChildren() must be skipped when marked [Qt.Ignore].");
+        }
+
+        [TestMethod]
+        public void ListModelBaseStubs_Return_SensibleModelValues()
+        {
+            var model = new NameListModel("John", "Jane");
+
+            Assert.AreSame(ModelIndex.Empty, model.Index(0, 0, ModelIndex.Empty));
+            Assert.AreSame(ModelIndex.Empty, model.Sibling(0, 0, ModelIndex.Empty));
+            Assert.AreSame(ModelIndex.Empty, model.Parent(ModelIndex.Empty));
+            Assert.AreEqual(1, model.ColumnCount(ModelIndex.Empty));
+            Assert.AreEqual(0, model.ColumnCount(new ModelIndex(0, 0)));
+            Assert.IsTrue(model.HasChildren(ModelIndex.Empty));
+            Assert.IsFalse(model.HasChildren(new ModelIndex(0, 0)));
+        }
+
+        [TestMethod]
+        public void TableModelBaseStubs_Return_SensibleModelValues()
+        {
+            var model = new NumberTableModel(2, 3);
+
+            Assert.AreSame(ModelIndex.Empty, model.Index(0, 0, ModelIndex.Empty));
+            Assert.AreSame(ModelIndex.Empty, model.Sibling(0, 1, ModelIndex.Empty));
+            Assert.AreSame(ModelIndex.Empty, model.Parent(ModelIndex.Empty));
+            Assert.IsTrue(model.HasChildren(ModelIndex.Empty));
+            Assert.IsFalse(model.HasChildren(new ModelIndex(0, 0)));
         }
     }
 }

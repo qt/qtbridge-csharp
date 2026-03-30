@@ -10,30 +10,24 @@ namespace Qt.Bridge.Models
 
     public abstract class ListModel : Model
     {
+        [Qt.Ignore]
         public sealed override ModelIndex Index(int row, int column, ModelIndex parent)
-        {
-            throw new NotImplementedException();
-        }
+            => ModelIndex.Empty;
 
+        [Qt.Ignore]
         public sealed override ModelIndex Sibling(int row, int column, ModelIndex index)
-        {
-            throw new NotImplementedException();
-        }
+            => ModelIndex.Empty;
 
+        [Qt.Ignore]
         public sealed override int ColumnCount(ModelIndex parent)
-        {
-            throw new NotImplementedException();
-        }
+            => parent?.IsValid == true ? 0 : 1;
 
-        public sealed override ModelIndex Parent(ModelIndex index)
-        {
-            throw new NotImplementedException();
-        }
+        [Qt.Ignore]
+        public sealed override ModelIndex Parent(ModelIndex index) => ModelIndex.Empty;
 
+        [Qt.Ignore]
         public sealed override bool HasChildren(ModelIndex parent)
-        {
-            return base.HasChildren(parent);
-        }
+            => parent?.IsValid != true && RowCount(parent) > 0;
     }
 
     public abstract class ListModel<T> : ListModel
