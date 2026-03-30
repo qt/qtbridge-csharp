@@ -242,7 +242,7 @@ namespace Qt.Bridge.Models
                 return false;
             if (!CanRemoveRows(row, count))
                 return false;
-            BeginRemoveRows(parent, row, count - 1);
+            BeginRemoveRows(parent, row, row + count - 1);
             if (!RemoveRows(row, count))
                 return false;
             EndRemoveRows();
@@ -268,7 +268,7 @@ namespace Qt.Bridge.Models
                 return false;
             if (!CanRemoveColumns(column, count))
                 return false;
-            BeginRemoveColumns(parent, column, count - 1);
+            BeginRemoveColumns(parent, column, column + count - 1);
             if (!RemoveColumns(column, count))
                 return false;
             EndRemoveColumns();

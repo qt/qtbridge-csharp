@@ -23,6 +23,7 @@
     <Compile Remove="FunctionCalls\Program.cs" />
     <Compile Remove="HostLifecycle\Program.cs" />
     <Compile Remove="Models\TableModel\Program.cs" />
+    <Compile Remove="Models\TableModelRemoveRanges\Program.cs" />
     <Compile Remove="ObjectInterop\Program.cs" />
     <Compile Remove="QtQuickTest\Program.cs" />
     <Compile Remove="QtTest\Program.cs" />
@@ -102,6 +103,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Models\TableModel\tst_tablemodel.qml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Models\TableModelRemoveRanges\tst_modelremoveranges.qml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Models\TableModelRemoveRanges\Program.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="ObjectInterop\main.cpp">
