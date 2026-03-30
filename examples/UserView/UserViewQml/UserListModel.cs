@@ -31,9 +31,12 @@ namespace UserViewQml
             if (index < 0 || index > Count)
                 index = Count;
             BeginInsertRows(ModelIndex.Empty, index, index);
-            Users.Add(user, index);
-            Count = Users.Count;
-            EndInsertRows();
+            try {
+                Users.Add(user, index);
+                Count = Users.Count;
+            } finally {
+                EndInsertRows();
+            }
             PropertyChanged?.Invoke(this, new(nameof(Count)));
         }
 
@@ -44,10 +47,13 @@ namespace UserViewQml
             if (index < 0 || index > Count)
                 index = Count;
             BeginInsertRows(ModelIndex.Empty, index, index + users.Count - 1);
-            foreach (var user in users)
-                Users.Add(user, index++);
-            Count = Users.Count;
-            EndInsertRows();
+            try {
+                foreach (var user in users)
+                    Users.Add(user, index++);
+                Count = Users.Count;
+            } finally {
+                EndInsertRows();
+            }
             PropertyChanged?.Invoke(this, new(nameof(Count)));
         }
 
@@ -56,9 +62,12 @@ namespace UserViewQml
             if (index < 0 || index >= Count)
                 return;
             BeginRemoveRows(ModelIndex.Empty, index, index);
-            Users.RemoveAt(index);
-            Count = Users.Count;
-            EndRemoveRows();
+            try {
+                Users.RemoveAt(index);
+                Count = Users.Count;
+            } finally {
+                EndRemoveRows();
+            }
             PropertyChanged?.Invoke(this, new(nameof(Count)));
         }
 
@@ -72,9 +81,12 @@ namespace UserViewQml
                 return null;
             oldUser = Users.ElementAt(index);
             BeginRemoveRows(ModelIndex.Empty, index, index);
-            Users.RemoveAt(index);
-            Count = Users.Count;
-            EndRemoveRows();
+            try {
+                Users.RemoveAt(index);
+                Count = Users.Count;
+            } finally {
+                EndRemoveRows();
+            }
             PropertyChanged?.Invoke(this, new(nameof(Count)));
             return oldUser;
         }

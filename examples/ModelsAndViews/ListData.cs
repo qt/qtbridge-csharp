@@ -76,10 +76,13 @@ namespace ModelsAndViews
             if (count < 1)
                 return false;
             BeginInsertRows(parent, row, row + count - 1);
-            var newRows = Enumerable.Range(0, count)
-                .Select(_ => "(empty)");
-            Items.InsertRange(row, newRows);
-            EndInsertRows();
+            try {
+                var newRows = Enumerable.Range(0, count)
+                    .Select(_ => "(empty)");
+                Items.InsertRange(row, newRows);
+            } finally {
+                EndInsertRows();
+            }
             return true;
         }
 
@@ -92,8 +95,11 @@ namespace ModelsAndViews
             if (count < 1 || row + count > Items.Count)
                 return false;
             BeginRemoveRows(parent, row, row + count - 1);
-            Items.RemoveRange(row, count);
-            EndRemoveRows();
+            try {
+                Items.RemoveRange(row, count);
+            } finally {
+                EndRemoveRows();
+            }
             return true;
         }
     }

@@ -203,12 +203,15 @@ namespace ModelsAndViews
             if (count < 1)
                 return false;
             BeginInsertRows(parent, row, row + count - 1);
-            var newNodes = Enumerable.Range(0, count)
-                .Select(_ => new TreeNode("(empty)", "(empty)"))
-                .ToList();
-            foreach (var newNode in newNodes)
-                node.Insert(row, newNode);
-            EndInsertRows();
+            try {
+                var newNodes = Enumerable.Range(0, count)
+                    .Select(_ => new TreeNode("(empty)", "(empty)"))
+                    .ToList();
+                foreach (var newNode in newNodes)
+                    node.Insert(row, newNode);
+            } finally {
+                EndInsertRows();
+            }
             return true;
         }
 
@@ -223,9 +226,12 @@ namespace ModelsAndViews
             if (count < 1 || row + count > node.Children.Count)
                 return false;
             BeginRemoveRows(parent, row, row + count - 1);
-            node.Children.RemoveRange(row, count);
-            EndRemoveRows();
-            return false;
+            try {
+                node.Children.RemoveRange(row, count);
+            } finally {
+                EndRemoveRows();
+            }
+            return true;
         }
     }
 }
