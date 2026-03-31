@@ -180,4 +180,12 @@
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
   </ItemGroup>
 
+  <!-- Runtime access to build properties -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>Build.ProjectDir</_Parameter1>
+      <_Parameter2>$(ProjectDir)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>

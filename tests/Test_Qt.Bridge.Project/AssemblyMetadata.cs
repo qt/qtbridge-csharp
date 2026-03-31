@@ -11,6 +11,19 @@ namespace Test_Qt.Bridge.Project
     {
         public static string SelectedVersion { get; private set; }
 
+        public static class Build
+        {
+            public static string ProjectDir { get; private set; }
+
+            internal static void Init()
+            {
+                ProjectDir = Assembly.GetExecutingAssembly()
+                    .GetCustomAttributes<AssemblyMetadataAttribute>()
+                    .FirstOrDefault(m => m.Key == $"{nameof(Build)}.{nameof(ProjectDir)}")
+                    ?.Value;
+            }
+        }
+
         [ModuleInitializer]
         internal static void Init()
         {
@@ -18,6 +31,7 @@ namespace Test_Qt.Bridge.Project
                 .GetCustomAttributes<AssemblyMetadataAttribute>()
                 .FirstOrDefault(m => m.Key == "SelectedVersion")
                 ?.Value;
+            Build.Init();
         }
     }
 }
