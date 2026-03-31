@@ -34,14 +34,14 @@ namespace Test_Qt.Bridge.Project
             Action<string> log = x => buildMsgs.AppendLine(x);
             var msbuild = MsBuild.Start(log, log, examplesDir, [],
                 "-restore", "-p:Configuration=Debug", "-p:Platform=Any CPU", "-m", "-t:Rebuild");
-            await msbuild.WaitForExitAsync();
+            await msbuild.WaitForExitAsync(TestContext.CancellationTokenSource.Token);
 
             var buildSummary = Regex
                 .Match(buildMsgs.ToString(), @"(?<=\n)Build (FAILED|succeeded)\.(?:.|[\r\n])*");
             if (buildSummary.Success && buildSummary.Value is { Length: > 0 })
                 TestContext?.WriteLine(buildSummary.Value);
 
-            Assert.AreEqual(msbuild.ExitCode, 0);
+            Assert.AreEqual(0, msbuild.ExitCode);
         }
     }
 }
