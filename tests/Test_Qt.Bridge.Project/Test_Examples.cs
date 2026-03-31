@@ -16,6 +16,13 @@ namespace Test_Qt.Bridge.Project
         [TestMethod]
         public async Task Build_Examples()
         {
+            if (Environment.GetEnvironmentVariable("SKIP_EXAMPLES_TEST") is { } value
+                && (string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)))
+            {
+                Assert.Inconclusive("Skipping examples build because SKIP_EXAMPLES_TEST is set.");
+            }
+
             if (AssemblyMetadata.Build.ProjectDir is not { Length: > 0 })
                 Assert.Inconclusive();
             var examplesDir = Path.GetFullPath(Path
