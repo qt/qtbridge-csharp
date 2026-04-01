@@ -109,11 +109,11 @@
       >$(Qt_MajorNum).$(Qt_MinorNum).$(Qt_PatchNum).$(Qt_Timestamp)-$(Qt_Tag)</Version>
 
     <!-- MAJOR.MINOR.PATCH.BUILD -->
-    <Version Condition="'$(Qt_Build)' != '' AND '$(Qt_Tag)' == ''"
+    <Version Condition="'$(Qt_Build)' != '' AND '$(Qt_Build)' != '0' AND '$(Qt_Tag)' == ''"
       >$(Qt_MajorNum).$(Qt_MinorNum).$(Qt_PatchNum).$(Qt_BuildNum)</Version>
 
     <!-- MAJOR.MINOR.PATCH.BUILD-TAG -->
-    <Version Condition="'$(Qt_Build)' != '' AND '$(Qt_Tag)' != ''"
+    <Version Condition="'$(Qt_Build)' != '' AND '$(Qt_Build)' != '0' AND '$(Qt_Tag)' != ''"
       >$(Qt_MajorNum).$(Qt_MinorNum).$(Qt_PatchNum).$(Qt_BuildNum)-$(Qt_Tag)</Version>
 
     <SelectedVersion>$(Version)</SelectedVersion>
