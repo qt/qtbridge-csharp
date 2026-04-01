@@ -134,7 +134,7 @@ namespace SpreadsheetSandbox
                 return false;
 
             try {
-                Sheet.Row(row + 1).Delete();
+                Sheet.Rows(row + 1, row + count).Delete();
             } catch (Exception) {
                 return false;
             }
@@ -149,7 +149,7 @@ namespace SpreadsheetSandbox
                 return false;
 
             try {
-                Sheet.Column(column + 1).Delete();
+                Sheet.Columns(column + 1, column + count).Delete();
             } catch (Exception) {
                 return false;
             }
