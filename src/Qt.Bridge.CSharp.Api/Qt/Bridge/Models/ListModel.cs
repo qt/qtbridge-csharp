@@ -67,6 +67,8 @@ namespace Qt.Bridge.Models
 
         public sealed override object Data(ModelIndex index, int role)
         {
+            if (index is not { IsValid: true } || index.Row < 0)
+                return null;
             if (!RoleMap.TryGetValue(role, out var property))
                 return null;
             if (Data(index.Row) is not { } data)
