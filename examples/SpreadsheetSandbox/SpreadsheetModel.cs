@@ -60,6 +60,9 @@ namespace SpreadsheetSandbox
             return true;
         }
 
+        // Needed because QAIM::clearItemData() is not exposed to QML
+        public bool ClearCell(int row, int col) => ClearItemData(row, col);
+
         protected override int Rows => Sheet.LastRowUsed()?.RowNumber() ?? 0;
 
         protected override int Columns => Sheet.LastColumnUsed()?.ColumnNumber() ?? 0;

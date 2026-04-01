@@ -160,7 +160,7 @@ ApplicationWindow {
 
             Keys.onDeletePressed: (keyEvent) => {
                 keyEvent.accepted = true
-                Spreadsheet.clearItemData(currentRow, currentColumn)
+                Spreadsheet.clearCell(currentRow, currentColumn)
                 resetFormula()
             }
 
