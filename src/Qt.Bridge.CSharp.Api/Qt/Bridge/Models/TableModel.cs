@@ -107,7 +107,7 @@ namespace Qt.Bridge.Models
 
         public sealed override int RowCount(ModelIndex idx) => idx is { IsValid: true } ? 0 : Rows;
 
-        public sealed override int ColumnCount(ModelIndex idx) => Columns;
+        public sealed override int ColumnCount(ModelIndex idx) => idx is { IsValid: true } ? 0 : Columns;
 
         public sealed override int Flags(ModelIndex index)
         {

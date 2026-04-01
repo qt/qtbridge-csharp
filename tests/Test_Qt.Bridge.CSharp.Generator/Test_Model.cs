@@ -211,6 +211,8 @@ namespace Test_Qt.Bridge.CSharp.Generator
             Assert.AreSame(ModelIndex.Empty, model.Index(0, 0, ModelIndex.Empty));
             Assert.AreSame(ModelIndex.Empty, model.Sibling(0, 1, ModelIndex.Empty));
             Assert.AreSame(ModelIndex.Empty, model.Parent(ModelIndex.Empty));
+            Assert.AreEqual(3, model.ColumnCount(ModelIndex.Empty));
+            Assert.AreEqual(0, model.ColumnCount(new ModelIndex(0, 0)));
             Assert.IsTrue(model.HasChildren(ModelIndex.Empty));
             Assert.IsFalse(model.HasChildren(new ModelIndex(0, 0)));
         }
