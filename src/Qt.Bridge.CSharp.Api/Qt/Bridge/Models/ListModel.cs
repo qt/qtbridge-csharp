@@ -80,7 +80,7 @@ namespace Qt.Bridge.Models
 
         public sealed override int RowCount(ModelIndex parent)
         {
-            return ItemCount();
+            return parent?.IsValid == true ? 0 : ItemCount();
         }
 
         protected void BeginInsertItems(int first, int last)
