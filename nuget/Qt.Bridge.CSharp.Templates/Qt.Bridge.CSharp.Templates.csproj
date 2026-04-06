@@ -7,6 +7,8 @@
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_version.props))" />
   <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_template.targets))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_rid.props))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_bridge_package.props))" />
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -63,6 +65,9 @@
       <QtTemplateToken Remove="@(QtTemplateToken)" />
       <QtTemplateToken Include="__PACKAGE_ID__">
         <ReplacementValue>$(PackageId)</ReplacementValue>
+      </QtTemplateToken>
+      <QtTemplateToken Include="__QT_BRIDGE_PACKAGE_ID__">
+        <ReplacementValue>$(QtBridgePackageId)</ReplacementValue>
       </QtTemplateToken>
       <QtTemplateToken Include="__PACKAGE_VERSION__">
         <ReplacementValue>$(PackageVersion)</ReplacementValue>
