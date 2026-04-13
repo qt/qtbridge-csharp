@@ -66,15 +66,16 @@ namespace Qt.Bridge.Models
     /// </para>
     /// <para>
     /// If <typeparamref name="T"/> is a simple convertible type such as <see cref="string"/> or
-    /// <see cref="int"/>, the model automatically exposes the value through the <c>item</c> role.
-    /// If <typeparamref name="T"/> is a custom type, the model still exposes the whole item through
-    /// the <c>item</c> role and also exposes each public instance property as an additional named
-    /// role.
+    /// <see cref="int"/>, the model automatically exposes built-in <c>display</c>, <c>edit</c>,
+    /// and <c>item</c> roles. If <typeparamref name="T"/> is a custom type, the model can derive
+    /// values from <see cref="IDisplayable"/>, <see cref="IEditable"/>, and
+    /// <see cref="IModelItem"/>, and it also exposes each public instance property as an
+    /// additional named role.
     /// </para>
     /// <para>
-    /// This generic base class is intentionally lightweight. Unlike <see cref="TableModel{T}"/>, it
-    /// does not add built-in editing or display-specific interfaces. If you need fully custom role
-    /// names or custom role lookup logic, derive from <see cref="ListModel"/> instead and override
+    /// The generic list model follows the same item-type conventions as <see cref="TableModel{T}"/>
+    /// while keeping a one-dimensional shape. If you need fully custom role names or custom role
+    /// lookup logic, derive from <see cref="ListModel"/> instead and override
     /// <see cref="Model.RoleNames"/> and <see cref="Model.Data(ModelIndex, int)"/> yourself.
     /// </para>
     /// <code language="csharp"><![CDATA[
@@ -113,12 +114,44 @@ namespace Qt.Bridge.Models
         /// </remarks>
         public abstract T Data(int index);
 
+        /// <summary>
+        /// Updates the item at the specified row.
+        /// </summary>
+        /// <returns>
+        /// <see langword="true"/> if the item was updated; otherwise, <see langword="false"/>.
+        /// </returns>
+        /// <remarks>
+        /// Override this when the list should support replacing whole items, such as for editable
+        /// simple value types or when exposing the <c>item</c> role for custom types.
+        /// </remarks>
         protected virtual bool SetData(int index, T value) => false;
 
+        /// <summary>
+        /// Clears the value associated with the specified row.
+        /// </summary>
+        /// <remarks>
+        /// Override this when your list supports a dedicated clear operation distinct from setting
+        /// a normal value. The default implementation returns <see langword="false"/>.
+        /// </remarks>
         protected virtual bool ClearItemData(int index) => false;
 
+        /// <summary>
+        /// Gets whether the model should reject all edit operations.
+        /// </summary>
+        /// <remarks>
+        /// When this property returns <see langword="true"/>, the model does not expose the
+        /// built-in edit role and <see cref="SetData(ModelIndex, object, int)"/> always returns
+        /// <see langword="false"/>.
+        /// </remarks>
         protected virtual bool IsReadOnly => false;
 
+        /// <summary>
+        /// Gets whether the whole item should be exposed through the <c>item</c> role.
+        /// </summary>
+        /// <remarks>
+        /// The default implementation returns <see langword="true"/> for backward compatibility
+        /// with existing list-model usage patterns.
+        /// </remarks>
         protected virtual bool HasItemRole => true;
 
         private readonly Type itemType = typeof(T);
@@ -136,9 +169,8 @@ namespace Qt.Bridge.Models
         /// Gets the role-to-property map inferred from <typeparamref name="T"/>.
         /// </summary>
         /// <remarks>
-        /// The map always includes <see cref="Model.Roles.UserRole"/> for the whole item under the
-        /// <c>item</c> role. For custom item types, each public instance property is assigned the
-        /// next available role id and exposed under its QML-style property name.
+        /// For custom item types, each public instance property is assigned the next available role
+        /// id after the optional <c>item</c> role and exposed under its QML-style property name.
         /// </remarks>
         protected Dictionary<int, PropertyInfo> RoleMap
         {
@@ -162,8 +194,9 @@ namespace Qt.Bridge.Models
         /// Returns the role names inferred from <typeparamref name="T"/>.
         /// </summary>
         /// <remarks>
-        /// The returned dictionary always includes the <c>item</c> role for the whole list item.
-        /// For custom item types, additional roles are generated from public instance properties.
+        /// Depending on the item type, this can include the built-in <c>display</c> and
+        /// <c>edit</c> roles, the optional <c>item</c> role for the whole list item, and
+        /// property-based roles generated from public instance properties.
         /// </remarks>
         public sealed override Dictionary<int, string> RoleNames()
         {
@@ -186,9 +219,10 @@ namespace Qt.Bridge.Models
         /// Returns the value for the specified row and role.
         /// </summary>
         /// <remarks>
-        /// For the <c>item</c> role, this returns the full item from <see cref="Data(int)"/>. For
-        /// property-based roles, it returns the corresponding public property value from the item.
-        /// Invalid model indexes are rejected before the row lookup is attempted.
+        /// For simple value types, the built-in display and edit roles return the item directly.
+        /// For custom item types, the base class uses <see cref="IDisplayable"/>,
+        /// <see cref="IEditable"/>, the optional <c>item</c> role, and public instance properties
+        /// to resolve role values.
         /// </remarks>
         public sealed override object Data(ModelIndex index, int role)
         {
@@ -219,6 +253,14 @@ namespace Qt.Bridge.Models
             return property.GetValue(data);
         }
 
+        /// <summary>
+        /// Returns the capability flags for the specified item.
+        /// </summary>
+        /// <remarks>
+        /// The base implementation derives enabled/selectable state from <see cref="IModelItem"/>
+        /// when available and derives editability from <see cref="IsReadOnly"/>,
+        /// <typeparamref name="T"/>, and <see cref="IEditable"/>.
+        /// </remarks>
         public sealed override int Flags(ModelIndex index)
         {
             if (index is not { IsValid: true } || Data(index.Row) is not { } item)
@@ -252,6 +294,15 @@ namespace Qt.Bridge.Models
             return parent?.IsValid == true ? 0 : ItemCount();
         }
 
+        /// <summary>
+        /// Updates the value for the specified row and role.
+        /// </summary>
+        /// <remarks>
+        /// For editable simple value types, this updates the item through <see cref="SetData(int, T)"/>.
+        /// For custom item types, it updates either <see cref="IEditable.EditValue"/>, the full
+        /// item via the <c>item</c> role, or a writable public property. Successful updates
+        /// automatically notify connected views.
+        /// </remarks>
         public sealed override bool SetData(ModelIndex index, object value, int role)
         {
             if (IsReadOnly)
@@ -292,6 +343,13 @@ namespace Qt.Bridge.Models
             }
         }
 
+        /// <summary>
+        /// Clears the value associated with the specified row.
+        /// </summary>
+        /// <remarks>
+        /// This forwards a valid model index to <see cref="ClearItemData(int)"/> and rejects
+        /// invalid indexes.
+        /// </remarks>
         public sealed override bool ClearItemData(ModelIndex index)
         {
             if (index is not { IsValid: true } || index.Row < 0)
@@ -299,6 +357,9 @@ namespace Qt.Bridge.Models
             return ClearItemData(index.Row);
         }
 
+        /// <summary>
+        /// Notifies that a single list item changed in place.
+        /// </summary>
         protected void DataChanged(int index)
         {
             var idx = new ModelIndex(index, 0);
