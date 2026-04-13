@@ -18,6 +18,8 @@ namespace Tutorial
 
         public override string Data(int index)
         {
+            if (index < 0)
+                return null;
             if (index >= Names.Count)
                 return null;
             return Names[index];

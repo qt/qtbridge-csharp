@@ -30,6 +30,63 @@ namespace Test_Qt.Bridge.CSharp.Generator
             public override string Data(int index) => items[index];
         }
 
+        private sealed class EditableNameListModel(params string[] items)
+            : ListModel<string>
+        {
+            private readonly List<string> items = items.ToList();
+
+            public override int ItemCount() => items.Count;
+            public override string Data(int index) => items[index];
+
+            protected override bool SetData(int index, string value)
+            {
+                if (index < 0 || index >= items.Count)
+                    return false;
+                items[index] = value;
+                return true;
+            }
+
+            public Dictionary<int, string> GetRoleNames() => RoleNames();
+            public object GetData(ModelIndex index, int role) => Data(index, role);
+            public bool SetEdit(ModelIndex index, object value) => SetData(index, value, Roles.EditRole);
+        }
+
+        private sealed class PersonItem : IModelItem, IDisplayable, IEditable
+        {
+            public string Name { get; set; }
+            public bool IsEnabled { get; init; }
+            public bool IsSelectable { get; init; }
+            public bool IsEditable { get; init; }
+            public object DisplayValue => $"Display:{Name}";
+            public object EditValue
+            {
+                get => Name;
+                set => Name = value?.ToString();
+            }
+        }
+
+        private sealed class PersonListModel(params PersonItem[] items)
+            : ListModel<PersonItem>
+        {
+            private readonly List<PersonItem> items = items.ToList();
+
+            public override int ItemCount() => items.Count;
+            public override PersonItem Data(int index) => items[index];
+
+            protected override bool SetData(int index, PersonItem value)
+            {
+                if (index < 0 || index >= items.Count)
+                    return false;
+                items[index] = value;
+                return true;
+            }
+
+            public Dictionary<int, string> GetRoleNames() => RoleNames();
+            public object GetData(ModelIndex index, int role) => Data(index, role);
+            public bool SetByRole(ModelIndex index, object value, int role) => SetData(index, value, role);
+            public int GetFlags(ModelIndex index) => Flags(index);
+        }
+
         private sealed class NumberTableModel(int rows, int columns)
             : TableModel<int>
         {
@@ -203,6 +260,57 @@ namespace Test_Qt.Bridge.CSharp.Generator
             Assert.AreEqual(0, model.ColumnCount(new ModelIndex(0, 0)));
             Assert.IsTrue(model.HasChildren(ModelIndex.Empty));
             Assert.IsFalse(model.HasChildren(new ModelIndex(0, 0)));
+        }
+
+        [TestMethod]
+        public void GenericListModel_ConvertibleType_Exposes_Display_Edit_And_ItemRoles()
+        {
+            var model = new EditableNameListModel("Jane");
+            var index = new ModelIndex(0, 0);
+
+            var roles = model.GetRoleNames();
+            Assert.AreEqual("display", roles[0]);
+            Assert.AreEqual("edit", roles[2]);
+            Assert.AreEqual("item", roles[0x0100]);
+
+            Assert.AreEqual("Jane", model.GetData(index, 0));
+            Assert.AreEqual("Jane", model.GetData(index, 2));
+            Assert.AreEqual("Jane", model.GetData(index, 0x0100));
+
+            Assert.IsTrue(model.SetEdit(index, "Grace"));
+            Assert.AreEqual("Grace", model.GetData(index, 0));
+        }
+
+        [TestMethod]
+        public void GenericListModel_CustomType_Uses_ItemInterfaces_And_PropertyRoles()
+        {
+            var item = new PersonItem {
+                Name = "John",
+                IsEnabled = true,
+                IsSelectable = false,
+                IsEditable = true
+            };
+            var model = new PersonListModel(item);
+            var index = new ModelIndex(0, 0);
+
+            var roles = model.GetRoleNames();
+            var nameRole = roles.Single(x => x.Value == "name").Key;
+
+            Assert.AreEqual("display", roles[0]);
+            Assert.AreEqual("edit", roles[2]);
+            Assert.AreEqual("item", roles[0x0100]);
+            Assert.AreEqual("John", model.GetData(index, 2));
+            Assert.AreEqual("Display:John", model.GetData(index, 0));
+            Assert.AreEqual("John", model.GetData(index, nameRole));
+            Assert.AreEqual(item, model.GetData(index, 0x0100));
+
+            Assert.AreEqual(32 | 2, model.GetFlags(index));
+
+            Assert.IsTrue(model.SetByRole(index, "Grace", 2));
+            Assert.AreEqual("Grace", item.Name);
+
+            Assert.IsTrue(model.SetByRole(index, "Jane", nameRole));
+            Assert.AreEqual("Jane", item.Name);
         }
 
         [TestMethod]

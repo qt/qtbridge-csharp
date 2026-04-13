@@ -95,6 +95,8 @@ namespace Qt.Bridge.Models
     /// </remarks>
     public abstract class ListModel<T> : ListModel
     {
+        private const int ItemRole = Roles.UserRole;
+
         /// <summary>
         /// Returns the number of items in the list.
         /// </summary>
@@ -111,8 +113,24 @@ namespace Qt.Bridge.Models
         /// </remarks>
         public abstract T Data(int index);
 
-        private Dictionary<int, PropertyInfo> _RoleMap = null;
-        private Dictionary<int, string> _RoleNames = null;
+        protected virtual bool SetData(int index, T value) => false;
+
+        protected virtual bool ClearItemData(int index) => false;
+
+        protected virtual bool IsReadOnly => false;
+
+        protected virtual bool HasItemRole => true;
+
+        private readonly Type itemType = typeof(T);
+        private bool ItemTypeIsConvertible => ValueConverter.IsConvertible(itemType);
+        private bool ItemTypeIsModelItem => itemType.IsAssignableTo(typeof(IModelItem));
+        private bool ItemTypeIsDisplayable
+            => ItemTypeIsConvertible || itemType.IsAssignableTo(typeof(IDisplayable));
+        private bool ItemTypeIsEditable
+            => ItemTypeIsConvertible || itemType.IsAssignableTo(typeof(IEditable));
+
+        private Dictionary<int, PropertyInfo> roleMap;
+        private Dictionary<int, string> roleNames;
 
         /// <summary>
         /// Gets the role-to-property map inferred from <typeparamref name="T"/>.
@@ -126,20 +144,17 @@ namespace Qt.Bridge.Models
         {
             get
             {
-                if (_RoleMap == null) {
-                    var type = typeof(T);
-                    _RoleMap = new() { { Roles.UserRole, null } };
-                    _RoleNames = new() { { Roles.UserRole, "item" } };
-                    if (!ValueConverter.IsConvertible(type)) {
-                        int i = 0;
-                        foreach (var prop in type.GetProperties()) {
-                            ++i;
-                            _RoleMap[Roles.UserRole + i] = prop;
-                            _RoleNames[Roles.UserRole + i] = prop.Name.ToQmlPropertyName();
-                        }
-                    }
-                }
-                return _RoleMap;
+                if (roleMap != null)
+                    return roleMap;
+
+                roleMap = new Dictionary<int, PropertyInfo>();
+                if (ItemTypeIsConvertible)
+                    return roleMap;
+
+                var props = itemType.GetProperties();
+                for (int i = 0; i < props.Length; ++i)
+                    roleMap[ItemRole + i + 1] = props[i];
+                return roleMap;
             }
         }
 
@@ -152,9 +167,19 @@ namespace Qt.Bridge.Models
         /// </remarks>
         public sealed override Dictionary<int, string> RoleNames()
         {
-            if (!RoleMap.Any())
-                return null;
-            return _RoleNames;
+            if (roleNames != null)
+                return roleNames.Any() ? roleNames : null;
+
+            roleNames = new Dictionary<int, string>();
+            if (ItemTypeIsDisplayable)
+                roleNames[Roles.DisplayRole] = "display";
+            if (ItemTypeIsEditable && !IsReadOnly)
+                roleNames[Roles.EditRole] = "edit";
+            if (HasItemRole)
+                roleNames[ItemRole] = "item";
+            foreach (var entry in RoleMap)
+                roleNames[entry.Key] = entry.Value.Name.ToQmlPropertyName();
+            return roleNames.Any() ? roleNames : null;
         }
 
         /// <summary>
@@ -169,13 +194,50 @@ namespace Qt.Bridge.Models
         {
             if (index is not { IsValid: true } || index.Row < 0)
                 return null;
-            if (!RoleMap.TryGetValue(role, out var property))
-                return null;
             if (Data(index.Row) is not { } data)
                 return null;
-            if (property == null)
+
+            switch (role) {
+            case Roles.DisplayRole when ItemTypeIsConvertible:
                 return data;
+            case Roles.DisplayRole when data is IDisplayable displayableItem:
+                return displayableItem.DisplayValue;
+            case Roles.DisplayRole:
+                return null;
+            case Roles.EditRole when ItemTypeIsConvertible:
+                return data;
+            case Roles.EditRole when data is IEditable { IsEditable: true } editableItem:
+                return editableItem.EditValue;
+            case Roles.EditRole:
+                return null;
+            case ItemRole when HasItemRole:
+                return data;
+            }
+
+            if (!RoleMap.TryGetValue(role, out var property) || property is not { CanRead: true })
+                return null;
             return property.GetValue(data);
+        }
+
+        public sealed override int Flags(ModelIndex index)
+        {
+            if (index is not { IsValid: true } || Data(index.Row) is not { } item)
+                return ItemFlags.NoItemFlags;
+
+            var flags = ItemFlags.NoItemFlags;
+            if (ItemTypeIsModelItem) {
+                if (item is IModelItem { IsEnabled: true })
+                    flags |= ItemFlags.ItemIsEnabled;
+                if (item is IModelItem { IsSelectable: true })
+                    flags |= ItemFlags.ItemIsSelectable;
+            } else {
+                flags = base.Flags(index);
+            }
+
+            if (!IsReadOnly && (ItemTypeIsConvertible || item is IEditable { IsEditable: true }))
+                flags |= ItemFlags.ItemIsEditable;
+
+            return flags;
         }
 
         /// <summary>
@@ -188,6 +250,59 @@ namespace Qt.Bridge.Models
         public sealed override int RowCount(ModelIndex parent)
         {
             return parent?.IsValid == true ? 0 : ItemCount();
+        }
+
+        public sealed override bool SetData(ModelIndex index, object value, int role)
+        {
+            if (IsReadOnly)
+                return false;
+            if (index is not { IsValid: true } || index.Row < 0 || Data(index.Row) is not { } item)
+                return false;
+
+            switch (role) {
+            case Roles.EditRole when ItemTypeIsConvertible: {
+                    if (!SetData(index.Row, ValueConverter.ToValue<T>(value)))
+                        return false;
+                    DataChanged(index, index);
+                    return true;
+                }
+            case Roles.EditRole when item is IEditable { IsEditable: true } editableItem:
+                editableItem.EditValue = value;
+                DataChanged(index, index);
+                return true;
+            case Roles.EditRole:
+                return false;
+            case ItemRole when HasItemRole && value is T newItem: {
+                    if (!SetData(index.Row, newItem))
+                        return false;
+                    DataChanged(index, index);
+                    return true;
+                }
+            }
+
+            if (!RoleMap.TryGetValue(role, out var prop) || prop is not { CanWrite: true })
+                return false;
+
+            try {
+                prop.SetValue(item, value);
+                DataChanged(index, index);
+                return true;
+            } catch (Exception) {
+                return false;
+            }
+        }
+
+        public sealed override bool ClearItemData(ModelIndex index)
+        {
+            if (index is not { IsValid: true } || index.Row < 0)
+                return false;
+            return ClearItemData(index.Row);
+        }
+
+        protected void DataChanged(int index)
+        {
+            var idx = new ModelIndex(index, 0);
+            DataChanged(idx, idx);
         }
 
         /// <summary>
