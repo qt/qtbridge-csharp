@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
+-->
+<PackageManifest
+  Version="2.0.0"
+  xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011"
+  xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity
+      Id="Qt.Bridge.CSharp.VisualStudio"
+      Version="1.0"
+      Language="en-US"
+      Publisher="The Qt Company Ltd." />
+    <DisplayName>Qt Bridge for C#</DisplayName>
+    <Description
+      xml:space="preserve">Visual Studio extension for Qt Bridge for C# projects.</Description>
+    <License>GPL-3.0-only.txt</License>
+    <Icon>qt.ico</Icon>
+    <Preview>true</Preview>
+  </Metadata>
+  <Installation ExtensionType="VSSDK+VisualStudio.Extensibility">
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.14,)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.14,)">
+      <ProductArchitecture>arm64</ProductArchitecture>
+    </InstallationTarget>
+  </Installation>
+  <Dependencies>
+    <Dependency
+      Id="Microsoft.Framework.NDP"
+      DisplayName="Microsoft .NET Framework"
+      d:Source="Manual"
+      Version="[4.7.2,)" />
+  </Dependencies>
+  <Prerequisites>
+    <Prerequisite
+      Id="Microsoft.VisualStudio.Component.CoreEditor"
+      Version="[17.0,)"
+      DisplayName="Visual Studio core editor" />
+  </Prerequisites>
+</PackageManifest>

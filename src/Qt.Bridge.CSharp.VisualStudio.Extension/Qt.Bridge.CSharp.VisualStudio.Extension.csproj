@@ -1,0 +1,38 @@
+<!--
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>12</LangVersion>
+    <UseWPF>true</UseWPF>
+    <VssdkCompatibleExtension>true</VssdkCompatibleExtension>
+    <TargetVsixContainerName>Qt.Bridge.CSharp.vsix</TargetVsixContainerName>
+    <NoWarn>$(NoWarn);VSEXTPREVIEW_LSP</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="GPL-3.0-only.txt" />
+    <None Remove="qt.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="GPL-3.0-only.txt">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="qt.ico">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Qt.Bridge.CSharp.VisualStudio.Core\Qt.Bridge.CSharp.VisualStudio.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="17.14.40608" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40608" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" />
+  </ItemGroup>
+</Project>
