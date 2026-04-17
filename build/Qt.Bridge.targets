@@ -276,6 +276,121 @@ namespace Qt.Qml
 
   <!--
   //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtBridgeWriteQmlMetadataFile
+  //
+  // Writes qtbridge-qml.ide.json to obj\[Platform\]Configuration\ so that the
+  // Qt Bridge Visual Studio extension can configure and start the QML Language
+  // Server without inspecting the full MSBuild graph.
+  //
+  // Timing: AfterTargets="PrepareForBuild" - runs before C# compilation.
+  // All required values are evaluated properties; no compiler outputs are needed.
+  // The file is rewritten only when its content changes (WriteOnlyWhenDifferent)
+  // to avoid spurious file-watcher churn in the extension.
+  -->
+  <Target Name="QtBridgeWriteQmlMetadataFile" AfterTargets="PrepareForBuild"
+    Condition="'$(DesignTimeBuild)' != 'true'">
+
+    <PropertyGroup>
+      <!-- Absolute paths to the Qt-native source and build directories. -->
+      <_QtIdeSrcDir>$(ProjectDir)$(IntermediateOutputPath)qt\native\source</_QtIdeSrcDir>
+      <_QtIdeBldDir>$(ProjectDir)$(IntermediateOutputPath)qt\native\build</_QtIdeBldDir>
+
+      <!--
+        Metadata file directory: obj\[Platform\]Configuration\.
+        For real platforms (x64, arm64 …), include the platform segment - this matches
+        IntermediateOutputPath and what the VS extension resolves via SolutionConfiguration2.
+        For Any CPU / AnyCPU / unspecified, use the bare obj\Configuration\ path.
+        MSBuild uses 'AnyCPU' (no space) internally; Visual Studio passes 'Any CPU'
+        (with space) as the platform name. Both must be treated as unqualified so the
+        metadata file is written to obj\Debug\ instead of obj\Any CPU\Debug\, matching the
+        plain layout MSBuild produces for AnyCPU and the provider's exact-path lookup.
+      -->
+      <_QtMetadataFileDir
+        Condition="'$(Platform)' == ''
+                OR '$(Platform)' == 'AnyCPU'
+                OR '$(Platform)' == 'Any CPU'"
+        >$(ProjectDir)$(BaseIntermediateOutputPath)$(Configuration)</_QtMetadataFileDir>
+      <_QtMetadataFileDir
+        Condition="'$(Platform)' != ''
+               AND '$(Platform)' != 'AnyCPU'
+               AND '$(Platform)' != 'Any CPU'"
+        >$(ProjectDir)$(BaseIntermediateOutputPath)$(Platform)\$(Configuration)</_QtMetadataFileDir>
+
+      <!-- JSON-escaped path strings (backslash -> double-backslash). -->
+      <_QtIdeJProjFile>$([System.String]::Copy(
+        '$(MSBuildProjectFullPath)').Replace('\', '\\'))</_QtIdeJProjFile>
+      <_QtIdeJProjDir>$([System.String]::Copy(
+        '$(ProjectDir)').Replace('\', '\\'))</_QtIdeJProjDir>
+      <_QtIdeJSrcDir>$([System.String]::Copy(
+        '$(_QtIdeSrcDir)').Replace('\', '\\'))</_QtIdeJSrcDir>
+      <_QtIdeJBldDir>$([System.String]::Copy(
+        '$(_QtIdeBldDir)').Replace('\', '\\'))</_QtIdeJBldDir>
+      <_QtIdeJModDir>$([System.String]::Copy(
+        '$(_QtIdeBldDir)\$(QtQmlRootModuleName)').Replace('\', '\\'))</_QtIdeJModDir>
+      <_QtIdeJSourceQmlDir>$([System.String]::Copy(
+        '$(_QtIdeSrcDir)\qml').Replace('\', '\\'))</_QtIdeJSourceQmlDir>
+      <_QtIdeJQtQmlDir Condition="'$(QtDir)' != ''">$([System.String]::Copy(
+        $([System.IO.Path]::GetFullPath('$(QtDir)\qml'))).Replace('\', '\\'))</_QtIdeJQtQmlDir>
+
+      <!--
+        importPaths JSON array content (no surrounding brackets).
+        Always includes the QML module output directory and the generated source QML
+        root for copied QML modules such as QtExampleStyle. Appends the Qt QML
+        directory from the NuGet package tools tree when $(QtDir) is set,
+        suppressing the CI-baked qmlls fallback import path (D:/a/qmlls-workflow/...).
+        Written as a compact single-line array in the metadata file.
+      -->
+      <_QtIdeImportPaths
+        Condition="'$(_QtIdeJQtQmlDir)' == ''">"$(_QtIdeJModDir)", "$(_QtIdeJSourceQmlDir)"</_QtIdeImportPaths>
+      <_QtIdeImportPaths
+        Condition="'$(_QtIdeJQtQmlDir)' != ''">"$(_QtIdeJModDir)", "$(_QtIdeJSourceQmlDir)", "$(_QtIdeJQtQmlDir)"</_QtIdeImportPaths>
+    </PropertyGroup>
+
+    <!--
+      Create the metadata file directory and both validated directories (sourceDir and
+      buildDirs[0]) before writing the metadata file. The extension validates that these
+      directories exist on disk before starting the QML Language Server; without this,
+      the first watcher notification (fired when the metadata file appears) arrives before
+      QtBridgeGenerate/QtBridgeBuild have run, validation fails, and the server never
+      starts unless the user manually reopens the QML file after the build completes.
+      Empty directories are sufficient - qmlls starts without requiring their contents.
+    -->
+    <MakeDir Directories="$(_QtMetadataFileDir);$(_QtIdeSrcDir);$(_QtIdeSrcDir)\qml;$(_QtIdeBldDir)" />
+
+    <!--
+      Keep the metadata JSON as readable multiline text and let MSBuild expand the
+      embedded properties before writing the file. WriteOnlyWhenDifferent prevents
+      timestamp changes when nothing has changed, avoiding unnecessary file-watcher
+      notifications in the VS extension.
+    -->
+    <PropertyGroup>
+      <_QtMetadataJson><![CDATA[{
+  "version": 1,
+  "projectFile": "$(_QtIdeJProjFile)",
+  "configuration": "$(Configuration)",
+  "targetFramework": "$(TargetFramework)",
+  "qml": {
+    "sourceDir": "$(_QtIdeJSrcDir)",
+    "projectSourceDir": "$(_QtIdeJProjDir)",
+    "buildDirs": [
+      "$(_QtIdeJBldDir)"
+    ],
+    "importPaths": [$(_QtIdeImportPaths)]
+  },
+  "qmlLanguageServer": {
+    "disableCMakeCalls": true
+  }
+}]]></_QtMetadataJson>
+    </PropertyGroup>
+    <WriteLinesToFile Overwrite="true" WriteOnlyWhenDifferent="true"
+      File="$(_QtMetadataFileDir)\qtbridge-qml.ide.json"
+      Lines="$(_QtMetadataJson)" />
+
+  </Target>
+  <!-- END QtBridgeWriteQmlMetadataFile-->
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
   // QtBridgeDeploy
   -->
   <Target Name="QtBridgeDeploy"
