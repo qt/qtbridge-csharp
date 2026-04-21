@@ -37,19 +37,47 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
                 if (TryGetCachedInstallation(out var cached))
                     return cached!;
 
-                var latestRelease = await releaseClient.GetLatestReleaseAsync(ct);
+                QmlLanguageServerRelease latestRelease;
+                try {
+                    latestRelease = await releaseClient.GetLatestReleaseAsync(ct);
+                } catch (QmlLanguageServerAssetException ex) {
+                    throw new QmlLanguageServerInstallException(
+                        QmlLanguageServerInstallError.NoMatchingAsset,
+                        "No QML Language Server package found for this platform.", ex);
+                } catch (Exception ex) when (ex is not OperationCanceledException
+                    and not QmlLanguageServerInstallException) {
+                    throw new QmlLanguageServerInstallException(
+                        QmlLanguageServerInstallError.ReleaseMetadataUnavailable,
+                        "Could not fetch QML Language Server release metadata.", ex);
+                }
+
                 var installDir = QmlLanguageServerPaths.GetInstallDirectory(latestRelease.TagName);
 
                 if (TryReadMatchingInstallation(installDir, latestRelease, out var existing)) {
-                    await WriteCurrentInstallationManifestAsync(existing, ct);
+                    await WriteCurrentManifestGuardedAsync(existing, ct);
                     return existing;
                 }
 
                 var install = await InstallReleaseAsync(latestRelease, installDir, ct);
-                await WriteCurrentInstallationManifestAsync(install, ct);
+                await WriteCurrentManifestGuardedAsync(install, ct);
                 return install;
             } finally {
                 installationLock.Release();
+            }
+        }
+
+        private static async Task WriteCurrentManifestGuardedAsync(
+            QmlLanguageServerInstallation installation,
+            CancellationToken ct)
+        {
+            try {
+                await WriteCurrentInstallationManifestAsync(installation, ct);
+            } catch (Exception ex) when (ex is not OperationCanceledException) {
+                throw new QmlLanguageServerInstallException(
+                    QmlLanguageServerInstallError.ManifestWriteFailed,
+                    "Could not save the QML Language Server install manifest.", ex) {
+                    InstallDirectory = installation.InstallDirectory
+                };
             }
         }
 
@@ -58,44 +86,103 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
             string installDirectory,
             CancellationToken ct)
         {
-            Directory.CreateDirectory(QmlLanguageServerPaths.RootDirectory);
-            Directory.CreateDirectory(QmlLanguageServerPaths.VersionsDirectory);
+            try {
+                Directory.CreateDirectory(QmlLanguageServerPaths.RootDirectory);
+                Directory.CreateDirectory(QmlLanguageServerPaths.VersionsDirectory);
+            } catch (Exception ex) when (ex is not OperationCanceledException) {
+                throw new QmlLanguageServerInstallException(
+                    QmlLanguageServerInstallError.InstallDirectoryAccessDenied,
+                    "Cannot create the QML Language Server install directory.", ex) {
+                    InstallDirectory = QmlLanguageServerPaths.RootDirectory
+                };
+            }
 
             var stagingDirectory = installDirectory + ".tmp-" + Guid.NewGuid().ToString("N");
             var downloadPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".zip");
 
             try {
-                await DownloadArchiveAsync(release.Asset.DownloadUrl, downloadPath, ct);
+                try {
+                    await DownloadArchiveAsync(release.Asset.DownloadUrl, downloadPath, ct);
+                } catch (Exception ex) when (ex is not OperationCanceledException
+                    and not QmlLanguageServerInstallException) {
+                    throw new QmlLanguageServerInstallException(
+                        QmlLanguageServerInstallError.DownloadFailed, "Could not download the QML "
+                            + $"Language Server from '{release.Asset.DownloadUrl}'.", ex) {
+                        AssetName = release.Asset.Name,
+                        DownloadUrl = release.Asset.DownloadUrl
+                    };
+                }
+
+                // VerifyArchiveDigestAsync already throws QmlLanguageServerInstallException
+                // with DigestMismatch for verification failures.
                 await VerifyArchiveDigestAsync(downloadPath, release.Asset.Sha256Digest, ct);
 
-                if (Directory.Exists(stagingDirectory))
-                    Directory.Delete(stagingDirectory, recursive: true);
+                try {
+                    if (Directory.Exists(stagingDirectory))
+                        Directory.Delete(stagingDirectory, recursive: true);
+                    Directory.CreateDirectory(stagingDirectory);
+                    await archiveExtractor.ExtractAsync(downloadPath, stagingDirectory, ct);
+                } catch (Exception ex) when (ex is not OperationCanceledException
+                    and not QmlLanguageServerInstallException) {
+                    throw new QmlLanguageServerInstallException(
+                        QmlLanguageServerInstallError.ExtractionFailed,
+                        "Could not extract the QML Language Server package.", ex) {
+                        StagingDirectory = stagingDirectory,
+                        AssetName = release.Asset.Name
+                    };
+                }
 
-                Directory.CreateDirectory(stagingDirectory);
-                await archiveExtractor.ExtractAsync(downloadPath, stagingDirectory, ct);
+                // FindExecutablePath throws QmlLanguageServerInstallException(ExecutableNotFound).
+                var executablePath = FindExecutablePath(stagingDirectory);
 
-                if (Directory.Exists(installDirectory))
-                    Directory.Delete(installDirectory, recursive: true);
+                try {
+                    if (Directory.Exists(installDirectory))
+                        Directory.Delete(installDirectory, recursive: true);
+                    Directory.Move(stagingDirectory, installDirectory);
+                } catch (Exception ex) when (ex is not OperationCanceledException) {
+                    throw new QmlLanguageServerInstallException(
+                        QmlLanguageServerInstallError.InstallDirectoryAccessDenied,
+                        "Could not move staged QML Language Server to install directory.", ex) {
+                        InstallDirectory = installDirectory,
+                        StagingDirectory = stagingDirectory
+                    };
+                }
 
-                Directory.Move(stagingDirectory, installDirectory);
+                // Rebase executable path from staging to final install directory.
+                // Paths come from Directory.EnumerateFiles on the same machine so casing matches.
+                executablePath = executablePath.Replace(stagingDirectory, installDirectory);
+
                 var finalInstallation = new QmlLanguageServerInstallation(
                     release.TagName,
                     release.ReleaseId,
                     installDirectory,
-                    FindExecutablePath(installDirectory),
+                    executablePath,
                     release.Asset.Name,
                     release.Asset.DownloadUrl,
                     release.Asset.Sha256Digest,
                     DateTimeOffset.UtcNow);
 
-                await WriteInstallationManifestAsync(finalInstallation, installDirectory, ct);
+                try {
+                    await WriteInstallationManifestAsync(finalInstallation, installDirectory, ct);
+                } catch (Exception ex) when (ex is not OperationCanceledException) {
+                    throw new QmlLanguageServerInstallException(
+                        QmlLanguageServerInstallError.ManifestWriteFailed,
+                        "Could not save the QML Language Server install manifest.", ex) {
+                        InstallDirectory = installDirectory
+                    };
+                }
+
                 return finalInstallation;
             } finally {
-                if (File.Exists(downloadPath))
-                    File.Delete(downloadPath);
+                try {
+                    if (File.Exists(downloadPath))
+                        File.Delete(downloadPath);
+                } catch (Exception) {}
 
-                if (Directory.Exists(stagingDirectory))
-                    Directory.Delete(stagingDirectory, recursive: true);
+                try {
+                    if (Directory.Exists(stagingDirectory))
+                        Directory.Delete(stagingDirectory, recursive: true);
+                } catch (Exception) { }
             }
         }
 
@@ -183,11 +270,14 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
 
             sha256.TransformFinalBlock([], 0, 0);
             var hashBytes = sha256.Hash
-                ?? throw new InvalidDataException(
+                ?? throw new QmlLanguageServerInstallException(
+                    QmlLanguageServerInstallError.DigestMismatch,
                     "Failed to compute QML Language Server archive digest.");
             var actualDigest = ToHexString(hashBytes);
             if (!string.Equals(actualDigest, expectedDigest, StringComparison.OrdinalIgnoreCase)) {
-                throw new InvalidDataException("QML Language Server archive digest mismatch."
+                throw new QmlLanguageServerInstallException(
+                    QmlLanguageServerInstallError.DigestMismatch,
+                    "QML Language Server archive digest mismatch."
                     + $" Expected '{expectedDigest}', got '{actualDigest}'.");
             }
         }
@@ -208,12 +298,21 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
             case 0: {
                     var candidates = string.Join(", ",
                         QmlLanguageServerPaths.GetCandidateExecutableNames());
-                    throw new FileNotFoundException($"Could not locate any of [{candidates}] "
-                        + "in the extracted QML Language Server package.", candidates);
+                    throw new QmlLanguageServerInstallException(
+                        QmlLanguageServerInstallError.ExecutableNotFound,
+                        $"Could not locate any of [{candidates}]"
+                        + " in the extracted QML Language Server package.") {
+                        InstallDirectory = installDir
+                    };
                 }
             default:
-                throw new InvalidDataException("The extracted QML Language Server package contained"
-                    + " multiple candidate executables: " + string.Join(", ", executablePaths));
+                throw new QmlLanguageServerInstallException(
+                    QmlLanguageServerInstallError.ExecutableNotFound,
+                    "The extracted QML Language Server package contained"
+                    + " multiple candidate executables: "
+                    + string.Join(", ", executablePaths)) {
+                    InstallDirectory = installDir
+                };
             }
         }
 

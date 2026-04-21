@@ -53,11 +53,12 @@ the qmlls binary, which would otherwise be used when no explicit import paths ar
 ## Design Principles
 
 **Read and validate are separate operations.**
-`TryRead` deserializes the JSON file without applying any semantic checks. `Validate` performs
-those checks as a distinct step. This separation lets callers decide when validation is
-appropriate - for example, reading once to check the version field before committing to full
-validation, or re-validating a previously cached result when the project configuration
-changes.
+`TryRead` deserializes the JSON file and returns a `QmlMetadataReadResult` without applying
+any semantic checks. `Validate` performs those checks as a distinct step. This separation lets
+callers decide when validation is appropriate - for example, reading once to check the version
+field before committing to full validation, or re-validating a previously cached result when
+the project configuration changes. The result type also lets the caller distinguish why a read
+failed (`NotFound`, `IoError`, `ParseError`) and log or recover accordingly.
 
 **Conservative file location.**
 `FindMetadataFilePath` never guesses when the result is ambiguous. If a bare configuration
@@ -120,6 +121,19 @@ An immutable model of the `qtbridge-qml.ide.json` file. It carries two nested se
 
 ---
 
+### `QmlMetadataReadResult` / `QmlMetadataReadError`
+
+The return type of `TryRead`. A discriminated result that avoids the ambiguity of a plain
+`null` return by carrying an explicit `Error` kind alongside the optional `Metadata` and
+`Exception`. Callers test `result.Success` for the fast path; on failure they switch on
+`result.Error` to decide how to log or recover.
+
+`QmlMetadataReadError` has four values: `None` (success), `NotFound`, `IoError`, and
+`ParseError`. The static factory methods `Ok` and `Fail` are the only way to construct
+instances, keeping the valid/invalid invariant enforced at the type level.
+
+---
+
 ### `IQmlMetadataReader` / `QmlMetadataReader`
 
 Three operations, intended to be called in sequence:
@@ -133,8 +147,18 @@ Falls back to a recursive tail-match for layouts where `BaseIntermediateOutputPa
 extra segments. Returns `null` if zero or more than one match is found.
 
 **`TryRead(metadataFilePath)`**
-Opens and deserializes the file using `DataContractJsonSerializer`. All failures -
-file not found, I/O errors, malformed JSON - return `null`. No exceptions are propagated.
+Opens and deserializes the file using `DataContractJsonSerializer`. Returns a
+`QmlMetadataReadResult` that distinguishes three failure kinds:
+
+| `QmlMetadataReadError` | Cause |
+|---|---|
+| `NotFound` | Path is empty or the file does not exist. |
+| `IoError` | File exists but an `IOException` occurred while reading it. |
+| `ParseError` | File was read but deserialization failed, or required DTO fields were absent. |
+
+On success, `result.Success` is `true` and `result.Metadata` is non-null. On failure,
+`result.Exception` carries the underlying exception when one was raised. No exceptions are
+propagated to the caller.
 
 **`Validate(metadata, projectFilePath, configuration)`**
 Applies semantic checks to a deserialized `QmlMetadata` object:

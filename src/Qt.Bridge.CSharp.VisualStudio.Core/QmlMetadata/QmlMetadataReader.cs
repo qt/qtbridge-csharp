@@ -63,20 +63,26 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
             return matches.Count == 1 ? matches[0] : null;
         }
 
-        public QmlMetadata? TryRead(string metadataFilePath, CancellationToken ct = default)
+        public QmlMetadataReadResult TryRead(string? metadataFilePath, CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();
-            if (string.IsNullOrWhiteSpace(metadataFilePath) || !File.Exists(metadataFilePath))
-                return null;
+            var path = metadataFilePath ?? "";
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                return QmlMetadataReadResult.Fail(QmlMetadataReadError.NotFound, path);
 
             try {
-                using var stream = File.OpenRead(metadataFilePath);
+                using var stream = File.OpenRead(path);
                 var serializer = new DataContractJsonSerializer(typeof(MetadataDto));
-                return serializer.ReadObject(stream) is not MetadataDto dto ? null : FromDto(dto);
-            } catch (IOException) {
-                return null;
-            } catch (SerializationException) {
-                return null;
+                var metadata = serializer.ReadObject(stream) is MetadataDto dto
+                    ? FromDto(dto)
+                    : null;
+                return metadata != null
+                    ? QmlMetadataReadResult.Ok(metadata, path)
+                    : QmlMetadataReadResult.Fail(QmlMetadataReadError.ParseError, path);
+            } catch (IOException ex) {
+                return QmlMetadataReadResult.Fail(QmlMetadataReadError.IoError, path, ex);
+            } catch (SerializationException ex) {
+                return QmlMetadataReadResult.Fail(QmlMetadataReadError.ParseError, path, ex);
             }
         }
 

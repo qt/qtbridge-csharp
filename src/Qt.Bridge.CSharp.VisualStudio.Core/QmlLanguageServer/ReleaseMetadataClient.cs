@@ -52,13 +52,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
                 .ToArray();
 
             if (matchingAssets.Length == 0) {
-                throw new InvalidOperationException(
+                throw new QmlLanguageServerAssetException(
                     $"Latest QML Language Server release '{tagName}' did not contain"
                     + $" a supported asset matching '{expectedAssetPrefix}*'.");
             }
 
             if (matchingAssets.Length != 1) {
-                throw new InvalidOperationException(
+                throw new QmlLanguageServerAssetException(
                     $"Latest QML Language Server release '{tagName}' contained multiple"
                     + $" supported assets matching '{expectedAssetPrefix}*'.");
             }

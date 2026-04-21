@@ -85,8 +85,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             QmlLanguageServerInstallation installation;
             try {
                 installation = await languageServerInstaller.EnsureInstalledAsync(ct);
+            } catch (QmlLanguageServerInstallException ex) {
+                log.Error($"QML Language Server: install failed ({ex.Error}).", ex);
+                return null;
             } catch (Exception ex) when (ex is not OperationCanceledException) {
-                log.Error("QML Language Server: failed to acquire executable.", ex);
+                log.Error("QML Language Server: unexpected error acquiring executable.", ex);
                 return null;
             }
 
@@ -96,24 +99,34 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 log.Info("QML Language Server: metadata file not found, starting with minimal"
                     + " configuration. Build the project for full QML language support.");
                 minimalMode = true;
-                return LaunchQmlLanguageServer(installation.ExecutablePath, metadata: null);
+                try {
+                    return LaunchQmlLanguageServer(installation.ExecutablePath, metadata: null);
+                } catch (QmlLanguageServerLaunchException ex) {
+                    log.Error($"QML Language Server: failed to launch '{ex.ExecutablePath}'.", ex);
+                    return null;
+                }
             }
 
-            var metadata = metadataReader.TryRead(metadataFilePath, ct);
-            if (metadata == null) {
-                log.Warning(
-                    $"QML Language Server: failed to read metadata at '{metadataFilePath}'.");
+            var readResult = metadataReader.TryRead(metadataFilePath, ct);
+            if (!readResult.Success) {
+                log.Warning($"QML Language Server: failed to read metadata at '{metadataFilePath}'"
+                    + $" ({readResult.Error}).");
                 return null;
             }
 
-            if (!metadataReader.Validate(metadata, projectFilePath, configuration)) {
+            if (!metadataReader.Validate(readResult.Metadata!, projectFilePath, configuration)) {
                 log.Warning("QML Language Server: metadata validation failed"
                     + $" for '{metadataFilePath}'.");
                 return null;
             }
 
             minimalMode = false;
-            return LaunchQmlLanguageServer(installation.ExecutablePath, metadata);
+            try {
+                return LaunchQmlLanguageServer(installation.ExecutablePath, readResult.Metadata!);
+            } catch (QmlLanguageServerLaunchException ex) {
+                log.Error($"QML Language Server: failed to launch '{ex.ExecutablePath}'.", ex);
+                return null;
+            }
         }
 
         public override Task OnServerInitializationResultAsync(
@@ -163,7 +176,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             }
         }
 
-        private IDuplexPipe? LaunchQmlLanguageServer(string executablePath, QmlMetadataModel? metadata)
+        private IDuplexPipe LaunchQmlLanguageServer(string executablePath, QmlMetadataModel? metadata)
         {
             var args = metadata != null
                 ? BuildQmlLanguageServerArguments(metadata)
@@ -183,9 +196,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             try {
                 process = new Process { StartInfo = startInfo };
                 if (!process.Start()) {
-                    log.Error($"QML Language Server: failed to start '{executablePath}'.");
                     process.Dispose();
-                    return null;
+                    throw new QmlLanguageServerLaunchException("Process.Start() returned false.",
+                        executablePath);
                 }
 
                 log.Info($"QML Language Server: started process (pid {process.Id}) with: {args}");
@@ -195,17 +208,22 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                     log,
                     metadata?.Qml.ProjectSourceDir,
                     metadata?.Qml.BuildDirs ?? []);
-            } catch (Exception ex) when (ex is not OperationCanceledException) {
-                log.Error("QML Language Server: exception launching executable.", ex);
-                if (process == null)
-                    return null;
+            } catch (QmlLanguageServerLaunchException) {
+                throw;
+            } catch (Exception ex) {
+                if (process == null) {
+                    throw new QmlLanguageServerLaunchException("Exception while launching process.",
+                        executablePath, ex);
+                }
+
                 try {
                     if (!process.HasExited)
                         process.Kill();
                 } catch (Exception) {}
 
                 process.Dispose();
-                return null;
+                throw new QmlLanguageServerLaunchException("Exception while launching process.",
+                    executablePath, ex);
             }
         }
 

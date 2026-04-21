@@ -62,9 +62,55 @@ one match - zero or more than one is treated as an error.
 the contracts. Concrete types are `sealed`. Each component can be replaced independently in
 tests without standing up a real HTTP server or file system.
 
+**Failures are typed, not silent.**
+The namespace replaces ambiguous `null` returns and bare framework exceptions with three
+exception types that pinpoint exactly what went wrong. Callers can catch a specific type and
+map it to a user-facing message without inspecting message strings or relying on exception
+hierarchy guesswork.
+
 ---
 
 ## Components
+
+### `QmlLanguageServerInstallException` / `QmlLanguageServerInstallError`
+
+Thrown by `EnsureInstalledAsync` when any step of the install pipeline fails. The `Error`
+property is a `QmlLanguageServerInstallError` enum value that identifies the stage:
+
+| Value | Stage |
+|---|---|
+| `ReleaseMetadataUnavailable` | Network fetch of the release endpoint failed. |
+| `NoMatchingAsset` | The release contained zero or more than one asset for the current platform. |
+| `DownloadFailed` | The binary archive download failed after the retry. |
+| `DigestMismatch` | The downloaded archive's SHA-256 did not match the release metadata. |
+| `ExtractionFailed` | The zip extraction failed (e.g. zip-slip check or I/O error). |
+| `ExecutableNotFound` | The archive was extracted but no known executable name was found inside. |
+| `ManifestWriteFailed` | The installation succeeded but the manifest could not be written. |
+| `InstallDirectoryAccessDenied` | The install or staging directory could not be created or written. |
+
+Optional context properties (`InstallDirectory`, `StagingDirectory`, `AssetName`,
+`DownloadUrl`) are populated where relevant so a diagnostic log message can include the
+specific path or asset that caused the failure.
+
+---
+
+### `QmlLanguageServerAssetException`
+
+Thrown by `ReleaseMetadataClient` when the release endpoint returns a release whose asset
+list contains no match for the current platform, or contains ambiguous matches. It is kept
+distinct from network and parse failures so `QmlLanguageServerInstaller` can catch it
+specifically and map it to `QmlLanguageServerInstallError.NoMatchingAsset` without
+referencing implementation internals.
+
+---
+
+### `QmlLanguageServerLaunchException`
+
+Thrown by the extension's `QmlLanguageServerProvider` when the qmlls process fails to start
+after a successful installation. Carries `ExecutablePath` so the error message can include
+the exact path that was attempted.
+
+---
 
 ### `QmlLanguageServerRelease` and `QmlLanguageServerAsset`
 

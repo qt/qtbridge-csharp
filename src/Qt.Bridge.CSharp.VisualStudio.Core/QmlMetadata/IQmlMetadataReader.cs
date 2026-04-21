@@ -25,12 +25,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
         string? FindMetadataFilePath(string projectDirectory, string configKey);
 
         /// <summary>
-        /// Reads and deserializes the metadata file at the given path. Returns null if the file
-        /// does not exist, cannot be read, or fails to parse. Does not perform semantic validation
-        /// - call Validate separately.
+        /// Reads and deserializes the metadata file at the given path. Returns a result with
+        /// <see cref="QmlMetadataReadError.NotFound"/> if the file does not exist,
+        /// <see cref="QmlMetadataReadError.IoError"/> on read error, or
+        /// <see cref="QmlMetadataReadError.ParseError"/> if deserialization fails.
+        /// Does not perform semantic validation - call <see cref="Validate"/> separately.
         /// </summary>
-        QmlMetadata? TryRead(string metadataFilePath, CancellationToken ct = default);
-
+        QmlMetadataReadResult TryRead(string metadataFilePath, CancellationToken ct = default);
         /// <summary>
         /// Validates a deserialized metadata file against the active project context.
         /// Checks: version == 1, projectFile and configuration match, sourceDir and all buildDirs

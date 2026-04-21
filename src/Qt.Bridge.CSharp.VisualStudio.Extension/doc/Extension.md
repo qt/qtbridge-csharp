@@ -172,10 +172,15 @@ starts the metadata file watcher so subsequent builds trigger server restarts au
 Called by the VS SDK when a `.qml` file is opened and `Enabled` is `true`. The sequence is:
 
 1. Resolve the active project context (directory, project file path, config key).
-2. Ensure qmlls is installed via `IQmlLanguageServerInstaller`.
-3. Locate the metadata file. If absent, start in minimal mode; if present, read and validate
-   it, then start with full arguments.
-4. Launch the qmlls process and return a `QmlLanguageServerTransportPipe` as the `IDuplexPipe`.
+2. Ensure qmlls is installed via `IQmlLanguageServerInstaller`. A
+   `QmlLanguageServerInstallException` is caught, logged with its typed `Error` kind, and
+   causes the method to return `null`.
+3. Locate the metadata file. If absent, start in minimal mode; if present, read it via
+   `TryRead` (which returns a `QmlMetadataReadResult`), log any failure with its error kind,
+   then validate and start with full arguments.
+4. Launch the qmlls process. A `QmlLanguageServerLaunchException` is caught, logged with the
+   executable path, and causes the method to return `null`. On success, returns a
+   `QmlLanguageServerTransportPipe` as the `IDuplexPipe`.
 
 **Metadata watcher and restart.**
 After enabling, the provider starts an `IQmlMetadataWatcher` on the active project's `obj\`
