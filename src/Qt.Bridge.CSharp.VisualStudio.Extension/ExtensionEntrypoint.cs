@@ -6,6 +6,8 @@ using Microsoft.VisualStudio.Extensibility;
 using Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem;
 using Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer;
 using Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
+using Qt.Bridge.CSharp.VisualStudio.Extension.QmlMetadata;
 using Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension
@@ -21,6 +23,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         protected override void InitializeServices(IServiceCollection serviceCollection)
         {
             base.InitializeServices(serviceCollection);
+
+            serviceCollection.AddSingleton<IExtensionLog, TraceSourceExtensionLog>();
 
             serviceCollection.AddSingleton<IQtBridgeProjectDetector, QtBridgeProjectDetector>();
             serviceCollection.AddSingleton<IQtBridgeProjectFileLocator,

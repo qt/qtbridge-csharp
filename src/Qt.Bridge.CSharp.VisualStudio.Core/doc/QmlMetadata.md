@@ -70,9 +70,10 @@ platform is known.
 A .NET build generates hundreds of file-system events in the `obj\` tree. On Windows, this
 volume routinely overflows the kernel buffer that backs `FileSystemWatcher`, causing the
 watcher to silently drop events - including the creation of the metadata file itself.
-`QmlMetadataWatcher` avoids this by polling every two seconds, checking only the last-write
-timestamp of the metadata file. This is deliberately low-tech: the file appears at most once
-per build, so a two-second delay is acceptable and the approach is completely reliable.
+The watcher implementation avoids this by polling every two seconds, checking only the
+last-write timestamp of the metadata file. This is deliberately low-tech: the file appears at
+most once per build, so a two-second delay is acceptable and the approach is completely
+reliable.
 
 **DTO layer isolates JSON from the public model.**
 `QmlMetadataReader` deserializes JSON into a set of private `DataContract` DTO classes and
@@ -86,6 +87,13 @@ the current `qmlLanguageServer` key, with the canonical key taking precedence.
 `IQmlMetadataReader` and `IQmlMetadataWatcher` define the contracts. Concrete types are
 `sealed`. Both are straightforward to stub in tests without standing up a build or a file
 system.
+
+**The watcher implementation lives in the extension layer, not Core.**
+`IQmlMetadataWatcher` is defined in Core so that the provider can depend on it through the
+DI container, but the concrete implementation resides in the extension project. This split
+exists because the watcher needs to report errors through `IExtensionLog` - a logging
+abstraction that carries a dependency on Visual Studio's `TraceSource` infrastructure. Keeping
+that dependency out of Core preserves Core's independence from any IDE or UI layer.
 
 ---
 
@@ -141,27 +149,13 @@ missing or stale and the extension should wait for the next build.
 
 ---
 
-### `IQmlMetadataWatcher` / `QmlMetadataWatcher`
+### `IQmlMetadataWatcher`
 
-Watches for creation or modification of the metadata file and invokes a callback when the
-file appears or changes. Returns an `IDisposable` - disposing it stops the watcher.
-
-Internally, `QmlMetadataWatcher` creates a `MetadataFileWatcher` that runs a background
-polling loop:
-
-```
-Every 2 seconds:
-  FindMetadataFilePath(projectDirectory, configurationKey)
-    -> read last-write timestamp
-    -> compare to previously seen timestamp
-    -> if changed: invoke callback
-```
-
-The callback is invoked on the background thread that drives the poll loop. Callers that
-need to update UI state are responsible for marshalling back to the UI thread.
-
-If the project directory does not exist at the time `Watch` is called, `Watch` returns a
-no-op disposable immediately rather than starting a poll loop that would always miss.
+Defines the contract for watching the metadata file. `Watch(projectDirectory, configuration,
+callback)` returns an `IDisposable` - disposing it stops the watcher. The concrete
+implementation lives in the extension project (see the Extension documentation) so that
+watcher errors can be reported through `IExtensionLog` without introducing a UI dependency
+into Core.
 
 ---
 

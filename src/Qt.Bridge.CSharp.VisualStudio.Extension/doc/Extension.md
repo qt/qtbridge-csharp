@@ -18,7 +18,10 @@ here through the DI container.
 ```
 ExtensionEntrypoint (DI root)
   │
+  |- IExtensionLog / TraceSourceExtensionLog  <- centralised logging abstraction
+  │
   |- QmlLanguageServerProvider         <- LanguageServerProvider (VS SDK)
+  │    |- IExtensionLog                <- all provider diagnostics
   │    |- IProjectContextService       <- VS IDE context (active doc, project, config)
   │    |- IQtBridgeProjectService      <- Qt Bridge project detection
   │    |- IQmlMetadataReader           <- reads qtbridge-qml.ide.json
@@ -26,6 +29,10 @@ ExtensionEntrypoint (DI root)
   │    |- IQmlLanguageServerInstaller  <- download/cache qmlls binary
   │
   |- QmlLanguageServerTransportPipe    <- IDuplexPipe wrapping the qmlls process
+  │    |- IExtensionLog                <- transport relay diagnostics
+  │
+  |- QmlMetadataWatcher (Extension)    <- IQmlMetadataWatcher implementation
+  │    |- IExtensionLog                <- watcher error reporting
   │
   |- QtBridgeStatusCommand             <- Extensions menu diagnostic command
   │
@@ -40,6 +47,15 @@ ExtensionEntrypoint (DI root)
 `ExtensionEntrypoint` registers all Core library services as singletons and nothing more.
 No business logic lives in the extension layer - it delegates everything to the Core
 interfaces. This keeps the extension thin and the Core library independently testable.
+
+**Logging is centralised behind `IExtensionLog`.**
+All extension components receive an `IExtensionLog` through the DI container rather than
+depending directly on `TraceSource`. This makes the call sites uniform and keeps the
+`TraceSource` setup and listener configuration in one place (`TraceSourceExtensionLog`).
+It is also the reason the `IQmlMetadataWatcher` implementation lives in the extension rather
+than in Core: the watcher needs to report errors, which requires `IExtensionLog`, and
+`IExtensionLog` carries a dependency on Visual Studio's tracing infrastructure that must not
+leak into the Core library.
 
 **`Enabled` is the lifecycle switch.**
 The VS Extensibility SDK activates and deactivates a `LanguageServerProvider` by reading its
@@ -98,9 +114,37 @@ hosting cannot satisfy either dependency.
 ### `ExtensionEntrypoint`
 
 The extension entry point. Subclasses `Microsoft.VisualStudio.Extensibility.Extension` and
-overrides `InitializeServices` to register all Core library services (project detection,
-language server installation, metadata reader/watcher) and the DTE context service as
-singletons. This is the only place where concrete types are bound to their interfaces.
+overrides `InitializeServices` to register all services as singletons. This is the only place
+where concrete types are bound to their interfaces. The registration order reflects the
+dependency graph: `IExtensionLog` is registered first as it is consumed by several other
+services, including the extension-layer `QmlMetadataWatcher`.
+
+---
+
+### `IExtensionLog` / `TraceSourceExtensionLog`
+
+A lightweight logging abstraction with four severity levels: `Verbose`, `Info`, `Warning`,
+and `Error` (the last optionally accepting an `Exception`). All extension components receive
+this through the DI container.
+
+`TraceSourceExtensionLog` is the only implementation. It wraps the `TraceSource` that the VS
+Extensibility SDK injects, adds a `DefaultTraceListener`, sets the switch level to `Verbose`,
+and maps each severity to the corresponding `TraceEventType`. Exception details are appended
+to the message string when present.
+
+---
+
+### `QmlMetadata/QmlMetadataWatcher`
+
+The extension-layer implementation of `IQmlMetadataWatcher` (the interface is defined in
+Core). It takes `IExtensionLog` as a constructor parameter and adds two capabilities over
+what a Core-only implementation could provide:
+
+- **Callback errors are caught and logged.** If the `OnMetadataChanged` callback throws, the
+  exception is logged via `IExtensionLog.Error` instead of silently terminating the poll loop.
+- **Timestamp-read failures are logged with deduplication.** If `FindMetadataFilePath` or the
+  file-system read fails, the error is logged once. Subsequent poll ticks that produce the
+  same error are suppressed to avoid flooding the log every two seconds.
 
 ---
 

@@ -10,14 +10,17 @@ using Microsoft.VisualStudio.RpcContracts.LanguageServerProvider;
 using Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem;
 using Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer;
 using Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 using Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext;
+
+using QmlMetadataModel = Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata.QmlMetadata;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension
 {
     [VisualStudioContribution]
     internal sealed class QmlLanguageServerProvider : LanguageServerProvider
     {
-        private readonly TraceSource logger;
+        private readonly IExtensionLog log;
         private readonly IQtBridgeProjectService projectService;
         private readonly IProjectContextService contextService;
         private readonly IQmlMetadataReader metadataReader;
@@ -36,7 +39,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         public QmlLanguageServerProvider(
             ExtensionCore container,
             VisualStudioExtensibility extensibilityObject,
-            TraceSource traceSource,
+            IExtensionLog extensionLog,
             IQtBridgeProjectService projectSvc,
             IProjectContextService contextSvc,
             IQmlMetadataReader metadataReader,
@@ -44,9 +47,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             IQmlLanguageServerInstaller languageServerInstaller)
             : base(container, extensibilityObject)
         {
-            logger = traceSource ?? throw new ArgumentNullException(nameof(traceSource));
-            logger.Listeners.Add(new DefaultTraceListener());
-            logger.Switch.Level = SourceLevels.Verbose;
+            log = extensionLog
+                ?? throw new ArgumentNullException(nameof(extensionLog));
             projectService = projectSvc ?? throw new ArgumentNullException(nameof(projectSvc));
             contextService = contextSvc ?? throw new ArgumentNullException(nameof(contextSvc));
             this.metadataReader = metadataReader
@@ -57,11 +59,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 ?? throw new ArgumentNullException(nameof(languageServerInstaller));
 
             contextSubscription = contextSvc.SubscribeToContextChanged(
-                () => _ = Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory
-                    .RunAsync(RefreshEnabledStateAsync));
+                () => QueueLoggedTask(
+                    RefreshEnabledStateAsync,
+                    "refresh QML Language Server provider state"));
 
-            _ = Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.RunAsync(
-                RefreshEnabledStateAsync);
+            QueueLoggedTask(RefreshEnabledStateAsync, "initial QML Language Server provider state");
         }
 
         public override LanguageServerProviderConfiguration LanguageServerProviderConfiguration =>
@@ -75,9 +77,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             var (projectDirectory, projectFilePath, configKey) =
                 await ResolveActiveProjectContextAsync(ct);
             if (projectDirectory == null || projectFilePath == null || configKey == null) {
-                logger.TraceEvent(TraceEventType.Warning, 0,
-                    "QML Language Server: no active Qt Bridge project"
-                    + " or build configuration found.");
+                log.Warning("QML Language Server: no active Qt Bridge project or build "
+                    + "configuration found.");
                 return null;
             }
 
@@ -85,32 +86,29 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             try {
                 installation = await languageServerInstaller.EnsureInstalledAsync(ct);
             } catch (Exception ex) when (ex is not OperationCanceledException) {
-                logger.TraceEvent(TraceEventType.Error, 0,
-                    "QML Language Server: failed to acquire executable:"
-                    + $" {ex.Message}");
+                log.Error("QML Language Server: failed to acquire executable.", ex);
                 return null;
             }
 
             var configuration = Path.GetFileName(configKey);
             var metadataFilePath = metadataReader.FindMetadataFilePath(projectDirectory, configKey);
             if (metadataFilePath == null) {
-                logger.TraceEvent(TraceEventType.Information, 0,
-                    "QML Language Server: metadata file not found, starting with minimal"
+                log.Info("QML Language Server: metadata file not found, starting with minimal"
                     + " configuration. Build the project for full QML language support.");
                 minimalMode = true;
                 return LaunchQmlLanguageServer(installation.ExecutablePath, metadata: null);
             }
 
-            var metadata = metadataReader.TryRead(metadataFilePath);
+            var metadata = metadataReader.TryRead(metadataFilePath, ct);
             if (metadata == null) {
-                logger.TraceEvent(TraceEventType.Warning, 0,
+                log.Warning(
                     $"QML Language Server: failed to read metadata at '{metadataFilePath}'.");
                 return null;
             }
 
             if (!metadataReader.Validate(metadata, projectFilePath, configuration)) {
-                logger.TraceEvent(TraceEventType.Warning, 0,
-                    $"QML Language Server: metadata validation failed for '{metadataFilePath}'.");
+                log.Warning("QML Language Server: metadata validation failed"
+                    + $" for '{metadataFilePath}'.");
                 return null;
             }
 
@@ -125,11 +123,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         {
             if (startState == ServerInitializationResult.Failed) {
                 Enabled = false;
-                logger.TraceEvent(
-                    TraceEventType.Warning,
-                    0,
-                    initializationFailureInfo?.StatusMessage
-                        ?? "QML Language Server initialization failed.");
+                log.Warning(initializationFailureInfo?.StatusMessage
+                    ?? "QML Language Server initialization failed.");
             }
 
             return base.OnServerInitializationResultAsync(
@@ -148,7 +143,27 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             base.Dispose(disposing);
         }
 
-        private IDuplexPipe? LaunchQmlLanguageServer(string executablePath, QmlMetadata? metadata)
+        private void QueueLoggedTask(Func<Task> action, string operationName)
+        {
+            _ = Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.RunAsync(() =>
+                RunLoggedAsync(action, operationName));
+        }
+
+        private async Task RunLoggedAsync(Func<Task> action, string operationName)
+        {
+            try {
+                await action();
+            } catch (OperationCanceledException) {
+            } catch (Exception ex) {
+                log.Error($"{operationName} failed.", ex);
+#if DEBUG
+                if (Debugger.IsAttached)
+                    Debugger.Break();
+#endif
+            }
+        }
+
+        private IDuplexPipe? LaunchQmlLanguageServer(string executablePath, QmlMetadataModel? metadata)
         {
             var args = metadata != null
                 ? BuildQmlLanguageServerArguments(metadata)
@@ -168,23 +183,20 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             try {
                 process = new Process { StartInfo = startInfo };
                 if (!process.Start()) {
-                    logger.TraceEvent(TraceEventType.Error, 0,
-                        $"QML Language Server: failed to start '{executablePath}'.");
+                    log.Error($"QML Language Server: failed to start '{executablePath}'.");
                     process.Dispose();
                     return null;
                 }
 
-                logger.TraceEvent(TraceEventType.Information, 0,
-                    $"QML Language Server: started process (pid {process.Id}) with: {args}");
+                log.Info($"QML Language Server: started process (pid {process.Id}) with: {args}");
 
                 return new QmlLanguageServerTransportPipe(
                     process,
-                    logger,
+                    log,
                     metadata?.Qml.ProjectSourceDir,
                     metadata?.Qml.BuildDirs ?? []);
             } catch (Exception ex) when (ex is not OperationCanceledException) {
-                logger.TraceEvent(TraceEventType.Error, 0,
-                    $"QML Language Server: exception launching executable: {ex.Message}");
+                log.Error("QML Language Server: exception launching executable.", ex);
                 if (process == null)
                     return null;
                 try {
@@ -197,7 +209,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             }
         }
 
-        private static string BuildQmlLanguageServerArguments(QmlMetadata metadata)
+        private static string BuildQmlLanguageServerArguments(QmlMetadataModel metadata)
         {
             var parts = new List<string>();
 
@@ -315,12 +327,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 return;
 
             Enabled = shouldEnable;
-            logger.TraceEvent(
-                TraceEventType.Information,
-                0,
-                shouldEnable
-                    ? "Enabled QML Language Server provider for Qt Bridge context."
-                    : "Disabled QML Language Server provider for Qt Bridge context.");
+
+            log.Info(shouldEnable
+                ? "Enabled QML Language Server provider for Qt Bridge context."
+                : "Disabled QML Language Server provider for Qt Bridge context.");
         }
 
         private async Task UpdateMetadataWatcherAsync(CancellationToken ct)
@@ -353,32 +363,29 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
         private void OnMetadataChanged()
         {
-            _ = Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.RunAsync(
-                async () =>
-                {
-                    if (!Enabled) {
-                        // Server is not running (e.g., first startup was cancelled before
-                        // the metadata file existed). Try re-enabling now that the metadata
-                        // has appeared or changed. RefreshEnabledStateAsync is a no-op when
-                        // the context has no Qt Bridge project.
-                        await RefreshEnabledStateAsync();
-                        return;
-                    }
+            QueueLoggedTask(async () =>
+            {
+                if (!Enabled) {
+                    // Server is not running (e.g., first startup was cancelled before
+                    // the metadata file existed). Try re-enabling now that the metadata
+                    // has appeared or changed.
+                    await RefreshEnabledStateAsync();
+                    return;
+                }
 
-                    logger.TraceEvent(TraceEventType.Information, 0,
-                        minimalMode
-                            ? "QML Language Server: metadata file appeared after build,"
-                                + " restarting with full configuration."
-                            : "QML Language Server: metadata file changed, restarting server.");
+                log.Info(minimalMode
+                    ? "QML Language Server: metadata file appeared after build, restarting "
+                        + "with full configuration."
+                    : "QML Language Server: metadata file changed, restarting server.");
 
-                    // Disable first to signal the SDK to shut down the current server,
-                    // then re-enable to trigger a fresh CreateServerConnectionAsync call.
-                    // The delay gives the SDK time to clean up the previous connection.
-                    // TODO: verify this matches the LanguageServerProvider SDK contract.
-                    Enabled = false;
-                    await Task.Delay(500);
-                    Enabled = true;
-                });
+                // Disable first to signal the SDK to shut down the current server,
+                // then re-enable to trigger a fresh CreateServerConnectionAsync call.
+                // The delay gives the SDK time to clean up the previous connection.
+                // TODO: verify this matches the LanguageServerProvider SDK contract.
+                Enabled = false;
+                await Task.Delay(500);
+                Enabled = true;
+            }, "metadata changed handler");
         }
     }
 }

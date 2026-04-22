@@ -7,6 +7,7 @@ using System.IO.Pipelines;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension
 {
@@ -17,7 +18,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
     internal sealed class QmlLanguageServerTransportPipe : IDuplexPipe, IDisposable
     {
         private readonly Process process;
-        private readonly TraceSource logger;
+        private readonly IExtensionLog log;
         private readonly Pipe vsReadPipe;
         private readonly Pipe vsWritePipe;
         private readonly CancellationTokenSource cts;
@@ -42,12 +43,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         /// </summary>
         public QmlLanguageServerTransportPipe(
             Process process,
-            TraceSource logger,
+            IExtensionLog extensionLog,
             string? projectSourceDir,
             IReadOnlyCollection<string> buildDirs)
         {
             this.process = process;
-            this.logger = logger;
+            log = extensionLog;
             cts = new CancellationTokenSource();
             vsReadPipe = new Pipe();
             vsWritePipe = new Pipe();
@@ -55,13 +56,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             var addBuildDirsBaseDir = GetAddBuildDirsBaseDirectory(projectSourceDir);
             if (addBuildDirsBaseDir != null && buildDirs.Count > 0) {
                 addBuildDirsNotification = BuildNotification(addBuildDirsBaseDir, buildDirs);
-                logger.TraceEvent(TraceEventType.Information, 0,
-                    "QML Language Server: will inject $/addBuildDirs"
+                log.Info("QML Language Server: will inject $/addBuildDirs"
                     + $" (baseUri={new Uri(addBuildDirsBaseDir).AbsoluteUri},"
                     + $" {buildDirs.Count} build dir(s)).");
             } else {
-                logger.TraceEvent(TraceEventType.Information, 0,
-                    "QML Language Server: $/addBuildDirs injection disabled"
+                log.Info("QML Language Server: $/addBuildDirs injection disabled"
                     + " (no valid projectSourceDir or no build dirs).");
             }
 
@@ -110,8 +109,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
         private void OnProcessExited(object? sender, EventArgs e)
         {
-            logger.TraceEvent(TraceEventType.Information, 0,
-                "QML Language Server: process exited.");
+            log.Info("QML Language Server: process exited.");
             // Signal the relay tasks to stop. They will complete the pipe ends
             // as part of their own cleanup, keeping completion single-ownership.
             try {
@@ -123,16 +121,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
         private void OnErrorDataReceived(object sender, DataReceivedEventArgs e)
         {
-            if (!string.IsNullOrEmpty(e.Data)) {
-                logger.TraceEvent(TraceEventType.Information, 0,
-                    $"QML Language Server (stderr): {e.Data}");
-            }
+            if (!string.IsNullOrEmpty(e.Data))
+                log.Info($"QML Language Server (stderr): {e.Data}");
         }
 
         private async Task RelayFromProcessAsync(CancellationToken ct)
         {
-            logger.TraceEvent(TraceEventType.Information, 0,
-                "QML Language Server transport: process -> VS relay started.");
+            log.Info("QML Language Server transport: process -> VS relay started.");
             var logBuffer = new LspByteBuffer();
             Exception? fault = null;
             try {
@@ -154,10 +149,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                     logBuffer.Append(buffer.AsSpan(0, read));
                     while (logBuffer.TryExtractMessage(out var msg)) {
                         var method = LspByteBuffer.TryExtractMethod(msg);
-                        logger.TraceEvent(TraceEventType.Verbose, 0,
-                            method != null
-                                ? $"QML LS -> VS: {method} ({msg.Length} B)"
-                                : $"QML LS -> VS: response ({msg.Length} B)");
+                        log.Verbose(method != null
+                            ? $"QML LS -> VS: {method} ({msg.Length} B)"
+                            : $"QML LS -> VS: response ({msg.Length} B)");
                     }
                 }
             } catch (OperationCanceledException) {
@@ -165,19 +159,15 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 fault = ex;
             }
             await vsReadPipe.Writer.CompleteAsync(fault);
-            if (fault != null) {
-                logger.TraceEvent(TraceEventType.Error, 0,
-                    $"QML Language Server transport: process -> VS relay faulted: {fault.Message}");
-            } else {
-                logger.TraceEvent(TraceEventType.Information, 0,
-                    "QML Language Server transport: process -> VS relay completed.");
-            }
+            if (fault != null)
+                log.Error("QML Language Server transport: process -> VS relay faulted.", fault);
+            else
+                log.Info("QML Language Server transport: process -> VS relay completed.");
         }
 
         private async Task RelayToProcessAsync(CancellationToken ct)
         {
-            logger.TraceEvent(TraceEventType.Information, 0,
-                "QML Language Server transport: VS -> process relay started.");
+            log.Info("QML Language Server transport: VS -> process relay started.");
             var msgBuffer = new LspByteBuffer();
             var notificationSent = addBuildDirsNotification == null;
             Exception? fault = null;
@@ -194,17 +184,15 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
                     while (msgBuffer.TryExtractMessage(out var message)) {
                         var method = LspByteBuffer.TryExtractMethod(message);
-                        logger.TraceEvent(TraceEventType.Verbose, 0,
-                            method != null
-                                ? $"VS -> QML LS: {method} ({message.Length} B)"
-                                : $"VS -> QML LS: response ({message.Length} B)");
+                        log.Verbose(method != null
+                            ? $"VS -> QML LS: {method} ({message.Length} B)"
+                            : $"VS -> QML LS: response ({message.Length} B)");
 
                         await dest.WriteAsync(message, 0, message.Length, ct);
 
                         if (!notificationSent
                             && string.Equals(method, "initialized", StringComparison.Ordinal)) {
-                            logger.TraceEvent(TraceEventType.Information, 0,
-                                "QML Language Server: 'initialized' received,"
+                            log.Info("QML Language Server: 'initialized' received,"
                                 + " injecting $/addBuildDirs.");
                             var notif = Encoding.UTF8.GetBytes(addBuildDirsNotification!);
                             await dest.WriteAsync(notif, 0, notif.Length, ct);
@@ -222,13 +210,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 fault = ex;
             }
             await vsWritePipe.Reader.CompleteAsync(fault);
-            if (fault != null) {
-                logger.TraceEvent(TraceEventType.Error, 0,
-                    $"QML Language Server transport: VS -> process relay faulted: {fault.Message}");
-            } else {
-                logger.TraceEvent(TraceEventType.Information, 0,
-                    "QML Language Server transport: VS -> process relay completed.");
-            }
+            if (fault != null)
+                log.Error("QML Language Server transport: VS -> process relay faulted.", fault);
+            else
+                log.Info("QML Language Server transport: VS -> process relay completed.");
         }
 
         /// <summary>
