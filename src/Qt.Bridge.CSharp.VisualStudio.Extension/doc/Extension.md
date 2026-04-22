@@ -18,10 +18,12 @@ here through the DI container.
 ```
 ExtensionEntrypoint (DI root)
   │
-  |- IExtensionLog / TraceSourceExtensionLog  <- centralised logging abstraction
+  |- IExtensionLog / ExtensionLog       <- dual-output logging (TraceSource + output pane)
+  |- INotificationService / NotificationService  <- rate-limited VS InfoBar messages
   │
   |- QmlLanguageServerProvider         <- LanguageServerProvider (VS SDK)
   │    |- IExtensionLog                <- all provider diagnostics
+  │    |- INotificationService         <- user-facing install / launch / metadata errors
   │    |- IProjectContextService       <- VS IDE context (active doc, project, config)
   │    |- IQtBridgeProjectService      <- Qt Bridge project detection
   │    |- IQmlMetadataReader           <- reads qtbridge-qml.ide.json
@@ -50,12 +52,14 @@ interfaces. This keeps the extension thin and the Core library independently tes
 
 **Logging is centralised behind `IExtensionLog`.**
 All extension components receive an `IExtensionLog` through the DI container rather than
-depending directly on `TraceSource`. This makes the call sites uniform and keeps the
-`TraceSource` setup and listener configuration in one place (`TraceSourceExtensionLog`).
-It is also the reason the `IQmlMetadataWatcher` implementation lives in the extension rather
-than in Core: the watcher needs to report errors, which requires `IExtensionLog`, and
-`IExtensionLog` carries a dependency on Visual Studio's tracing infrastructure that must not
-leak into the Core library.
+depending directly on `TraceSource` or the VS output channel API. `ExtensionLog` writes
+`Verbose` entries to the `TraceSource` only (captured by the VS diagnostics log) and
+`Info`, `Warning`, and `Error` entries to both the `TraceSource` and the "Qt Bridge for C#"
+VS output channel so developers see important events without opening the diagnostics log.
+This dual-output approach is also the reason the `IQmlMetadataWatcher` implementation lives
+in the extension rather than in Core: the watcher needs to report errors through
+`IExtensionLog`, and `IExtensionLog` carries a dependency on Visual Studio output
+infrastructure that must not leak into the Core library.
 
 **`Enabled` is the lifecycle switch.**
 The VS Extensibility SDK activates and deactivates a `LanguageServerProvider` by reading its
@@ -116,21 +120,42 @@ hosting cannot satisfy either dependency.
 The extension entry point. Subclasses `Microsoft.VisualStudio.Extensibility.Extension` and
 overrides `InitializeServices` to register all services as singletons. This is the only place
 where concrete types are bound to their interfaces. The registration order reflects the
-dependency graph: `IExtensionLog` is registered first as it is consumed by several other
-services, including the extension-layer `QmlMetadataWatcher`.
+dependency graph: `IExtensionLog` and `INotificationService` are registered first as they are
+consumed by several other services, including the extension-layer `QmlMetadataWatcher`.
 
 ---
 
-### `IExtensionLog` / `TraceSourceExtensionLog`
+### `IExtensionLog` / `ExtensionLog`
 
 A lightweight logging abstraction with four severity levels: `Verbose`, `Info`, `Warning`,
 and `Error` (the last optionally accepting an `Exception`). All extension components receive
 this through the DI container.
 
-`TraceSourceExtensionLog` is the only implementation. It wraps the `TraceSource` that the VS
-Extensibility SDK injects, adds a `DefaultTraceListener`, sets the switch level to `Verbose`,
-and maps each severity to the corresponding `TraceEventType`. Exception details are appended
-to the message string when present.
+`ExtensionLog` is the only implementation. It writes to two outputs simultaneously:
+
+- **`TraceSource`** - all four severity levels. The VS Extensibility SDK injects the
+  `TraceSource`; `ExtensionLog` adds a `DefaultTraceListener`, sets the switch level to
+  `Verbose`, and maps each severity to the corresponding `TraceEventType`. These entries
+  appear in the VS diagnostics log.
+- **VS output channel** ("Qt Bridge for C#") - `Info`, `Warning`, and `Error` only.
+  `Verbose` entries are not forwarded here to keep routine diagnostics out of the pane
+  visible to users.
+
+Exception details are appended to the message string in both outputs when present.
+
+---
+
+### `INotificationService` / `NotificationService`
+
+A rate-limited InfoBar notification service. `ShowInfoAsync`, `ShowWarningAsync` and
+`ShowErrorAsync` each accept a string `key` and a message. `NotificationService` maintains
+a `HashSet<string>` of previously shown keys; if the same key is presented a second time,
+the InfoBar is not shown again for the lifetime of the extension session. This prevents the
+same error (e.g. a missing asset or a failed installation) from spawning repeated InfoBar
+banners across server restart cycles.
+
+Each notification is also forwarded to `IExtensionLog` at the corresponding severity level
+so the event is captured in the diagnostics log even if the user dismisses the InfoBar.
 
 ---
 
@@ -174,13 +199,18 @@ Called by the VS SDK when a `.qml` file is opened and `Enabled` is `true`. The s
 1. Resolve the active project context (directory, project file path, config key).
 2. Ensure qmlls is installed via `IQmlLanguageServerInstaller`. A
    `QmlLanguageServerInstallException` is caught, logged with its typed `Error` kind, and
-   causes the method to return `null`.
-3. Locate the metadata file. If absent, start in minimal mode; if present, read it via
-   `TryRead` (which returns a `QmlMetadataReadResult`), log any failure with its error kind,
-   then validate and start with full arguments.
-4. Launch the qmlls process. A `QmlLanguageServerLaunchException` is caught, logged with the
-   executable path, and causes the method to return `null`. On success, returns a
-   `QmlLanguageServerTransportPipe` as the `IDuplexPipe`.
+   a user-facing error is shown via `INotificationService` using a per-error-kind message
+   (keyed by the error kind so the same failure is not re-shown on every restart).
+   The method then returns `null`.
+3. Locate the metadata file. If absent, start in minimal mode and warn via
+   `INotificationService`. If present, read it via `TryRead` (which returns a
+   `QmlMetadataReadResult`): `IoError` and `ParseError` failures are shown as notifications
+   (keyed so each kind appears at most once); `NotFound` is treated silently as minimal mode.
+   On a successful read, `Validate` is called; a validation failure is shown as an error
+   notification and the method returns `null`.
+4. Launch the qmlls process. A `QmlLanguageServerLaunchException` is caught, an error
+   notification is shown including the executable path, and the method returns `null`. On
+   success, returns a `QmlLanguageServerTransportPipe` as the `IDuplexPipe`.
 
 **Metadata watcher and restart.**
 After enabling, the provider starts an `IQmlMetadataWatcher` on the active project's `obj\`

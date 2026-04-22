@@ -24,7 +24,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         {
             base.InitializeServices(serviceCollection);
 
-            serviceCollection.AddSingleton<IExtensionLog, TraceSourceExtensionLog>();
+            serviceCollection.AddSingleton<IExtensionLog, ExtensionLog>();
+            serviceCollection.AddSingleton<INotificationService, NotificationService>();
 
             serviceCollection.AddSingleton<IQtBridgeProjectDetector, QtBridgeProjectDetector>();
             serviceCollection.AddSingleton<IQtBridgeProjectFileLocator,

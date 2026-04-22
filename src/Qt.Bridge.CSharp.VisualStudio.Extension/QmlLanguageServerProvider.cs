@@ -21,6 +21,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
     internal sealed class QmlLanguageServerProvider : LanguageServerProvider
     {
         private readonly IExtensionLog log;
+        private readonly INotificationService notifications;
         private readonly IQtBridgeProjectService projectService;
         private readonly IProjectContextService contextService;
         private readonly IQmlMetadataReader metadataReader;
@@ -40,6 +41,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             ExtensionCore container,
             VisualStudioExtensibility extensibilityObject,
             IExtensionLog extensionLog,
+            INotificationService notificationsSvc,
             IQtBridgeProjectService projectSvc,
             IProjectContextService contextSvc,
             IQmlMetadataReader metadataReader,
@@ -49,6 +51,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         {
             log = extensionLog
                 ?? throw new ArgumentNullException(nameof(extensionLog));
+            notifications = notificationsSvc
+                ?? throw new ArgumentNullException(nameof(notificationsSvc));
             projectService = projectSvc ?? throw new ArgumentNullException(nameof(projectSvc));
             contextService = contextSvc ?? throw new ArgumentNullException(nameof(contextSvc));
             this.metadataReader = metadataReader
@@ -87,6 +91,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 installation = await languageServerInstaller.EnsureInstalledAsync(ct);
             } catch (QmlLanguageServerInstallException ex) {
                 log.Error($"QML Language Server: install failed ({ex.Error}).", ex);
+                var userMessage = InstallErrorMessage(ex.Error);
+                await notifications.ShowErrorAsync($"qmls-install-{ex.Error}", userMessage, ct);
                 return null;
             } catch (Exception ex) when (ex is not OperationCanceledException) {
                 log.Error("QML Language Server: unexpected error acquiring executable.", ex);
@@ -98,25 +104,40 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             if (metadataFilePath == null) {
                 log.Info("QML Language Server: metadata file not found, starting with minimal"
                     + " configuration. Build the project for full QML language support.");
+                await notifications.ShowInfoAsync($"qmls-no-metadata:{projectFilePath}",
+                    "Qt Bridge: Build the project for full QML language support.", ct);
                 minimalMode = true;
                 try {
                     return LaunchQmlLanguageServer(installation.ExecutablePath, metadata: null);
                 } catch (QmlLanguageServerLaunchException ex) {
                     log.Error($"QML Language Server: failed to launch '{ex.ExecutablePath}'.", ex);
+                    await notifications.ShowErrorAsync("qmls-launch-failed",
+                        "Qt Bridge: The QML Language Server failed to start. See the Qt Bridge "
+                        + "output pane for details.", ct);
                     return null;
                 }
             }
 
             var readResult = metadataReader.TryRead(metadataFilePath, ct);
             if (!readResult.Success) {
-                log.Warning($"QML Language Server: failed to read metadata at '{metadataFilePath}'"
-                    + $" ({readResult.Error}).");
+                log.Error($"QML Language Server: failed to read metadata at '{readResult.Path}'"
+                    + $" ({readResult.Error}).", readResult.Exception);
+                if (readResult.Error != QmlMetadataReadError.NotFound) {
+                    await notifications.ShowWarningAsync(
+                        $"qmls-metadata-invalid:{projectFilePath}:{configuration}",
+                        "Qt Bridge: QML Language Server metadata could not be read."
+                        + " Try rebuilding the project.", ct);
+                }
                 return null;
             }
 
             if (!metadataReader.Validate(readResult.Metadata!, projectFilePath, configuration)) {
                 log.Warning("QML Language Server: metadata validation failed"
                     + $" for '{metadataFilePath}'.");
+                await notifications.ShowWarningAsync(
+                    $"qmls-metadata-invalid:{projectFilePath}:{configuration}",
+                    "Qt Bridge: QML Language Server metadata is stale or invalid."
+                    + " Try rebuilding the project.", ct);
                 return null;
             }
 
@@ -125,6 +146,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 return LaunchQmlLanguageServer(installation.ExecutablePath, readResult.Metadata!);
             } catch (QmlLanguageServerLaunchException ex) {
                 log.Error($"QML Language Server: failed to launch '{ex.ExecutablePath}'.", ex);
+                await notifications.ShowErrorAsync("qmls-launch-failed",
+                    "Qt Bridge: The QML Language Server failed to start."
+                    + " See the Qt Bridge output pane for details.", ct);
                 return null;
             }
         }
@@ -405,5 +429,31 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 Enabled = true;
             }, "metadata changed handler");
         }
+
+        private static string InstallErrorMessage(QmlLanguageServerInstallError err) => err switch
+        {
+            QmlLanguageServerInstallError.ReleaseMetadataUnavailable =>
+                "Qt Bridge: Could not fetch QML Language Server metadata. "
+                + "Check your network connection.",
+            QmlLanguageServerInstallError.NoMatchingAsset =>
+                "Qt Bridge: No QML Language Server package found for this platform.",
+            QmlLanguageServerInstallError.DownloadFailed =>
+                "Qt Bridge: Could not download the QML Language Server. "
+                + "Check your network connection.",
+            QmlLanguageServerInstallError.DigestMismatch =>
+                "Qt Bridge: The QML Language Server package failed integrity verification "
+                + "and was not installed.",
+            QmlLanguageServerInstallError.ExtractionFailed =>
+                "Qt Bridge: Could not extract the QML Language Server package.",
+            QmlLanguageServerInstallError.ExecutableNotFound =>
+                "Qt Bridge: QML Language Server executable was not found after install.",
+            QmlLanguageServerInstallError.ManifestWriteFailed =>
+                "Qt Bridge: Could not save the QML Language Server install manifest.",
+            QmlLanguageServerInstallError.InstallDirectoryAccessDenied =>
+                "Qt Bridge: Cannot write to the QML Language Server install directory.",
+            _ =>
+                "Qt Bridge: Could not install the QML Language Server. "
+                + "See the Qt Bridge output pane for details."
+        };
     }
 }
