@@ -7,13 +7,16 @@ using System.IO.Pipelines;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using System.Threading.Channels;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension
 {
     /// <summary>
-    /// Wraps the QML Language Server process as an LSP transport pipe. Relays bytes between the VS
-    /// LSP host and the process stdin/stdout.
+    /// Wraps the QML Language Server process as an LSP transport pipe. Relays bytes between the
+    /// VS LSP host and the process stdin/stdout. Accepts out-of-band notification injections via
+    /// <see cref="EnqueueNotification"/>; notifications are held until after the LSP
+    /// <c>initialized</c> handshake and then delivered without waiting for VS to send a message.
     /// </summary>
     internal sealed class QmlLanguageServerTransportPipe : IDuplexPipe, IDisposable
     {
@@ -22,47 +25,23 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         private readonly Pipe vsReadPipe;
         private readonly Pipe vsWritePipe;
         private readonly CancellationTokenSource cts;
-        private readonly string? addBuildDirsNotification;
+        private readonly Channel<byte[]> pendingNotifications =
+            Channel.CreateUnbounded<byte[]>(new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = false,
+                AllowSynchronousContinuations = false
+            });
         private readonly Task relayFromTask;
         private readonly Task relayToTask;
 
-        /// <summary>
-        /// Constructs the transport pipe, starts background relay tasks, and sets up process event
-        /// handlers.
-        /// </summary>
-
-        /// <summary>
-        /// Wraps the QML Language Server process as an LSP transport pipe.
-        /// <para>
-        /// When <paramref name="projectSourceDir"/> is non-null and valid, intercepts the
-        /// <c>initialized</c> notification sent by VS and injects a <c>$/addBuildDirs</c>
-        /// notification immediately after it, mapping the user project root to the Qt-native
-        /// build directories so the QML Language Server covers user-authored QML files in
-        /// addition to the generated source tree.
-        /// </para>
-        /// </summary>
-        public QmlLanguageServerTransportPipe(
-            Process process,
-            IExtensionLog extensionLog,
-            string? projectSourceDir,
-            IReadOnlyCollection<string> buildDirs)
+        public QmlLanguageServerTransportPipe(Process process, IExtensionLog extensionLog)
         {
             this.process = process;
             log = extensionLog;
             cts = new CancellationTokenSource();
             vsReadPipe = new Pipe();
             vsWritePipe = new Pipe();
-
-            var addBuildDirsBaseDir = GetAddBuildDirsBaseDirectory(projectSourceDir);
-            if (addBuildDirsBaseDir != null && buildDirs.Count > 0) {
-                addBuildDirsNotification = BuildNotification(addBuildDirsBaseDir, buildDirs);
-                log.Info("QML Language Server: will inject $/addBuildDirs"
-                    + $" (baseUri={new Uri(addBuildDirsBaseDir).AbsoluteUri},"
-                    + $" {buildDirs.Count} build dir(s)).");
-            } else {
-                log.Info("QML Language Server: $/addBuildDirs injection disabled"
-                    + " (no valid projectSourceDir or no build dirs).");
-            }
 
             Input = vsReadPipe.Reader;
             Output = vsWritePipe.Writer;
@@ -73,7 +52,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             process.BeginErrorReadLine();
 
             var ct = cts.Token;
-
             relayFromTask = RelayFromProcessAsync(ct);
             relayToTask = RelayToProcessAsync(ct);
         }
@@ -81,12 +59,23 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         public PipeReader Input { get; }
         public PipeWriter Output { get; }
 
+        /// <summary>
+        /// Enqueues <paramref name="json"/> (a raw JSON notification body) for delivery to the QML
+        /// Language Server. Framing is applied automatically. The notification is sent only after
+        /// the LSP <c>initialized</c> handshake has completed.
+        /// </summary>
+        public void EnqueueNotification(string json)
+        {
+            pendingNotifications.Writer.TryWrite(Encoding.UTF8.GetBytes(FrameLspMessage(json)));
+        }
+
         public void Dispose()
         {
             process.Exited -= OnProcessExited;
             process.ErrorDataReceived -= OnErrorDataReceived;
             cts.Cancel();
 
+            pendingNotifications.Writer.TryComplete();
             try {
                 // Use JoinableTaskFactory.Run so VS main-thread pumping continues while we
                 // wait, avoiding the deadlock risk of a raw Task.Wait() on a VS-managed thread.
@@ -105,6 +94,69 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
             process.Dispose();
             cts.Dispose();
+        }
+
+        /// <summary>
+        /// Builds the JSON body for a <c>workspace/didChangeWorkspaceFolders</c> notification.
+        /// <paramref name="folderUri"/> must be a file URI. Pass <paramref name="add"/>
+        /// <see langword="true"/> to register, <see langword="false"/> to unregister.
+        /// </summary>
+        internal static string BuildWorkspaceFolderNotification(string folderUri, bool add)
+        {
+            var folder = new WorkspaceFolderDto {
+                Uri = folderUri,
+                Name = GetFolderName(folderUri)
+            };
+            var dto = new WorkspaceFoldersNotificationDto {
+                Params = new WorkspaceFoldersEventContainerDto {
+                    Event = new WorkspaceFoldersEventDto {
+                        Added = add ? [folder] : [],
+                        Removed = add ? [] : [folder]
+                    }
+                }
+            };
+            using var ms = new MemoryStream();
+            new DataContractJsonSerializer(typeof(WorkspaceFoldersNotificationDto))
+                .WriteObject(ms, dto);
+            return Encoding.UTF8.GetString(ms.ToArray());
+        }
+
+        /// <summary>
+        /// Builds the JSON body for a <c>$/addBuildDirs</c> notification.
+        /// <paramref name="folderUri"/> must be a file URI identifying the project source root;
+        /// <paramref name="buildDirs"/> are filesystem paths passed directly to qmlls.
+        /// </summary>
+        internal static string BuildAddBuildDirsNotification(
+            string folderUri, IEnumerable<string> buildDirs)
+        {
+            var dto = new AddBuildDirsNotificationDto {
+                Params = new AddBuildDirsParamsDto {
+                    BuildDirsToSet = [
+                        new BuildDirsEntryDto {
+                            BaseUri = folderUri,
+                            BuildDirs = [..buildDirs]
+                        }
+                    ]
+                }
+            };
+            using var ms = new MemoryStream();
+            new DataContractJsonSerializer(typeof(AddBuildDirsNotificationDto))
+                .WriteObject(ms, dto);
+            return Encoding.UTF8.GetString(ms.ToArray());
+        }
+
+        private static string FrameLspMessage(string body) =>
+            $"Content-Length: {Encoding.UTF8.GetByteCount(body)}\r\n\r\n{body}";
+
+        private static string GetFolderName(string folderUri)
+        {
+            try {
+                var localPath = new Uri(folderUri).LocalPath.TrimEnd('/', '\\');
+                var name = Path.GetFileName(localPath);
+                return string.IsNullOrEmpty(name) ? folderUri : name;
+            } catch {
+                return folderUri;
+            }
         }
 
         private void OnProcessExited(object? sender, EventArgs e)
@@ -169,15 +221,29 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         {
             log.Info("QML Language Server transport: VS -> process relay started.");
             var msgBuffer = new LspByteBuffer();
-            var notificationSent = addBuildDirsNotification == null;
+            var initialized = false;
             Exception? fault = null;
             try {
                 var reader = vsWritePipe.Reader;
                 var dest = process.StandardInput.BaseStream;
                 while (!ct.IsCancellationRequested) {
-                    var result = await reader.ReadAsync(ct);
-                    var sequence = result.Buffer;
+                    var vsReadTask = reader.ReadAsync(ct).AsTask();
 
+                    // After initialized: drain pending notifications immediately without waiting
+                    // for VS to send a message (project switches produce no VS LSP traffic).
+                    if (initialized) {
+                        while (!vsReadTask.IsCompleted) {
+                            var task = pendingNotifications.Reader.WaitToReadAsync(ct).AsTask();
+                            if (await Task.WhenAny(vsReadTask, task) == vsReadTask)
+                                break;
+                            while (pendingNotifications.Reader.TryRead(out var pending))
+                                await dest.WriteAsync(pending, 0, pending.Length, ct);
+                            await dest.FlushAsync(ct);
+                        }
+                    }
+
+                    var result = await vsReadTask;
+                    var sequence = result.Buffer;
                     foreach (var segment in sequence)
                         msgBuffer.Append(segment.Span);
                     reader.AdvanceTo(sequence.End);
@@ -190,13 +256,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
                         await dest.WriteAsync(message, 0, message.Length, ct);
 
-                        if (!notificationSent
+                        if (!initialized
                             && string.Equals(method, "initialized", StringComparison.Ordinal)) {
-                            log.Info("QML Language Server: 'initialized' received,"
-                                + " injecting $/addBuildDirs.");
-                            var notif = Encoding.UTF8.GetBytes(addBuildDirsNotification!);
-                            await dest.WriteAsync(notif, 0, notif.Length, ct);
-                            notificationSent = true;
+                            initialized = true;
+                            // Drain anything enqueued before initialized arrived.
+                            while (pendingNotifications.Reader.TryRead(out var pending))
+                                await dest.WriteAsync(pending, 0, pending.Length, ct);
                         }
 
                         await dest.FlushAsync(ct);
@@ -214,60 +279,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 log.Error("QML Language Server transport: VS -> process relay faulted.", fault);
             else
                 log.Info("QML Language Server transport: VS -> process relay completed.");
-        }
-
-        /// <summary>
-        /// Builds a framed LSP notification with the correct QML Language Server $/addBuildDirs
-        /// shape:
-        /// <code>
-        /// { "jsonrpc":"2.0", "method":"$/addBuildDirs",
-        ///   "params": { "buildDirsToSet": [{ "baseUri": "&lt;uri&gt;",
-        ///                                    "buildDirs": ["&lt;path&gt;", ...] }] } }
-        /// </code>
-        /// <paramref name="projectSourceDir"/> is converted to a file URI for baseUri.
-        /// <paramref name="buildDirs"/> are passed as raw filesystem paths. The QML Language
-        /// Server receives them with QString::fromUtf8 and passes them to loadSettingsFrom.
-        /// </summary>
-        private static string BuildNotification(
-            string projectSourceDir, IEnumerable<string> buildDirs)
-        {
-            var dto = new AddBuildDirsNotificationDto
-            {
-                Params = new AddBuildDirsParamsDto
-                {
-                    BuildDirsToSet =
-                    [
-                        new BuildDirsEntryDto
-                        {
-                            BaseUri = new Uri(projectSourceDir).AbsoluteUri,
-                            BuildDirs = [..buildDirs]
-                        }
-                    ]
-                }
-            };
-
-            using var ms = new MemoryStream();
-            var serializer = new DataContractJsonSerializer(
-                typeof(AddBuildDirsNotificationDto));
-            serializer.WriteObject(ms, dto);
-            var body = Encoding.UTF8.GetString(ms.ToArray());
-            return $"Content-Length: {Encoding.UTF8.GetByteCount(body)}\r\n\r\n{body}";
-        }
-
-        private static string? GetAddBuildDirsBaseDirectory(string? projectSourceDir)
-        {
-            if (string.IsNullOrWhiteSpace(projectSourceDir))
-                return null;
-
-            try {
-                var fullPath = Path.GetFullPath(projectSourceDir);
-                return Directory.Exists(fullPath) ? fullPath : null;
-            } catch (Exception ex) when (ex is ArgumentException
-                or IOException
-                or NotSupportedException
-                or UnauthorizedAccessException) {
-                return null;
-            }
         }
 
         /// <summary>
@@ -355,6 +366,46 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         {
             [DataMember(Name = "method")]
             public string? Method { get; set; }
+        }
+
+        [DataContract]
+        private sealed class WorkspaceFoldersNotificationDto
+        {
+            [DataMember(Name = "jsonrpc")]
+            public string JsonRpc { get; set; } = "2.0";
+
+            [DataMember(Name = "method")]
+            public string Method { get; set; } = "workspace/didChangeWorkspaceFolders";
+
+            [DataMember(Name = "params")]
+            public WorkspaceFoldersEventContainerDto? Params { get; set; }
+        }
+
+        [DataContract]
+        private sealed class WorkspaceFoldersEventContainerDto
+        {
+            [DataMember(Name = "event")]
+            public WorkspaceFoldersEventDto? Event { get; set; }
+        }
+
+        [DataContract]
+        private sealed class WorkspaceFoldersEventDto
+        {
+            [DataMember(Name = "added")]
+            public WorkspaceFolderDto[]? Added { get; set; }
+
+            [DataMember(Name = "removed")]
+            public WorkspaceFolderDto[]? Removed { get; set; }
+        }
+
+        [DataContract]
+        private sealed class WorkspaceFolderDto
+        {
+            [DataMember(Name = "uri")]
+            public string? Uri { get; set; }
+
+            [DataMember(Name = "name")]
+            public string? Name { get; set; }
         }
 
         [DataContract]

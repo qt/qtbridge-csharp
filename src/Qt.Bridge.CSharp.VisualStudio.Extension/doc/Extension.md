@@ -69,12 +69,14 @@ new metadata), the provider briefly sets `Enabled = false`, waits 500 ms for the
 down the current connection, then sets `Enabled = true` again to trigger a fresh
 `CreateServerConnectionAsync` call.
 
-**Minimal mode bridges the gap before the first build.**
-The QML Language Server can start before the project has ever been built - no metadata file
-exists yet. In this case the provider starts qmlls with only `--no-cmake-calls` (minimal
-mode) so the editor is not left without any QML support. When the metadata file appears after
-the first build the watcher fires, the `minimalMode` flag ensures the restart is logged
-clearly, and the server is restarted with full arguments.
+**The server starts unconditionally; metadata is injected after initialization.**
+The server is launched as soon as any Qt Bridge project is detected in the solution. Metadata
+is not required at startup: if no project has been built yet the server starts with
+`--no-cmake-calls` and whatever import paths can be found from any already-built project.
+Per-project `workspace/didChangeWorkspaceFolders` and `$/addBuildDirs` notifications are
+sent after the LSP handshake completes and again whenever the metadata file changes.
+This removes the hard dependency on metadata being present at launch and allows the server
+to cover multiple projects in one session without restarting.
 
 **Active document takes precedence over selected project.**
 When `CreateServerConnectionAsync` resolves which project to configure the server for, it
@@ -85,13 +87,23 @@ the active document belongs to a different project type that also uses `.qml` fi
 The selected project is only used as a fallback when no document is open (e.g., when setting
 up the metadata watcher from Solution Explorer).
 
-**`$/addBuildDirs` extends qmlls coverage to user-authored files.**
-qmlls reads workspace configuration from `.qt/.qmlls.build.ini` in the Qt-native build
-directory, which covers the generated source tree. It does not automatically know about the
-user's original project source directory. The transport pipe intercepts the `initialized`
-notification sent by VS after the LSP handshake completes and immediately injects a
-`$/addBuildDirs` notification, mapping the project source root to the Qt-native build
-directories. This is what makes qmlls aware of user-authored `.qml` files.
+**Per-project workspace registration covers the full solution.**
+After the LSP handshake the provider sends two notifications per project:
+`workspace/didChangeWorkspaceFolders` registers the project source root as a workspace
+folder so qmlls tracks all `.qml` files under it, and `$/addBuildDirs` maps that source root
+to the Qt-native build directories where `.qt/.qmlls.build.ini` lives. Together these give
+qmlls coverage of both generated and user-authored QML files. The transport pipe delivers
+these via an `EnqueueNotification` channel that is drained immediately after `initialized`
+arrives - without waiting for VS to send another message - so the server is fully configured
+before the first document request.
+
+**Metadata change triggers a server restart, not re-injection.**
+When the watcher detects that a project's `qtbridge-qml.ide.json` has changed (e.g. after a
+build), the provider restarts the server by toggling `Enabled` with a 500 ms gap rather than
+injecting updated notifications into the running session. This is necessary because qmlls
+memoizes `.qmlls.build.ini` reads: re-sending `$/addBuildDirs` cannot update import paths or
+resource file lists already cached in the running process. A restart lets
+`CreateServerConnectionAsync` register the workspace with fresh data before any `didOpen`.
 
 **DTE is abstracted behind an interface.**
 All Visual Studio IDE state - active project, active document, active build configuration,
@@ -187,58 +199,91 @@ to this provider.
 The central piece of the extension. Extends `LanguageServerProvider` and manages the full
 lifecycle of the QML Language Server:
 
+**Per-project registry.**
+The provider maintains a `Dictionary<string, ProjectEntry>` (keyed by project file path)
+protected by a lock. Each `ProjectEntry` holds an `IDisposable` watcher, the project
+directory, the config key, and two state flags:
+- `BuildDirsInjected` - `true` once workspace and build-dir notifications have been sent
+  for this project in the current server session. Prevents duplicate injections when multiple
+  code paths race to register the same project. Reset to `false` at the start of each new
+  server session.
+- `MissingMetadataNotified` - `true` once the "build project X for full QML support" InfoBar
+  has been shown for this project. Prevents the banner from repeating on every poll tick.
+
 **Enabled-state management.**
 On construction, and whenever the VS context changes (project selection, document open,
 solution load/close), `RefreshEnabledStateAsync` is called. It checks whether any loaded
-project is a Qt Bridge project and sets `Enabled` accordingly. When enabling, it also
-starts the metadata file watcher so subsequent builds trigger server restarts automatically.
+project is a Qt Bridge project and sets `Enabled` accordingly. When enabling, it immediately
+registers the active project and all other loaded Qt Bridge projects via
+`EnsureProjectRegisteredAsync`, which starts per-project metadata watchers and triggers
+`TryInjectProjectAsync` for any project that has not yet been injected.
 
 **`CreateServerConnectionAsync`.**
-Called by the VS SDK when a `.qml` file is opened and `Enabled` is `true`. The sequence is:
+Called by the VS SDK when `Enabled` is `true`. The sequence is:
 
-1. Resolve the active project context (directory, project file path, config key).
-2. Ensure qmlls is installed via `IQmlLanguageServerInstaller`. A
+1. Ensure qmlls is installed via `IQmlLanguageServerInstaller`. A
    `QmlLanguageServerInstallException` is caught, logged with its typed `Error` kind, and
-   a user-facing error is shown via `INotificationService` using a per-error-kind message
-   (keyed by the error kind so the same failure is not re-shown on every restart).
-   The method then returns `null`.
-3. Locate the metadata file. If absent, start in minimal mode and warn via
-   `INotificationService`. If present, read it via `TryRead` (which returns a
-   `QmlMetadataReadResult`): `IoError` and `ParseError` failures are shown as notifications
-   (keyed so each kind appears at most once); `NotFound` is treated silently as minimal mode.
-   On a successful read, `Validate` is called; a validation failure is shown as an error
-   notification and the method returns `null`.
-4. Launch the qmlls process. A `QmlLanguageServerLaunchException` is caught, an error
-   notification is shown including the executable path, and the method returns `null`. On
-   success, returns a `QmlLanguageServerTransportPipe` as the `IDuplexPipe`.
+   a per-error-kind InfoBar error is shown via `INotificationService` (keyed so the same
+   failure is not re-shown on restart). The method returns `null` on any install failure.
+2. Collect import paths best-effort: scan all loaded Qt Bridge projects and return the import
+   paths from the first one that has valid built metadata. These paths are identical for all
+   projects on the same NuGet version, so any project serves as a valid source.
+3. Resolve the active project context (directory, project file path, config key).
+4. Launch the qmlls process with `--no-cmake-calls` and the collected import paths. A
+   `QmlLanguageServerLaunchException` is caught, an error notification is shown, and the
+   method returns `null`. On success, stores the pipe as `activePipe`.
+5. Reset `BuildDirsInjected` on all existing registry entries (they belong to the previous
+   server session) and re-inject workspace/build-dir context for every previously registered
+   project, then register and inject the active project.
 
-**Metadata watcher and restart.**
-After enabling, the provider starts an `IQmlMetadataWatcher` on the active project's `obj\`
-directory. When the watcher fires (`OnMetadataChanged`), the provider restarts the server
-by toggling `Enabled`. If the server was not running at all (e.g., first startup was in
-minimal mode or cancelled before metadata existed), it calls `RefreshEnabledStateAsync`
-instead to re-attempt activation from scratch.
+**`TryInjectProjectAsync`.**
+Reads metadata for a registered project and, if valid, enqueues two notifications on the
+active pipe: `workspace/didChangeWorkspaceFolders` (adds the project source root as a
+workspace folder) and `$/addBuildDirs` (maps the source root to the Qt-native build
+directories). If no metadata file exists, a "build project X" InfoBar is shown once
+(controlled by `MissingMetadataNotified`). If the active pipe changed while awaiting async
+work, `BuildDirsInjected` is reset so the next session retries.
+
+**`OnProjectMetadataChanged`.**
+Called by each project's `IQmlMetadataWatcher` when the metadata file timestamp changes.
+Resets `BuildDirsInjected` for that project and restarts the server by toggling `Enabled`
+(with a 500 ms gap). Restart is used rather than re-injection because qmlls memoizes
+`.qmlls.build.ini` reads; only a fresh process picks up new import paths and resource files.
+If `Enabled` is already `false`, calls `RefreshEnabledStateAsync` to re-attempt activation.
 
 ---
 
 ### `QmlLanguageServerTransportPipe`
 
-Implements `IDuplexPipe` by wrapping the qmlls `Process`. It owns two background tasks and
-two `System.IO.Pipelines.Pipe` instances:
+Implements `IDuplexPipe` by wrapping the qmlls `Process`. It owns two background tasks, two
+`System.IO.Pipelines.Pipe` instances, and an unbounded `Channel<byte[]>` for pending
+out-of-band notifications.
 
-**`RelayFromProcessAsync`** reads qmlls stdout and writes to the VS-facing read pipe,
-forwarding LSP responses and notifications to the VS LSP host.
+**`EnqueueNotification(json)`** is the public entry point for injecting notifications. The
+caller passes a raw JSON body; the pipe applies LSP framing (`Content-Length` header) and
+writes the bytes to the channel. The relay task drains the channel after `initialized`
+arrives without waiting for VS to send additional traffic.
 
-**`RelayToProcessAsync`** reads from the VS-facing write pipe and writes to qmlls stdin,
-forwarding LSP requests and notifications from VS to qmlls. It also handles
-`$/addBuildDirs` injection: when it sees the `initialized` notification pass through
-(the VS SDK sends this immediately after the LSP handshake), it injects the pre-built
-`$/addBuildDirs` notification before forwarding any further messages.
+**`BuildWorkspaceFolderNotification(folderUri, add)`** and
+**`BuildAddBuildDirsNotification(folderUri, buildDirs)`** are internal static helpers that
+serialize the respective notification DTOs to JSON using `DataContractJsonSerializer`.
+The provider calls these and hands the results to `EnqueueNotification`.
+
+**`RelayFromProcessAsync`** reads qmlls stdout and forwards bytes to the VS-facing read pipe.
+It also parses incoming messages through `LspByteBuffer` for diagnostic logging only
+(method names and byte counts are logged at `Verbose` level).
+
+**`RelayToProcessAsync`** reads from the VS-facing write pipe and forwards bytes to qmlls
+stdin. After the `initialized` notification passes through, the relay enters a select loop
+that races the VS read task against the pending notifications channel: whenever the channel
+has items and VS has not sent a new message yet, the relay drains and flushes the queued
+notifications immediately. This ensures per-project workspace registration happens without
+requiring VS to generate LSP traffic.
 
 **`LspByteBuffer`** is a private helper that accumulates raw bytes from an LSP stream and
-extracts complete framed messages (`Content-Length: N\r\n\r\n<body>`). It is used by both
-relay tasks - the from-process task uses it for diagnostic logging; the to-process task
-uses it to detect the `initialized` notification.
+extracts complete framed messages (`Content-Length: N\r\n\r\n<body>`). Both relay tasks use
+it - the from-process task for diagnostic logging, the to-process task to detect the
+`initialized` notification and to log outbound methods.
 
 `Dispose` cancels both relay tasks, waits up to 500 ms (via `JoinableTaskFactory.Run` to
 avoid deadlocking the VS main thread), kills the process if it has not exited, and releases
@@ -289,7 +334,7 @@ user action.
 ## Typical Activation Flow
 
 ```
-VS loads solution containing a Qt Bridge project
+VS loads solution containing one or more Qt Bridge projects
   │
 DteContextSubscription fires (solution opened)
   -> debounce 250 ms
@@ -299,34 +344,57 @@ DteContextSubscription fires (solution opened)
   │    checks active project / document / loaded projects via IQtBridgeProjectService
   │    -> true
   │
-  |- UpdateMetadataWatcherAsync()
-  │    IQmlMetadataWatcher.Watch(projectDirectory, configKey, OnMetadataChanged)
+  |- EnsureProjectRegisteredAsync() for active project and all loaded Qt Bridge projects
+  │    IQmlMetadataWatcher.Watch(projectDirectory, configKey, OnProjectMetadataChanged)
+  │    TryInjectProjectAsync() [no-op: activePipe is still null]
   │
   |- Enabled = true  (VS SDK calls CreateServerConnectionAsync)
        │
-       |- ResolveActiveProjectContextAsync()  -> (dir, projectFile, configKey)
        |- IQmlLanguageServerInstaller.EnsureInstalledAsync()  -> executable path
-       |- IQmlMetadataReader.FindMetadataFilePath()
-       │    found -> TryRead -> Validate
-       │    not found -> minimal mode (--no-cmake-calls only)
+       |- TryFindImportPathsAsync()  -> import paths from any built project (best-effort)
+       |- ResolveActiveProjectContextAsync()  -> (dir, projectFile, configKey)
        │
        |- LaunchQmlLanguageServer()
-            Process.Start(qmlls, args)
-            -> QmlLanguageServerTransportPipe (IDuplexPipe)
-                 RelayFromProcessAsync  [background]
-                 RelayToProcessAsync    [background]
-                   on 'initialized': inject $/addBuildDirs
+       │    Process.Start(qmlls, --no-cmake-calls [-I ...])
+       │    -> QmlLanguageServerTransportPipe (IDuplexPipe)
+       │         RelayFromProcessAsync  [background]
+       │         RelayToProcessAsync    [background]
+       │
+       |- activePipe = pipe; reset BuildDirsInjected on all registry entries
+       │
+       |- TryInjectProjectAsync() for each previously registered project
+       |- EnsureProjectRegisteredAsync() for active project
+            TryInjectProjectAsync():
+              FindMetadataFilePath() -> read -> validate
+                success: EnqueueNotification(workspace/didChangeWorkspaceFolders)
+                          EnqueueNotification($/addBuildDirs)
+                missing: ShowInfoAsync("build project X for full QML support") [once]
 ```
 
 ```
-Developer builds the project
+LSP handshake completes (VS sends 'initialized')
   │
-MSBuild writes qtbridge-qml.ide.json
+RelayToProcessAsync detects 'initialized'
+  -> drains pendingNotifications channel immediately
+       -> sends workspace/didChangeWorkspaceFolders to qmlls stdin
+       -> sends $/addBuildDirs to qmlls stdin
+  -> enters select loop: drains channel whenever VS is not sending a message
+```
+
+```
+Developer builds the project (or a second project is visited)
   │
-QmlMetadataWatcher poll fires (up to 2 s later)
-  -> OnMetadataChanged()
+Case A: metadata file changes for a registered project
+  QmlMetadataWatcher poll fires (up to 2 s later)
+  -> OnProjectMetadataChanged()
+  -> reset BuildDirsInjected for that project
   -> Enabled = false  (VS SDK shuts down qmlls)
   -> await Task.Delay(500)
   -> Enabled = true   (VS SDK calls CreateServerConnectionAsync again)
-       -> full metadata this time -> qmlls starts with -b / -I args
+       -> CreateServerConnectionAsync re-injects all registry entries with fresh metadata
+
+Case B: user opens a .qml file in a project not yet registered
+  -> CreateServerConnectionAsync detects project not in registry
+  -> EnsureProjectRegisteredAsync() starts a new watcher for that project
+  -> TryInjectProjectAsync() sends workspace + build-dir notifications to running server
 ```

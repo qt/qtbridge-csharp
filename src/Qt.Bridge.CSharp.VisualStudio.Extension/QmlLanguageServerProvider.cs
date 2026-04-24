@@ -13,8 +13,6 @@ using Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 using Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext;
 
-using QmlMetadataModel = Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata.QmlMetadata;
-
 namespace Qt.Bridge.CSharp.VisualStudio.Extension
 {
     [VisualStudioContribution]
@@ -29,13 +27,22 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         private readonly IQmlLanguageServerInstaller languageServerInstaller;
         private readonly IDisposable contextSubscription;
 
-        private readonly object metadataWatcherLock = new();
-        private IDisposable? metadataWatchSubscription;
-        private bool metadataWatcherDisposed;
+        private sealed class ProjectEntry(
+            IDisposable watcher,
+            string projectDirectory,
+            string configKey)
+        {
+            public IDisposable Watcher { get; } = watcher;
+            public string ProjectDirectory { get; } = projectDirectory;
+            public string ConfigKey { get; } = configKey;
+            public bool BuildDirsInjected { get; set; }
+            public bool MissingMetadataNotified { get; set; }
+        }
 
-        // True when qmlls is running with minimal args (no metadata file found at startup).
-        // OnMetadataChanged uses this to log the upgrade and trigger a restart.
-        private volatile bool minimalMode;
+        private readonly object registryLock = new();
+        private readonly Dictionary<string, ProjectEntry> projectRegistry = [];
+        private bool registryDisposed;
+        private QmlLanguageServerTransportPipe? activePipe;
 
         public QmlLanguageServerProvider(
             ExtensionCore container,
@@ -78,14 +85,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
         public override async Task<IDuplexPipe?> CreateServerConnectionAsync(CancellationToken ct)
         {
-            var (projectDirectory, projectFilePath, configKey) =
-                await ResolveActiveProjectContextAsync(ct);
-            if (projectDirectory == null || projectFilePath == null || configKey == null) {
-                log.Warning("QML Language Server: no active Qt Bridge project or build "
-                    + "configuration found.");
-                return null;
-            }
-
             QmlLanguageServerInstallation installation;
             try {
                 installation = await languageServerInstaller.EnsureInstalledAsync(ct);
@@ -99,51 +98,16 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 return null;
             }
 
-            var configuration = Path.GetFileName(configKey);
-            var metadataFilePath = metadataReader.FindMetadataFilePath(projectDirectory, configKey);
-            if (metadataFilePath == null) {
-                log.Info("QML Language Server: metadata file not found, starting with minimal"
-                    + " configuration. Build the project for full QML language support.");
-                await notifications.ShowInfoAsync($"qmls-no-metadata:{projectFilePath}",
-                    "Qt Bridge: Build the project for full QML language support.", ct);
-                minimalMode = true;
-                try {
-                    return LaunchQmlLanguageServer(installation.ExecutablePath, metadata: null);
-                } catch (QmlLanguageServerLaunchException ex) {
-                    log.Error($"QML Language Server: failed to launch '{ex.ExecutablePath}'.", ex);
-                    await notifications.ShowErrorAsync("qmls-launch-failed",
-                        "Qt Bridge: The QML Language Server failed to start. See the Qt Bridge "
-                        + "output pane for details.", ct);
-                    return null;
-                }
-            }
+            // Best-effort: read import paths from any loaded Qt Bridge project. These paths are
+            // identical for all projects using the same NuGet package version, so the first project
+            // with built metadata is a valid source even if the active project has none yet.
+            var importPaths = await TryFindImportPathsAsync(ct);
+            var (activeDir, activeFile, activeKey) =
+                await ResolveActiveProjectContextAsync(ct);
 
-            var readResult = metadataReader.TryRead(metadataFilePath, ct);
-            if (!readResult.Success) {
-                log.Error($"QML Language Server: failed to read metadata at '{readResult.Path}'"
-                    + $" ({readResult.Error}).", readResult.Exception);
-                if (readResult.Error != QmlMetadataReadError.NotFound) {
-                    await notifications.ShowWarningAsync(
-                        $"qmls-metadata-invalid:{projectFilePath}:{configuration}",
-                        "Qt Bridge: QML Language Server metadata could not be read."
-                        + " Try rebuilding the project.", ct);
-                }
-                return null;
-            }
-
-            if (!metadataReader.Validate(readResult.Metadata!, projectFilePath, configuration)) {
-                log.Warning("QML Language Server: metadata validation failed"
-                    + $" for '{metadataFilePath}'.");
-                await notifications.ShowWarningAsync(
-                    $"qmls-metadata-invalid:{projectFilePath}:{configuration}",
-                    "Qt Bridge: QML Language Server metadata is stale or invalid."
-                    + " Try rebuilding the project.", ct);
-                return null;
-            }
-
-            minimalMode = false;
+            QmlLanguageServerTransportPipe pipe;
             try {
-                return LaunchQmlLanguageServer(installation.ExecutablePath, readResult.Metadata!);
+                pipe = LaunchQmlLanguageServer(installation.ExecutablePath, importPaths);
             } catch (QmlLanguageServerLaunchException ex) {
                 log.Error($"QML Language Server: failed to launch '{ex.ExecutablePath}'.", ex);
                 await notifications.ShowErrorAsync("qmls-launch-failed",
@@ -151,6 +115,30 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                     + " See the Qt Bridge output pane for details.", ct);
                 return null;
             }
+
+            List<string> existingProjects;
+            lock (registryLock) {
+                activePipe = pipe;
+                foreach (var entry in projectRegistry.Values)
+                    entry.BuildDirsInjected = false;
+                existingProjects = [..projectRegistry.Keys];
+            }
+
+            // Update all previously registered projects so the new server session has full
+            // workspace and build-directory context for every project the user has visited.
+            foreach (var projectPath in existingProjects)
+                await TryInjectProjectAsync(projectPath, ct, notifyUser: false);
+
+            // Register and inject the active project (may already be in the registry).
+            if (activeDir != null && activeFile != null && activeKey != null)
+                await EnsureProjectRegisteredAsync(
+                    activeFile,
+                    activeDir,
+                    activeKey,
+                    ct,
+                    notifyUser: true);
+
+            return pipe;
         }
 
         public override Task OnServerInitializationResultAsync(
@@ -174,7 +162,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         {
             if (disposing) {
                 contextSubscription.Dispose();
-                ReplaceMetadataWatcher(null, disposing: true);
+                activePipe = null;
+                lock (registryLock) {
+                    registryDisposed = true;
+                    foreach (var entry in projectRegistry.Values)
+                        entry.Watcher.Dispose();
+                    projectRegistry.Clear();
+                }
             }
 
             base.Dispose(disposing);
@@ -200,11 +194,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             }
         }
 
-        private IDuplexPipe LaunchQmlLanguageServer(string executablePath, QmlMetadataModel? metadata)
+        private QmlLanguageServerTransportPipe LaunchQmlLanguageServer(
+            string executablePath,
+            IEnumerable<string>? importPaths)
         {
-            var args = metadata != null
-                ? BuildQmlLanguageServerArguments(metadata)
-                : "--no-cmake-calls";
+            var args = BuildStartupArguments(importPaths);
             var startInfo = new ProcessStartInfo
             {
                 FileName = executablePath,
@@ -227,11 +221,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
                 log.Info($"QML Language Server: started process (pid {process.Id}) with: {args}");
 
-                return new QmlLanguageServerTransportPipe(
-                    process,
-                    log,
-                    metadata?.Qml.ProjectSourceDir,
-                    metadata?.Qml.BuildDirs ?? []);
+                return new QmlLanguageServerTransportPipe(process, log);
             } catch (QmlLanguageServerLaunchException) {
                 throw;
             } catch (Exception ex) {
@@ -251,17 +241,278 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             }
         }
 
-        private static string BuildQmlLanguageServerArguments(QmlMetadataModel metadata)
+        private static string BuildStartupArguments(IEnumerable<string>? importPaths)
         {
-            var parts = new List<string>();
-
-            if (metadata.QmlLanguageServer.DisableCMakeCalls)
-                parts.Add("--no-cmake-calls");
-
-            parts.AddRange(metadata.Qml.BuildDirs.Select(d => $"-b \"{d}\""));
-            parts.AddRange(metadata.Qml.ImportPaths.Select(p => $"-I \"{p}\""));
-
+            var parts = new List<string> { "--no-cmake-calls" };
+            if (importPaths != null)
+                parts.AddRange(importPaths.Select(p => $"-I \"{p}\""));
             return string.Join(" ", parts);
+        }
+
+        private async Task<IEnumerable<string>?> TryFindImportPathsAsync(CancellationToken ct)
+        {
+            var configuration = await contextService.GetActiveConfigurationAsync(ct);
+            if (string.IsNullOrWhiteSpace(configuration))
+                return null;
+
+            var platform = await contextService.GetActivePlatformAsync(ct);
+            var isRealPlatform = !string.IsNullOrWhiteSpace(platform)
+                && !string.Equals(platform, "Any CPU", StringComparison.OrdinalIgnoreCase);
+            var configKey = isRealPlatform
+                ? Path.Combine(platform!, configuration!)
+                : configuration!;
+
+            var loadedPaths = await contextService.GetLoadedProjectPathsAsync(ct);
+            foreach (var projectPath in loadedPaths) {
+                var meta = await projectService.TryGetMetadataForPathAsync(projectPath, ct);
+                if (meta?.IsQtBridgeProject != true)
+                    continue;
+
+                var projectDir = Path.GetDirectoryName(projectPath);
+                if (projectDir == null)
+                    continue;
+
+                var metadataPath = metadataReader.FindMetadataFilePath(projectDir, configKey);
+                if (metadataPath == null)
+                    continue;
+
+                var readResult = metadataReader.TryRead(metadataPath, ct);
+                if (readResult.Success && readResult.Metadata!.Qml.ImportPaths.Count > 0)
+                    return readResult.Metadata!.Qml.ImportPaths;
+            }
+            return null;
+        }
+
+        private async Task EnsureProjectRegisteredAsync(
+            string projectFilePath,
+            string projectDirectory,
+            string configKey,
+            CancellationToken ct,
+            bool notifyUser = false)
+        {
+            bool needsWatcher;
+            lock (registryLock) {
+                if (registryDisposed)
+                    return;
+                needsWatcher = !projectRegistry.TryGetValue(projectFilePath, out var existing)
+                    || existing.ConfigKey != configKey;
+            }
+
+            if (needsWatcher) {
+                var watcher = metadataWatcher.Watch(
+                    projectDirectory, configKey,
+                    () => OnProjectMetadataChanged(projectFilePath));
+
+                IDisposable? displaced = null;
+                lock (registryLock) {
+                    if (registryDisposed) {
+                        watcher.Dispose();
+                        return;
+                    }
+
+                    if (projectRegistry.TryGetValue(projectFilePath, out var existing)
+                            && existing.ConfigKey == configKey) {
+                        watcher.Dispose(); // another thread already registered this config
+                    } else {
+                        if (projectRegistry.TryGetValue(projectFilePath, out existing))
+                            displaced = existing.Watcher; // config changed, displace old watcher
+                        projectRegistry[projectFilePath] =
+                            new ProjectEntry(watcher, projectDirectory, configKey);
+                    }
+                }
+                displaced?.Dispose();
+            }
+
+            await TryInjectProjectAsync(projectFilePath, ct, notifyUser);
+        }
+
+        private async Task TryInjectProjectAsync(
+            string projectFilePath,
+            CancellationToken ct,
+            bool notifyUser = false)
+        {
+            QmlLanguageServerTransportPipe? pipe;
+            string? projectDirectory, configKey;
+            lock (registryLock) {
+                pipe = activePipe;
+                if (pipe == null)
+                    return;
+                if (!projectRegistry.TryGetValue(projectFilePath, out var e))
+                    return;
+                if (e.BuildDirsInjected)
+                    return;
+                // Claim the slot now so a concurrent call that also read false above cannot
+                // proceed to a duplicate injection while we are awaiting async work below.
+                e.BuildDirsInjected = true;
+                projectDirectory = e.ProjectDirectory;
+                configKey = e.ConfigKey;
+            }
+
+            // Local helper: release the claim so a future call can retry.
+            void ResetInjection()
+            {
+                lock (registryLock) {
+                    if (projectRegistry.TryGetValue(projectFilePath, out var e))
+                        e.BuildDirsInjected = false;
+                }
+            }
+
+            var metadataFilePath = metadataReader.FindMetadataFilePath(projectDirectory, configKey);
+            if (metadataFilePath == null) {
+                var shouldNotify = false;
+                lock (registryLock) {
+                    if (projectRegistry.TryGetValue(projectFilePath, out var e)) {
+                        e.BuildDirsInjected = false;
+                        shouldNotify = notifyUser && !e.MissingMetadataNotified;
+                        if (shouldNotify)
+                            e.MissingMetadataNotified = true;
+                    }
+                }
+
+                if (!shouldNotify)
+                    return;
+
+                var projectName = Path.GetFileNameWithoutExtension(projectFilePath);
+                await notifications.ShowInfoAsync($"qmls-no-metadata:{projectFilePath}",
+                    $"Qt Bridge: Build project '{projectName}' for full QML language support.", ct);
+                return;
+            }
+
+            var readResult = metadataReader.TryRead(metadataFilePath, ct);
+            if (!readResult.Success) {
+                ResetInjection();
+                log.Error($"QML Language Server: failed to read metadata at '{readResult.Path}'"
+                    + $" ({readResult.Error}).", readResult.Exception);
+                return;
+            }
+
+            var configuration = Path.GetFileName(configKey);
+            if (!metadataReader.Validate(readResult.Metadata!, projectFilePath, configuration)) {
+                ResetInjection();
+                return;
+            }
+
+            var metadata = readResult.Metadata!;
+            var sourceDir = metadata.Qml.ProjectSourceDir;
+            var buildDirs = metadata.Qml.BuildDirs;
+
+            if (string.IsNullOrEmpty(sourceDir) || buildDirs.Count == 0) {
+                ResetInjection();
+                log.Warning(
+                    $"QML Language Server: metadata for '{Path.GetFileName(projectFilePath)}'"
+                    + " has no source dir or build dirs - skipping injection.");
+                return;
+            }
+
+            var folderUri = new Uri(sourceDir).AbsoluteUri;
+            log.Info($"QML Language Server: registering workspace folder for"
+                + $" '{Path.GetFileName(projectFilePath)}'"
+                + $" (uri={folderUri}).");
+            pipe.EnqueueNotification(
+                QmlLanguageServerTransportPipe.BuildWorkspaceFolderNotification(
+                    folderUri, add: true));
+            log.Info($"QML Language Server: injecting $/addBuildDirs for"
+                + $" '{Path.GetFileName(projectFilePath)}'"
+                + $" ({buildDirs.Count} build dir(s)).");
+            pipe.EnqueueNotification(
+                QmlLanguageServerTransportPipe.BuildAddBuildDirsNotification(folderUri, buildDirs));
+
+            // If activePipe changed while we were working the notifications went to a dead
+            // pipe. Reset so CreateServerConnectionAsync rehydrates on the new session.
+            lock (registryLock) {
+                if (!ReferenceEquals(activePipe, pipe)) {
+                    if (projectRegistry.TryGetValue(projectFilePath, out var e))
+                        e.BuildDirsInjected = false;
+                    log.Info($"QML Language Server: pipe replaced during injection of"
+                        + $" '{Path.GetFileName(projectFilePath)}' - will retry on new session.");
+                    return;
+                }
+                if (projectRegistry.TryGetValue(projectFilePath, out var entry))
+                    entry.MissingMetadataNotified = false;
+            }
+
+            log.Info($"QML Language Server: injected build dirs for"
+                + $" '{Path.GetFileName(projectFilePath)}'.");
+        }
+
+        private void OnProjectMetadataChanged(string projectFilePath)
+        {
+            QueueLoggedTask(
+                async () => {
+                    if (!Enabled) {
+                        await RefreshEnabledStateAsync();
+                        return;
+                    }
+
+                    lock (registryLock) {
+                        if (!projectRegistry.TryGetValue(projectFilePath, out var e))
+                            return;
+                        e.BuildDirsInjected = false;
+                    }
+
+                    // Restart the server regardless of whether this is a first build or a rebuild:
+                    // - First build: files already open are cached in qmlls's m_file2CodeModel
+                    //   under a fallback workspace; injection alone cannot re-route them. A restart
+                    //   lets CreateServerConnectionAsync register the workspace before any didOpen.
+                    // - Rebuild: qmlls memoizes .qmlls.build.ini reads, so import paths and
+                    //   resource files cannot be refreshed via re-injection.
+                    // In both cases restart is the only reliable path to correct type resolution.
+                    log.Info($"QML Language Server: metadata changed for"
+                        + $" '{Path.GetFileName(projectFilePath)}', restarting server.");
+                    Enabled = false;
+                    await Task.Delay(500);
+                    Enabled = true;
+                },
+                $"metadata changed for {Path.GetFileName(projectFilePath)}");
+        }
+
+        private async Task RefreshEnabledStateAsync()
+        {
+            var ct = CancellationToken.None;
+            var shouldEnable = await ShouldEnableForActiveContextAsync(ct);
+
+            if (shouldEnable) {
+                // Register the active project immediately for fast first-open response.
+                var (dir, file, key) = await ResolveActiveProjectContextAsync(ct);
+                if (dir != null && file != null && key != null)
+                    await EnsureProjectRegisteredAsync(file, dir, key, ct, notifyUser: true);
+
+                // Register all other loaded Qt Bridge projects so the server has full solution
+                // coverage without requiring the user to visit each project first.
+                // configKey is solution-wide (platform\configuration), resolved once.
+                var configuration = await contextService.GetActiveConfigurationAsync(ct);
+                var platform = await contextService.GetActivePlatformAsync(ct);
+                if (!string.IsNullOrWhiteSpace(configuration)) {
+                    var isRealPlatform = !string.IsNullOrWhiteSpace(platform)
+                        && !string.Equals(platform, "Any CPU", StringComparison.OrdinalIgnoreCase);
+                    var configKey = isRealPlatform
+                        ? Path.Combine(platform!, configuration!)
+                        : configuration!;
+
+                    var loadedPaths = await contextService.GetLoadedProjectPathsAsync(ct);
+                    foreach (var projectPath in loadedPaths) {
+                        var meta = await projectService
+                            .TryGetMetadataForPathAsync(projectPath, ct);
+                        if (meta?.IsQtBridgeProject != true) continue;
+                        var projectDir = Path.GetDirectoryName(projectPath);
+                        if (projectDir == null) continue;
+                        await EnsureProjectRegisteredAsync(
+                            projectPath,
+                            projectDir,
+                            configKey,
+                            ct,
+                            notifyUser: false);
+                    }
+                }
+            }
+
+            if (Enabled == shouldEnable)
+                return;
+
+            Enabled = shouldEnable;
+            log.Info(shouldEnable
+                ? "Enabled QML Language Server provider for Qt Bridge context."
+                : "Disabled QML Language Server provider for Qt Bridge context.");
         }
 
         /// <summary>
@@ -354,80 +605,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
             var metadata = await projectService.TryGetMetadataForPathAsync(path, ct);
             return metadata?.IsQtBridgeProject == true;
-        }
-
-        private async Task RefreshEnabledStateAsync()
-        {
-            var shouldEnable = await ShouldEnableForActiveContextAsync(CancellationToken.None);
-
-            if (shouldEnable)
-                await UpdateMetadataWatcherAsync(CancellationToken.None);
-            else
-                StopMetadataWatcher();
-
-            if (Enabled == shouldEnable)
-                return;
-
-            Enabled = shouldEnable;
-
-            log.Info(shouldEnable
-                ? "Enabled QML Language Server provider for Qt Bridge context."
-                : "Disabled QML Language Server provider for Qt Bridge context.");
-        }
-
-        private async Task UpdateMetadataWatcherAsync(CancellationToken ct)
-        {
-            var (projectDirectory, _, configKey) = await ResolveActiveProjectContextAsync(ct);
-            if (projectDirectory == null || string.IsNullOrWhiteSpace(configKey))
-                return;
-
-            var next = metadataWatcher.Watch(projectDirectory, configKey!, OnMetadataChanged);
-            ReplaceMetadataWatcher(next);
-        }
-
-        private void StopMetadataWatcher() => ReplaceMetadataWatcher(null);
-
-        private void ReplaceMetadataWatcher(IDisposable? next, bool disposing = false)
-        {
-            IDisposable? previous;
-            lock (metadataWatcherLock) {
-                if (metadataWatcherDisposed) {
-                    previous = next;
-                } else {
-                    if (disposing)
-                        metadataWatcherDisposed = true;
-                    previous = metadataWatchSubscription;
-                    metadataWatchSubscription = next;
-                }
-            }
-            previous?.Dispose();
-        }
-
-        private void OnMetadataChanged()
-        {
-            QueueLoggedTask(async () =>
-            {
-                if (!Enabled) {
-                    // Server is not running (e.g., first startup was cancelled before
-                    // the metadata file existed). Try re-enabling now that the metadata
-                    // has appeared or changed.
-                    await RefreshEnabledStateAsync();
-                    return;
-                }
-
-                log.Info(minimalMode
-                    ? "QML Language Server: metadata file appeared after build, restarting "
-                        + "with full configuration."
-                    : "QML Language Server: metadata file changed, restarting server.");
-
-                // Disable first to signal the SDK to shut down the current server,
-                // then re-enable to trigger a fresh CreateServerConnectionAsync call.
-                // The delay gives the SDK time to clean up the previous connection.
-                // TODO: verify this matches the LanguageServerProvider SDK contract.
-                Enabled = false;
-                await Task.Delay(500);
-                Enabled = true;
-            }, "metadata changed handler");
         }
 
         private static string InstallErrorMessage(QmlLanguageServerInstallError err) => err switch
