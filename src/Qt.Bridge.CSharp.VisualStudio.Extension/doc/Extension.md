@@ -99,13 +99,23 @@ these via an `EnqueueNotification` channel that is drained immediately after `in
 arrives - without waiting for VS to send another message - so the server is fully configured
 before the first document request.
 
+**`.qmlls.build.ini` is patched with a project-source-root alias before each injection.**
+qmlls selects build settings for an open file by matching the file path against `.qmlls.build.ini`
+section headers using a `startsWith` check. The section headers are keyed by the native source
+root (`obj/.../qt/native/source`), which never matches user-authored QML files that live under
+the project root. Before enqueuing `$/addBuildDirs` for a project, the provider calls
+`TryPatchQmllsBuildIni`, which appends an alias section to each `.qt/.qmlls.build.ini` file
+found in the project's build directories. The alias section uses `projectSourceDir` as the key
+and copies the `importPaths` and `resourceFiles` values from the native section. The patch
+checks for the alias header before writing and is a no-op if the alias already exists.
+
 **Metadata change triggers a server restart, not re-injection.**
 When the watcher detects that a project's `qtbridge-qml.ide.json` has changed (e.g. after a
-build), the provider restarts the server by toggling `Enabled` with a 500 ms gap rather than
-injecting updated notifications into the running session. This is necessary because qmlls
-memoizes `.qmlls.build.ini` reads: re-sending `$/addBuildDirs` cannot update import paths or
-resource file lists already cached in the running process. A restart lets
-`CreateServerConnectionAsync` register the workspace with fresh data before any `didOpen`.
+build), the provider restarts the server by toggling `Enabled` with a 500 ms gap. Restart is
+necessary because qmlls memoizes `.qmlls.build.ini` reads and will not re-read a file it has
+already loaded. A restart lets the full startup sequence run again: `TryPatchQmllsBuildIni`
+updates the ini file first, then `$/addBuildDirs` is sent to the fresh process that has not
+yet cached any ini data.
 
 **DTE is abstracted behind an interface.**
 All Visual Studio IDE state - active project, active document, active build configuration,
@@ -245,19 +255,24 @@ Called by the VS SDK when `Enabled` is `true`. The sequence is:
    project, then register and inject the active project.
 
 **`TryInjectProjectAsync`.**
-Reads metadata for a registered project and, if valid, enqueues two notifications on the
-active pipe: `workspace/didChangeWorkspaceFolders` (adds the project source root as a
-workspace folder) and `$/addBuildDirs` (maps the source root to the Qt-native build
-directories). If no metadata file exists, a "build project X" InfoBar is shown once
-(controlled by `MissingMetadataNotified`). If the active pipe changed while awaiting async
-work, `BuildDirsInjected` is reset so the next session retries.
+Reads metadata for a registered project and, if valid:
+1. Calls `TryPatchQmllsBuildIni` to append a `projectSourceDir` alias section to each
+   `.qt/.qmlls.build.ini` in the project's build directories (idempotent).
+2. Enqueues `workspace/didChangeWorkspaceFolders` (adds the project source root as a workspace
+   folder) and `$/addBuildDirs` (maps the source root to the Qt-native build directories) on
+   the active pipe.
+
+If no metadata file exists, a "build project X" InfoBar is shown once (controlled by
+`MissingMetadataNotified`). If the active pipe changed while awaiting async work,
+`BuildDirsInjected` is reset so the next session retries.
 
 **`OnProjectMetadataChanged`.**
 Called by each project's `IQmlMetadataWatcher` when the metadata file timestamp changes.
 Resets `BuildDirsInjected` for that project and restarts the server by toggling `Enabled`
-(with a 500 ms gap). Restart is used rather than re-injection because qmlls memoizes
-`.qmlls.build.ini` reads; only a fresh process picks up new import paths and resource files.
-If `Enabled` is already `false`, calls `RefreshEnabledStateAsync` to re-attempt activation.
+(with a 500 ms gap) so the full startup sequence runs on a fresh process: `TryPatchQmllsBuildIni`
+patches the ini file before `$/addBuildDirs` is sent, and the new process has not yet cached
+any ini data. If `Enabled` is already `false`, calls `RefreshEnabledStateAsync` to re-attempt
+activation.
 
 ---
 

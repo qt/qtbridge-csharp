@@ -15,6 +15,8 @@ using Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 using Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext;
 
+using CoreQmlMetadata = Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata.QmlMetadata;
+
 namespace Qt.Bridge.CSharp.VisualStudio.Extension
 {
     [VisualStudioContribution]
@@ -492,6 +494,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 return;
             }
 
+            // qmlls selects .qmlls.build.ini settings by matching the file path against the
+            // section header (startsWith check). The generated section is keyed by the native
+            // source root (e.g. obj/.../qt/native/source), which does not match user-authored
+            // QML files under the project root. Add an alias section for the project root so
+            // qmlls can resolve project-specific types (e.g. C#-exposed types) in those files.
+            TryPatchQmllsBuildIni(metadata, projectFilePath);
+
             var folderUri = new Uri(sourceDir).AbsoluteUri;
             log.Info($"QML Language Server: registering workspace folder for"
                 + $" '{Path.GetFileName(projectFilePath)}'"
@@ -523,6 +532,96 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 + $" '{Path.GetFileName(projectFilePath)}'.");
         }
 
+        private void TryPatchQmllsBuildIni(CoreQmlMetadata metadata, string projectFilePath)
+        {
+            var projectSourceDir = metadata.Qml.ProjectSourceDir;
+            if (string.IsNullOrEmpty(projectSourceDir)) {
+                log.Info("QML Language Server: .qmlls.build.ini patch skipped - no projectSourceDir.");
+                return;
+            }
+
+            var nativeKey = "[" + metadata.Qml.SourceDir
+                .Replace('\\', '/')
+                .TrimEnd('/')
+                .Replace("/", "<SLASH>") + "]";
+            var aliasKey = "[" + projectSourceDir!
+                .Replace('\\', '/')
+                .TrimEnd('/')
+                .Replace("/", "<SLASH>") + "]";
+
+            log.Info($"QML Language Server: .qmlls.build.ini patch - nativeKey={nativeKey}"
+                + $" aliasKey={aliasKey}");
+
+            if (string.Equals(nativeKey, aliasKey, StringComparison.OrdinalIgnoreCase)) {
+                log.Info("QML Language Server: .qmlls.build.ini patch skipped - keys are equal.");
+                return;
+            }
+
+            foreach (var buildDir in metadata.Qml.BuildDirs) {
+                var iniPath = Path.Combine(buildDir, ".qt", ".qmlls.build.ini");
+                if (!File.Exists(iniPath)) {
+                    log.Info($"QML Language Server: .qmlls.build.ini not found at '{iniPath}'.");
+                    continue;
+                }
+                try {
+                    AppendQmllsBuildIniAlias(iniPath, nativeKey, aliasKey,
+                        Path.GetFileNameWithoutExtension(projectFilePath));
+                } catch (Exception ex) when (ex is not OperationCanceledException) {
+                    log.Warning($"QML Language Server: failed to patch '{iniPath}': {ex.Message}");
+                }
+            }
+        }
+
+        private void AppendQmllsBuildIniAlias(
+            string iniPath,
+            string nativeKey,
+            string aliasKey,
+            string projectName)
+        {
+            var lines = File.ReadAllLines(iniPath);
+
+            if (lines.Any(l => string.Equals(
+                l.Trim(), aliasKey, StringComparison.OrdinalIgnoreCase))) {
+                log.Info($"QML Language Server: .qmlls.build.ini already has alias '{aliasKey}'.");
+                return;
+            }
+
+            // Collect the key=value lines from the native section.
+            var inNative = false;
+            var sectionLines = new List<string>();
+            foreach (var line in lines) {
+                var trimmed = line.Trim();
+                if (trimmed.StartsWith("[") && trimmed.EndsWith("]")) {
+                    if (inNative) break;
+                    inNative = string.Equals(
+                        trimmed, nativeKey, StringComparison.OrdinalIgnoreCase);
+                    continue;
+                }
+                if (inNative && trimmed.Length > 0)
+                    sectionLines.Add(line);
+            }
+
+            if (sectionLines.Count == 0) {
+                log.Info($"QML Language Server: .qmlls.build.ini patch skipped - native section"
+                    + $" '{nativeKey}' not found in '{iniPath}' ({lines.Length} lines).");
+                return;
+            }
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine(aliasKey);
+            foreach (var kv in sectionLines)
+                sb.AppendLine(kv);
+
+            var existing = File.ReadAllText(iniPath);
+            var toAppend = sb.ToString();
+            if (existing.Length > 0 && existing[existing.Length - 1] != '\n')
+                toAppend = Environment.NewLine + toAppend;
+
+            File.AppendAllText(iniPath, toAppend);
+            log.Info($"QML Language Server: patched .qmlls.build.ini for '{projectName}'"
+                + $" - added alias '{aliasKey}'.");
+        }
+
         private void OnProjectMetadataChanged(string projectFilePath)
         {
             QueueLoggedTask(
@@ -538,13 +637,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                         e.BuildDirsInjected = false;
                     }
 
-                    // Restart the server regardless of whether this is a first build or a rebuild:
-                    // - First build: files already open are cached in qmlls's m_file2CodeModel
-                    //   under a fallback workspace; injection alone cannot re-route them. A restart
-                    //   lets CreateServerConnectionAsync register the workspace before any didOpen.
-                    // - Rebuild: qmlls memoizes .qmlls.build.ini reads, so import paths and
-                    //   resource files cannot be refreshed via re-injection.
-                    // In both cases restart is the only reliable path to correct type resolution.
+                    // Restart so CreateServerConnectionAsync runs the full startup sequence for the
+                    // new build output: it patches .qmlls.build.ini before sending $/addBuildDirs,
+                    // which is necessary because qmlls memoizes .qmlls.build.ini reads and will not
+                    // re-read a file it has already loaded in the current session.
                     log.Info($"QML Language Server: metadata changed for"
                         + $" '{Path.GetFileName(projectFilePath)}', restarting server.");
                     Enabled = false;
