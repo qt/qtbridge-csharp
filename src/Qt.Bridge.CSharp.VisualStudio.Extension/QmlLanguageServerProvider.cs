@@ -4,6 +4,8 @@
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
 using Microsoft.VisualStudio.Extensibility;
 using Microsoft.VisualStudio.Extensibility.LanguageServer;
 using Microsoft.VisualStudio.RpcContracts.LanguageServerProvider;
@@ -102,6 +104,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             // identical for all projects using the same NuGet package version, so the first project
             // with built metadata is a valid source even if the active project has none yet.
             var importPaths = await TryFindImportPathsAsync(ct);
+            if (importPaths is string[] logImportPaths) {
+                foreach (var importPath in logImportPaths)
+                    log.Info($"QML Language Server: startup import path: {importPath}");
+            } else {
+                log.Info("QML Language Server: startup import-path resolution found no paths.");
+            }
             var (activeDir, activeFile, activeKey) =
                 await ResolveActiveProjectContextAsync(ct);
 
@@ -262,11 +270,19 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 ? Path.Combine(platform!, configuration!)
                 : configuration!;
 
+            var importPaths = new List<string>();
             var loadedPaths = await contextService.GetLoadedProjectPathsAsync(ct);
             foreach (var projectPath in loadedPaths) {
                 var meta = await projectService.TryGetMetadataForPathAsync(projectPath, ct);
                 if (meta?.IsQtBridgeProject != true)
                     continue;
+
+                var packageImportPath = TryResolveNuGetQmlImportPath(projectPath, meta);
+                if (!string.IsNullOrWhiteSpace(packageImportPath)
+                    && Directory.Exists(packageImportPath)
+                    && !importPaths.Contains(packageImportPath, StringComparer.OrdinalIgnoreCase)) {
+                    importPaths.Add(packageImportPath!);
+                }
 
                 var projectDir = Path.GetDirectoryName(projectPath);
                 if (projectDir == null)
@@ -277,9 +293,81 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                     continue;
 
                 var readResult = metadataReader.TryRead(metadataPath, ct);
-                if (readResult.Success && readResult.Metadata!.Qml.ImportPaths.Count > 0)
-                    return readResult.Metadata!.Qml.ImportPaths;
+                if (!readResult.Success || readResult.Metadata!.Qml.ImportPaths.Count == 0)
+                    continue;
+
+                foreach (var importPath in readResult.Metadata.Qml.ImportPaths) {
+                    if (!string.IsNullOrWhiteSpace(importPath)
+                        && !importPaths.Contains(importPath, StringComparer.OrdinalIgnoreCase)) {
+                        importPaths.Add(importPath);
+                    }
+                }
             }
+            return importPaths.Count > 0 ? importPaths : null;
+        }
+
+        private string? TryResolveNuGetQmlImportPath(
+            string projectFilePath,
+            QtBridgeProjectMetadata metadata)
+        {
+            var packageId = metadata.MatchedPackageId;
+            if (string.IsNullOrWhiteSpace(projectFilePath))
+                return null;
+
+            var projectDirectory = Path.GetDirectoryName(projectFilePath);
+            if (string.IsNullOrWhiteSpace(projectDirectory))
+                return null;
+
+            var assetsPath = Path.Combine(projectDirectory, "obj", "project.assets.json");
+            if (!File.Exists(assetsPath))
+                return null;
+
+            ProjectAssetsDto? assets;
+            try {
+                using var stream = File.OpenRead(assetsPath);
+                var serializer = new DataContractJsonSerializer(
+                    typeof(ProjectAssetsDto),
+                    new DataContractJsonSerializerSettings {
+                        UseSimpleDictionaryFormat = true
+                    });
+                assets = serializer.ReadObject(stream) as ProjectAssetsDto;
+            } catch (Exception ex) {
+                log.Warning($"QML Language Server: failed to read project assets '{assetsPath}': "
+                    + ex.Message);
+                return null;
+            }
+
+            if (assets?.Libraries == null || assets.PackageFolders == null)
+                return null;
+
+            if (string.IsNullOrWhiteSpace(packageId)) {
+                var inferredPackageEntry = assets.Libraries
+                    .FirstOrDefault(entry => QtBridgeProjectConstants.KnownPackageIdPrefixes.Any(
+                        prefix => entry.Key.StartsWith(prefix,
+                            StringComparison.OrdinalIgnoreCase)));
+                if (!string.IsNullOrWhiteSpace(inferredPackageEntry.Key))
+                    packageId = inferredPackageEntry.Key.Split('/')[0];
+                else
+                    return null;
+            }
+
+            var packageEntry = assets.Libraries
+                .FirstOrDefault(entry => entry.Key.StartsWith(packageId + "/",
+                    StringComparison.OrdinalIgnoreCase));
+            if (string.IsNullOrWhiteSpace(packageEntry.Key)
+                || string.IsNullOrWhiteSpace(packageEntry.Value?.Path)) {
+                return null;
+            }
+
+            foreach (var packageFolder in assets.PackageFolders.Keys) {
+                if (string.IsNullOrWhiteSpace(packageFolder))
+                    continue;
+                var importPath = Path.Combine(packageFolder, packageEntry.Value!.Path!, "tools",
+                    "qt", "qml");
+                if (Directory.Exists(importPath))
+                    return importPath;
+            }
+
             return null;
         }
 
@@ -632,5 +720,25 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 "Qt Bridge: Could not install the QML Language Server. "
                 + "See the Qt Bridge output pane for details."
         };
+
+        [DataContract]
+        private sealed class ProjectAssetsDto
+        {
+            [DataMember(Name = "libraries")]
+            public Dictionary<string, ProjectAssetsLibraryDto>? Libraries { get; set; }
+
+            [DataMember(Name = "packageFolders")]
+            public Dictionary<string, ProjectAssetsPackageFolderDto>? PackageFolders { get; set; }
+        }
+
+        [DataContract]
+        private sealed class ProjectAssetsLibraryDto
+        {
+            [DataMember(Name = "path")]
+            public string? Path { get; set; }
+        }
+
+        [DataContract]
+        private sealed class ProjectAssetsPackageFolderDto;
     }
 }
