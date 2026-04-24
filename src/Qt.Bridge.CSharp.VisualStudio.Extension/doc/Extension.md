@@ -109,13 +109,25 @@ found in the project's build directories. The alias section uses `projectSourceD
 and copies the `importPaths` and `resourceFiles` values from the native section. The patch
 checks for the alias header before writing and is a no-op if the alias already exists.
 
-**Metadata change triggers a server restart, not re-injection.**
-When the watcher detects that a project's `qtbridge-qml.ide.json` has changed (e.g. after a
-build), the provider restarts the server by toggling `Enabled` with a 500 ms gap. Restart is
-necessary because qmlls memoizes `.qmlls.build.ini` reads and will not re-read a file it has
-already loaded. A restart lets the full startup sequence run again: `TryPatchQmllsBuildIni`
-updates the ini file first, then `$/addBuildDirs` is sent to the fresh process that has not
-yet cached any ini data.
+**Injection is deferred until build output is complete.**
+After a build, `qtbridge-qml.ide.json` may appear before `.qmlls.build.ini` and generated
+`.qmltypes` files are ready. Injecting at that point would let qmlls cache incomplete build
+settings in the running session. Instead, `TryInjectProjectAsync` checks two readiness
+conditions before proceeding: `TryPatchQmllsBuildIni` must succeed (ini file present and
+native section found) and `TryGeneratedQmlTypesReady` must confirm that every generated
+import path exists and contains at least one readable `.qmltypes` file. If either check
+fails, the injection is deferred: `EnsureBuildSettingsWatcher` starts a `FileSystemWatcher`
+on the project directory and retries `TryInjectProjectAsync` on each file-system event until
+both conditions are met.
+
+**Metadata change defers restart until build output is ready.**
+When the metadata watcher fires, the provider sets `RestartWhenIniReady = true` on the
+project entry and calls `TryInjectProjectAsync` rather than restarting immediately.
+`TryInjectProjectAsync` runs the two readiness checks above; once both pass it detects the
+`RestartWhenIniReady` flag, clears it, and calls `RestartServerForProjectAsync` to toggle
+`Enabled` with a 500 ms gap. The restart ensures the fresh process patches `.qmlls.build.ini`
+and reads it without any cached state, so all types resolve correctly from the first document
+request of the new session.
 
 **DTE is abstracted behind an interface.**
 All Visual Studio IDE state - active project, active document, active build configuration,
@@ -214,13 +226,19 @@ lifecycle of the QML Language Server:
 **Per-project registry.**
 The provider maintains a `Dictionary<string, ProjectEntry>` (keyed by project file path)
 protected by a lock. Each `ProjectEntry` holds an `IDisposable` watcher, the project
-directory, the config key, and two state flags:
+directory, the config key, and four state fields:
 - `BuildDirsInjected` - `true` once workspace and build-dir notifications have been sent
   for this project in the current server session. Prevents duplicate injections when multiple
   code paths race to register the same project. Reset to `false` at the start of each new
   server session.
 - `MissingMetadataNotified` - `true` once the "build project X for full QML support" InfoBar
   has been shown for this project. Prevents the banner from repeating on every poll tick.
+- `RestartWhenIniReady` - set by `OnProjectMetadataChanged` to signal that the server should
+  be restarted once the build output is fully ready. Cleared by `TryInjectProjectAsync` when
+  it detects all readiness checks pass.
+- `IniWatcher` - holds the `FileSystemWatcher` that retries injection while waiting for
+  `.qmlls.build.ini` or generated `.qmltypes` files to appear. Disposed and nulled once
+  injection succeeds or the entry is displaced by a config change.
 
 **Enabled-state management.**
 On construction, and whenever the VS context changes (project selection, document open,
@@ -255,12 +273,21 @@ Called by the VS SDK when `Enabled` is `true`. The sequence is:
    project, then register and inject the active project.
 
 **`TryInjectProjectAsync`.**
-Reads metadata for a registered project and, if valid:
-1. Calls `TryPatchQmllsBuildIni` to append a `projectSourceDir` alias section to each
-   `.qt/.qmlls.build.ini` in the project's build directories (idempotent).
-2. Enqueues `workspace/didChangeWorkspaceFolders` (adds the project source root as a workspace
-   folder) and `$/addBuildDirs` (maps the source root to the Qt-native build directories) on
-   the active pipe.
+Reads metadata for a registered project and, if valid, runs two readiness checks before
+sending any notifications:
+
+1. `TryPatchQmllsBuildIni` - returns `false` if the `.qt/.qmlls.build.ini` file does not
+   yet exist in any build directory, or if the native section header has not appeared yet.
+2. `TryGeneratedQmlTypesReady` - returns `false` if any generated import path (one whose
+   location is under a build directory) does not exist on disk, contains no `.qmltypes`
+   files, or has a `.qmltypes` file that cannot be opened for reading (still being written).
+
+If either check fails, injection is reset and `EnsureBuildSettingsWatcher` is called to
+start a `FileSystemWatcher` on the project directory. The watcher re-queues
+`TryInjectProjectAsync` on `Created`, `Changed`, or `Renamed` events until both checks
+pass. Once both pass and `RestartWhenIniReady` is set, the method clears the flag and calls
+`RestartServerForProjectAsync` instead of injecting into the current session. Otherwise it
+enqueues `workspace/didChangeWorkspaceFolders` and `$/addBuildDirs` on the active pipe.
 
 If no metadata file exists, a "build project X" InfoBar is shown once (controlled by
 `MissingMetadataNotified`). If the active pipe changed while awaiting async work,
@@ -268,11 +295,11 @@ If no metadata file exists, a "build project X" InfoBar is shown once (controlle
 
 **`OnProjectMetadataChanged`.**
 Called by each project's `IQmlMetadataWatcher` when the metadata file timestamp changes.
-Resets `BuildDirsInjected` for that project and restarts the server by toggling `Enabled`
-(with a 500 ms gap) so the full startup sequence runs on a fresh process: `TryPatchQmllsBuildIni`
-patches the ini file before `$/addBuildDirs` is sent, and the new process has not yet cached
-any ini data. If `Enabled` is already `false`, calls `RefreshEnabledStateAsync` to re-attempt
-activation.
+Resets `BuildDirsInjected`, sets `RestartWhenIniReady`, disposes any existing `IniWatcher`,
+and calls `TryInjectProjectAsync`. The actual server restart is deferred until
+`TryInjectProjectAsync` confirms that `.qmlls.build.ini` is patched and all generated
+`.qmltypes` files are readable. If `Enabled` is already `false`, calls
+`RefreshEnabledStateAsync` to re-attempt activation instead.
 
 ---
 
@@ -411,6 +438,9 @@ Case A: metadata file changes for a registered project
   QmlMetadataWatcher poll fires (up to 2 s later)
   -> OnProjectMetadataChanged()
   -> reset BuildDirsInjected for that project
+  -> set RestartWhenIniReady
+  -> TryInjectProjectAsync()
+       waits until .qmlls.build.ini is patched and generated .qmltypes files are readable
   -> Enabled = false  (VS SDK shuts down qmlls)
   -> await Task.Delay(500)
   -> Enabled = true   (VS SDK calls CreateServerConnectionAsync again)
