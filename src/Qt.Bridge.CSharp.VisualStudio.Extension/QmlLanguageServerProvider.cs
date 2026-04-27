@@ -846,9 +846,14 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         private async Task RefreshEnabledStateAsync()
         {
             var ct = CancellationToken.None;
-            var shouldEnable = await ShouldEnableForActiveContextAsync(ct);
+            var (shouldEnable, contextReady) = await EvaluateEnabledStateAsync(ct);
 
-            if (shouldEnable) {
+            switch (shouldEnable) {
+            case false when !contextReady:
+                log.Info("QML Language Server provider state deferred until VS project context "
+                    + "is ready.");
+                return;
+            case true:
                 // Register the active project immediately for fast first-open response.
                 var (dir, file, key) = await ResolveActiveProjectContextAsync(ct);
                 if (dir != null && file != null && key != null)
@@ -881,6 +886,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                             notifyUser: false);
                     }
                 }
+                break;
             }
 
             if (Enabled == shouldEnable)
@@ -956,23 +962,25 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             return activeDir != null ? (activeDir, activeProject, configKey) : (null, null, null);
         }
 
-        private async Task<bool> ShouldEnableForActiveContextAsync(CancellationToken ct)
+        private async Task<(bool, bool)> EvaluateEnabledStateAsync(CancellationToken ct)
         {
             var activeProjectPath = await contextService.GetActiveProjectPathAsync(ct);
             if (await IsQtBridgeProjectAsync(activeProjectPath, ct))
-                return true;
+                return (true, true);
 
             var activeDocumentPath = await contextService.GetActiveDocumentPathAsync(ct);
             if (await IsQtBridgeProjectAsync(activeDocumentPath, ct))
-                return true;
+                return (true, true);
 
             var loadedProjectPaths = await contextService.GetLoadedProjectPathsAsync(ct);
             foreach (var projectPath in loadedProjectPaths) {
                 if (await IsQtBridgeProjectAsync(projectPath, ct))
-                    return true;
+                    return (true, true);
             }
 
-            return false;
+            var contextReady = loadedProjectPaths.Count > 0
+                || !string.IsNullOrWhiteSpace(activeProjectPath);
+            return (false, contextReady);
         }
 
         private async Task<bool> IsQtBridgeProjectAsync(string? path, CancellationToken ct)
