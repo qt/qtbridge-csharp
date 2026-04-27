@@ -24,7 +24,9 @@ namespace Qt.Bridge.CodeGeneration.Rules.Class
             if (src is not Type type)
                 return Error();
 
-            var sourceFilesPlaceholder = type.IsQmlElement() ? QmlElementSourceFiles : SourceFiles;
+            var contributesQmlTypeInfo = type.IsQmlElement()
+                || type.IsAssignableTo(TypeOf<global::Qt.Bridge.Models.Model>());
+            var sourceFilesPlaceholder = contributesQmlTypeInfo ? QmlElementSourceFiles : SourceFiles;
             if (Root.GetPlaceholder(sourceFilesPlaceholder) is not { } sourceFiles)
                 return Error();
 

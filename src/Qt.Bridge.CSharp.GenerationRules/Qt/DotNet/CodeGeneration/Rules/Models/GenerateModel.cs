@@ -34,6 +34,14 @@ namespace Qt.Bridge.CodeGeneration.Rules.Models
                 includes += "#include <QAbstractTableModel>";
             else
                 includes += "#include <QAbstractItemModel>";
+            includes += "#include <QtQml/qqmlregistration.h>";
+
+            // Models returned by QML-visible properties must be present in qmltypes so qmlls can
+            // resolve the property type, but they are implementation objects and not creatable QML
+            // elements.
+            if (type.GetPlaceholder(TypeTraits) is not { } traits)
+                return Error();
+            traits += "QML_ANONYMOUS";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
