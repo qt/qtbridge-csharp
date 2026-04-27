@@ -291,7 +291,15 @@ enqueues `workspace/didChangeWorkspaceFolders` and `$/addBuildDirs` on the activ
 
 If no metadata file exists, a "build project X" InfoBar is shown once (controlled by
 `MissingMetadataNotified`). If the active pipe changed while awaiting async work,
-`BuildDirsInjected` is reset so the next session retries.
+`BuildDirsInjected` is reset so the next session retries. On successful injection,
+`QueueSemanticTokensRefresh` is called to prompt VS to re-classify open documents.
+
+**`QueueSemanticTokensRefresh`.**
+qmlls does not send a `workspace/semanticTokens/refresh` request to VS after it receives new
+build directory or workspace information, so already-open documents keep stale token
+classification until the next editor event. This helper works around that by queuing a 250 ms
+delayed call to `pipe.EnqueueSemanticTokensRefresh()`, triggered after both server
+initialization and each successful build-directory injection.
 
 **`OnProjectMetadataChanged`.**
 Called by each project's `IQmlMetadataWatcher` when the metadata file timestamp changes.
@@ -306,13 +314,20 @@ and calls `TryInjectProjectAsync`. The actual server restart is deferred until
 ### `QmlLanguageServerTransportPipe`
 
 Implements `IDuplexPipe` by wrapping the qmlls `Process`. It owns two background tasks, two
-`System.IO.Pipelines.Pipe` instances, and an unbounded `Channel<byte[]>` for pending
-out-of-band notifications.
+`System.IO.Pipelines.Pipe` instances, two unbounded `Channel<byte[]>` queues, and a
+`TaskCompletionSource<bool>` (`serverInitializedSource`) that coordinates the relay tasks
+around the LSP handshake.
 
-**`EnqueueNotification(json)`** is the public entry point for injecting notifications. The
-caller passes a raw JSON body; the pipe applies LSP framing (`Content-Length` header) and
-writes the bytes to the channel. The relay task drains the channel after `initialized`
-arrives without waiting for VS to send additional traffic.
+**`EnqueueNotification(json)`** queues a notification for delivery to qmlls (VS → process
+direction). The notification is held until after `initialized` arrives, then delivered without
+waiting for VS to send additional traffic.
+
+**`EnqueueSemanticTokensRefresh()`** queues an injected `workspace/semanticTokens/refresh`
+request in the process → VS direction (`pendingServerRequests` channel). The request carries
+a unique `qtbridge-semanticTokens-refresh-N` ID that is tracked in `injectedRequestIds`.
+When VS responds, `IsInjectedRequestResponse` detects the matching ID and drops the response
+so qmlls never sees an unsolicited reply. VS may also echo a `NotificationReceived`
+notification back; `IsVsRefreshEchoNotification` detects and drops that too.
 
 **`BuildWorkspaceFolderNotification(folderUri, add)`** and
 **`BuildAddBuildDirsNotification(folderUri, buildDirs)`** are internal static helpers that
@@ -320,20 +335,25 @@ serialize the respective notification DTOs to JSON using `DataContractJsonSerial
 The provider calls these and hands the results to `EnqueueNotification`.
 
 **`RelayFromProcessAsync`** reads qmlls stdout and forwards bytes to the VS-facing read pipe.
-It also parses incoming messages through `LspByteBuffer` for diagnostic logging only
-(method names and byte counts are logged at `Verbose` level).
+Before `serverInitializedSource` is signalled, the relay holds a pending `source.ReadAsync`
+but races it against the TCS task so it can detect initialization without blocking. After
+initialization, it additionally races against `pendingServerRequests`: whenever the channel
+has items and qmlls has not sent output yet, the relay writes the synthetic requests directly
+into the VS-facing pipe. It also parses all messages through `LspByteBuffer` for diagnostic
+logging (`Verbose` level).
 
 **`RelayToProcessAsync`** reads from the VS-facing write pipe and forwards bytes to qmlls
-stdin. After the `initialized` notification passes through, the relay enters a select loop
-that races the VS read task against the pending notifications channel: whenever the channel
-has items and VS has not sent a new message yet, the relay drains and flushes the queued
-notifications immediately. This ensures per-project workspace registration happens without
-requiring VS to generate LSP traffic.
+stdin. It sets `handshakeComplete` and signals `serverInitializedSource` when the
+`initialized` notification passes through. Before forwarding each message it calls
+`IsInjectedRequestResponse` and `IsVsRefreshEchoNotification` and drops matching messages.
+After the handshake it enters a select loop that drains `pendingNotifications` (the
+extension-to-qmlls notification queue) without waiting for VS to send a message.
 
 **`LspByteBuffer`** is a private helper that accumulates raw bytes from an LSP stream and
 extracts complete framed messages (`Content-Length: N\r\n\r\n<body>`). Both relay tasks use
 it - the from-process task for diagnostic logging, the to-process task to detect the
-`initialized` notification and to log outbound methods.
+`initialized` notification and to log outbound methods. `TryExtractBody` is a static helper
+used by the response-filtering methods to reach the JSON body without re-parsing the header.
 
 `Dispose` cancels both relay tasks, waits up to 500 ms (via `JoinableTaskFactory.Run` to
 avoid deadlocking the VS main thread), kills the process if it has not exited, and releases

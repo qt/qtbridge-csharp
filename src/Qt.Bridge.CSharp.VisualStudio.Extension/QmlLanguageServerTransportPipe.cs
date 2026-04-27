@@ -25,6 +25,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         private readonly Pipe vsReadPipe;
         private readonly Pipe vsWritePipe;
         private readonly CancellationTokenSource cts;
+        private readonly TaskCompletionSource<bool> serverInitializedSource =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly Channel<byte[]> pendingNotifications =
             Channel.CreateUnbounded<byte[]>(new UnboundedChannelOptions
             {
@@ -32,6 +34,16 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 SingleWriter = false,
                 AllowSynchronousContinuations = false
             });
+        private readonly Channel<byte[]> pendingServerRequests =
+            Channel.CreateUnbounded<byte[]>(new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = false,
+                AllowSynchronousContinuations = false
+            });
+        private readonly object injectedRequestLock = new();
+        private readonly HashSet<string> injectedRequestIds = [];
+        private long nextInjectedRequestId;
         private readonly Task relayFromTask;
         private readonly Task relayToTask;
 
@@ -69,6 +81,22 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             pendingNotifications.Writer.TryWrite(Encoding.UTF8.GetBytes(FrameLspMessage(json)));
         }
 
+        /// <summary>
+        /// Requests that Visual Studio refresh semantic tokens for open documents. This mimics
+        /// servers such as rust-analyzer that explicitly ask the client to refresh after startup.
+        /// </summary>
+        public void EnqueueSemanticTokensRefresh()
+        {
+            var requestId = "qtbridge-semanticTokens-refresh-"
+                + Interlocked.Increment(ref nextInjectedRequestId);
+            lock (injectedRequestLock)
+                injectedRequestIds.Add(requestId);
+
+            var framed = Encoding.UTF8.GetBytes(FrameLspMessage(
+                BuildSemanticTokensRefreshRequest(requestId)));
+            pendingServerRequests.Writer.TryWrite(framed);
+        }
+
         public void Dispose()
         {
             process.Exited -= OnProcessExited;
@@ -76,6 +104,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             cts.Cancel();
 
             pendingNotifications.Writer.TryComplete();
+            pendingServerRequests.Writer.TryComplete();
+
             try {
                 // Use JoinableTaskFactory.Run so VS main-thread pumping continues while we
                 // wait, avoiding the deadlock risk of a raw Task.Wait() on a VS-managed thread.
@@ -148,6 +178,17 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         private static string FrameLspMessage(string body) =>
             $"Content-Length: {Encoding.UTF8.GetByteCount(body)}\r\n\r\n{body}";
 
+        private static string BuildSemanticTokensRefreshRequest(string requestId)
+        {
+            var dto = new SemanticTokensRefreshRequestDto {
+                Id = requestId
+            };
+            using var ms = new MemoryStream();
+            new DataContractJsonSerializer(typeof(SemanticTokensRefreshRequestDto))
+                .WriteObject(ms, dto);
+            return Encoding.UTF8.GetString(ms.ToArray());
+        }
+
         private static string GetFolderName(string folderUri)
         {
             try {
@@ -186,8 +227,31 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 var source = process.StandardOutput.BaseStream;
                 var writer = vsReadPipe.Writer;
                 var buffer = new byte[4096];
+                var readTask = source.ReadAsync(buffer, 0, buffer.Length, ct);
                 while (!ct.IsCancellationRequested) {
-                    var read = await source.ReadAsync(buffer, 0, buffer.Length, ct);
+                    if (!serverInitializedSource.Task.IsCompleted) {
+#pragma warning disable VSTHRD003 // relay task owns both awaited tasks
+                        var completed = await Task.WhenAny(readTask, serverInitializedSource.Task);
+#pragma warning restore VSTHRD003
+                        if (completed != readTask)
+                            continue;
+                    } else {
+                        var pendingTask = pendingServerRequests.Reader.WaitToReadAsync(ct).AsTask();
+                        var completed = await Task.WhenAny(readTask, pendingTask);
+                        if (completed != readTask) {
+                            while (pendingServerRequests.Reader.TryRead(out var pending)) {
+                                var pendingMem = writer.GetMemory(pending.Length);
+                                pending.CopyTo(pendingMem);
+                                writer.Advance(pending.Length);
+                            }
+                            var flush = await writer.FlushAsync(ct);
+                            if (flush.IsCompleted)
+                                break;
+                            continue;
+                        }
+                    }
+
+                    var read = await readTask;
                     if (read == 0)
                         break;
                     var mem = writer.GetMemory(read);
@@ -205,6 +269,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                             ? $"QML LS -> VS: {method} ({msg.Length} B)"
                             : $"QML LS -> VS: response ({msg.Length} B)");
                     }
+
+                    readTask = source.ReadAsync(buffer, 0, buffer.Length, ct);
                 }
             } catch (OperationCanceledException) {
             } catch (Exception ex) {
@@ -221,7 +287,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         {
             log.Info("QML Language Server transport: VS -> process relay started.");
             var msgBuffer = new LspByteBuffer();
-            var initialized = false;
+            var handshakeComplete = false;
             Exception? fault = null;
             try {
                 var reader = vsWritePipe.Reader;
@@ -231,7 +297,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
                     // After initialized: drain pending notifications immediately without waiting
                     // for VS to send a message (project switches produce no VS LSP traffic).
-                    if (initialized) {
+                    if (handshakeComplete) {
                         while (!vsReadTask.IsCompleted) {
                             var task = pendingNotifications.Reader.WaitToReadAsync(ct).AsTask();
                             if (await Task.WhenAny(vsReadTask, task) == vsReadTask)
@@ -254,11 +320,17 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                             ? $"VS -> QML LS: {method} ({message.Length} B)"
                             : $"VS -> QML LS: response ({message.Length} B)");
 
+                        if (IsInjectedRequestResponse(message)
+                            || IsVsRefreshEchoNotification(message, method)) {
+                            continue;
+                        }
+
                         await dest.WriteAsync(message, 0, message.Length, ct);
 
-                        if (!initialized
+                        if (!handshakeComplete
                             && string.Equals(method, "initialized", StringComparison.Ordinal)) {
-                            initialized = true;
+                            handshakeComplete = true;
+                            serverInitializedSource.TrySetResult(true);
                             // Drain anything enqueued before initialized arrived.
                             while (pendingNotifications.Reader.TryRead(out var pending))
                                 await dest.WriteAsync(pending, 0, pending.Length, ct);
@@ -279,6 +351,33 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 log.Error("QML Language Server transport: VS -> process relay faulted.", fault);
             else
                 log.Info("QML Language Server transport: VS -> process relay completed.");
+        }
+
+        private bool IsInjectedRequestResponse(byte[] message)
+        {
+            var body = LspByteBuffer.TryExtractBody(message);
+            if (body == null || LspByteBuffer.TryExtractMethod(message) != null)
+                return false;
+
+            lock (injectedRequestLock) {
+                foreach (var id in injectedRequestIds) {
+                    if (body.IndexOf($"\"id\":\"{id}\"", StringComparison.Ordinal) < 0)
+                        continue;
+                    injectedRequestIds.Remove(id);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool IsVsRefreshEchoNotification(byte[] message, string? method)
+        {
+            if (!string.Equals(method, "NotificationReceived", StringComparison.Ordinal))
+                return false;
+            var body = LspByteBuffer.TryExtractBody(message);
+            return body?.IndexOf(
+                "\"MethodName\":\"workspace/semanticTokens/refresh\"",
+                StringComparison.Ordinal) >= 0;
         }
 
         /// <summary>
@@ -337,6 +436,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 }
             }
 
+            public static string? TryExtractBody(byte[] message)
+            {
+                var text = Encoding.UTF8.GetString(message);
+                var sep = text.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+                return sep < 0 ? null : text.Substring(sep + 4);
+            }
+
             private int FindHeaderEnd()
             {
                 for (var i = 0; i <= data.Count - 4; i++) {
@@ -366,6 +472,19 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         {
             [DataMember(Name = "method")]
             public string? Method { get; set; }
+        }
+
+        [DataContract]
+        private sealed class SemanticTokensRefreshRequestDto
+        {
+            [DataMember(Name = "jsonrpc")]
+            public string JsonRpc { get; set; } = "2.0";
+
+            [DataMember(Name = "id")]
+            public string? Id { get; set; }
+
+            [DataMember(Name = "method")]
+            public string Method { get; set; } = "workspace/semanticTokens/refresh";
         }
 
         [DataContract]

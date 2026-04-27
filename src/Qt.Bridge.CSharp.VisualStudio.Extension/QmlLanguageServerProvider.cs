@@ -166,6 +166,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 Enabled = false;
                 log.Warning(initializationFailureInfo?.StatusMessage
                     ?? "QML Language Server initialization failed.");
+            } else {
+                QueueSemanticTokensRefresh("server initialization");
             }
 
             return base.OnServerInitializationResultAsync(
@@ -581,8 +583,23 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 }
             }
 
-            log.Info($"QML Language Server: injected build dirs for"
-                + $" '{Path.GetFileName(projectFilePath)}'.");
+            var projectFileName = Path.GetFileName(projectFilePath);
+            log.Info($"QML Language Server: injected build dirs for '{projectFileName}'.");
+
+            QueueSemanticTokensRefresh($"build-dir injection for {projectFileName}");
+        }
+
+        private void QueueSemanticTokensRefresh(string reason)
+        {
+            QueueLoggedTask(async () =>
+            {
+                await Task.Delay(250);
+                QmlLanguageServerTransportPipe? pipe;
+                lock (registryLock)
+                    pipe = activePipe;
+                pipe?.EnqueueSemanticTokensRefresh();
+                log.Info($"QML Language Server: requested semantic token refresh after {reason}.");
+            }, $"semantic token refresh after {reason}");
         }
 
         // Returns true if the ini file was found for at least one build dir (and was patched or
