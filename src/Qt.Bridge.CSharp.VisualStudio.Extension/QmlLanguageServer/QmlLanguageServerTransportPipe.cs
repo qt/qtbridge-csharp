@@ -9,6 +9,8 @@ using System.Text;
 using System.Threading.Channels;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 using Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer.Contracts;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Settings;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 {
@@ -18,7 +20,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
     /// <see cref="EnqueueNotification"/>; notifications are held until after the LSP
     /// <c>initialized</c> handshake and then delivered without waiting for VS to send a message.
     /// </summary>
-    internal sealed class QmlLanguageServerTransportPipe : IDuplexPipe, IDisposable
+    internal sealed partial class QmlLanguageServerTransportPipe : IDuplexPipe, IDisposable
     {
         private readonly Process process;
         private readonly IExtensionLog log;
@@ -47,7 +49,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private readonly Task relayFromTask;
         private readonly Task relayToTask;
 
-        public QmlLanguageServerTransportPipe(Process process, IExtensionLog extensionLog)
+        public QmlLanguageServerTransportPipe(
+            Process process,
+            IExtensionLog extensionLog,
+            LoggingOptions loggingOptions)
         {
             this.process = process;
             log = extensionLog;
@@ -57,6 +62,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
             Input = vsReadPipe.Reader;
             Output = vsWritePipe.Writer;
+
+            InitializeLogging(loggingOptions);
 
             process.EnableRaisingEvents = true;
             process.Exited += OnProcessExited;
@@ -78,7 +85,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         /// </summary>
         public void EnqueueNotification(string json)
         {
-            pendingNotifications.Writer.TryWrite(Encoding.UTF8.GetBytes(FrameLspMessage(json)));
+            var framed = Encoding.UTF8.GetBytes(FrameLspMessage(json));
+            TraceLspTraffic("EXT -> QML LS (queued)", framed);
+            pendingNotifications.Writer.TryWrite(framed);
         }
 
         /// <summary>
@@ -221,7 +230,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private async Task RelayFromProcessAsync(CancellationToken ct)
         {
             log.Info("QML Language Server transport: process -> VS relay started.");
-            var logBuffer = new LspByteBuffer();
+            var logBuffer = lspLogEnabled ? new LspByteBuffer() : null;
             Exception? fault = null;
             try {
                 var source = process.StandardOutput.BaseStream;
@@ -261,13 +270,16 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     if (result.IsCompleted)
                         break;
 
-                    // Parse incoming messages for diagnostic logging only.
-                    logBuffer.Append(buffer.AsSpan(0, read));
-                    while (logBuffer.TryExtractMessage(out var msg)) {
-                        var method = LspByteBuffer.TryExtractMethod(msg);
-                        log.Verbose(method != null
-                            ? $"QML LS -> VS: {method} ({msg.Length} B)"
-                            : $"QML LS -> VS: response ({msg.Length} B)");
+                    // Parse incoming messages for optional LSP file logging only.
+                    if (logBuffer != null) {
+                        logBuffer.Append(buffer.AsSpan(0, read));
+                        while (logBuffer.TryExtractMessage(out var msg)) {
+                            var method = LspByteBuffer.TryExtractMethod(msg);
+                            log.Verbose(method != null
+                                ? $"QML LS -> VS: {method} ({msg.Length} B)"
+                                : $"QML LS -> VS: response ({msg.Length} B)");
+                            TraceLspTraffic("QML LS -> VS", msg, method);
+                        }
                     }
 
                     readTask = source.ReadAsync(buffer, 0, buffer.Length, ct);
@@ -302,8 +314,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                             var task = pendingNotifications.Reader.WaitToReadAsync(ct).AsTask();
                             if (await Task.WhenAny(vsReadTask, task) == vsReadTask)
                                 break;
-                            while (pendingNotifications.Reader.TryRead(out var pending))
+                            while (pendingNotifications.Reader.TryRead(out var pending)) {
+                                TraceLspTraffic("EXT -> QML LS (written)", pending);
                                 await dest.WriteAsync(pending, 0, pending.Length, ct);
+                            }
                             await dest.FlushAsync(ct);
                         }
                     }
@@ -319,6 +333,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                         log.Verbose(method != null
                             ? $"VS -> QML LS: {method} ({message.Length} B)"
                             : $"VS -> QML LS: response ({message.Length} B)");
+                        TraceLspTraffic("VS -> QML LS", message, method);
 
                         if (IsInjectedRequestResponse(message)
                             || IsVsRefreshEchoNotification(message, method)) {
@@ -332,8 +347,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                             handshakeComplete = true;
                             serverInitializedSource.TrySetResult(true);
                             // Drain anything enqueued before initialized arrived.
-                            while (pendingNotifications.Reader.TryRead(out var pending))
+                            while (pendingNotifications.Reader.TryRead(out var pending)) {
+                                TraceLspTraffic("EXT -> QML LS (written)", pending);
                                 await dest.WriteAsync(pending, 0, pending.Length, ct);
+                            }
                         }
 
                         await dest.FlushAsync(ct);

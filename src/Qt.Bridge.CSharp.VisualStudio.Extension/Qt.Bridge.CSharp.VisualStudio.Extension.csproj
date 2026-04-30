@@ -12,7 +12,18 @@
     <UseWPF>true</UseWPF>
     <VssdkCompatibleExtension>true</VssdkCompatibleExtension>
     <TargetVsixContainerName>Qt.Bridge.CSharp.vsix</TargetVsixContainerName>
-    <NoWarn>$(NoWarn);VSEXTPREVIEW_LSP</NoWarn>
+    <NoWarn>$(NoWarn);VSEXTPREVIEW_LSP;VSEXTPREVIEW_SETTINGS</NoWarn>
+    <!--
+      The new extensibility Build SDK disables pkgdef generation by default; re-enable it so
+      [PackageRegistration]/[ProvideOptionPage] attributes produce a .pkgdef in the VSIX.
+    -->
+    <GeneratePkgDefFile>true</GeneratePkgDefFile>
+    <!--
+      RegisterWithCodebase emits a CodeBase entry so VS can locate the assembly when loading
+      ExtensionPackage.
+    -->
+    <RegisterWithCodebase>true</RegisterWithCodebase>
+
     <QtBridgeTemplatesPackageId>QtGroup.Qt.Bridge.CSharp.Templates</QtBridgeTemplatesPackageId>
     <QtBridgeTemplatesPackageFileName
       >$(QtBridgeTemplatesPackageId).$(SelectedVersion).nupkg</QtBridgeTemplatesPackageFileName>
@@ -46,6 +57,7 @@
     <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="17.14.40608" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40608" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2142" PrivateAssets="all" />
     <PackageReference Include="System.Threading.Channels" Version="8.0.0" />
   </ItemGroup>
 
@@ -68,5 +80,26 @@
       </VSIXSourceItem>
     </ItemGroup>
   </Target>
+
+  <!--
+    The SDK source generator emits "format": "directoryPath" for
+    Setting.FormattedString(SettingStringFormat.DirectoryPath), but the VS settings renderer
+    requires "format": "path" + "pathKind": "folder". Replace=true overwrites the generated
+    value with the correct schema. See build\PatchSettingsRegistration.targets.
+  -->
+  <ItemGroup>
+    <SettingsRegistrationPatch Include="qtBridge.qtBridgeQmlLanguageServerLogging.qmllsLogDirectory">
+      <Replace>true</Replace>
+      <format>path</format>
+      <pathKind>folder</pathKind>
+    </SettingsRegistrationPatch>
+    <SettingsRegistrationPatch Include="qtBridge.qtBridgeQmlLanguageServerLogging.lspLogDirectory">
+      <Replace>true</Replace>
+      <format>path</format>
+      <pathKind>folder</pathKind>
+    </SettingsRegistrationPatch>
+  </ItemGroup>
+
+  <Import Project="build\PatchSettingsRegistration.targets" />
 
 </Project>

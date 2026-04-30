@@ -1,4 +1,16 @@
 {
   "QtBridge.ShowStatus.DisplayName": "Qt Bridge Status",
-  "QtBridge.QmlLanguageServer.DisplayName": "Qt Bridge QML Language Server"
+  "QtBridge.QmlLanguageServer.DisplayName": "QML Language Server",
+
+  "QtBridge.Settings.Root.DisplayName": "Qt Bridge for C#",
+  "QtBridge.Settings.QmlLanguageServerLogging.Category.Title": "QML Language Server Logging",
+  "QtBridge.Settings.QmlLanguageServerLogging.Category.Description": "Controls QML Language Server process and LSP traffic logs. Changes apply on the next QML Language Server restart.",
+  "QtBridge.Settings.QmllsLogEnabled.Title": "Enable QML Language Server verbose log",
+  "QtBridge.Settings.QmllsLogEnabled.Description": "Passes --verbose -l <path> to QML Language Server on startup so its internal diagnostics are written to qtbridge-qmlls.log in the configured directory.",
+  "QtBridge.Settings.QmllsLogDirectory.Title": "QML Language Server log directory",
+  "QtBridge.Settings.QmllsLogDirectory.Description": "Directory where qtbridge-qmlls.log is written. Has no effect when the QML Language Server log is disabled.",
+  "QtBridge.Settings.LspLogEnabled.Title": "Enable LSP traffic log",
+  "QtBridge.Settings.LspLogEnabled.Description": "Writes every LSP message exchanged between Visual Studio and QML Language Server to qtbridge-lsp.log in the configured directory.",
+  "QtBridge.Settings.LspLogDirectory.Title": "LSP log directory",
+  "QtBridge.Settings.LspLogDirectory.Description": "Directory where qtbridge-lsp.log is written. Has no effect when the LSP log is disabled."
 }

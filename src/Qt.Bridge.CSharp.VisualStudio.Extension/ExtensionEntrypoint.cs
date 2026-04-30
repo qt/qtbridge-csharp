@@ -8,6 +8,7 @@ using Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer;
 using Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 using Qt.Bridge.CSharp.VisualStudio.Extension.QmlMetadata;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;
 using Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension
@@ -22,6 +23,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
         protected override void InitializeServices(IServiceCollection serviceCollection)
         {
+            if (SupportsVisualStudioExtensibility())
+                serviceCollection.AddSettingsObservers();
             base.InitializeServices(serviceCollection);
 
             serviceCollection.AddSingleton<IExtensionLog, ExtensionLog>();
@@ -41,6 +44,29 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             serviceCollection.AddSingleton<IQmlMetadataWatcher, QmlMetadataWatcher>();
 
             serviceCollection.AddSingleton<IProjectContextService, DteProjectContextService>();
+
+            if (SupportsVisualStudioExtensibility()) {
+                // VS 2026+: use the source-generated settings observer.
+                serviceCollection.AddSingleton<ExtensibilityLoggingSettingsProvider>();
+                serviceCollection.AddSingleton<ILoggingSettingsProvider>(sp =>
+                    sp.GetRequiredService<ExtensibilityLoggingSettingsProvider>());
+            } else {
+                // VS 2022: the new extensibility settings UI is not supported; use DialogPage.
+                serviceCollection.AddSingleton<ILoggingSettingsProvider,
+                    VssdkLoggingSettingsProvider>();
+            }
+        }
+
+        private static bool SupportsVisualStudioExtensibility()
+        {
+            try {
+                var module = System.Diagnostics.Process.GetCurrentProcess().MainModule;
+                if (module != null) {
+                    var v = System.Diagnostics.FileVersionInfo.GetVersionInfo(module.FileName);
+                    return v.FileMajorPart >= 18;
+                }
+            } catch (Exception) { }
+            return true;
         }
     }
 }

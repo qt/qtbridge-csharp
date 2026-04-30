@@ -20,6 +20,13 @@ ExtensionEntrypoint (DI root)
   │
   |- IExtensionLog / ExtensionLog       <- dual-output logging (TraceSource + output pane)
   |- INotificationService / NotificationService  <- rate-limited VS InfoBar messages
+  |- Settings/QmlLanguageServer/LoggingContributions <- VS settings contributions + observer
+  |- Settings/QmlLanguageServer/ILoggingSettingsProvider <- version-adaptive settings access
+  │    |- ExtensibilityLoggingSettingsProvider  (VS 2026+: wraps generated observer)
+  │    |- VssdkLoggingSettingsProvider          (VS 2022: reads from LoggingOptionsPage)
+  │
+  |- ExtensionPackage (AsyncPackage)    <- VSSDK package hosting the VS 2022 DialogPage
+  │    |- LoggingOptionsPage            <- Tools > Options page (VS 2022 only)
   │
   |- QmlLanguageServer/
   │    |- QmlLanguageServerProvider    <- LanguageServerProvider (VS SDK)
@@ -30,10 +37,15 @@ ExtensionEntrypoint (DI root)
   │    │    |- IQmlMetadataReader      <- reads qtbridge-qml.ide.json
   │    │    |- IQmlMetadataWatcher     <- polls for metadata file changes
   │    │    |- IQmlLanguageServerInstaller <- download/cache qmlls binary
+  │    │    |- ILoggingSettingsProvider <- logging settings snapshot
   │    │
+  │    |- QmlLanguageServerProvider.Logging.cs
+  │    │                               <- qmlls process log configuration
   │    |- QmlLanguageServerTransportPipe
   │    │                               <- IDuplexPipe wrapping the qmlls process
   │    │    |- IExtensionLog           <- transport relay diagnostics
+  │    |- QmlLanguageServerTransportPipe.Logging.cs
+  │    │                               <- LSP traffic file logging
   │    |- LspByteBuffer                <- LSP frame/body extraction helper
   │    |- Contracts/Lsp.cs             <- LSP notification/request DTOs
   │    |- Contracts/ProjectAssets.cs   <- project.assets.json DTOs
@@ -65,6 +77,17 @@ This dual-output approach is also the reason the `IQmlMetadataWatcher` implement
 in the extension rather than in Core: the watcher needs to report errors through
 `IExtensionLog`, and `IExtensionLog` carries a dependency on Visual Studio output
 infrastructure that must not leak into the Core library.
+
+**QML language server file logging is configured per qmlls session.**
+The optional qmlls process log and LSP traffic log are Visual Studio settings, not general
+extension logging. `LoggingContributions` contributes the settings UI and generates
+a settings observer. `QmlLanguageServerProvider` reads one snapshot in
+`CreateServerConnectionAsync`, resolves configured log directories to fixed file names, uses
+the qmlls file path to add `--verbose -l <path>` to the command line when process logging is
+enabled, and passes the same immutable configuration snapshot to
+`QmlLanguageServerTransportPipe`. The transport writes raw framed LSP bodies only when LSP
+traffic logging is enabled. This keeps routine diagnostics behind `IExtensionLog` while
+making high-volume protocol logs an explicit opt-in.
 
 **`Enabled` is the lifecycle switch.**
 The VS Extensibility SDK activates and deactivates a `LanguageServerProvider` by reading its
@@ -164,6 +187,38 @@ where concrete types are bound to their interfaces. The registration order refle
 dependency graph: `IExtensionLog` and `INotificationService` are registered first as they are
 consumed by several other services, including the extension-layer `QmlMetadataWatcher`.
 
+At startup, `InitializeServices` checks whether the host supports the newer Visual Studio
+Extensibility path by reading `FileMajorPart` from the running `devenv.exe`. Versions below 18
+(VS 2022 and older) take the VSSDK path; version 18 and above (VS 2026+) take the new
+extensibility path:
+
+- **VS 2026+**: `AddSettingsObservers()` is called to register the source-generated observer,
+  and `ExtensibilityLoggingSettingsProvider` is bound to `ILoggingSettingsProvider`. This
+  provider wraps the generated `QmlLanguageServerLoggingCategoryObserver`.
+- **VS 2022 and older**: `AddSettingsObservers()` is not called. `VssdkLoggingSettingsProvider`
+  is bound to `ILoggingSettingsProvider`.
+  This provider reads settings from `ExtensionPackage.LoggingPage` (the `DialogPage` hosted by
+  the companion `AsyncPackage`).
+
+---
+
+### `ExtensionPackage`
+
+A VSSDK `AsyncPackage` that hosts the `LoggingOptionsPage` DialogPage for VS 2022. It is
+registered via `[PackageRegistration]` and `[ProvideOptionPage]`, both of which emit entries
+into the generated `.pkgdef`. The `[ProvideOptionPage]` attribute sets `IsInUnifiedSettings =
+true` so VS 2026 treats the registration as superseded by the new extensibility settings
+contribution and suppresses the duplicate sidebar entry and migration banner.
+
+`InitializeAsync` calls `GetDialogPage` to eagerly create and cache the `LoggingOptionsPage`
+instance in the static `LoggingPage` property. `VssdkLoggingSettingsProvider` reads from this
+property; if the package has not been initialized yet when settings are first requested, it
+force-loads the package via `IVsShell.LoadPackage`.
+
+On VS 2026+ this package is still registered in the `.pkgdef` (it cannot be conditionally
+excluded from a static attribute), but `VssdkLoggingSettingsProvider` is never registered in
+DI so `LoggingPage` is never read.
+
 ---
 
 ### `IExtensionLog` / `ExtensionLog`
@@ -223,6 +278,60 @@ to this provider.
 
 ---
 
+### `Settings/QmlLanguageServer/`
+
+This folder groups all settings-related types for the QML language server logging feature.
+
+**`LoggingContributions`** (formerly `QmlLanguageServerLoggingSettings`) defines the Visual
+Studio settings category for optional QML language server file logging. The category contains
+four settings:
+
+- `qmllsLogEnabled` and `qmllsLogDirectory` control the qmlls process log written by qmlls
+  itself when the provider launches the process with `--verbose -l <path>`. The extension
+  writes this log as `qtbridge-qmlls.log` in the configured directory.
+- `lspLogEnabled` and `lspLogDirectory` control extension-side logging of LSP traffic passing
+  through `QmlLanguageServerTransportPipe`. The extension writes this log as
+  `qtbridge-lsp.log` in the configured directory.
+
+The directory settings use `Setting.FormattedString` with `SettingStringFormat.DirectoryPath`,
+which is the correct API per the extensibility documentation. However, the SDK source generator
+emits `"format": "directoryPath"` for this type, whereas the VS settings renderer requires
+`"format": "path"` and `"pathKind": "folder"` (the schema used by built-in extensions such as
+CMake and Copilot). `build/PatchSettingsRegistration.targets` defines an inline MSBuild C# task
+(`PatchSettingsRegistrationJson`) that replaces the generator-emitted `"format"` value and adds
+`"pathKind"` after each build. The specific setting IDs and replacement values are declared as
+`SettingsRegistrationPatch` items in the project file with `<Replace>true</Replace>`, keeping
+the patch data on the calling side and the task itself generic.
+
+The category sets `GenerateObserverClass = true`, so the VS Extensibility SDK generates
+`QmlLanguageServerLoggingCategoryObserver`.
+
+**`ILoggingSettingsProvider`** is the interface through which `QmlLanguageServerProvider`
+reads a `LoggingOptions` snapshot. The interface decouples the provider from
+the VS-version-specific settings mechanism. Two implementations exist:
+
+- **`ExtensibilityLoggingSettingsProvider`** (VS 2026+) — wraps the source-generated
+  `QmlLanguageServerLoggingCategoryObserver` and reads current values directly from its
+  properties.
+- **`VssdkLoggingSettingsProvider`** (VS 2022) — reads settings from
+  `ExtensionPackage.LoggingPage`, force-loading the `AsyncPackage` via `IVsShell.LoadPackage`
+  if it has not yet been initialized by VS.
+
+**`LoggingOptions`** is the immutable per-session snapshot record for qmlls process logging
+and LSP traffic logging. Its `Create` factory creates the configured log directories and
+resolves the full log file paths, and `Default` is used when settings are unavailable.
+
+**`LoggingOptionsPage`** is a `DialogPage` that exposes the four logging settings as
+grid-editable properties. It is hosted by `ExtensionPackage` and is used only on VS 2022.
+The `[ProvideOptionPage]` attribute on `ExtensionPackage` carries `IsInUnifiedSettings = true`
+so VS 2026 suppresses the DialogPage entry in its unified settings sidebar and does not show a
+migration banner alongside the new extensibility settings contribution.
+
+`Compatibility/CompilerServices.cs` supplies small compatibility types required by records and
+the settings source generator when targeting .NET Framework 4.7.2.
+
+---
+
 ## QML Language Server Feature Folder
 
 The qmlls integration lives under `QmlLanguageServer/`. The folder groups the Visual Studio
@@ -235,7 +344,8 @@ needed to locate the Qt Bridge package's `tools/qt/qml` directory. These are imp
 contracts for serialization, not domain models.
 
 `LspByteBuffer` is a feature-local helper that accumulates raw stream bytes and extracts
-complete LSP messages. The transport uses it for outbound message forwarding.
+complete LSP messages. The transport uses it for outbound message forwarding and, when LSP
+logging is enabled, for inbound method/body extraction.
 
 ---
 
@@ -286,10 +396,13 @@ Called by the VS SDK when `Enabled` is `true`. The sequence is:
    Each resolved path is logged at `Info` level; a "no paths found" entry is logged if the
    scan produces nothing.
 3. Resolve the active project context (directory, project file path, config key).
-4. Launch the qmlls process with `--no-cmake-calls` and the collected import paths. A
+4. Read a `LoggingOptions` snapshot via `ILoggingSettingsProvider.GetConfigAsync`.
+   If the settings cannot be read, logging is disabled for this server session and startup continues.
+5. Launch the qmlls process with `--no-cmake-calls`, the collected import paths, and, when
+   enabled, `--verbose -l <path>` for the qmlls process log. A
    `QmlLanguageServerLaunchException` is caught, an error notification is shown, and the
    method returns `null`. On success, stores the pipe as `activePipe`.
-5. Reset `BuildDirsInjected` on all existing registry entries (they belong to the previous
+6. Reset `BuildDirsInjected` on all existing registry entries (they belong to the previous
    server session) and re-inject workspace/build-dir context for every previously registered
    project, then register and inject the active project.
 
@@ -330,6 +443,14 @@ and calls `TryInjectProjectAsync`. The actual server restart is deferred until
 `.qmltypes` files are readable. If `Enabled` is already `false`, calls
 `RefreshEnabledStateAsync` to re-attempt activation instead.
 
+**Logging partial.**
+`QmlLanguageServerProvider.Logging.cs` contains `ReadLoggingConfigAsync`, which delegates to
+`ILoggingSettingsProvider.GetConfigAsync`, and the process-log reset helper. Log directory
+creation and file path resolution live in `LoggingOptions.Create` (in
+`Settings/QmlLanguageServer/LoggingOptions.cs`). The provider resets each configured qmlls log
+file once per extension process before passing the path to qmlls, avoiding unbounded append
+growth across server restarts while preserving later entries from the same session.
+
 ---
 
 ### `QmlLanguageServerTransportPipe`
@@ -360,8 +481,9 @@ Before `serverInitializedSource` is signalled, the relay holds a pending `source
 but races it against the TCS task so it can detect initialization without blocking. After
 initialization, it additionally races against `pendingServerRequests`: whenever the channel
 has items and qmlls has not sent output yet, the relay writes the synthetic requests directly
-into the VS-facing pipe. It also parses all messages through `LspByteBuffer` for diagnostic
-logging (`Verbose` level).
+into the VS-facing pipe. When LSP file logging is enabled, it also parses incoming messages
+through `LspByteBuffer` and writes the method and body to the configured log file. Parsed
+method names are still written to `IExtensionLog.Verbose`.
 
 **`RelayToProcessAsync`** reads from the VS-facing write pipe and forwards bytes to qmlls
 stdin. It sets `handshakeComplete` and signals `serverInitializedSource` when the
@@ -372,9 +494,17 @@ extension-to-qmlls notification queue) without waiting for VS to send a message.
 
 **`LspByteBuffer`** is a feature-local helper that accumulates raw bytes from an LSP stream and
 extracts complete framed messages (`Content-Length: N\r\n\r\n<body>`). Both relay tasks use
-it - the from-process task for diagnostic logging, the to-process task to detect the
+it - the from-process task for optional LSP file logging, the to-process task to detect the
 `initialized` notification and to log outbound methods. `TryExtractBody` is a static helper
-used by the response-filtering methods to reach the JSON body without re-parsing the header.
+used by the response-filtering and logging methods to reach the JSON body without re-parsing
+the header.
+
+**Logging partial.**
+`QmlLanguageServerTransportPipe.Logging.cs` contains the optional LSP traffic log writer.
+It resets each configured traffic log once per extension process, uses a per-path lock for
+append operations, and silently ignores file I/O failures so logging cannot break the LSP
+transport. Each log entry contains a timestamp, direction, method name or `response`, byte
+count, and the LSP message body.
 
 `Dispose` cancels both relay tasks, waits up to 500 ms (via `JoinableTaskFactory.Run` to
 avoid deadlocking the VS main thread), kills the process if it has not exited, and releases
@@ -444,9 +574,10 @@ DteContextSubscription fires (solution opened)
        |- IQmlLanguageServerInstaller.EnsureInstalledAsync()  -> executable path
        |- TryFindImportPathsAsync()  -> NuGet tools/qt/qml + built metadata import paths
        |- ResolveActiveProjectContextAsync()  -> (dir, projectFile, configKey)
+       |- ReadLoggingConfigAsync()  -> qmlls process log + LSP traffic log settings
        │
        |- LaunchQmlLanguageServer()
-       │    Process.Start(qmlls, --no-cmake-calls [-I ...])
+       │    Process.Start(qmlls, --no-cmake-calls [--verbose -l path] [-I ...])
        │    -> QmlLanguageServerTransportPipe (IDuplexPipe)
        │         RelayFromProcessAsync  [background]
        │         RelayToProcessAsync    [background]

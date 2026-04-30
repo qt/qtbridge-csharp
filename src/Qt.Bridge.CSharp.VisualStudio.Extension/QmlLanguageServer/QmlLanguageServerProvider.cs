@@ -13,6 +13,8 @@ using Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer;
 using Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 using Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer.Contracts;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Settings;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;
 using Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext;
 
 using CoreQmlMetadata = Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata.QmlMetadata;
@@ -20,7 +22,7 @@ using CoreQmlMetadata = Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata.QmlMetada
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 {
     [VisualStudioContribution]
-    internal sealed class QmlLanguageServerProvider : LanguageServerProvider
+    internal sealed partial class QmlLanguageServerProvider : LanguageServerProvider
     {
         private readonly IExtensionLog log;
         private readonly INotificationService notifications;
@@ -29,6 +31,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private readonly IQmlMetadataReader metadataReader;
         private readonly IQmlMetadataWatcher metadataWatcher;
         private readonly IQmlLanguageServerInstaller languageServerInstaller;
+        private readonly ILoggingSettingsProvider loggingSettingsProvider;
         private readonly IDisposable contextSubscription;
 
         private sealed class ProjectEntry(
@@ -63,7 +66,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             IProjectContextService contextSvc,
             IQmlMetadataReader metadataReader,
             IQmlMetadataWatcher metadataWatcher,
-            IQmlLanguageServerInstaller languageServerInstaller)
+            IQmlLanguageServerInstaller languageServerInstaller,
+            ILoggingSettingsProvider loggingSettingsProvider)
             : base(container, extensibilityObject)
         {
             log = extensionLog
@@ -78,6 +82,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 ?? throw new ArgumentNullException(nameof(metadataWatcher));
             this.languageServerInstaller = languageServerInstaller
                 ?? throw new ArgumentNullException(nameof(languageServerInstaller));
+            this.loggingSettingsProvider = loggingSettingsProvider
+                ?? throw new ArgumentNullException(nameof(loggingSettingsProvider));
 
             contextSubscription = contextSvc.SubscribeToContextChanged(
                 () => QueueLoggedTask(
@@ -121,9 +127,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             var (activeDir, activeFile, activeKey) =
                 await ResolveActiveProjectContextAsync(ct);
 
+            var loggingConfig = await ReadLoggingConfigAsync(ct);
+
             QmlLanguageServerTransportPipe pipe;
             try {
-                pipe = LaunchQmlLanguageServer(installation.ExecutablePath, importPaths);
+                pipe = LaunchQmlLanguageServer(installation.ExecutablePath, importPaths,
+                    loggingConfig);
             } catch (QmlLanguageServerLaunchException ex) {
                 log.Error($"QML Language Server: failed to launch '{ex.ExecutablePath}'.", ex);
                 await notifications.ShowErrorAsync("qmls-launch-failed",
@@ -216,9 +225,16 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
         private QmlLanguageServerTransportPipe LaunchQmlLanguageServer(
             string executablePath,
-            IEnumerable<string>? importPaths)
+            IEnumerable<string>? importPaths,
+            LoggingOptions loggingOptions)
         {
-            var args = BuildStartupArguments(importPaths);
+            var qmllsLogActive = loggingOptions.QmllsLogEnabled
+                && !string.IsNullOrWhiteSpace(loggingOptions.QmllsLogFilePath);
+            if (qmllsLogActive)
+                ResetQmlLanguageServerLogOnce(loggingOptions.QmllsLogFilePath);
+
+            var args = BuildStartupArguments(importPaths, qmllsLogActive,
+                loggingOptions.QmllsLogFilePath);
             var startInfo = new ProcessStartInfo
             {
                 FileName = executablePath,
@@ -241,7 +257,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
                 log.Info($"QML Language Server: started process (pid {process.Id}) with: {args}");
 
-                return new QmlLanguageServerTransportPipe(process, log);
+                return new QmlLanguageServerTransportPipe(process, log, loggingOptions);
             } catch (QmlLanguageServerLaunchException) {
                 throw;
             } catch (Exception ex) {
@@ -261,9 +277,14 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             }
         }
 
-        private static string BuildStartupArguments(IEnumerable<string>? importPaths)
+        private static string BuildStartupArguments(
+            IEnumerable<string>? importPaths,
+            bool qmllsLogActive,
+            string qmllsLogFilePath)
         {
             var parts = new List<string> { "--no-cmake-calls" };
+            if (qmllsLogActive)
+                parts.AddRange(["--verbose", $"-l \"{qmllsLogFilePath}\""]);
             if (importPaths != null)
                 parts.AddRange(importPaths.Select(p => $"-I \"{p}\""));
             return string.Join(" ", parts);

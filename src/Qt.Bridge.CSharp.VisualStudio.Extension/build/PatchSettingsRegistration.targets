@@ -1,0 +1,181 @@
+<!--
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
+-->
+
+<!--
+  Generic task for patching the VS extensibility SDK-generated settingsRegistration.json with JSON
+  properties that the SDK source generator does not emit correctly.
+
+  Background: the unified settings schema supports fields such as "format"/"pathKind" (folder
+  pickers), "requiresRestart", "visibleWhen", "minimum"/"maximum", and "enum"/"enumItemLabels".
+  The extensibility API does expose Setting.FormattedString with SettingStringFormat.DirectoryPath
+  for directory paths, but the source generator emits "format": "directoryPath" whereas the VS
+  settings renderer requires "format": "path" + "pathKind": "folder" (the schema used by built-in
+  extensions such as CMake and Copilot). This task corrects such mismatches and can inject any
+  other missing metadata.
+
+  Callers declare SettingsRegistrationPatch items:
+    ItemSpec  = fully-qualified setting ID
+    <Replace> = "true" to overwrite properties already present in the JSON
+    other metadata = JSON properties to inject or replace
+
+  Scalar type inference for values: "true"/"false" -> boolean; integer or decimal -> number;
+  everything else -> quoted string.
+  MSBuild built-in item metadata and the <Replace> key are silently ignored.
+-->
+<Project>
+
+  <UsingTask TaskName="PatchSettingsRegistrationJson"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <RegistrationFile ParameterType="System.String" Required="true" />
+      <!--
+        One item per setting to patch. ItemSpec = fully-qualified setting ID.
+        Each custom metadata entry (except <Replace>) becomes one JSON property.
+      -->
+      <SettingPatches
+          ParameterType="Microsoft.Build.Framework.ITaskItem[]"
+          Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.Collections.Generic" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Using Namespace="Microsoft.Build.Framework" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        try {
+            if (File.Exists(RegistrationFile)) {
+                // MSBuild injects these names into every item's MetadataNames; skip them.
+                var builtIn = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "FullPath", "RootDir", "Filename", "Extension", "RelativeDir",
+                    "Directory", "RecursiveDir", "Identity", "ModifiedTime",
+                    "CreatedTime", "AccessedTime", "DefiningProjectFullPath",
+                    "DefiningProjectDirectory", "DefiningProjectName",
+                    "DefiningProjectExtension",
+                    "Replace"   // our own control key, not a JSON property
+                };
+
+                // Infer the JSON token type from a metadata string value.
+                Func<string, string> toJsonValue = raw => {
+                    bool b;
+                    if (bool.TryParse(raw, out b))
+                        return b ? "true" : "false";
+                    long l; double d;
+                    if (long.TryParse(raw, out l) || double.TryParse(raw, out d))
+                        return raw;
+                    return "\"" + raw.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+                };
+
+                var text = File.ReadAllText(RegistrationFile);
+                var changed = false;
+
+                foreach (var patch in SettingPatches) {
+                    var id = patch.ItemSpec.Trim();
+                    if (string.IsNullOrEmpty(id))
+                        continue;
+
+                    var replace = string.Equals(patch.GetMetadata("Replace"), "true",
+                        StringComparison.OrdinalIgnoreCase);
+
+                    // Collect the JSON properties to inject (custom metadata only).
+                    var props = new List<KeyValuePair<string, string>>();
+                    foreach (string name in patch.MetadataNames) {
+                        if (!builtIn.Contains(name))
+                            props.Add(new KeyValuePair<string, string>(name, patch.GetMetadata(name)));
+                    }
+                    if (props.Count == 0)
+                        continue;
+
+                    // Setting value objects contain no nested braces, so [^{}]* matches
+                    // exactly one property's content without false positives.
+                    var m = Regex.Match(text, @"(""" + Regex.Escape(id) + @"""\s*:\s*\{)([^{}]*)(\})",
+                        RegexOptions.Singleline);
+                    if (!m.Success)
+                        continue;
+
+                    var inner = m.Groups[2].Value;
+
+                    // Partition into properties to add vs. to replace.
+                    var toAdd = new List<KeyValuePair<string, string>>();
+                    var toReplace = new List<KeyValuePair<string, string>>();
+                    foreach (var kv in props) {
+                        if (inner.Contains("\"" + kv.Key + "\"")) {
+                            if (replace)
+                              toReplace.Add(kv);
+                        } else {
+                            // else already present and Replace not requested -> skip
+                            toAdd.Add(kv);
+                        }
+                    }
+                    if (toAdd.Count == 0 && toReplace.Count == 0)
+                        continue;
+
+                    // Apply in-place replacements on the inner content.
+                    // Matches string, boolean, or numeric JSON values after the key.
+                    foreach (var kv in toReplace) {
+                        inner = Regex.Replace(inner, @"(""" + Regex.Escape(kv.Key)
+                          + @"""\s*:\s*)(?:""[^""]*""|true|false|-?\d+(?:\.\d+)?)",
+                            "$1" + toJsonValue(kv.Value));
+                    }
+
+                    // Append any missing properties, mirroring existing indentation.
+                    var indentMatch = Regex.Match(
+                        inner, @"\r?\n([ \t]+)""", RegexOptions.RightToLeft);
+                    var propIndent = indentMatch.Success
+                        ? indentMatch.Groups[1].Value : "    ";
+                    var closeIndentMatch = Regex.Match(inner, @"\r?\n([ \t]*)$");
+                    var closeIndent = closeIndentMatch.Success
+                        ? closeIndentMatch.Groups[1].Value : "";
+                    var nl = inner.Contains("\r\n") ? "\r\n" : "\n";
+
+                    var sb = new StringBuilder(inner.TrimEnd('\r', '\n', ' ', '\t'));
+                    foreach (var kv in toAdd) {
+                        sb.Append(",").Append(nl).Append(propIndent)
+                            .Append("\"").Append(kv.Key).Append("\":  ")
+                            .Append(toJsonValue(kv.Value));
+                    }
+                    sb.Append(nl).Append(closeIndent);
+
+                    text = text
+                        .Remove(m.Groups[2].Index, m.Groups[2].Length)
+                        .Insert(m.Groups[2].Index, sb.ToString());
+                    changed = true;
+                }
+
+                if (changed) {
+                    File.WriteAllText(RegistrationFile, text, new UTF8Encoding(false));
+                    Log.LogMessage(MessageImportance.Low,
+                        "Patched settings registration file '{0}'.", RegistrationFile);
+                } else {
+                    Log.LogMessage(MessageImportance.Low,
+                        "No settings registration patches were applied to '{0}'.",
+                        RegistrationFile);
+                }
+            } else {
+                Log.LogMessage(MessageImportance.Low,
+                    "Settings registration file '{0}' does not exist; skipping patching.",
+                    RegistrationFile);
+            }
+        }
+        catch (Exception ex) {
+            Log.LogErrorFromException(ex, true);
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="PatchQtBridgeSettingsRegistration"
+          AfterTargets="CoreCompile"
+          BeforeTargets="_CopyGeneratedOutputsToOutputDirectory;_AddExtensionJsonVsixItem"
+          Condition="Exists('$(IntermediateOutputPath)settingsRegistration.json')">
+    <PatchSettingsRegistrationJson
+        RegistrationFile="$(IntermediateOutputPath)settingsRegistration.json"
+        SettingPatches="@(SettingsRegistrationPatch)" />
+  </Target>
+
+</Project>
