@@ -4,13 +4,13 @@
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
-using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading.Channels;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
+using Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer.Contracts;
 
-namespace Qt.Bridge.CSharp.VisualStudio.Extension
+namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 {
     /// <summary>
     /// Wraps the QML Language Server process as an LSP transport pipe. Relays bytes between the
@@ -380,181 +380,5 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 StringComparison.Ordinal) >= 0;
         }
 
-        /// <summary>
-        /// Accumulates raw bytes from an LSP stream and extracts complete framed messages
-        /// (Content-Length header + body) one at a time.
-        /// </summary>
-        private sealed class LspByteBuffer
-        {
-            private readonly List<byte> data = [];
-
-            public void Append(ReadOnlySpan<byte> bytes)
-            {
-                data.AddRange(bytes.ToArray());
-            }
-
-            public bool TryExtractMessage(out byte[] message)
-            {
-                message = [];
-                var headerEnd = FindHeaderEnd();
-                if (headerEnd < 0)
-                    return false;
-
-                var headerText = Encoding.ASCII.GetString([..data.GetRange(0, headerEnd)]);
-                var contentLength = ParseContentLength(headerText);
-                if (contentLength < 0)
-                    return false;
-
-                var totalLength = headerEnd + 4 + contentLength;
-                if (data.Count < totalLength)
-                    return false;
-
-                message = [..data.GetRange(0, totalLength)];
-                data.RemoveRange(0, totalLength);
-                return true;
-            }
-
-            /// <summary>
-            /// Parses the JSON body of a framed LSP message and returns the <c>method</c> field,
-            /// or <see langword="null"/> if the message has no method (e.g. a response) or if the
-            /// body cannot be parsed.
-            /// </summary>
-            public static string? TryExtractMethod(byte[] message)
-            {
-                var text = Encoding.UTF8.GetString(message);
-                var sep = text.IndexOf("\r\n\r\n", StringComparison.Ordinal);
-                if (sep < 0)
-                    return null;
-
-                var body = text.Substring(sep + 4);
-                try {
-                    using var ms = new MemoryStream(Encoding.UTF8.GetBytes(body));
-                    var serializer = new DataContractJsonSerializer(typeof(LspMethodDto));
-                    return (serializer.ReadObject(ms) as LspMethodDto)?.Method;
-                } catch (Exception) {
-                    return null;
-                }
-            }
-
-            public static string? TryExtractBody(byte[] message)
-            {
-                var text = Encoding.UTF8.GetString(message);
-                var sep = text.IndexOf("\r\n\r\n", StringComparison.Ordinal);
-                return sep < 0 ? null : text.Substring(sep + 4);
-            }
-
-            private int FindHeaderEnd()
-            {
-                for (var i = 0; i <= data.Count - 4; i++) {
-                    if (data[i] == '\r' && data[i + 1] == '\n'
-                        && data[i + 2] == '\r' && data[i + 3] == '\n')
-                        return i;
-                }
-                return -1;
-            }
-
-            private static int ParseContentLength(string headerText)
-            {
-                foreach (var line in headerText.Split('\n')) {
-                    var trimmed = line.Trim('\r', ' ');
-                    if (!trimmed.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase))
-                        continue;
-                    var value = trimmed.Substring("Content-Length:".Length).Trim();
-                    if (int.TryParse(value, out var length))
-                        return length;
-                }
-                return -1;
-            }
-        }
-
-        [DataContract]
-        private sealed class LspMethodDto
-        {
-            [DataMember(Name = "method")]
-            public string? Method { get; set; }
-        }
-
-        [DataContract]
-        private sealed class SemanticTokensRefreshRequestDto
-        {
-            [DataMember(Name = "jsonrpc")]
-            public string JsonRpc { get; set; } = "2.0";
-
-            [DataMember(Name = "id")]
-            public string? Id { get; set; }
-
-            [DataMember(Name = "method")]
-            public string Method { get; set; } = "workspace/semanticTokens/refresh";
-        }
-
-        [DataContract]
-        private sealed class WorkspaceFoldersNotificationDto
-        {
-            [DataMember(Name = "jsonrpc")]
-            public string JsonRpc { get; set; } = "2.0";
-
-            [DataMember(Name = "method")]
-            public string Method { get; set; } = "workspace/didChangeWorkspaceFolders";
-
-            [DataMember(Name = "params")]
-            public WorkspaceFoldersEventContainerDto? Params { get; set; }
-        }
-
-        [DataContract]
-        private sealed class WorkspaceFoldersEventContainerDto
-        {
-            [DataMember(Name = "event")]
-            public WorkspaceFoldersEventDto? Event { get; set; }
-        }
-
-        [DataContract]
-        private sealed class WorkspaceFoldersEventDto
-        {
-            [DataMember(Name = "added")]
-            public WorkspaceFolderDto[]? Added { get; set; }
-
-            [DataMember(Name = "removed")]
-            public WorkspaceFolderDto[]? Removed { get; set; }
-        }
-
-        [DataContract]
-        private sealed class WorkspaceFolderDto
-        {
-            [DataMember(Name = "uri")]
-            public string? Uri { get; set; }
-
-            [DataMember(Name = "name")]
-            public string? Name { get; set; }
-        }
-
-        [DataContract]
-        private sealed class AddBuildDirsNotificationDto
-        {
-            [DataMember(Name = "jsonrpc")]
-            public string JsonRpc { get; set; } = "2.0";
-
-            [DataMember(Name = "method")]
-            public string Method { get; set; } = "$/addBuildDirs";
-
-            [DataMember(Name = "params")]
-            public AddBuildDirsParamsDto? Params { get; set; }
-        }
-
-        [DataContract]
-        private sealed class AddBuildDirsParamsDto
-        {
-            [DataMember(Name = "buildDirsToSet")]
-            public BuildDirsEntryDto[]? BuildDirsToSet { get; set; }
-        }
-
-        [DataContract]
-        private sealed class BuildDirsEntryDto
-        {
-            [DataMember(Name = "baseUri")]
-            public string? BaseUri { get; set; }
-
-            [DataMember(Name = "buildDirs")]
-            public string[]? BuildDirs { get; set; }
-        }
     }
 }

@@ -4,6 +4,7 @@
 using Microsoft.VisualStudio.Extensibility;
 using Microsoft.VisualStudio.Extensibility.Editor;
 using Microsoft.VisualStudio.Extensibility.LanguageServer;
+using Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension
 {

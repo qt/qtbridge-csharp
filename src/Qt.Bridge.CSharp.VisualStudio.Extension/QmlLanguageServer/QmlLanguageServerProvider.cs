@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
-using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using Microsoft.VisualStudio.Extensibility;
 using Microsoft.VisualStudio.Extensibility.LanguageServer;
@@ -13,11 +12,12 @@ using Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem;
 using Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer;
 using Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
+using Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer.Contracts;
 using Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext;
 
 using CoreQmlMetadata = Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata.QmlMetadata;
 
-namespace Qt.Bridge.CSharp.VisualStudio.Extension
+namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 {
     [VisualStudioContribution]
     internal sealed class QmlLanguageServerProvider : LanguageServerProvider
@@ -1034,25 +1034,5 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 "Qt Bridge: Could not install the QML Language Server. "
                 + "See the Qt Bridge output pane for details."
         };
-
-        [DataContract]
-        private sealed class ProjectAssetsDto
-        {
-            [DataMember(Name = "libraries")]
-            public Dictionary<string, ProjectAssetsLibraryDto>? Libraries { get; set; }
-
-            [DataMember(Name = "packageFolders")]
-            public Dictionary<string, ProjectAssetsPackageFolderDto>? PackageFolders { get; set; }
-        }
-
-        [DataContract]
-        private sealed class ProjectAssetsLibraryDto
-        {
-            [DataMember(Name = "path")]
-            public string? Path { get; set; }
-        }
-
-        [DataContract]
-        private sealed class ProjectAssetsPackageFolderDto;
     }
 }

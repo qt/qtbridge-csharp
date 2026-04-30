@@ -21,17 +21,22 @@ ExtensionEntrypoint (DI root)
   |- IExtensionLog / ExtensionLog       <- dual-output logging (TraceSource + output pane)
   |- INotificationService / NotificationService  <- rate-limited VS InfoBar messages
   │
-  |- QmlLanguageServerProvider         <- LanguageServerProvider (VS SDK)
-  │    |- IExtensionLog                <- all provider diagnostics
-  │    |- INotificationService         <- user-facing install / launch / metadata errors
-  │    |- IProjectContextService       <- VS IDE context (active doc, project, config)
-  │    |- IQtBridgeProjectService      <- Qt Bridge project detection
-  │    |- IQmlMetadataReader           <- reads qtbridge-qml.ide.json
-  │    |- IQmlMetadataWatcher          <- polls for metadata file changes
-  │    |- IQmlLanguageServerInstaller  <- download/cache qmlls binary
-  │
-  |- QmlLanguageServerTransportPipe    <- IDuplexPipe wrapping the qmlls process
-  │    |- IExtensionLog                <- transport relay diagnostics
+  |- QmlLanguageServer/
+  │    |- QmlLanguageServerProvider    <- LanguageServerProvider (VS SDK)
+  │    │    |- IExtensionLog           <- all provider diagnostics
+  │    │    |- INotificationService    <- install / launch / metadata errors
+  │    │    |- IProjectContextService  <- active doc, project, config
+  │    │    |- IQtBridgeProjectService <- Qt Bridge project detection
+  │    │    |- IQmlMetadataReader      <- reads qtbridge-qml.ide.json
+  │    │    |- IQmlMetadataWatcher     <- polls for metadata file changes
+  │    │    |- IQmlLanguageServerInstaller <- download/cache qmlls binary
+  │    │
+  │    |- QmlLanguageServerTransportPipe
+  │    │                               <- IDuplexPipe wrapping the qmlls process
+  │    │    |- IExtensionLog           <- transport relay diagnostics
+  │    |- LspByteBuffer                <- LSP frame/body extraction helper
+  │    |- Contracts/Lsp.cs             <- LSP notification/request DTOs
+  │    |- Contracts/ProjectAssets.cs   <- project.assets.json DTOs
   │
   |- QmlMetadataWatcher (Extension)    <- IQmlMetadataWatcher implementation
   │    |- IExtensionLog                <- watcher error reporting
@@ -218,6 +223,22 @@ to this provider.
 
 ---
 
+## QML Language Server Feature Folder
+
+The qmlls integration lives under `QmlLanguageServer/`. The folder groups the Visual Studio
+language-server provider, the transport pipe, protocol helpers, and serializer contracts so
+the extension root stays limited to composition and cross-cutting extension services.
+
+`Contracts/Lsp.cs` contains the DTOs used to serialize LSP notifications and injected
+requests. `Contracts/ProjectAssets.cs` contains only the subset of `project.assets.json`
+needed to locate the Qt Bridge package's `tools/qt/qml` directory. These are implementation
+contracts for serialization, not domain models.
+
+`LspByteBuffer` is a feature-local helper that accumulates raw stream bytes and extracts
+complete LSP messages. The transport uses it for outbound message forwarding.
+
+---
+
 ### `QmlLanguageServerProvider`
 
 The central piece of the extension. Extends `LanguageServerProvider` and manages the full
@@ -349,7 +370,7 @@ stdin. It sets `handshakeComplete` and signals `serverInitializedSource` when th
 After the handshake it enters a select loop that drains `pendingNotifications` (the
 extension-to-qmlls notification queue) without waiting for VS to send a message.
 
-**`LspByteBuffer`** is a private helper that accumulates raw bytes from an LSP stream and
+**`LspByteBuffer`** is a feature-local helper that accumulates raw bytes from an LSP stream and
 extracts complete framed messages (`Content-Length: N\r\n\r\n<body>`). Both relay tasks use
 it - the from-process task for diagnostic logging, the to-process task to detect the
 `initialized` notification and to log outbound methods. `TryExtractBody` is a static helper
