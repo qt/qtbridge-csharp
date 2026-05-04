@@ -295,8 +295,14 @@ namespace Qt.Bridge.CodeGeneration
                 return true;
 
             if (type.IsAssignableTo(TypeOfDelegate)) {
-                await Task.WhenAll(type.DelegateSignature()
+                var results = await Task.WhenAll(type.DelegateSignature()
                     .Select(x => Task.Run(async () => await AddEdgeAsync(type, x))));
+                if (results.Contains(false)) {
+                    // A signature type is excluded: treat the delegate itself as non-addable
+                    // so that any method/property referencing it is also excluded.
+                    Nodes.TryRemove(type, out _);
+                    return false;
+                }
                 return true;
             }
 
