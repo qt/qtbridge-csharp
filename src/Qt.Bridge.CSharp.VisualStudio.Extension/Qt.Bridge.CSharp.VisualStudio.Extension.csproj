@@ -35,4 +35,8 @@
     <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40608" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" />
   </ItemGroup>
+
+  <Target Name="Build" Condition="!$([MSBuild]::IsOsPlatform('Windows'))">
+    <Message Importance="High" Text="$(MSBuildProjectName): skipped (Windows only)" />
+  </Target>
 </Project>
