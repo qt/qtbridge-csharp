@@ -24,19 +24,35 @@ namespace Qt.Bridge.CodeGeneration.Rules.Class
             var type = src.ReflectedType;
             var propType = prop.PropertyType;
             var cacheType = propType.IsValue() ? TypeOf<object>() : propType;
+            var isDelegateProp = propType.IsAssignableTo(TypeOf<Delegate>());
+
+            ////////////////////////////////////////////////////////////////////////////////////////
+            //
+            if (isDelegateProp) {
+                if (type.GetPlaceholder(Includes) is not { } includes)
+                    return Error();
+                includes += "#include <QJSValue>";
+            }
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             if (type.GetPlaceholder(PropertyDeclarations) is not { } properties)
                 return Error();
+            // Delegate-typed properties are exposed to QML as write-only QJSValue setters.
+            // TODO: Expose a C#-held delegate back to QML (via typed invoke wrappers or
+            // DynamicInvoke-based dispatch).
+            var qPropertyType = isDelegateProp ? "QJSValue" : propType.MFn(Ns | Name | Arg);
+            var qPropertyRead = (!prop.CanRead || isDelegateProp) ? string.Empty
+                : $" READ {prop.MFn(Get)}";
             properties += $@"
-Q_PROPERTY({propType.MFn(Ns | Name | Arg)} {prop.MFn()}{(
-    !prop.CanRead ? string.Empty : $" READ {prop.MFn(Get)}")}{(
+Q_PROPERTY({qPropertyType} {prop.MFn()}{qPropertyRead}{(
     !prop.CanWrite ? string.Empty : $" WRITE {prop.MFn(Set)}")}{(
     !prop.IsNotifiable() ? string.Empty : $" NOTIFY {prop.MFn(Signal)}")})
-{(!prop.CanRead ? Wrap : $"{propType.MFn(Ns | Name | Arg)} {prop.MFn(Get)}() const;")}
-{(!prop.CanRead ? Wrap : $"{propType.MFn(Ns | Name | Arg)} {prop.MFn(Get)}(bool cached) const;")}
-{(!prop.CanWrite ? Wrap : $"void {prop.MFn(Set)}({propType.MFn(Ns | Name | Arg)} value);")}
+{(!prop.CanRead || isDelegateProp ? Wrap : $"{propType.MFn(Ns | Name | Arg)} {prop.MFn(Get)}() const;")}
+{(!prop.CanRead || isDelegateProp ? Wrap : $"{propType.MFn(Ns | Name | Arg)} {prop.MFn(Get)}(bool cached) const;")}
+{(!prop.CanWrite ? Wrap : isDelegateProp
+    ? $"void {prop.MFn(Set)}(QJSValue value);"
+    : $"void {prop.MFn(Set)}({propType.MFn(Ns | Name | Arg)} value);")}
 {(!prop.IsNotifiable() ? Wrap : $@"{Wrap}
 {BkSpc}#ifndef Q_MOC_RUN
 {BkSpc}#  define PROPERTY_{prop.MFn(Src)}
@@ -57,11 +73,11 @@ PROPERTY_{prop.MFn(Src)} Q_SIGNAL void {prop.MFn(Signal)}();
             if (type.GetPlaceholder(PrivateMemberDeclarations) is not { } privateMembers)
                 return Error();
             privateMembers += $@"
-{(!prop.CanRead ? Wrap : $@"{Wrap}
+{(!prop.CanRead || isDelegateProp ? Wrap : $@"{Wrap}
 mutable QDotNetFunction<{propType.MFn(Ns | Name)}> {prop.MFn(Get | Func)} = nullptr;")}
 {(!prop.CanWrite ? Wrap : $@"{Wrap}
 mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} = nullptr;")}
-{(!prop.CanRead || !propType.IsObject() ? Wrap
+{(!prop.CanRead || !propType.IsObject() || isDelegateProp ? Wrap
 : $@"mutable {cacheType.MFn(Ns | Name | Arg)} cached{prop.MFn(Src)} {Wrap}
     = Convert::Object<{cacheType.MFn(Ns | Name)}>::null();")}";
 
@@ -71,7 +87,7 @@ mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} 
                 return Error();
 
             implementation += $@"
-{(!prop.CanRead ? Wrap : $@"{Wrap}
+{(!prop.CanRead || isDelegateProp ? Wrap : $@"{Wrap}
 {propType.MFn(Ns | Name | Arg)} {type.MFn(Ns | Name)}::{prop.MFn(Get)}() const
 {{
     return {prop.MFn(Get)}({(prop.IsNotifiable() ? "true" : "false")});
@@ -93,12 +109,14 @@ mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} 
 }}
 {Blank}")}
 {(!prop.CanWrite ? Wrap : $@"{Wrap}
-void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({propType.MFn(Ns | Name | Arg)} value)
+void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({(isDelegateProp ? "QJSValue" : propType.MFn(Ns | Name | Arg))} value)
 {{
-    {(!prop.CanRead || !propType.IsObject() ? Wrap : $@"{Wrap}
+    {(!prop.CanRead || !propType.IsObject() || isDelegateProp ? Wrap : $@"{Wrap}
     d->cached{prop.MFn(Src)} = {(propType.IsObject() ? "value" : "QVariant::fromValue(value)")};")}
     method(""{prop.MFn(Src | Set)}"", d->{prop.MFn(Set | Func)}).invoke(*this, {Wrap}
-        {(propType.Is<object>() ? $"Convert::fromVariant(value)" : $"{propType.MFn(Star)}value")});
+        {(isDelegateProp
+            ? $"{propType.MFn(Ns | Name)}::fromScriptValue(value, this)"
+            : propType.Is<object>() ? $"Convert::fromVariant(value)" : $"{propType.MFn(Star)}value")});
 }}
 {Blank}")}";
 
@@ -122,7 +140,7 @@ if (signalTag == ""PROPERTY_{prop.MFn(Src)}"") {{
                 return Error();
             notifiers += $@"
 if (propertyName == ""{prop.MFn(Src)}"") {{
-    {(!prop.CanRead || !propType.IsObject() ? Wrap : $@"{Wrap}
+    {(!prop.CanRead || !propType.IsObject() || isDelegateProp ? Wrap : $@"{Wrap}
     cached{prop.MFn(Src)} = Convert::Object<{cacheType.MFn(Ns | Name)}>::null();")}
     QMetaMethod::fromSignal(&{type.MFn(Ns | Name)}::{prop.MFn(Signal)})
         .invoke(q, Qt::DirectConnection);

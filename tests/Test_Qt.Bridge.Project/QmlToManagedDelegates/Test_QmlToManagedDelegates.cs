@@ -52,6 +52,7 @@ namespace Test_Qt.Bridge.Project.QmlToManagedDelegates
             Assert.Contains(pass + "test_null_delegate()", run.StdOut);
             Assert.Contains(pass + "test_bcl_action_delegate()", run.StdOut);
             Assert.Contains(pass + "test_bcl_func_delegate()", run.StdOut);
+            Assert.Contains(pass + "test_delegate_property()", run.StdOut);
             Assert.Contains(pass + "cleanupTestCase()", run.StdOut);
         }
     }

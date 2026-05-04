@@ -9,6 +9,7 @@ TestCase {
     name: "tst_qmltomanageddelegates";
 
     Callback { id: callback }
+    Sink { id: sink }
 
     function test_delegate_param_callback_int_return() {
         compare(callback.invokeSingle(function(value) {
@@ -90,5 +91,13 @@ TestCase {
         compare(callback.invokeFunc(function(value) {
             return value + 5;
         }), 47);
+    }
+
+    function test_delegate_property() {
+        // Assign a JS function to a delegate-typed property; C# calls it via fire().
+        var received = -1;
+        sink.valueHandler = function(v) { received = v; }
+        sink.fire(42);
+        compare(received, 42);
     }
 }

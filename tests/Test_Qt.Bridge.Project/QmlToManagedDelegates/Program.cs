@@ -112,4 +112,13 @@ namespace Test_QmlToManagedDelegates
             return callback?.Invoke(42) ?? -1;
         }
     }
+
+    public class Sink
+    {
+        // Delegate-typed property: QML assigns a JS function, C# calls it via Fire().
+        // Named ValueHandler (not OnHandler) to avoid QML's on<Signal> binding syntax.
+        public Action<int> ValueHandler { get; set; }
+
+        public void Fire(int value) => ValueHandler?.Invoke(value);
+    }
 }
