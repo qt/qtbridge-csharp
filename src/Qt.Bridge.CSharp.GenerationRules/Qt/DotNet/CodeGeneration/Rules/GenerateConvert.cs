@@ -35,6 +35,7 @@ namespace Qt.Bridge.CodeGeneration.Rules
             convertHpp += $@"
 #pragma once
 #include <builtin_types.h>
+#include <QDebug>
 #include <QDotNetCallback>
 #include <QJSEngine>
 #include <QJSValue>
@@ -98,16 +99,35 @@ struct Convert
         return value.toVariant().template value<TValue>();
     }}
 
+    static void reportInvokeFailure(const QString &delegateTypeName, const QString &message)
+    {{
+        qCritical() << ""Qt/.NET delegate callback failed for"" << delegateTypeName << "":"" << message;
+    }}
+
+    static void reportScriptError(const QString &delegateTypeName, const QJSValue &error)
+    {{
+        qCritical().nospace()
+            << ""Qt/.NET delegate callback threw for "" << delegateTypeName
+            << "": "" << error.toString();
+        if (error.hasProperty(""stack"")) {{
+            const QString stack = error.property(""stack"").toString();
+            if (!stack.isEmpty())
+                qCritical().noquote() << stack;
+        }}
+    }}
+
     template<typename TResult, typename... TArg>
     class ScriptDelegateContext final : public QDotNetCallback<TResult, TArg...>
     {{
     public:
-        ScriptDelegateContext(const QJSValue &function, QQmlEngine *engine, QObject *context)
+        ScriptDelegateContext(const QString &delegateTypeName, const QJSValue &function,
+            QQmlEngine *engine, QObject *context)
             : QDotNetCallback<TResult, TArg...>(
                 [](void *data, TArg... arg) -> TResult
                 {{
                     return reinterpret_cast<ScriptDelegateContext *>(data)->invoke(arg...);
                 }}),
+              delegateTypeName(delegateTypeName),
               function(function),
               engine(engine),
               context(context)
@@ -145,12 +165,14 @@ struct Convert
             // NOTE: BlockingQueuedConnection will deadlock if the calling thread also
             // processes Qt events (e.g. is the main/UI thread). Delegates must only be
             // invoked from non-event-loop threads or a dedicated worker thread.
-            QMetaObject::invokeMethod(engine,
+            const bool ok = QMetaObject::invokeMethod(engine,
                 [this, &result, arg...]() mutable
                 {{
                     result = invokeNow(arg...);
                 }},
                 Qt::BlockingQueuedConnection);
+            if (!ok)
+                Convert::reportInvokeFailure(delegateTypeName, ""queued invoke on QQmlEngine failed"");
             return result;
         }}
 
@@ -160,9 +182,15 @@ struct Convert
             {{
                 Convert::toScriptValue(engine, arg, context)...
             }};
-            return Convert::fromScriptResult<TResult>(function.call(args));
+            const QJSValue result = function.call(args);
+            if (result.isError()) {{
+                Convert::reportScriptError(delegateTypeName, result);
+                return QtDotNet::null<TResult>();
+            }}
+            return Convert::fromScriptResult<TResult>(result);
         }}
 
+        QString delegateTypeName;
         QJSValue function;
         QPointer<QQmlEngine> engine;
         QPointer<QObject> context;
@@ -172,12 +200,14 @@ struct Convert
     class ScriptDelegateContext<void, TArg...> final : public QDotNetCallback<void, TArg...>
     {{
     public:
-        ScriptDelegateContext(const QJSValue &function, QQmlEngine *engine, QObject *context)
+        ScriptDelegateContext(const QString &delegateTypeName, const QJSValue &function,
+            QQmlEngine *engine, QObject *context)
             : QDotNetCallback<void, TArg...>(
                 [](void *data, TArg... arg)
                 {{
                     reinterpret_cast<ScriptDelegateContext *>(data)->invoke(arg...);
                 }}),
+              delegateTypeName(delegateTypeName),
               function(function),
               engine(engine),
               context(context)
@@ -216,12 +246,14 @@ struct Convert
             // NOTE: BlockingQueuedConnection will deadlock if the calling thread also
             // processes Qt events (e.g. is the main/UI thread). Delegates must only be
             // invoked from non-event-loop threads or a dedicated worker thread.
-            QMetaObject::invokeMethod(engine,
+            const bool ok = QMetaObject::invokeMethod(engine,
                 [this, arg...]() mutable
                 {{
                     invokeNow(arg...);
                 }},
                 Qt::BlockingQueuedConnection);
+            if (!ok)
+                Convert::reportInvokeFailure(delegateTypeName, ""queued invoke on QQmlEngine failed"");
         }}
 
         void invokeNow(TArg... arg)
@@ -230,9 +262,12 @@ struct Convert
             {{
                 Convert::toScriptValue(engine, arg, context)...
             }};
-            function.call(args);
+            const QJSValue result = function.call(args);
+            if (result.isError())
+                Convert::reportScriptError(delegateTypeName, result);
         }}
 
+        QString delegateTypeName;
         QJSValue function;
         QPointer<QQmlEngine> engine;
         QPointer<QObject> context;
@@ -252,7 +287,8 @@ struct Convert
             return nullptr;
         }}
 
-        auto *callback = new ScriptDelegateContext<TResult, TArg...>(value, engine, qContext);
+        auto *callback = new ScriptDelegateContext<TResult, TArg...>(
+            delegateTypeName, value, engine, qContext);
         return TDelegate(QDotNetAdapter::instance().addDelegateProxy(
             delegateTypeName,
             TDelegate::SignatureParameters,
