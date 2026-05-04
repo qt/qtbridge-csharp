@@ -13,7 +13,172 @@
     <QtQmlRootModule Condition="'$(QtQmlRootModule)' == ''">Application</QtQmlRootModule>
     <QtQmlRootModuleName>$([System.Text.RegularExpressions.Regex]::Replace(
       '$(QtQmlRootModule)', '[^\w]', '_'))</QtQmlRootModuleName>
+    <QtBridgeAssemblyResourceId Condition="'$(QtBridgeAssemblyResourceId)' == ''"
+      >$(MSBuildProjectName)</QtBridgeAssemblyResourceId>
   </PropertyGroup>
+
+  <UsingTask TaskName="QtBridgeResolveResxFileRefs"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <ResxFiles ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <ProjectDir ParameterType="System.String" Required="true" />
+      <AssemblyResourceId ParameterType="System.String" Required="true" />
+      <ResourceAccessOverrides
+        ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="false" />
+      <ResolvedResources ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+      <ManagedEmbeddedResxFiles
+        ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.Collections.Generic" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Xml.Linq" />
+      <Using Namespace="Microsoft.Build.Framework" />
+      <Using Namespace="Microsoft.Build.Utilities" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var resolved = new List<ITaskItem>();
+        foreach (var resx in ResxFiles ?? Array.Empty<ITaskItem>()) {
+            var resxPath = Path.GetFullPath(resx.ItemSpec);
+            if (!File.Exists(resxPath)) {
+                Log.LogError($"Qt Bridge resource file not found: {resx.ItemSpec}");
+                continue;
+            }
+
+            var resxDir = Path.GetDirectoryName(resxPath) ?? ProjectDir;
+            var document = XDocument.Load(resxPath, LoadOptions.PreserveWhitespace);
+            foreach (var data in document.Root?.Elements("data") ?? Enumerable.Empty<XElement>()) {
+                var name = (string)data.Attribute("name");
+                var value = data.Element("value")?.Value;
+                if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value))
+                    continue;
+
+                var fileRef = value.Split(';')[0].Trim();
+                if (string.IsNullOrWhiteSpace(fileRef) || Path.GetInvalidPathChars().Any(fileRef.Contains))
+                    continue;
+
+                var sourcePath = Path.GetFullPath(Path.Combine(resxDir, fileRef));
+                if (!File.Exists(sourcePath))
+                    continue;
+
+                var item = new TaskItem(sourcePath);
+                item.SetMetadata("SourcePath", sourcePath);
+                item.SetMetadata("ResxFile", resxPath);
+                item.SetMetadata("Key", $"{Path.GetFileName(resxPath)}::{name}");
+                item.SetMetadata("AssemblyId", AssemblyResourceId);
+                item.SetMetadata("AccessMode", "Default");
+
+                var projectDirPrefix = Path.GetFullPath(ProjectDir)
+                    .TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+                var relativePath = sourcePath.StartsWith(projectDirPrefix, StringComparison.OrdinalIgnoreCase)
+                    ? sourcePath.Substring(projectDirPrefix.Length).Replace('\\', '/')
+                    : Path.GetFileName(sourcePath);
+                item.SetMetadata("Alias", $"assemblies/{AssemblyResourceId}/{relativePath}");
+                resolved.Add(item);
+            }
+        }
+
+        // Apply @(QtResourceAccess) per-entry overrides to resx-sourced entries.
+        // Each override's ItemSpec is the key identity (e.g. "Resources.resx::LogoPng").
+        // Mode metadata is applied to the matching resolved entry. Reason is optional
+        // audit metadata and is copied when present.
+        // An unmatched key is a build error: it means the resx no longer has that entry.
+        if (ResourceAccessOverrides != null && ResourceAccessOverrides.Length > 0) {
+            var resolvedByKey = resolved.ToDictionary(r => r.GetMetadata("Key"), StringComparer.Ordinal);
+            foreach (var access in ResourceAccessOverrides) {
+                var key = access.ItemSpec;
+                if (!resolvedByKey.TryGetValue(key, out var target)) {
+                    Log.LogError($"QtResourceAccess '{key}' does not match any resolved resource. "
+                        + "The key must match a resolved 'File.resx::ResourceName' entry.");
+                    continue;
+                }
+                var mode = access.GetMetadata("Mode");
+                var reason = access.GetMetadata("Reason");
+                if (!string.IsNullOrEmpty(mode))
+                    target.SetMetadata("AccessMode", mode);
+                if (!string.IsNullOrEmpty(reason))
+                    target.SetMetadata("Reason", reason);
+            }
+        }
+
+        ResolvedResources = resolved.ToArray();
+
+        // Unique resx files that need managed embedding: any entry with ManagedAndNative or
+        // ManagedOnly requires the whole .resx to be re-added to EmbeddedResource so the
+        // managed assembly carries it. The caller does the actual re-include.
+        ManagedEmbeddedResxFiles = resolved
+            .Where(r => { var m = r.GetMetadata("AccessMode");
+                          return string.Equals(m, "ManagedAndNative", StringComparison.OrdinalIgnoreCase)
+                              || string.Equals(m, "ManagedOnly",       StringComparison.OrdinalIgnoreCase); })
+            .Select(r => r.GetMetadata("ResxFile"))
+            .Where(p => !string.IsNullOrEmpty(p))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(p => (ITaskItem)new TaskItem(p))
+            .ToArray();
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtBridgeAddResources
+  -->
+  <Target Name="QtBridgeAddResources" BeforeTargets="CoreCompile"
+    Condition="'$(DesignTimeBuild)' != 'true'">
+    <ItemGroup Condition="'$(QtBridgeExcludeQtResxFromManagedResources)' == 'true'">
+      <EmbeddedResource Remove="@(QtResx)" />
+    </ItemGroup>
+
+    <QtBridgeResolveResxFileRefs Condition="'@(QtResx)' != ''"
+      ResxFiles="@(QtResx)"
+      ProjectDir="$(ProjectDir)"
+      AssemblyResourceId="$(QtBridgeAssemblyResourceId)"
+      ResourceAccessOverrides="@(QtResourceAccess)">
+      <Output TaskParameter="ResolvedResources" ItemName="_QtResolvedResxResource" />
+      <Output TaskParameter="ManagedEmbeddedResxFiles" ItemName="_ManagedEmbeddedResxFile" />
+    </QtBridgeResolveResxFileRefs>
+
+    <ItemGroup Condition="'$(QtBridgeExcludeQtResxFromManagedResources)' == 'true'">
+      <EmbeddedResource Include="@(_ManagedEmbeddedResxFile)" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <QtResource>
+        <SourcePath>%(QtResource.FullPath)</SourcePath>
+        <Alias Condition="'%(QtResource.Alias)' == ''">assemblies/$(QtBridgeAssemblyResourceId)/$([System.String]::Copy('%(QtResource.Identity)').Replace('\','/'))</Alias>
+        <AssemblyId Condition="'%(QtResource.AssemblyId)' == ''">$(QtBridgeAssemblyResourceId)</AssemblyId>
+        <Key Condition="'%(QtResource.Key)' == ''">$([System.String]::Copy('%(QtResource.Identity)').Replace('\','/'))</Key>
+        <AccessMode Condition="'%(QtResource.AccessMode)' == ''">Default</AccessMode>
+        <Prefix Condition="'%(QtResource.Prefix)' == ''">/</Prefix>
+      </QtResource>
+      <_QtResolvedResxResource>
+        <Prefix Condition="'%(_QtResolvedResxResource.Prefix)' == ''">/</Prefix>
+      </_QtResolvedResxResource>
+      <_QtResolvedResource Include="@(QtResource);@(_QtResolvedResxResource)" />
+    </ItemGroup>
+
+    <Error Condition="'@(_QtResolvedResource)' != ''
+        AND '%(_QtResolvedResource.AccessMode)' != 'Default'
+        AND '%(_QtResolvedResource.AccessMode)' != 'ManagedAndNative'
+        AND '%(_QtResolvedResource.AccessMode)' != 'ManagedOnly'"
+      Text="Qt Bridge resource '%(_QtResolvedResource.Identity)' has invalid AccessMode '%(_QtResolvedResource.AccessMode)'. Expected Default, ManagedAndNative, or ManagedOnly." />
+
+    <MakeDir Condition="'@(_QtResolvedResource)' != ''"
+      Directories="$(IntermediateOutputPath)qt\csharp" />
+    <WriteLinesToFile Condition="'@(_QtResolvedResource)' != ''" Overwrite="true"
+      WriteOnlyWhenDifferent="true" File="$(ProjectDir)$(IntermediateOutputPath)$(QtResourceFilesCs)"
+      Lines="@(_QtResolvedResource->'[assembly: Qt.Bridge.QtResource(
+    SourcePath = @&quot;%(SourcePath)&quot;, Alias = &quot;%(Alias)&quot;, Prefix = &quot;%(Prefix)&quot;,
+    AssemblyId = &quot;%(AssemblyId)&quot;, Key = &quot;%(Key)&quot;,
+    AccessMode = &quot;%(AccessMode)&quot;, Reason = &quot;%(Reason)&quot;)]')" />
+    <ItemGroup>
+      <Compile Condition="'@(_QtResolvedResource)' != ''"
+        Include="$(IntermediateOutputPath)qt\csharp\QtResources.cs" />
+    </ItemGroup>
+  </Target>
+  <!-- END QtBridgeAddResources -->
 
   <!--
   //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -133,7 +298,7 @@ namespace Qt.Qml
   // QtBridgeGenerate
   -->
   <Target Name="QtBridgeGenerate" AfterTargets="CoreCompile" BeforeTargets="_CreateAppHost"
-    DependsOnTargets="QtBridgeAddQmlFiles"
+    DependsOnTargets="QtBridgeAddQmlFiles;QtBridgeAddResources"
     Condition="'$(DesignTimeBuild)' != 'true'">
 
     <Message Importance="high" Text="Qt Bridge: Generating native code..." />

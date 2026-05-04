@@ -46,7 +46,12 @@
     <QtGenCmd>$(QtGenCmd) --rules "$(QtDotNetGenRules)"</QtGenCmd>
 
     <QtQmlFilesCs>qt\csharp\QmlFiles.cs</QtQmlFilesCs>
+    <QtResourceFilesCs>qt\csharp\QtResources.cs</QtResourceFilesCs>
     <QtQmlSourceDir>qt\native\source\qml\</QtQmlSourceDir>
+    <QtBridgeAssemblyResourceId Condition="'$(QtBridgeAssemblyResourceId)' == ''"
+      >$(AssemblyName)</QtBridgeAssemblyResourceId>
+    <QtBridgeExcludeQtResxFromManagedResources
+      Condition="'$(QtBridgeExcludeQtResxFromManagedResources)' == ''">true</QtBridgeExcludeQtResxFromManagedResources>
 
     <QtBuildSystem Condition="'$(QtBuildSystem)' == ''">ninja</QtBuildSystem>
   </PropertyGroup>
@@ -67,12 +72,18 @@
   <ItemGroup>
     <!-- Add QML files to the build -->
     <Qml Include="**\*.qml" />
+    <QtResx Include="**\*.resx" Condition="'$(QtBridgeResourceLibrary)' == 'true'" />
     <!-- Remove copies in output dirs -->
     <Qml Remove="$(BaseOutputPath)**\*.qml" />
     <Qml Remove="$(BaseIntermediateOutputPath)**\*.qml" />
+    <QtResx Remove="$(BaseOutputPath)**\*.resx" />
+    <QtResx Remove="$(BaseIntermediateOutputPath)**\*.resx" />
     <!-- Add QML files to up-to-date check of VS -->
     <UpToDateCheckInput Set="Qml" Include="@(Qml)" />
     <UpToDateCheckOutput Set="Qml" Include="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlFilesCs)" />
+    <UpToDateCheckInput Set="QtResource" Include="@(QtResource);@(QtResx)" />
+    <UpToDateCheckOutput Set="QtResource"
+      Include="$(ProjectDir)$(IntermediateOutputPath)$(QtResourceFilesCs)" />
     <!-- Add reference to source files for incremental build -->
     <QtDotNetNativeSource
       Include="$(IntermediateOutputPath)qt\native\source\CMakeLists.txt
