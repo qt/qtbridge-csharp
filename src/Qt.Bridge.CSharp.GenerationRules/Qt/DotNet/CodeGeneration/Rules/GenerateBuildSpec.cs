@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Reflection;
+using System.Text;
 
 namespace Qt.Bridge.CodeGeneration.Rules
 {
@@ -22,6 +23,9 @@ namespace Qt.Bridge.CodeGeneration.Rules
         public override Result Execute(MemberInfo _)
         {
             Placeholder sourceFiles = null, qmlElementSourceFiles = null;
+            var (collisions, resourceSpec) = BuildResourceSpec();
+            if (collisions.Count > 0)
+                return Error(string.Join(Environment.NewLine, collisions));
             var cmake = new FilePlaceholder(
                 BuildSpecFile, Root, $@"{Root.MFn(Dir)}/CMakeLists.txt");
             cmake += $@"
@@ -60,6 +64,8 @@ qt_add_qml_module({Root.MFn(Target)}
     SOURCES
         {cmake[qmlElementSourceFiles = new(QmlElementSourceFiles)]}
 )")}
+
+{resourceSpec}
 
 target_link_libraries({Root.MFn(Target)} PRIVATE
     Qt6::Core
@@ -113,6 +119,73 @@ file(GENERATE OUTPUT ALL_BUILD.vcxproj.user
             if (qmlElementSourceFiles == null)
                 sourceFiles.CreateAlias(Root, QmlElementSourceFiles);
             return Ok;
+        }
+
+        private static (List<string> Collisions, string Spec) BuildResourceSpec()
+        {
+            var groups = Root.Assembly.QtResourcesWithReferences(SourceGraph)
+                .Where(resource => string.Equals(resource.AccessMode, "Default",
+                        StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(resource.AccessMode, "ManagedAndNative",
+                        StringComparison.OrdinalIgnoreCase))
+                .Where(resource => resource.SourcePath is { Length: > 0 }
+                    && resource.Alias is { Length: > 0 })
+                .GroupBy(resource => resource.Alias, StringComparer.Ordinal)
+                .OrderBy(group => group.Key, StringComparer.Ordinal)
+                .ToArray();
+
+            var collisions = groups
+                .Where(group => group
+                    .Select(r => r.SourcePath)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Count() > 1)
+                .Select(group =>
+                {
+                    var sources = group
+                        .Select(r => r.SourcePath
+                            + (r.AssemblyId is { Length: > 0 } ? $" ({r.AssemblyId})" : ""))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(s => s, StringComparer.Ordinal);
+                    return $"Duplicate resource alias '{group.Key}':{Environment.NewLine}"
+                        + string.Join(Environment.NewLine, sources.Select(s => "  " + s));
+                })
+                .ToList();
+
+            if (collisions.Count > 0)
+                return (collisions, string.Empty);
+
+            var resources = groups.Select(g => g.First()).ToArray();
+
+            if (resources.Length == 0)
+                return ([], string.Empty);
+
+            var builder = new StringBuilder();
+            foreach (var resource in resources) {
+                var sourcePath = CMakePath(resource.SourcePath);
+                var alias = CMakePath(resource.Alias.TrimStart('/', '\\'));
+                builder.AppendLine($"""
+set_source_files_properties("{sourcePath}" PROPERTIES
+    QT_RESOURCE_ALIAS "{alias}"
+)
+""");
+            }
+
+            builder.AppendLine($"""
+qt_add_resources({Root.MFn(Target)} qtbridge_resources
+    PREFIX "/"
+    FILES
+""");
+
+            foreach (var resource in resources)
+                builder.AppendLine($"        \"{CMakePath(resource.SourcePath)}\"");
+
+            builder.Append(')');
+            return ([], builder.ToString());
+        }
+
+        private static string CMakePath(string path)
+        {
+            return path.Replace('\\', '/').Replace("\"", "\\\"");
         }
     }
 }
