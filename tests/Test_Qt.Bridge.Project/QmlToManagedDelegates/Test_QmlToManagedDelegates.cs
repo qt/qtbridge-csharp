@@ -42,6 +42,16 @@ namespace Test_Qt.Bridge.Project.QmlToManagedDelegates
 
             Assert.Contains(pass + "initTestCase()", run.StdOut);
             Assert.Contains(pass + "test_delegate_param_callback_int_return()", run.StdOut);
+            Assert.Contains(pass + "test_void_delegate()", run.StdOut);
+            Assert.Contains(pass + "test_multiple_invocations()", run.StdOut);
+            Assert.Contains(pass + "test_multi_param_delegate()", run.StdOut);
+            Assert.Contains(pass + "test_no_param_delegate()", run.StdOut);
+            Assert.Contains(pass + "test_js_exception_propagates()", run.StdOut);
+            Assert.Contains(pass + "test_object_as_delegate_arg()", run.StdOut);
+            Assert.Contains(pass + "test_object_as_delegate_return()", run.StdOut);
+            Assert.Contains(pass + "test_null_delegate()", run.StdOut);
+            Assert.Contains(pass + "test_bcl_action_delegate()", run.StdOut);
+            Assert.Contains(pass + "test_bcl_func_delegate()", run.StdOut);
             Assert.Contains(pass + "cleanupTestCase()", run.StdOut);
         }
     }
