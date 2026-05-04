@@ -12,7 +12,7 @@ namespace Qt.DotNet
     {
         private static ConcurrentDictionary<Type, Type> DelegateProxyTypes { get; } = new();
 
-        public static Type CreateDelegateProxyType(Type delegateType)
+        public static Type CreateDelegateProxyType(Type delegateType, Parameter[] parameters)
         {
             if (DelegateProxyTypes.TryGetValue(delegateType, out var proxyType))
                 return proxyType;
@@ -20,20 +20,29 @@ namespace Qt.DotNet
             var invokeMethod = delegateType.GetMethod("Invoke")
                 ?? throw new ArgumentException("Delegate Invoke method not found",
                     nameof(delegateType));
+            if (parameters == null || parameters.Length == 0)
+                throw new ArgumentException("Null or empty param list", nameof(parameters));
 
-            var parameterInfos = invokeMethod.GetParameters();
-            var paramTypes = parameterInfos
-                .Select(x => x.ParameterType)
+            var callbackParameters = new[]
+            {
+                parameters[0],
+                new Parameter(typeof(IntPtr)),
+                new Parameter(typeof(ulong)),
+                new Parameter(typeof(IntPtr))
+            }.Concat(parameters.Skip(1)).ToArray();
+            var paramTypes = parameters
+                .Skip(1)
+                .Select((x, i) => x.GetParameterType()
+                    ?? throw new ArgumentException($"Type not found [{i}]", nameof(parameters)))
                 .ToArray();
-            var callbackParamTypes = paramTypes
-                .Prepend(typeof(IntPtr))
-                .Prepend(typeof(ulong))
-                .Prepend(typeof(IntPtr))
-                .ToArray();
-            var callbackParameters = callbackParamTypes
-                .Prepend(invokeMethod.ReturnType)
-                .Select(t => new Parameter(t))
-                .ToArray();
+
+#if TEST || DEBUG
+            Debug.Assert(invokeMethod.ReturnType.IsAssignableTo(parameters[0].GetParameterType())
+                || invokeMethod.ReturnType.IsAssignableFrom(parameters[0].GetParameterType()));
+            Debug.Assert(invokeMethod.GetParameters().Zip(paramTypes)
+                .All(x => x.First.ParameterType.IsAssignableTo(x.Second)
+                    || x.First.ParameterType.IsAssignableFrom(x.Second)));
+#endif
 
             var typeGen = ModuleGen.DefineType(UniqueName("DelegateProxy", delegateType.Name),
                 TypeAttributes.Public, typeof(InterfaceProxy));
@@ -83,7 +92,7 @@ namespace Qt.DotNet
             code.Emit(OpCodes.Ldarg_0);
             code.Emit(OpCodes.Ldfld, fieldCount);
             code.Emit(OpCodes.Ldc_I4_1);
-            code.Emit(OpCodes.Conv_I8);
+            code.Emit(OpCodes.Conv_U8);
             code.Emit(OpCodes.Add);
             code.Emit(OpCodes.Stfld, fieldCount);
 

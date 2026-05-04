@@ -151,6 +151,9 @@ namespace Qt.DotNet
             public delegate Delegate AddDelegateProxy(
                 [MarshalAs(UnmanagedType.LPWStr)]
                 [In] string delegateTypeName,
+                [In] int parameterCount,
+                [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]
+                [In] Parameter[] parameters,
                 [In] IntPtr data,
                 [In] IntPtr deleteData,
                 [In] IntPtr callbackPtr,

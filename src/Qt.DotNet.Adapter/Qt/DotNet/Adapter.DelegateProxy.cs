@@ -10,6 +10,8 @@ namespace Qt.DotNet
     {
         public static Delegate AddDelegateProxy(
             string delegateTypeName,
+            int parameterCount,
+            Parameter[] parameters,
             IntPtr data,
             IntPtr deleteData,
             IntPtr callbackPtr,
@@ -25,8 +27,12 @@ namespace Qt.DotNet
             if (!delegateType.IsAssignableTo(typeof(Delegate)))
                 throw new ArgumentException(
                     $"Type '{delegateTypeName}' is not a delegate", nameof(delegateTypeName));
+            if (parameters == null || parameters.Length == 0)
+                throw new ArgumentException("Null or empty param list", nameof(parameters));
+            Debug.Assert(parameterCount == parameters.Length,
+                $"parameterCount ({parameterCount}) != parameters.Length ({parameters.Length})");
 
-            var proxyType = CodeGenerator.CreateDelegateProxyType(delegateType);
+            var proxyType = CodeGenerator.CreateDelegateProxyType(delegateType, parameters);
             var ctor = proxyType.GetConstructor(Array.Empty<Type>());
 
             Debug.Assert(ctor != null, nameof(ctor) + " is null");

@@ -19,6 +19,11 @@ namespace Qt.Bridge.CodeGeneration.Rules.Delegates
                 return Error();
 
             var sigTypes = type.DelegateSignature();
+            var signatureParameters = new[]
+            {
+                $"QDotNetCallbackReturn<{sigTypes.First().MFn(Ns | Name)}>::Parameter"
+            }.Concat(sigTypes.Skip(1)
+                .Select(x => $"QDotNetCallbackArg<{x.MFn(Ns | Name)}>::Parameter"));
             var baseClass = $"QDotNetDelegate<{string
                 .Join($", ", sigTypes.Select(x => $"{x.MFn(Ns | Name)}"))}>";
 
@@ -46,6 +51,10 @@ struct {type.MFn(Ns | Name)} : public {baseClass}
 {{
     static inline const QString &AssemblyQualifiedName =
         QStringLiteral(""{type.MFn(Src | Fqn)}"");
+    static inline const QList<QDotNetParameter> SignatureParameters
+    {{
+        {string.Join($",{Wrap}\n        ", signatureParameters)}
+    }};
 
     {type.MFn(Name)}(nullptr_t) : {baseClass}(nullptr) {{ }}
     {type.MFn(Name)}(const void *objectRef): {baseClass}(objectRef) {{ }}

@@ -255,6 +255,7 @@ struct Convert
         auto *callback = new ScriptDelegateContext<TResult, TArg...>(value, engine, qContext);
         return TDelegate(QDotNetAdapter::instance().addDelegateProxy(
             delegateTypeName,
+            TDelegate::SignatureParameters,
             callback,
             asHandle(&ScriptDelegateContext<TResult, TArg...>::deleteSelf),
             asHandle(ScriptDelegateContext<TResult, TArg...>::delegate()),
