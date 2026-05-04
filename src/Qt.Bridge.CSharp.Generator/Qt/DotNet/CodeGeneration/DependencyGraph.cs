@@ -46,6 +46,8 @@ namespace Qt.Bridge.CodeGeneration
             return Edges.TryGetValue(fromType, out var toNodes) ? toNodes : Array.Empty<Type>();
         }
 
+        public Assembly LoadAssembly(AssemblyName name) => loader.LoadFromAssemblyName(name);
+
         private Assembly GetAssembly(string name) => loader.LoadFromAssemblyName(name);
 
         private Assembly AdapterAssembly => lazy.Get(() => AdapterAssembly, ()
