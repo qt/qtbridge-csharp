@@ -1,4 +1,4 @@
-// Copyright (C) 2025 The Qt Company Ltd.
+// Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using System;
@@ -49,6 +49,7 @@ namespace Qt.Bridge.CodeGeneration.Rules.Delegates
 #pragma once
 #include <type_traits>
 #include <builtin_types.h>
+#include <convert.h>
 
 namespace {baseType.MFn(Ns)}
 {{

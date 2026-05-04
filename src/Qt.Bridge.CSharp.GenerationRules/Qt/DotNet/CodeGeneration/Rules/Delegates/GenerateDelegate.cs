@@ -1,4 +1,4 @@
-// Copyright (C) 2025 The Qt Company Ltd.
+// Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using System.Reflection;
@@ -44,6 +44,9 @@ namespace Qt.Bridge.CodeGeneration.Rules.Delegates
 
 struct {type.MFn(Ns | Name)} : public {baseClass}
 {{
+    static inline const QString &AssemblyQualifiedName =
+        QStringLiteral(""{type.MFn(Src | Fqn)}"");
+
     {type.MFn(Name)}(nullptr_t) : {baseClass}(nullptr) {{ }}
     {type.MFn(Name)}(const void *objectRef): {baseClass}(objectRef) {{ }}
     {type.MFn(Name)}(const {type.MFn(Name)} &cpySrc) : {baseClass}(cpySrc) {{ }}
@@ -58,6 +61,13 @@ struct {type.MFn(Ns | Name)} : public {baseClass}
         {baseClass}::operator=(std::move(movSrc));
         return *this;
     }}
+#ifdef QT_QUICK_LIB
+    static {type.MFn(Name)} fromScriptValue(const QJSValue &value, const QObject *context = nullptr)
+    {{
+        return Convert::fromScriptDelegate<{type.MFn(Name)}, {string.Join(", ",
+            sigTypes.Select(x => x.MFn(Ns | Name)))}>(AssemblyQualifiedName, value, context);
+    }}
+#endif
 }};
 ";
             return Ok;

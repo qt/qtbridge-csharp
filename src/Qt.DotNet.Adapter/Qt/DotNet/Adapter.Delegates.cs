@@ -1,4 +1,4 @@
-// Copyright (C) 2025 The Qt Company Ltd.
+// Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using System.Runtime.InteropServices;
@@ -144,6 +144,18 @@ namespace Qt.DotNet
                 [In] string interfaceName,
                 [In] IntPtr data,
                 [In] IntPtr cleanUp);
+
+            [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+            [return: MarshalAs(UnmanagedType.CustomMarshaler,
+                MarshalTypeRef = typeof(ObjectMarshaler))]
+            public delegate Delegate AddDelegateProxy(
+                [MarshalAs(UnmanagedType.LPWStr)]
+                [In] string delegateTypeName,
+                [In] IntPtr data,
+                [In] IntPtr deleteData,
+                [In] IntPtr callbackPtr,
+                [In] IntPtr cleanUpPtr,
+                [In] IntPtr context);
 
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             public delegate void SetInterfaceMethod(

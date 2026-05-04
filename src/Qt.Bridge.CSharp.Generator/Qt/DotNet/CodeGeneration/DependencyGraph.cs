@@ -1,4 +1,4 @@
-// Copyright (C) 2025 The Qt Company Ltd.
+// Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using System.Collections;
@@ -170,8 +170,6 @@ namespace Qt.Bridge.CodeGeneration
             if (ExcludedBaseTypes.Any(x => type.IsNestedIn(x)))
                 return true;
             if (IsIgnored(type))
-                return true;
-            if (type.IsAssignableTo(TypeOfDelegate))
                 return true;
             return false;
         }

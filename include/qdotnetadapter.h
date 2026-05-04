@@ -1,4 +1,4 @@
-// Copyright (C) 2025 The Qt Company Ltd.
+// Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 #pragma once
@@ -111,6 +111,7 @@ public:
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(FreeObjectRef));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(FreeTypeRef));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(AddInterfaceProxy));
+        host->resolveFunction(QDOTNETADAPTER_DELEGATE(AddDelegateProxy));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(SetInterfaceMethod));
 #ifndef QT_NO_DEBUG
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(Stats));
@@ -305,6 +306,15 @@ public:
         return fnAddInterfaceProxy(interfaceName, data, cleanUp);
     }
 
+    void *addDelegateProxy(const QString &delegateTypeName, void *data, void *deleteData,
+        void *callback, void *cleanUp, void *context) const
+    {
+        init();
+        if (delegateTypeName.isEmpty() || !callback)
+            return nullptr;
+        return fnAddDelegateProxy(delegateTypeName, data, deleteData, callback, cleanUp, context);
+    }
+
     void setInterfaceMethod(const QDotNetRef &obj, const QString &methodName,
         const QList<QDotNetParameter> &params, void *callback, void *cleanUp, void *context) const
     {
@@ -377,6 +387,8 @@ private:
     mutable QDotNetFunction<void, QDotNetRef> fnFreeObjectRef;
     mutable QDotNetFunction<void, QString> fnFreeTypeRef;
     mutable QDotNetFunction<void *, QString, void *, void *> fnAddInterfaceProxy;
+    mutable QDotNetFunction<void *, QString, void *, void *, void *, void *, void *>
+        fnAddDelegateProxy;
     mutable QDotNetFunction<void, QDotNetRef, QString, qint32, QList<QDotNetParameter>,
         void *, void *, void *> fnSetInterfaceMethod;
 #ifndef QT_NO_DEBUG

@@ -1,4 +1,4 @@
-// Copyright (C) 2025 The Qt Company Ltd.
+// Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using System.Reflection;
@@ -35,7 +35,13 @@ namespace Qt.Bridge.CodeGeneration.Rules
             convertHpp += $@"
 #pragma once
 #include <builtin_types.h>
+#include <QDotNetCallback>
 #include <QJSEngine>
+#include <QJSValue>
+#include <QMetaObject>
+#include <QPointer>
+#include <QQmlEngine>
+#include <QThread>
 
 struct Convert
 {{
@@ -51,6 +57,210 @@ struct Convert
     static QDotNetObject fromVariant(const QVariant &value);
     static QVariant toVariant(QDotNetObject obj, const QObject *context = nullptr);
     static const QDotNetObject *asDotNetObject(QObject *qObj);
+
+    template<typename TFn>
+    static void *asHandle(TFn fn)
+    {{
+        return reinterpret_cast<void *>(fn);
+    }}
+
+    static void *asHandle(std::nullptr_t)
+    {{
+        return nullptr;
+    }}
+
+    template<typename TValue>
+    static QJSValue toScriptValue(QJSEngine *engine, const TValue &value,
+        const QObject *context = nullptr)
+    {{
+        if (!engine)
+            return {{ }};
+        if constexpr (std::is_base_of_v<QDotNetRef, TValue>) {{
+            QVariant variant = toVariant(QDotNetObject(value), context);
+            if (variant.metaType().flags() & QMetaType::PointerToQObject)
+                return engine->newQObject(variant.value<QObject *>());
+            return engine->toScriptValue(variant);
+        }}
+        return engine->toScriptValue(QVariant::fromValue(value));
+    }}
+
+    template<typename TValue>
+    static TValue fromScriptResult(const QJSValue &value)
+    {{
+        if constexpr (std::is_base_of_v<QDotNetRef, TValue>) {{
+            QDotNetObject obj = value.isQObject()
+                ? fromVariant(QVariant::fromValue(value.toQObject()))
+                : fromVariant(value.toVariant());
+            if constexpr (std::is_same_v<TValue, QDotNetObject>)
+                return obj;
+            return obj.cast<TValue>();
+        }}
+        return value.toVariant().template value<TValue>();
+    }}
+
+    template<typename TResult, typename... TArg>
+    class ScriptDelegateContext final : public QDotNetCallback<TResult, TArg...>
+    {{
+    public:
+        ScriptDelegateContext(const QJSValue &function, QQmlEngine *engine, QObject *context)
+            : QDotNetCallback<TResult, TArg...>(
+                [](void *data, TArg... arg) -> TResult
+                {{
+                    return reinterpret_cast<ScriptDelegateContext *>(data)->invoke(arg...);
+                }}),
+              function(function),
+              engine(engine),
+              context(context)
+        {{}}
+
+        static void QDOTNETFUNCTION_CALLTYPE deleteSelf(void *data)
+        {{
+            auto *self = reinterpret_cast<ScriptDelegateContext *>(data);
+            // Engine already gone: QJSValue is no longer referenced, safe to delete
+            // from any thread.
+            if (!self->engine) {{
+                delete self;
+                return;
+            }}
+            // QJSValue has thread affinity; destroy on the engine thread.
+            if (QThread::currentThread() == self->engine->thread()) {{
+                delete self;
+                return;
+            }}
+            // GC finalizer runs off the engine thread; post the deletion so the
+            // QJSValue destructor runs on the correct thread.
+            QMetaObject::invokeMethod(self->engine, [self] {{ delete self; }},
+                Qt::QueuedConnection);
+        }}
+
+    private:
+        TResult invoke(TArg... arg)
+        {{
+            if (!engine || !function.isCallable())
+                return QtDotNet::null<TResult>();
+            if (QThread::currentThread() == engine->thread())
+                return invokeNow(arg...);
+
+            TResult result = QtDotNet::null<TResult>();
+            // NOTE: BlockingQueuedConnection will deadlock if the calling thread also
+            // processes Qt events (e.g. is the main/UI thread). Delegates must only be
+            // invoked from non-event-loop threads or a dedicated worker thread.
+            QMetaObject::invokeMethod(engine,
+                [this, &result, arg...]() mutable
+                {{
+                    result = invokeNow(arg...);
+                }},
+                Qt::BlockingQueuedConnection);
+            return result;
+        }}
+
+        TResult invokeNow(TArg... arg)
+        {{
+            QJSValueList args
+            {{
+                Convert::toScriptValue(engine, arg, context)...
+            }};
+            return Convert::fromScriptResult<TResult>(function.call(args));
+        }}
+
+        QJSValue function;
+        QPointer<QQmlEngine> engine;
+        QPointer<QObject> context;
+    }};
+
+    template<typename... TArg>
+    class ScriptDelegateContext<void, TArg...> final : public QDotNetCallback<void, TArg...>
+    {{
+    public:
+        ScriptDelegateContext(const QJSValue &function, QQmlEngine *engine, QObject *context)
+            : QDotNetCallback<void, TArg...>(
+                [](void *data, TArg... arg)
+                {{
+                    reinterpret_cast<ScriptDelegateContext *>(data)->invoke(arg...);
+                }}),
+              function(function),
+              engine(engine),
+              context(context)
+        {{}}
+
+        static void QDOTNETFUNCTION_CALLTYPE deleteSelf(void *data)
+        {{
+            auto *self = reinterpret_cast<ScriptDelegateContext *>(data);
+            // Engine already gone: QJSValue is no longer referenced, safe to delete
+            // from any thread.
+            if (!self->engine) {{
+                delete self;
+                return;
+            }}
+            // QJSValue has thread affinity; destroy on the engine thread.
+            if (QThread::currentThread() == self->engine->thread()) {{
+                delete self;
+                return;
+            }}
+            // GC finalizer runs off the engine thread; post the deletion so the
+            // QJSValue destructor runs on the correct thread.
+            QMetaObject::invokeMethod(self->engine, [self] {{ delete self; }},
+                Qt::QueuedConnection);
+        }}
+
+    private:
+        void invoke(TArg... arg)
+        {{
+            if (!engine || !function.isCallable())
+                return;
+            if (QThread::currentThread() == engine->thread()) {{
+                invokeNow(arg...);
+                return;
+            }}
+
+            // NOTE: BlockingQueuedConnection will deadlock if the calling thread also
+            // processes Qt events (e.g. is the main/UI thread). Delegates must only be
+            // invoked from non-event-loop threads or a dedicated worker thread.
+            QMetaObject::invokeMethod(engine,
+                [this, arg...]() mutable
+                {{
+                    invokeNow(arg...);
+                }},
+                Qt::BlockingQueuedConnection);
+        }}
+
+        void invokeNow(TArg... arg)
+        {{
+            QJSValueList args
+            {{
+                Convert::toScriptValue(engine, arg, context)...
+            }};
+            function.call(args);
+        }}
+
+        QJSValue function;
+        QPointer<QQmlEngine> engine;
+        QPointer<QObject> context;
+    }};
+
+    template<typename TDelegate, typename TResult, typename... TArg>
+    static TDelegate fromScriptDelegate(const QString &delegateTypeName,
+        const QJSValue &value, const QObject *context = nullptr)
+    {{
+        if (!value.isCallable())
+            return nullptr;
+        auto *qContext = const_cast<QObject *>(context);
+        auto *engine = qContext ? qmlEngine(qContext) : nullptr;
+        if (!engine) {{
+            qWarning() << ""Qt/.NET: cannot create delegate proxy for"" << delegateTypeName
+                       << "": no QML engine found for context"";
+            return nullptr;
+        }}
+
+        auto *callback = new ScriptDelegateContext<TResult, TArg...>(value, engine, qContext);
+        return TDelegate(QDotNetAdapter::instance().addDelegateProxy(
+            delegateTypeName,
+            callback,
+            asHandle(&ScriptDelegateContext<TResult, TArg...>::deleteSelf),
+            asHandle(ScriptDelegateContext<TResult, TArg...>::delegate()),
+            asHandle(ScriptDelegateContext<TResult, TArg...>::cleanUp()),
+            callback));
+    }}
 
     template<typename T>
     static T *as(QDotNetObject &obj, bool addRef, const QObject *context = nullptr)

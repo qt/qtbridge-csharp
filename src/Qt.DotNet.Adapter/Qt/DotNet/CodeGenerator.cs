@@ -1,4 +1,4 @@
-// Copyright (C) 2025 The Qt Company Ltd.
+// Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using System.Collections.Concurrent;
@@ -26,7 +26,7 @@ namespace Qt.DotNet
     /// <summary>
     /// Functions that generate code at run-time, needed to support native interop.
     /// </summary>
-    internal static class CodeGenerator
+    internal static partial class CodeGenerator
     {
         public static MethodInfo CreateSafeMethod(MethodInfo unsafeMethod)
         {

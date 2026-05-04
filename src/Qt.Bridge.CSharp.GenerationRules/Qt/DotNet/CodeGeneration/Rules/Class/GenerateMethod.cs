@@ -1,9 +1,7 @@
-// Copyright (C) 2025 The Qt Company Ltd.
+// Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
-using System.ComponentModel;
 using System.Reflection;
-using System.Text;
 
 namespace Qt.Bridge.CodeGeneration.Rules.Class
 {
@@ -26,13 +24,20 @@ namespace Qt.Bridge.CodeGeneration.Rules.Class
             if (func.GetParameters() is not { } args)
                 return Error();
 
+            var hasDelegateArgs = args.Any(IsDelegateParam);
+            if (hasDelegateArgs) {
+                if (type.GetPlaceholder(Includes) is not { } includes)
+                    return Error();
+                includes += "#include <QJSValue>";
+            }
+
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             if (type.GetPlaceholder(MethodDeclarations) is not { } methods)
                 return Error();
             methods += $@"
 Q_INVOKABLE {returnType.MFn(Ns | Name | Arg)} {func.MFn(Name)}({string.Join(", ", args
-    .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name | Arg)} {arg.MFn(Name | Src)}"))}) const;
+    .Select(QmlArgDecl))}) const;
 {Blank}";
 
             ////////////////////////////////////////////////////////////////////////////////////////
@@ -53,13 +58,13 @@ mutable QDotNetFunction<{returnType.MFn(Ns | Name)}{args switch
                 return Error();
             implementation += $@"
 {returnType.MFn(Ns | Name | Arg)} {type.MFn(Ns | Name)}::{func.MFn(Name)}({string.Join(", ", args
-    .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name | Arg)} {arg.MFn(Name | Src)}"))}) const
+    .Select(QmlArgDecl))}) const
 {{
     {(returnType.Is(typeof(void)) ? string.Empty :
         "auto result = ")}method(""{func.MFn(Src)}"", d->{func.MFn(Func)}).invoke(*this{args switch
         {
             { Length: > 0 } => ", " + string.Join(", ", args
-                .Select(arg => $@"{arg.ParameterType.MFn(Star)}{arg.MFn(Name)}")),
+                .Select(InvokeArg)),
             _ => string.Empty
         }});
 {(returnType.Is(typeof(void)) ? Wrap
@@ -70,6 +75,22 @@ mutable QDotNetFunction<{returnType.MFn(Ns | Name)}{args switch
 {Blank}";
 
             return Ok;
+
+            static bool IsDelegateParam(ParameterInfo arg)
+                => arg.ParameterType.IsAssignableTo(TypeOf<Delegate>());
+
+            static string QmlArgType(ParameterInfo arg)
+                => IsDelegateParam(arg) ? "QJSValue" : arg.ParameterType.MFn(Ns | Name | Arg);
+
+            static string QmlArgDecl(ParameterInfo arg)
+                => $"{QmlArgType(arg)} {arg.MFn(Name | Src)}";
+
+            static string InvokeArg(ParameterInfo arg)
+            {
+                return IsDelegateParam(arg)
+                    ? $"{arg.ParameterType.MFn(Ns | Name)}::fromScriptValue({arg.MFn(Name | Src)}, this)"
+                    : $"{arg.ParameterType.MFn(Star)}{arg.MFn(Name)}";
+            }
         }
     }
 }
