@@ -60,7 +60,7 @@ Popup {
 
                     Image {
                         id: userMask
-                        source: "../icons/userMask.svg"
+                        source: "qrc:/assemblies/ColorPalette/icons/userMask.svg"
                         anchors.fill: userImage
                         anchors.margins: 4
                         visible: false
@@ -88,7 +88,9 @@ Popup {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.margins: 5
 
-                    icon.source: userInfo.logged ? "../icons/logout.svg" : "../icons/login.svg"
+                    icon.source: userInfo.logged
+                        ? "qrc:/assemblies/ColorPalette/icons/logout.svg"
+                        : "qrc:/assemblies/ColorPalette/icons/login.svg"
                     enabled: userInfo.logged || !userMenu.userLoginService.loggedIn
 
                     onClicked: {

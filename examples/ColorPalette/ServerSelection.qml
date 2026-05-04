@@ -34,12 +34,12 @@ Item {
         ListElement {
             title: qsTr("Public REST API Test Server")
             url: "https://reqres.in/api"
-            icon: "../icons/testserver.png"
+            icon: "qrc:/assemblies/ColorPalette/icons/testserver.png"
         }
         ListElement {
             title: qsTr("Qt-based REST API server")
             url: "http://127.0.0.1:49425/api"
-            icon: "../icons/qt.png"
+            icon: "qrc:/assemblies/ColorPalette/icons/qt.png"
         }
     }
 
@@ -51,7 +51,7 @@ Item {
 
         Image {
             Layout.alignment: Qt.AlignHCenter
-            source: "../icons/qt.png"
+            source: "qrc:/assemblies/ColorPalette/icons/qt.png"
             fillMode: Image.PreserveAspectFit
             Layout.preferredWidth: 20
         }

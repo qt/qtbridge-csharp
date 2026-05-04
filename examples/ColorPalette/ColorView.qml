@@ -89,18 +89,18 @@ Item {
 
                             function getCurrentUserImage() {
                                 if (!root.loginService.loggedIn)
-                                    return "../icons/user.svg";
+                                    return "qrc:/assemblies/ColorPalette/icons/user.svg";
                                 let users = root.colorViewUsers.data
                                 let idx = users.find("email", root.loginService.user)
                                 if (idx <= 0)
-                                    return "../icons/user.svg";
+                                    return "qrc:/assemblies/ColorPalette/icons/user.svg";
                                 return users.item(idx, "avatar")
                             }
                         }
 
                         Image {
                             id: userMask
-                            source: "../icons/userMask.svg"
+                            source: "qrc:/assemblies/ColorPalette/icons/userMask.svg"
                             anchors.fill: userImage
                             anchors.margins: 4
                             visible: false
@@ -165,7 +165,7 @@ Item {
 
             Image {
                 anchors.centerIn: parent
-                source: "../icons/qt.png"
+                source: "qrc:/assemblies/ColorPalette/icons/qt.png"
                 fillMode: Image.PreserveAspectFit
                 height: 25
             }
@@ -201,7 +201,7 @@ Item {
                     }
 
                     Image {
-                        source: "../icons/plus.svg"
+                        source: "qrc:/assemblies/ColorPalette/icons/plus.svg"
                         fillMode: Image.PreserveAspectFit
                         anchors.fill: parent
                         sourceSize.width: width
@@ -226,7 +226,7 @@ Item {
                     }
 
                     Image {
-                        source: "../icons/update.svg"
+                        source: "qrc:/assemblies/ColorPalette/icons/update.svg"
                         fillMode: Image.PreserveAspectFit
                         anchors.fill: parent
                         sourceSize.width: width
@@ -346,12 +346,12 @@ Item {
                             id: buttonBox
                             anchors.fill: parent
                             ToolButton {
-                                icon.source: "../icons/delete.svg"
+                                icon.source: "qrc:/assemblies/ColorPalette/icons/delete.svg"
                                 enabled: root.loginService.loggedIn
                                 onClicked: colorDeletePopup.maybeDelete(colorInfo.resource)
                             }
                             ToolButton {
-                                icon.source: "../icons/edit.svg"
+                                icon.source: "qrc:/assemblies/ColorPalette/icons/edit.svg"
                                 enabled: root.loginService.loggedIn
                                 onClicked: colorPopup.updateColor(colorInfo.resource)
                             }
