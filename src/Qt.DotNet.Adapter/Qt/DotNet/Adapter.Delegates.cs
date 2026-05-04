@@ -158,6 +158,7 @@ namespace Qt.DotNet
                 [In] IntPtr deleteData,
                 [In] IntPtr callbackPtr,
                 [In] IntPtr cleanUpPtr,
+                [In] IntPtr errorPtr,
                 [In] IntPtr context);
 
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]

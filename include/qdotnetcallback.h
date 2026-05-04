@@ -10,6 +10,7 @@
 #   pragma GCC diagnostic ignored "-Wconversion"
 #endif
 #include <QMap>
+#include <QList>
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop
 #endif
@@ -67,6 +68,12 @@ public:
         return callbackCleanUp;
     }
 
+protected:
+    quint64 activeKey() const
+    {
+        return activeKeys.isEmpty() ? 0 : activeKeys.last();
+    }
+
 private:
     struct Box
     {
@@ -79,8 +86,10 @@ private:
         QDotNetCallback *callback, quint64 key,
         void *data, typename QDotNetCallbackArg<TArg>::InboundType... arg)
     {
+        callback->activeKeys.append(key);
         Box *box = callback->boxes[key] = new Box(
             callback->fnCallback(data, QDotNetCallbackArg<TArg>::convert(arg)...));
+        callback->activeKeys.removeLast();
         return QDotNetCallbackReturn<TResult>::convert(box->returnValue);
     }
 
@@ -95,6 +104,7 @@ private:
 
     FunctionType fnCallback = nullptr;
     CleanUpType fnCleanUp = nullptr;
+    QList<quint64> activeKeys;
 };
 
 template<typename... TArg>
@@ -126,13 +136,22 @@ public:
         return nullptr;
     }
 
+protected:
+    quint64 activeKey() const
+    {
+        return activeKeys.isEmpty() ? 0 : activeKeys.last();
+    }
+
 private:
     static void QDOTNETFUNCTION_CALLTYPE callbackDelegate(
         QDotNetCallback *callback, quint64 key,
         void *data, typename QDotNetCallbackArg<TArg>::InboundType... arg)
     {
+        callback->activeKeys.append(key);
         callback->fnCallback(data, QDotNetCallbackArg<TArg>::convert(arg)...);
+        callback->activeKeys.removeLast();
     }
 
     FunctionType fnCallback = nullptr;
+    QList<quint64> activeKeys;
 };

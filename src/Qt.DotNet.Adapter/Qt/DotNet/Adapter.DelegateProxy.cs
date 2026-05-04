@@ -16,6 +16,7 @@ namespace Qt.DotNet
             IntPtr deleteData,
             IntPtr callbackPtr,
             IntPtr cleanUpPtr,
+            IntPtr errorPtr,
             IntPtr context)
         {
 #if DEBUG
@@ -46,16 +47,19 @@ namespace Qt.DotNet
 
             var fieldCallback = proxyType.GetField("NativeCallback");
             var fieldCleanup = proxyType.GetField("CleanUpPtr");
+            var fieldError = proxyType.GetField("ErrorPtr");
             var fieldContext = proxyType.GetField("ContextPtr");
 
             Debug.Assert(fieldCallback != null, nameof(fieldCallback) + " is null");
             Debug.Assert(fieldCleanup != null, nameof(fieldCleanup) + " is null");
+            Debug.Assert(fieldError != null, nameof(fieldError) + " is null");
             Debug.Assert(fieldContext != null, nameof(fieldContext) + " is null");
 
             var callbackType = fieldCallback.FieldType;
             var callbackDelegate = Marshal.GetDelegateForFunctionPointer(callbackPtr, callbackType);
             fieldCallback.SetValue(proxy, callbackDelegate);
             fieldCleanup.SetValue(proxy, cleanUpPtr);
+            fieldError.SetValue(proxy, errorPtr);
             fieldContext.SetValue(proxy, context);
 
             return Delegate.CreateDelegate(delegateType, proxy, "Invoke")

@@ -307,13 +307,13 @@ public:
     }
 
     void *addDelegateProxy(const QString &delegateTypeName, const QList<QDotNetParameter> &params,
-        void *data, void *deleteData, void *callback, void *cleanUp, void *context) const
+        void *data, void *deleteData, void *callback, void *cleanUp, void *error, void *ctx) const
     {
         init();
         if (delegateTypeName.isEmpty() || !callback)
             return nullptr;
         return fnAddDelegateProxy(delegateTypeName, static_cast<qint32>(params.size()), params,
-            data, deleteData, callback, cleanUp, context);
+            data, deleteData, callback, cleanUp, error, ctx);
     }
 
     void setInterfaceMethod(const QDotNetRef &obj, const QString &methodName,
@@ -389,7 +389,7 @@ private:
     mutable QDotNetFunction<void, QString> fnFreeTypeRef;
     mutable QDotNetFunction<void *, QString, void *, void *> fnAddInterfaceProxy;
     mutable QDotNetFunction<void *, QString, qint32, QList<QDotNetParameter>, void *, void *,
-        void *, void *, void *> fnAddDelegateProxy;
+        void *, void *, void *, void *> fnAddDelegateProxy;
     mutable QDotNetFunction<void, QDotNetRef, QString, qint32, QList<QDotNetParameter>,
         void *, void *, void *> fnSetInterfaceMethod;
 #ifndef QT_NO_DEBUG

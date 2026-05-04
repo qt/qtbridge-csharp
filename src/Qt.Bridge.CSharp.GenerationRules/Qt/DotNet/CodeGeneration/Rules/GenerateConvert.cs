@@ -120,6 +120,9 @@ struct Convert
     class ScriptDelegateContext final : public QDotNetCallback<TResult, TArg...>
     {{
     public:
+        using Error = const QChar *(QDOTNETFUNCTION_CALLTYPE *)(void *, quint64);
+        using CleanUp = typename QDotNetCallback<TResult, TArg...>::CleanUp;
+
         ScriptDelegateContext(const QString &delegateTypeName, const QJSValue &function,
             QQmlEngine *engine, QObject *context)
             : QDotNetCallback<TResult, TArg...>(
@@ -153,6 +156,16 @@ struct Convert
                 Qt::QueuedConnection);
         }}
 
+        static CleanUp cleanUp()
+        {{
+            return cleanUpCallback;
+        }}
+
+        static Error error()
+        {{
+            return errorCallback;
+        }}
+
     private:
         TResult invoke(TArg... arg)
         {{
@@ -171,8 +184,10 @@ struct Convert
                     result = invokeNow(arg...);
                 }},
                 Qt::BlockingQueuedConnection);
-            if (!ok)
+            if (!ok) {{
+                recordErrorMessage(""queued invoke on QQmlEngine failed"");
                 Convert::reportInvokeFailure(delegateTypeName, ""queued invoke on QQmlEngine failed"");
+            }}
             return result;
         }}
 
@@ -184,22 +199,59 @@ struct Convert
             }};
             const QJSValue result = function.call(args);
             if (result.isError()) {{
+                recordErrorValue(result);
                 Convert::reportScriptError(delegateTypeName, result);
                 return QtDotNet::null<TResult>();
             }}
             return Convert::fromScriptResult<TResult>(result);
         }}
 
+        void recordErrorMessage(const QString &message)
+        {{
+            errors[QDotNetCallback<TResult, TArg...>::activeKey()] = message;
+        }}
+
+        void recordErrorValue(const QJSValue &error)
+        {{
+            QString message = error.toString();
+            if (error.hasProperty(""stack"")) {{
+                const QString stack = error.property(""stack"").toString();
+                if (!stack.isEmpty())
+                    message += QStringLiteral(""\n"") + stack;
+            }}
+            recordErrorMessage(message);
+        }}
+
+        static void QDOTNETFUNCTION_CALLTYPE cleanUpCallback(
+            QDotNetCallback<TResult, TArg...> *data, quint64 key)
+        {{
+            auto *self = static_cast<ScriptDelegateContext *>(data);
+            self->errors.remove(key);
+            if (auto cleanUp = QDotNetCallback<TResult, TArg...>::cleanUp())
+                cleanUp(self, key);
+        }}
+
+        static const QChar *QDOTNETFUNCTION_CALLTYPE errorCallback(void *data, quint64 key)
+        {{
+            auto *self = reinterpret_cast<ScriptDelegateContext *>(data);
+            const auto it = self->errors.constFind(key);
+            return it == self->errors.cend() ? nullptr : it.value().constData();
+        }}
+
         QString delegateTypeName;
         QJSValue function;
         QPointer<QQmlEngine> engine;
         QPointer<QObject> context;
+        QMap<quint64, QString> errors;
     }};
 
     template<typename... TArg>
     class ScriptDelegateContext<void, TArg...> final : public QDotNetCallback<void, TArg...>
     {{
     public:
+        using Error = const QChar *(QDOTNETFUNCTION_CALLTYPE *)(void *, quint64);
+        using CleanUp = void(QDOTNETFUNCTION_CALLTYPE *)(void *, quint64);
+
         ScriptDelegateContext(const QString &delegateTypeName, const QJSValue &function,
             QQmlEngine *engine, QObject *context)
             : QDotNetCallback<void, TArg...>(
@@ -233,6 +285,16 @@ struct Convert
                 Qt::QueuedConnection);
         }}
 
+        static CleanUp cleanUp()
+        {{
+            return cleanUpCallback;
+        }}
+
+        static Error error()
+        {{
+            return errorCallback;
+        }}
+
     private:
         void invoke(TArg... arg)
         {{
@@ -252,8 +314,10 @@ struct Convert
                     invokeNow(arg...);
                 }},
                 Qt::BlockingQueuedConnection);
-            if (!ok)
+            if (!ok) {{
+                recordErrorMessage(""queued invoke on QQmlEngine failed"");
                 Convert::reportInvokeFailure(delegateTypeName, ""queued invoke on QQmlEngine failed"");
+            }}
         }}
 
         void invokeNow(TArg... arg)
@@ -263,14 +327,47 @@ struct Convert
                 Convert::toScriptValue(engine, arg, context)...
             }};
             const QJSValue result = function.call(args);
-            if (result.isError())
+            if (result.isError()) {{
+                recordErrorValue(result);
                 Convert::reportScriptError(delegateTypeName, result);
+            }}
+        }}
+
+        void recordErrorMessage(const QString &message)
+        {{
+            errors[QDotNetCallback<void, TArg...>::activeKey()] = message;
+        }}
+
+        void recordErrorValue(const QJSValue &error)
+        {{
+            QString message = error.toString();
+            if (error.hasProperty(""stack"")) {{
+                const QString stack = error.property(""stack"").toString();
+                if (!stack.isEmpty())
+                    message += QStringLiteral(""\n"") + stack;
+            }}
+            recordErrorMessage(message);
+        }}
+
+        static void QDOTNETFUNCTION_CALLTYPE cleanUpCallback(void *data, quint64 key)
+        {{
+            auto *self = reinterpret_cast<ScriptDelegateContext *>(data);
+            self->errors.remove(key);
+            // QDotNetCallback<void,...>::CleanUp is nullptr_t — no parent cleanup to call.
+        }}
+
+        static const QChar *QDOTNETFUNCTION_CALLTYPE errorCallback(void *data, quint64 key)
+        {{
+            auto *self = reinterpret_cast<ScriptDelegateContext *>(data);
+            const auto it = self->errors.constFind(key);
+            return it == self->errors.cend() ? nullptr : it.value().constData();
         }}
 
         QString delegateTypeName;
         QJSValue function;
         QPointer<QQmlEngine> engine;
         QPointer<QObject> context;
+        QMap<quint64, QString> errors;
     }};
 
     template<typename TDelegate, typename TResult, typename... TArg>
@@ -296,6 +393,7 @@ struct Convert
             asHandle(&ScriptDelegateContext<TResult, TArg...>::deleteSelf),
             asHandle(ScriptDelegateContext<TResult, TArg...>::delegate()),
             asHandle(ScriptDelegateContext<TResult, TArg...>::cleanUp()),
+            asHandle(ScriptDelegateContext<TResult, TArg...>::error()),
             callback));
     }}
 

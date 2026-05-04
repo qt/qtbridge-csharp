@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.InteropServices;
 
 namespace Qt.DotNet
 {
@@ -57,18 +58,46 @@ namespace Qt.DotNet
                 "NativeCallback", callbackGen, FieldAttributes.Public);
             var fieldCleanup = typeGen.DefineField(
                 "CleanUpPtr", typeof(IntPtr), FieldAttributes.Public);
+            var fieldError = typeGen.DefineField(
+                "ErrorPtr", typeof(IntPtr), FieldAttributes.Public);
             var fieldContext = typeGen.DefineField(
                 "ContextPtr", typeof(IntPtr), FieldAttributes.Public);
             var fieldCount = typeGen.DefineField(
                 "Count", typeof(ulong), FieldAttributes.Public);
 
-            var monitorEnter = typeof(Monitor).GetMethod("Enter", new[] { typeof(object) });
-            var monitorExit = typeof(Monitor).GetMethod("Exit", new[] { typeof(object) });
+            var errorCallbackParameters = new[]
+            {
+                new Parameter(typeof(IntPtr)),
+                new Parameter(typeof(IntPtr)),
+                new Parameter(typeof(ulong))
+            };
+            var errorGen = typeGen.DefineNestedType(
+                UniqueName(delegateType.Name, "ErrorCallback"),
+                TypeAttributes.Sealed | TypeAttributes.NestedPublic,
+                typeof(MulticastDelegate));
+            var errorInvoke = InitDelegateType(errorGen, errorCallbackParameters);
+
+            var monitorEnter = typeof(Monitor).GetMethod("Enter", [typeof(object)]);
+            var monitorExit = typeof(Monitor).GetMethod("Exit", [typeof(object)]);
             var proxyCleanUp = typeof(InterfaceProxy).GetMethod(nameof(InterfaceProxy.CleanUp));
+            var getDelegateForFunctionPointer = typeof(Marshal).GetMethod(
+                nameof(Marshal.GetDelegateForFunctionPointer),
+                [typeof(IntPtr), typeof(Type)]);
+            var stringIsNullOrEmpty = typeof(string).GetMethod(
+                nameof(string.IsNullOrEmpty), [typeof(string)]);
+            var invalidOperationCtor = typeof(InvalidOperationException)
+                .GetConstructor([typeof(string)]);
+            var ptrToStringUni = typeof(Marshal).GetMethod(
+                nameof(Marshal.PtrToStringUni), [typeof(IntPtr)]);
 
 #if TEST || DEBUG
             Debug.Assert(monitorEnter != null && monitorExit != null);
             Debug.Assert(proxyCleanUp != null, nameof(proxyCleanUp) + " is null");
+            Debug.Assert(getDelegateForFunctionPointer != null,
+                nameof(getDelegateForFunctionPointer) + " is null");
+            Debug.Assert(stringIsNullOrEmpty != null, nameof(stringIsNullOrEmpty) + " is null");
+            Debug.Assert(invalidOperationCtor != null, nameof(invalidOperationCtor) + " is null");
+            Debug.Assert(ptrToStringUni != null, nameof(ptrToStringUni) + " is null");
 #endif
 
             var invokeGen = typeGen.DefineMethod("Invoke",
@@ -76,11 +105,15 @@ namespace Qt.DotNet
                 invokeMethod.ReturnType, paramTypes);
             var code = invokeGen.GetILGenerator();
 
+            var localOffset = 0;
             if (invokeMethod.ReturnType != typeof(void)) {
                 code.DeclareLocal(invokeMethod.ReturnType);
                 code.Emit(OpCodes.Ldloca_S, 0);
                 code.Emit(OpCodes.Initobj, invokeMethod.ReturnType);
+                localOffset = 1;
             }
+            code.DeclareLocal(typeof(string));
+            var errorLocal = localOffset;
 
             code.BeginExceptionBlock();
 
@@ -128,6 +161,34 @@ namespace Qt.DotNet
             if (invokeMethod.ReturnType != typeof(void))
                 code.Emit(OpCodes.Stloc_0);
 
+            var noErrorLabel = code.DefineLabel();
+            var skipErrorQueryLabel = code.DefineLabel();
+
+            code.Emit(OpCodes.Ldarg_0);
+            code.Emit(OpCodes.Ldfld, fieldError);
+            code.Emit(OpCodes.Brfalse_S, skipErrorQueryLabel);
+
+            code.Emit(OpCodes.Ldarg_0);
+            code.Emit(OpCodes.Ldfld, fieldError);
+            code.Emit(OpCodes.Ldtoken, errorGen);
+            code.Emit(OpCodes.Call, typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle)));
+            code.Emit(OpCodes.Call, getDelegateForFunctionPointer);
+            code.Emit(OpCodes.Castclass, errorGen);
+            code.Emit(OpCodes.Ldarg_0);
+            code.Emit(OpCodes.Ldfld, fieldContext);
+            code.Emit(OpCodes.Ldarg_0);
+            code.Emit(OpCodes.Ldfld, fieldCount);
+            code.Emit(OpCodes.Callvirt, errorInvoke);
+            code.Emit(OpCodes.Call, ptrToStringUni);
+            code.Emit(OpCodes.Stloc_S, errorLocal);
+            code.Emit(OpCodes.Br_S, noErrorLabel);
+
+            code.MarkLabel(skipErrorQueryLabel);
+            code.Emit(OpCodes.Ldnull);
+            code.Emit(OpCodes.Stloc_S, errorLocal);
+
+            code.MarkLabel(noErrorLabel);
+
             code.Emit(OpCodes.Ldarg_0);
             code.Emit(OpCodes.Ldarg_0);
             code.Emit(OpCodes.Ldfld, fieldCleanup);
@@ -136,6 +197,15 @@ namespace Qt.DotNet
             code.Emit(OpCodes.Ldarg_0);
             code.Emit(OpCodes.Ldfld, fieldCount);
             code.Emit(OpCodes.Callvirt, proxyCleanUp);
+
+            code.Emit(OpCodes.Ldloc_S, errorLocal);
+            code.Emit(OpCodes.Call, stringIsNullOrEmpty);
+            var doneLabel = code.DefineLabel();
+            code.Emit(OpCodes.Brtrue_S, doneLabel);
+            code.Emit(OpCodes.Ldloc_S, errorLocal);
+            code.Emit(OpCodes.Newobj, invalidOperationCtor);
+            code.Emit(OpCodes.Throw);
+            code.MarkLabel(doneLabel);
 
             code.BeginFinallyBlock();
 
@@ -151,6 +221,7 @@ namespace Qt.DotNet
 
             try {
                 _ = callbackGen.CreateType();
+                _ = errorGen.CreateType();
                 proxyType = typeGen.CreateType();
             } catch (Exception exception) {
                 throw new TypeAccessException("Error creating delegate proxy type", exception);
