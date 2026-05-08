@@ -7,6 +7,7 @@
 #include "qdotnetobject.h"
 #include "iqqmlengine.h"
 #include "iqtresources.h"
+#include "iqtapplication.h"
 
 #include <functional>
 
@@ -24,6 +25,7 @@ public:
         IQQmlEngine::staticInit(this);
 #endif
         IQtResources::staticInit(this);
+        IQtApplication::staticInit(this);
     }
 };
 
