@@ -6,6 +6,7 @@
 #include "qdotnetinterface.h"
 #include "qdotnetobject.h"
 #include "iqqmlengine.h"
+#include "iqtresources.h"
 
 #include <functional>
 
@@ -22,6 +23,7 @@ public:
 #ifdef QT_QUICK_LIB
         IQQmlEngine::staticInit(this);
 #endif
+        IQtResources::staticInit(this);
     }
 };
 

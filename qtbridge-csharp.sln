@@ -9,6 +9,7 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "include", "include", "{63F4FEA7-5B8B-4496-988E-B84410C50D42}"
 	ProjectSection(SolutionItems) = preProject
 		include\iqqmlengine.h = include\iqqmlengine.h
+		include\iqtresources.h = include\iqtresources.h
 		include\qdotnetadapter.h = include\qdotnetadapter.h
 		include\qdotnetarray.h = include\qdotnetarray.h
 		include\qdotnetcallback.h = include\qdotnetcallback.h
