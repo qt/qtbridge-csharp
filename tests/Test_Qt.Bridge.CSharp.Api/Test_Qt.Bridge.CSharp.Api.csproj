@@ -1,0 +1,25 @@
+<!--
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
+-->
+
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="MSTest" Version="3.10.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Qt.Bridge.CSharp.Api\Qt.Bridge.CSharp.Api.csproj" />
+    <ProjectReference Include="..\..\src\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -29,6 +29,7 @@
     <Compile Remove="QtQuickTest\Program.cs" />
     <Compile Remove="QtTest\Program.cs" />
     <Compile Remove="StructuredData\Program.cs" />
+    <Compile Remove="QtResources\Program.cs" />
     <Compile Remove="WrapperTypes\Program.cs" />
     <None Remove="AdapterInit\main.cpp" />
     <None Remove="BindingsAndInterfaces\main.cpp" />
@@ -44,6 +45,7 @@
     <None Remove="QtQuickTest\main.cpp" />
     <None Remove="QtTest\main.cpp" />
     <None Remove="StructuredData\main.cpp" />
+    <None Remove="QtResources\main.cpp" />
     <None Remove="WrapperTypes\main.cpp" />
     <None Remove="WrapperTypes\uri.h" />
     <None Remove="WrapperTypes\uri.cpp" />
@@ -166,6 +168,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="StructuredData\Program.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="QtResources\main.cpp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="QtResources\Program.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="WrapperTypes\main.cpp">

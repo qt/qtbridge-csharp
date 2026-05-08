@@ -17,6 +17,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Test_Qt.Bridge.CSharp.Api</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\utils\Collections\Collections.csproj" />
     <ProjectReference Include="..\..\utils\Concurrent\Concurrent.csproj" />
     <ProjectReference Include="..\..\utils\LazyFactory\LazyFactory.csproj" />
