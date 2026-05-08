@@ -166,6 +166,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Qt.Bridge.CSharp.VisualStud
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Qt.Bridge.CSharp.Api", "tests\Test_Qt.Bridge.CSharp.Api\Test_Qt.Bridge.CSharp.Api.csproj", "{505F81DD-2297-4EA4-99A1-610F970B3E79}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bookshelf", "examples\Bookshelf\Bookshelf.csproj", "{59E4DE0B-AE2C-FB41-58DB-57714A59CD74}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -424,6 +426,16 @@ Global
 		{505F81DD-2297-4EA4-99A1-610F970B3E79}.Release|x64.Build.0 = Release|Any CPU
 		{505F81DD-2297-4EA4-99A1-610F970B3E79}.Release|x86.ActiveCfg = Release|Any CPU
 		{505F81DD-2297-4EA4-99A1-610F970B3E79}.Release|x86.Build.0 = Release|Any CPU
+		{59E4DE0B-AE2C-FB41-58DB-57714A59CD74}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{59E4DE0B-AE2C-FB41-58DB-57714A59CD74}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{59E4DE0B-AE2C-FB41-58DB-57714A59CD74}.Debug|x64.Build.0 = Debug|Any CPU
+		{59E4DE0B-AE2C-FB41-58DB-57714A59CD74}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{59E4DE0B-AE2C-FB41-58DB-57714A59CD74}.Debug|x86.Build.0 = Debug|Any CPU
+		{59E4DE0B-AE2C-FB41-58DB-57714A59CD74}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{59E4DE0B-AE2C-FB41-58DB-57714A59CD74}.Release|x64.ActiveCfg = Release|Any CPU
+		{59E4DE0B-AE2C-FB41-58DB-57714A59CD74}.Release|x64.Build.0 = Release|Any CPU
+		{59E4DE0B-AE2C-FB41-58DB-57714A59CD74}.Release|x86.ActiveCfg = Release|Any CPU
+		{59E4DE0B-AE2C-FB41-58DB-57714A59CD74}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -465,6 +477,7 @@ Global
 		{9A1EFF98-6D33-496F-B1B7-70606D6E8AB5} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{6B06BE84-B05C-45F8-AC1C-BCCE68620771} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{505F81DD-2297-4EA4-99A1-610F970B3E79} = {0828626A-BAD8-4E02-99DC-3AAA15073223}
+		{59E4DE0B-AE2C-FB41-58DB-57714A59CD74} = {436DDD81-054F-492E-8F7A-B9445413E3B2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E4CDB648-EF1A-4ADE-B6EA-D4E9D668E676}

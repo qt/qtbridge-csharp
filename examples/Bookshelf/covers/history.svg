@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- History - classical column on warm-dark background -->
+  <rect width="100" height="100" rx="14" fill="#2b1f14"/>
+  <!-- Capital -->
+  <rect x="32" y="22" width="36" height="7" rx="2" fill="#c9a96e"/>
+  <!-- Shaft -->
+  <rect x="40" y="29" width="20" height="40" fill="#c9a96e"/>
+  <!-- Fluting lines on shaft -->
+  <line x1="44.5" y1="29" x2="44.5" y2="69" stroke="#a07840" stroke-width="1"/>
+  <line x1="50"   y1="29" x2="50"   y2="69" stroke="#a07840" stroke-width="1"/>
+  <line x1="55.5" y1="29" x2="55.5" y2="69" stroke="#a07840" stroke-width="1"/>
+  <!-- Base -->
+  <rect x="37" y="69" width="26" height="5" rx="1" fill="#c9a96e"/>
+  <rect x="30" y="74" width="40" height="6" rx="2" fill="#9a6f38"/>
+</svg>

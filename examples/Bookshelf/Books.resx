@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2026 The Qt Company Ltd.
+  SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
+
+  Books.resx - resource manifest for Bookshelf synopsis text files.
+
+  Each entry is a ResXFileRef pointing to a synopsis/*.txt file. The
+  QtBridgeResolveResxFileRefs MSBuild task reads these file references, resolves
+  the physical paths, and emits one QtResource item per entry. All four entries
+  are packaged into the native Qt resource store (AccessMode=Default by default).
+
+  The SynopsisHistory entry is overridden to ManagedAndNative in Bookshelf.csproj,
+  which causes this whole .resx to also be added back to EmbeddedResource so that
+  ResourceManager.GetString("SynopsisHistory") works alongside qrc:/.
+-->
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- AccessMode=Default (native Qt resource only). Read at runtime via Qt.Resources.ReadAllText(). -->
+  <data name="SynopsisAdventure" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>synopsis\adventure.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
+
+  <!-- AccessMode=ManagedAndNative (overridden in .csproj). Also accessible via ResourceManager. -->
+  <data name="SynopsisHistory" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>synopsis\history.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
+
+  <!-- AccessMode=Default (native Qt resource only). Read at runtime via Qt.Resources.ReadAllText(). -->
+  <data name="SynopsisScience" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>synopsis\science.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
+
+  <!-- AccessMode=Default (native Qt resource only). Read at runtime via Qt.Resources.ReadAllText(). -->
+  <data name="SynopsisFiction" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>synopsis\fiction.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
+</root>

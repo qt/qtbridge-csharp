@@ -1,0 +1,28 @@
+Bookshelf - Qt Bridge C# Resource Pipeline Example
+
+This example demonstrates all three Qt Bridge for C# resource access modes:
+managed-only resources, native Qt resources, and ManagedAndNative resources that
+are available through both ResourceManager and qrc:/.
+
+  App.resx  |  managed-only
+  Application metadata such as DisplayName and OrganizationName is read from
+  App.resx through ResourceManager in Program.cs and forwarded to Qt.Application
+  at startup. App.resx is excluded from the Qt resource pipeline.
+
+  covers/*.svg  |  <QtResource Include="covers\*" />
+  SVG cover art packaged as native Qt resources (AccessMode=Default). Loaded directly by
+  QML via qrc:/assemblies/Bookshelf/covers/<name>.svg. Bytes never appear in the managed
+  assembly.
+
+  synopsis/*.txt  |  Books.resx ResXFileRef entries, AccessMode=Default
+  Most synopsis text files are resolved through Books.resx and packaged as native
+  Qt resources. The C# backend reads them at runtime via Qt.Resources.ReadAllText().
+
+  synopsis/history.txt  |  Books.resx::SynopsisHistory, AccessMode=ManagedAndNative
+  Same Qt resource path as above, plus Books.resx is re-added to EmbeddedResource so
+  ResourceManager.GetString("SynopsisHistory") also works. The UI prefers that managed
+  copy for this one entry and still verifies that it matches the qrc:/ resource.
+
+  about.txt  |  <QtResource Include="about.txt" />
+  This file. Packaged as a native Qt resource, read by BookLibrary via
+  Qt.Resources.ReadAllText("qrc:/assemblies/Bookshelf/about.txt").

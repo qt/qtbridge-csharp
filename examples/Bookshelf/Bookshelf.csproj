@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
+-->
+
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_version.props))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_rid.props))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_bridge_package.props))" />
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <!--
+      QtBridgeResourceLibrary=true auto-globs all *.resx files into @(QtResx).
+      Books.resx is picked up here - its ResXFileRef entries resolve to the
+      synopsis/*.txt files and are packaged as native Qt resources.
+    -->
+    <QtBridgeResourceLibrary>true</QtBridgeResourceLibrary>
+  </PropertyGroup>
+
+  <!--
+    App.resx is a managed-only resource file. It stays out of the Qt resource
+    pipeline and is read through ResourceManager in Program.cs to configure
+    Qt.Application metadata at startup.
+  -->
+  <ItemGroup>
+    <QtResx Remove="App.resx" />
+  </ItemGroup>
+
+  <!--
+    SVG cover art and the about text are direct QtResource items.
+    AccessMode defaults to Default: bytes live only in the native Qt resource
+    store and are never embedded in the managed assembly.
+    QML loads covers via: qrc:/assemblies/Bookshelf/covers/<name>.svg
+    C# reads about.txt via: Qt.Resources.ReadAllText("qrc:/assemblies/Bookshelf/about.txt")
+  -->
+  <ItemGroup>
+    <QtResource Include="icons\app.svg" />
+    <QtResource Include="covers\*" />
+    <QtResource Include="about.txt" />
+  </ItemGroup>
+
+  <!--
+    Per-entry access-mode overrides for Books.resx entries.
+
+    All four synopses default to AccessMode=Default (native Qt resource only).
+    The history synopsis is promoted to ManagedAndNative so the example can
+    show a resource that is readable via both ResourceManager and qrc:/.
+  -->
+  <ItemGroup>
+    <QtResourceAccess Include="Books.resx::SynopsisHistory"
+      Mode="ManagedAndNative"
+      Reason="Catalog export service reads synopsis via ResourceManager" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(SolutionName)' != 'qtbridge-csharp'">
+    <PackageReference Include="$(QtBridgePackageId)" Version="$(SelectedVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(SolutionName)' == 'qtbridge-csharp'">
+    <ProjectReference Include="..\..\src\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
+    <ProjectReference Include="..\..\src\Qt.Bridge.CSharp.Generator\Qt.Bridge.CSharp.Generator.csproj" />
+    <ProjectReference Include="..\..\src\Qt.Bridge.CSharp.GenerationRules\Qt.Bridge.CSharp.GenerationRules.csproj" />
+  </ItemGroup>
+  <Import Condition="'$(SolutionName)' == 'qtbridge-csharp'" Project="..\..\build\Qt.Bridge.targets" />
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+</Project>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- App icon: open book -->
+  <rect width="64" height="64" rx="10" fill="#1a1a2e"/>
+  <!-- Left page -->
+  <path d="M9,15 Q9,49 9,49 Q21,45 31,49 L31,15 Q21,11 9,15 Z" fill="#c9a96e"/>
+  <!-- Right page -->
+  <path d="M55,15 Q55,49 55,49 Q43,45 33,49 L33,15 Q43,11 55,15 Z" fill="#e2bb7e"/>
+  <!-- Spine shadow -->
+  <rect x="30" y="15" width="4" height="34" fill="#8a6828"/>
+  <!-- Text lines - left page -->
+  <line x1="14" y1="23" x2="27" y2="22" stroke="#8a6828" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+  <line x1="14" y1="28" x2="27" y2="27" stroke="#8a6828" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+  <line x1="14" y1="33" x2="27" y2="32" stroke="#8a6828" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+  <line x1="14" y1="38" x2="22" y2="37" stroke="#8a6828" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+  <!-- Text lines - right page -->
+  <line x1="37" y1="22" x2="50" y2="23" stroke="#8a6828" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+  <line x1="37" y1="27" x2="50" y2="28" stroke="#8a6828" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+  <line x1="37" y1="32" x2="50" y2="33" stroke="#8a6828" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+  <line x1="37" y1="37" x2="45" y2="38" stroke="#8a6828" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+</svg>
