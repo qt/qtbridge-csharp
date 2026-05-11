@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 -->
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_version.props))" />
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -12,9 +13,17 @@
     <VssdkCompatibleExtension>true</VssdkCompatibleExtension>
     <TargetVsixContainerName>Qt.Bridge.CSharp.vsix</TargetVsixContainerName>
     <NoWarn>$(NoWarn);VSEXTPREVIEW_LSP</NoWarn>
+    <QtBridgeTemplatesPackageId>QtGroup.Qt.Bridge.CSharp.Templates</QtBridgeTemplatesPackageId>
+    <QtBridgeTemplatesPackageFileName
+      >$(QtBridgeTemplatesPackageId).$(SelectedVersion).nupkg</QtBridgeTemplatesPackageFileName>
+    <QtBridgeTemplatesProjectPath
+      >$(MSBuildThisFileDirectory)..\..\nuget\Qt.Bridge.CSharp.Templates\Qt.Bridge.CSharp.Templates.csproj</QtBridgeTemplatesProjectPath>
+    <QtBridgeTemplatesPackagePath
+      >$(MSBuildThisFileDirectory)..\..\nuget\Qt.Bridge.CSharp.Templates\bin\$(Configuration)\$(QtBridgeTemplatesPackageFileName)</QtBridgeTemplatesPackagePath>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="GPL-3.0-only.txt" />
+    <None Remove="Templates.pkgdef" />
     <None Remove="qt.ico" />
   </ItemGroup>
   <ItemGroup>
@@ -22,6 +31,9 @@
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
     <Content Include="qt.ico">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="Templates.pkgdef">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
   </ItemGroup>
@@ -39,4 +51,21 @@
   <Target Name="Build" Condition="!$([MSBuild]::IsOsPlatform('Windows'))">
     <Message Importance="High" Text="$(MSBuildProjectName): skipped (Windows only)" />
   </Target>
+
+  <Target Name="EnsureQtBridgeTemplatesPackage" BeforeTargets="PreCreateVsixContainer">
+    <MSBuild Projects="$(QtBridgeTemplatesProjectPath)"
+      Targets="Pack"
+      Properties="Configuration=$(Configuration)" />
+  </Target>
+
+  <Target Name="PreCreateVsixContainer" BeforeTargets="GetVsixSourceItems">
+    <Error Text="No template package found at '$(QtBridgeTemplatesPackagePath)'."
+      Condition="!Exists('$(QtBridgeTemplatesPackagePath)')" />
+    <ItemGroup>
+      <VSIXSourceItem Include="$(QtBridgeTemplatesPackagePath)">
+        <VSIXSubPath>ProjectTemplates\</VSIXSubPath>
+      </VSIXSourceItem>
+    </ItemGroup>
+  </Target>
+
 </Project>
