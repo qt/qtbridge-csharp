@@ -30,7 +30,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
             string sourceDir,
             string? projectSourceDir,
             IReadOnlyList<string> buildDirs,
-            IReadOnlyList<string> importPaths)
+            IReadOnlyList<string> importPaths,
+            IReadOnlyList<QmlFile> files)
         {
             /// <summary>
             /// The generated Qt-native source root used as the primary QML Language Server
@@ -61,6 +62,30 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
             /// </summary>
             public IReadOnlyList<string> ImportPaths { get; } = importPaths
                 ?? throw new ArgumentNullException(nameof(importPaths));
+
+            /// <summary>
+            /// Original project QML files and their generated module locations. Used by the
+            /// Visual Studio extension to map editor files back into the generated QML module
+            /// resource tree for qmlls.
+            /// </summary>
+            public IReadOnlyList<QmlFile> Files { get; } = files
+                ?? throw new ArgumentNullException(nameof(files));
+        }
+
+        public sealed class QmlFile(
+            string sourcePath,
+            string uri,
+            string typeName,
+            string modulePath)
+        {
+            public string SourcePath { get; } = sourcePath
+                ?? throw new ArgumentNullException(nameof(sourcePath));
+            public string Uri { get; } = uri
+                ?? throw new ArgumentNullException(nameof(uri));
+            public string TypeName { get; } = typeName
+                ?? throw new ArgumentNullException(nameof(typeName));
+            public string ModulePath { get; } = modulePath
+                ?? throw new ArgumentNullException(nameof(modulePath));
         }
 
         /// <summary> QML Language Server startup policy from the metadata file. </summary>

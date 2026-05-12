@@ -19,7 +19,7 @@
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // QtBridgeSetupQml
   -->
-  <Target Name="QtBridgeSetupQml" Outputs="@(Qml);@(QmlModule)">
+  <Target Name="QtBridgeSetupQml">
     <ItemGroup>
       <!-- Set QML file properties -->
       <Qml>
@@ -34,6 +34,8 @@
         <Uri>$([System.String]::Copy(%(SourceDir))
                 .Replace('\','/').Replace('/','.').Trim('.'))</Uri>
         <TypeName>%(FileName)</TypeName>
+        <JsonSourcePath>$([System.String]::Copy('$(ProjectDir)%(RelativeDir)%(Filename)%(Extension)').Replace('\', '\\'))</JsonSourcePath>
+        <JsonModulePath>$([System.String]::Copy('%(SourceDir)').Replace('\', '\\'))</JsonModulePath>
       </Qml>
     </ItemGroup>
     <ItemGroup>
@@ -288,6 +290,7 @@ namespace Qt.Qml
   // to avoid spurious file-watcher churn in the extension.
   -->
   <Target Name="QtBridgeWriteQmlMetadataFile" AfterTargets="PrepareForBuild"
+    DependsOnTargets="QtBridgeSetupQml"
     Condition="'$(DesignTimeBuild)' != 'true'">
 
     <PropertyGroup>
@@ -375,7 +378,16 @@ namespace Qt.Qml
     "buildDirs": [
       "$(_QtIdeJBldDir)"
     ],
-    "importPaths": [$(_QtIdeImportPaths)]
+    "importPaths": [$(_QtIdeImportPaths)],
+    "files": [
+@(Qml->'
+      { "sourcePath": "%(JsonSourcePath)",
+        "uri": "%(Uri)",
+        "typeName": "%(TypeName)",
+        "modulePath": "%(JsonModulePath)"
+      }', ',
+')
+    ]
   },
   "qmlLanguageServer": {
     "disableCMakeCalls": true

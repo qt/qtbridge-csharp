@@ -134,8 +134,13 @@ root (`obj/.../qt/native/source`), which never matches user-authored QML files t
 the project root. Before enqueuing `$/addBuildDirs` for a project, the provider calls
 `TryPatchQmllsBuildIni`, which appends an alias section to each `.qt/.qmlls.build.ini` file
 found in the project's build directories. The alias section uses `projectSourceDir` as the key
-and copies the `importPaths` and `resourceFiles` values from the native section. The patch
-checks for the alias header before writing and is a no-op if the alias already exists.
+and copies the `importPaths` and `resourceFiles` values from the native section.
+
+The provider also writes `.qt/qtbridge_project_sources.qrc` from the `qml.files` metadata array
+and adds it to the alias section's `resourceFiles`. This maps the original QML files opened in
+Visual Studio back to the generated `/qt/qml/<module>/...` resource paths, so qmlls can infer
+that a project-root file belongs to its own module without requiring a redundant self-import.
+If the alias already exists, the provider updates that section to include the qrc.
 
 **Injection is deferred until build output is complete.**
 After a build, `qtbridge-qml.ide.json` may appear before `.qmlls.build.ini` and generated

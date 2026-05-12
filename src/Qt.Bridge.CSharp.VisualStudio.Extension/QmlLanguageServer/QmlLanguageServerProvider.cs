@@ -33,6 +33,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private readonly IQmlLanguageServerInstaller languageServerInstaller;
         private readonly ILoggingSettingsProvider loggingSettingsProvider;
         private readonly IDisposable contextSubscription;
+        private readonly QmllsBuildIniPatcher buildIniPatcher;
 
         private sealed class ProjectEntry(
             IDisposable watcher,
@@ -72,6 +73,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         {
             log = extensionLog
                 ?? throw new ArgumentNullException(nameof(extensionLog));
+            buildIniPatcher = new QmllsBuildIniPatcher(log);
             notifications = notificationsSvc
                 ?? throw new ArgumentNullException(nameof(notificationsSvc));
             projectService = projectSvc ?? throw new ArgumentNullException(nameof(projectSvc));
@@ -539,7 +541,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             // the metadata JSON that triggered this injection attempt. Do not send $/addBuildDirs
             // until the ini exists and has been patched; qmlls memoizes build-dir settings and
             // will not revisit an already-seen build path in the current session.
-            if (!TryPatchQmllsBuildIni(metadata, projectFilePath)) {
+            if (!buildIniPatcher.TryPatch(metadata, projectFilePath)) {
                 ResetInjection();
                 log.Info($"QML Language Server: metadata not fully ready for"
                     + $" '{Path.GetFileName(projectFilePath)}' - delaying injection until"
@@ -621,62 +623,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 pipe?.EnqueueSemanticTokensRefresh();
                 log.Info($"QML Language Server: requested semantic token refresh after {reason}.");
             }, $"semantic token refresh after {reason}");
-        }
-
-        // Returns true if the ini file was found for at least one build dir (and was patched or
-        // already had the alias). Returns false if any required ini file is missing or could not
-        // be patched yet.
-        private bool TryPatchQmllsBuildIni(CoreQmlMetadata metadata, string projectFilePath)
-        {
-            var projectSourceDir = Path.GetDirectoryName(projectFilePath)
-                ?? metadata.Qml.ProjectSourceDir;
-            if (string.IsNullOrEmpty(projectSourceDir)) {
-                log.Info("QML Language Server: .qmlls.build.ini patch skipped - no projectSourceDir.");
-                return true; // treat as "done" - nothing to patch without a project source dir
-            }
-
-            var nativeKey = BuildQmllsBuildIniSectionKey(metadata.Qml.SourceDir);
-            var aliasKey = BuildQmllsBuildIniSectionKey(projectSourceDir!);
-
-            log.Info($"QML Language Server: .qmlls.build.ini patch - nativeKey={nativeKey}"
-                + $" aliasKey={aliasKey}");
-
-            if (string.Equals(nativeKey, aliasKey, StringComparison.OrdinalIgnoreCase)) {
-                log.Info("QML Language Server: .qmlls.build.ini patch skipped - keys are equal.");
-                return true;
-            }
-
-            var anyFound = false;
-            var allReady = true;
-            foreach (var buildDir in metadata.Qml.BuildDirs) {
-                var iniPath = Path.Combine(buildDir, ".qt", ".qmlls.build.ini");
-                if (!File.Exists(iniPath)) {
-                    log.Info($"QML Language Server: .qmlls.build.ini not found at '{iniPath}'.");
-                    allReady = false;
-                    continue;
-                }
-                anyFound = true;
-                try {
-                    if (!AppendQmllsBuildIniAlias(iniPath, nativeKey, aliasKey,
-                        Path.GetFileNameWithoutExtension(projectFilePath))) {
-                        allReady = false;
-                    }
-                } catch (Exception ex) when (ex is not OperationCanceledException) {
-                    log.Warning($"QML Language Server: failed to patch '{iniPath}': {ex.Message}");
-                    allReady = false;
-                }
-            }
-            return anyFound && allReady;
-        }
-
-        private static string BuildQmllsBuildIniSectionKey(string path)
-        {
-            var normalized = path
-                .Replace('\\', '/')
-                .TrimEnd('/');
-            if (normalized.Length >= 2 && normalized[1] == ':')
-                normalized = char.ToUpperInvariant(normalized[0]) + normalized.Substring(1);
-            return "[" + normalized.Replace("/", "<SLASH>") + "]";
         }
 
         private bool TryGeneratedQmlTypesReady(CoreQmlMetadata metadata, string projectFilePath)
@@ -797,57 +743,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             Enabled = true;
             log.Info($"QML Language Server: restarted after"
                 + $" '{Path.GetFileName(projectFilePath)}' ini became ready.");
-        }
-
-        private bool AppendQmllsBuildIniAlias(
-            string iniPath,
-            string nativeKey,
-            string aliasKey,
-            string projectName)
-        {
-            var lines = File.ReadAllLines(iniPath);
-
-            if (lines.Any(l => string.Equals(
-                l.Trim(), aliasKey, StringComparison.OrdinalIgnoreCase))) {
-                log.Info($"QML Language Server: .qmlls.build.ini already has alias '{aliasKey}'.");
-                return true;
-            }
-
-            // Collect the key=value lines from the native section.
-            var inNative = false;
-            var sectionLines = new List<string>();
-            foreach (var line in lines) {
-                var trimmed = line.Trim();
-                if (trimmed.StartsWith("[") && trimmed.EndsWith("]")) {
-                    if (inNative) break;
-                    inNative = string.Equals(
-                        trimmed, nativeKey, StringComparison.OrdinalIgnoreCase);
-                    continue;
-                }
-                if (inNative && trimmed.Length > 0)
-                    sectionLines.Add(line);
-            }
-
-            if (sectionLines.Count == 0) {
-                log.Info($"QML Language Server: .qmlls.build.ini patch skipped - native section"
-                    + $" '{nativeKey}' not found in '{iniPath}' ({lines.Length} lines).");
-                return false;
-            }
-
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine(aliasKey);
-            foreach (var kv in sectionLines)
-                sb.AppendLine(kv);
-
-            var existing = File.ReadAllText(iniPath);
-            var toAppend = sb.ToString();
-            if (existing.Length > 0 && existing[existing.Length - 1] != '\n')
-                toAppend = Environment.NewLine + toAppend;
-
-            File.AppendAllText(iniPath, toAppend);
-            log.Info($"QML Language Server: patched .qmlls.build.ini for '{projectName}'"
-                + $" - added alias '{aliasKey}'.");
-            return true;
         }
 
         private void OnProjectMetadataChanged(string projectFilePath)

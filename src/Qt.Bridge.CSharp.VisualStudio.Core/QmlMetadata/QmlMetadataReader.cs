@@ -136,6 +136,17 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
                     buildDirs: buildDirs,
                     importPaths: dto.Qml.ImportPaths?
                         .Where(p => !string.IsNullOrWhiteSpace(p))
+                        .ToArray() ?? [],
+                    files: dto.Qml.Files?
+                        .Where(f => !string.IsNullOrWhiteSpace(f.SourcePath)
+                            && !string.IsNullOrWhiteSpace(f.Uri)
+                            && !string.IsNullOrWhiteSpace(f.TypeName)
+                            && !string.IsNullOrWhiteSpace(f.ModulePath))
+                        .Select(f => new QmlMetadata.QmlFile(
+                            f.SourcePath!,
+                            f.Uri!,
+                            f.TypeName!,
+                            f.ModulePath!))
                         .ToArray() ?? []),
                 qmlLanguageServer: new QmlMetadata.QmlLanguageServerSection(
                     disableCMakeCalls: dto.QmlLanguageServer?.DisableCMakeCalls
@@ -181,6 +192,25 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
 
             [DataMember(Name = "buildDirs")]
             public string[]? BuildDirs { get; set; }
+
+            [DataMember(Name = "files")]
+            public QmlFileDto[]? Files { get; set; }
+        }
+
+        [DataContract]
+        private sealed class QmlFileDto
+        {
+            [DataMember(Name = "sourcePath")]
+            public string? SourcePath { get; set; }
+
+            [DataMember(Name = "uri")]
+            public string? Uri { get; set; }
+
+            [DataMember(Name = "typeName")]
+            public string? TypeName { get; set; }
+
+            [DataMember(Name = "modulePath")]
+            public string? ModulePath { get; set; }
         }
 
         [DataContract]

@@ -112,6 +112,7 @@ An immutable model of the `qtbridge-qml.ide.json` file. It carries two nested se
 | `ProjectSourceDir` | The user's original project source root. Used for the runtime `$/addBuildDirs` mapping so qmlls covers user-authored QML files, not just generated ones. |
 | `BuildDirs` | One or more Qt-native build directories containing `.qt/.qmlls.build.ini`. |
 | `ImportPaths` | Additional QML import paths passed to qmlls via `-I`. These suppress the CI-baked fallback path compiled into the qmlls binary. |
+| `Files` | Original QML file paths plus generated module metadata. The extension uses these to generate a qrc that maps editor files back into the generated `/qt/qml/<module>/...` resource tree. |
 
 **`QmlLanguageServerSection`** - startup policy:
 
