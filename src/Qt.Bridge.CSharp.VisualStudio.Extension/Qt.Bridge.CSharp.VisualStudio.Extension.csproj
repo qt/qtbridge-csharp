@@ -10,6 +10,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>12</LangVersion>
     <UseWPF>true</UseWPF>
+    <VsixDeployOnDebug>true</VsixDeployOnDebug>
     <VssdkCompatibleExtension>true</VssdkCompatibleExtension>
     <TargetVsixContainerName>Qt.Bridge.CSharp.vsix</TargetVsixContainerName>
     <NoWarn>$(NoWarn);VSEXTPREVIEW_LSP;VSEXTPREVIEW_SETTINGS</NoWarn>
