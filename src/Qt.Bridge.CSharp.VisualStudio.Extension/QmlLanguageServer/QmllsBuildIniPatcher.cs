@@ -286,7 +286,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     aliasIndex.Value, "importPaths", importPaths);
                 SetV2WorkspaceValue(updatedLines, workspacesStart, workspacesEnd,
                     aliasIndex.Value, "resourceFiles", resourceFiles);
-                File.WriteAllLines(iniPath, updatedLines);
+                if (!lines.SequenceEqual(updatedLines))
+                    File.WriteAllLines(iniPath, updatedLines);
                 log.Info($"QML Language Server: {BuildIni} already has workspace alias"
                     + $" '{projectSourceDir}'.");
                 return FormatPatchResult.Patched;

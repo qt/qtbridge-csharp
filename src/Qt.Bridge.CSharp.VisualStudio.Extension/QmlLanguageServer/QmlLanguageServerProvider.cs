@@ -45,12 +45,54 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             public string ConfigKey { get; } = configKey;
             public bool BuildDirsInjected { get; set; }
             public bool MissingMetadataNotified { get; set; }
-            // Set after metadata changes. Once .qmlls.build.ini is present and patched,
+            // Set after build settings change. Once .qmlls.build.ini is present and patched,
             // restart qmlls so it can read the updated build settings in a fresh process.
             public bool RestartWhenIniReady { get; set; }
-            // Non-null while a FileSystemWatcher is waiting for .qt/.qmlls.build.ini to appear
-            // or finish changing. Prevents duplicate watchers for the same project.
-            public IDisposable? IniWatcher { get; set; }
+            // Polls generated qmlls build settings. The files are build outputs and can be
+            // rewritten by rebuild, clean+build, or command-line builds.
+            public BuildSettingsMonitor? BuildSettingsMonitor { get; set; }
+        }
+
+        private readonly record struct FileSignature(
+            bool Exists,
+            DateTime LastWriteTimeUtc,
+            long Length);
+
+        private sealed class BuildSettingsMonitor : IDisposable
+        {
+            private readonly CancellationTokenSource cts = new();
+            private Dictionary<string, FileSignature>? signatures;
+
+            public CancellationToken Token => cts.Token;
+
+            // Returns true after the initial snapshot when a monitored file signature changes.
+            public bool UpdateSignatures(Dictionary<string, FileSignature> current)
+            {
+                if (signatures == null) {
+                    signatures = current;
+                    return false; // First-time initialization: no update
+                }
+
+                if (signatures.Count != current.Count) {
+                    signatures = current;
+                    return true; // Counts differ: update occurred
+                }
+
+                foreach (var entry in signatures) {
+                    if (current.TryGetValue(entry.Key, out var value) && value.Equals(entry.Value))
+                        continue;
+                    signatures = current;
+                    return true; // Value mismatch: update occurred
+                }
+
+                return false; // No differences found
+            }
+
+            public void Dispose()
+            {
+                cts.Cancel();
+                cts.Dispose();
+            }
         }
 
         private readonly object registryLock = new();
@@ -196,7 +238,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     registryDisposed = true;
                     foreach (var entry in projectRegistry.Values) {
                         entry.Watcher.Dispose();
-                        entry.IniWatcher?.Dispose();
+                        entry.BuildSettingsMonitor?.Dispose();
                     }
                     projectRegistry.Clear();
                 }
@@ -427,7 +469,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     () => OnProjectMetadataChanged(projectFilePath));
 
                 IDisposable? displaced = null;
-                IDisposable? displacedIniWatcher = null;
+                IDisposable? displacedBuildSettingsMonitor = null;
                 lock (registryLock) {
                     if (registryDisposed) {
                         watcher.Dispose();
@@ -440,16 +482,17 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     } else {
                         if (projectRegistry.TryGetValue(projectFilePath, out existing)) {
                             displaced = existing.Watcher; // config changed, displace old watcher
-                            displacedIniWatcher = existing.IniWatcher;
+                            displacedBuildSettingsMonitor = existing.BuildSettingsMonitor;
                         }
                         projectRegistry[projectFilePath] =
                             new ProjectEntry(watcher, projectDirectory, configKey);
                     }
                 }
                 displaced?.Dispose();
-                displacedIniWatcher?.Dispose();
+                displacedBuildSettingsMonitor?.Dispose();
             }
 
+            EnsureBuildSettingsMonitor(projectFilePath);
             await TryInjectProjectAsync(projectFilePath, ct, notifyUser);
         }
 
@@ -508,8 +551,19 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             var readResult = metadataReader.TryRead(metadataFilePath, ct);
             if (!readResult.Success) {
                 ResetInjection();
-                log.Error($"QML Language Server: failed to read metadata at '{readResult.Path}'"
-                    + $" ({readResult.Error}).", readResult.Exception);
+                if (readResult.Error == QmlMetadataReadError.IoError) {
+                    log.Info($"QML Language Server: metadata file is not ready for"
+                        + $" '{Path.GetFileName(projectFilePath)}' - will retry.");
+                    QueueLoggedTask(async () =>
+                    {
+                        await Task.Delay(250, CancellationToken.None);
+                        await TryInjectProjectAsync(projectFilePath, CancellationToken.None,
+                            notifyUser);
+                    }, $"retry injection after metadata read for {Path.GetFileName(projectFilePath)}");
+                } else {
+                    log.Error($"QML Language Server: failed to read metadata at '{readResult.Path}'"
+                        + $" ({readResult.Error}).", readResult.Exception);
+                }
                 return;
             }
 
@@ -532,7 +586,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             }
 
             // qmlls selects .qmlls.build.ini settings by matching the file path against the
-            // section header (startsWith check). The generated section is keyed by the native
+            // section header (startsWith check). The generated section is keyed by the generated
             // source root (e.g. obj/.../qt/native/source), which does not match user-authored
             // QML files under the project root. Add an alias section for the project root so
             // qmlls can resolve project-specific types (e.g. C#-exposed types) in those files.
@@ -541,12 +595,19 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             // the metadata JSON that triggered this injection attempt. Do not send $/addBuildDirs
             // until the ini exists and has been patched; qmlls memoizes build-dir settings and
             // will not revisit an already-seen build path in the current session.
+            if (!BuildSettingsIniFilesExist(metadata)) {
+                ResetInjection();
+                log.Info($"QML Language Server: metadata not fully ready for"
+                    + $" '{Path.GetFileName(projectFilePath)}' - delaying injection until"
+                    + " .qmlls.build.ini exists.");
+                return;
+            }
+
             if (!buildIniPatcher.TryPatch(metadata, projectFilePath)) {
                 ResetInjection();
                 log.Info($"QML Language Server: metadata not fully ready for"
                     + $" '{Path.GetFileName(projectFilePath)}' - delaying injection until"
                     + " .qmlls.build.ini exists.");
-                EnsureBuildSettingsWatcher(projectFilePath, projectDirectory, notifyUser);
                 return;
             }
 
@@ -555,7 +616,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 log.Info($"QML Language Server: metadata not fully ready for"
                     + $" '{Path.GetFileName(projectFilePath)}' - delaying injection until"
                     + " generated .qmltypes files exist.");
-                EnsureBuildSettingsWatcher(projectFilePath, projectDirectory, notifyUser);
                 return;
             }
 
@@ -565,8 +625,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     && entry.RestartWhenIniReady) {
                     entry.RestartWhenIniReady = false;
                     entry.BuildDirsInjected = false;
-                    entry.IniWatcher?.Dispose();
-                    entry.IniWatcher = null;
                     shouldRestart = true;
                 }
             }
@@ -601,8 +659,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 }
                 if (projectRegistry.TryGetValue(projectFilePath, out var entry)) {
                     entry.MissingMetadataNotified = false;
-                    entry.IniWatcher?.Dispose();
-                    entry.IniWatcher = null;
                 }
             }
 
@@ -672,6 +728,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             return true;
         }
 
+        private static bool BuildSettingsIniFilesExist(CoreQmlMetadata metadata)
+        {
+            return metadata.Qml.BuildDirs
+                .All(buildDir => File.Exists(Path.Combine(buildDir, ".qt", ".qmlls.build.ini")));
+        }
+
         private static bool IsPathUnder(string path, string root)
         {
             var fullPath = Path.GetFullPath(path)
@@ -683,60 +745,146 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             return fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase);
         }
 
-        private void EnsureBuildSettingsWatcher(
-            string projectFilePath,
-            string projectDirectory,
-            bool notifyUser)
+        private void EnsureBuildSettingsMonitor(string projectFilePath)
         {
-            FileSystemWatcher? watcher;
+            BuildSettingsMonitor? monitor;
             lock (registryLock) {
                 if (!projectRegistry.TryGetValue(projectFilePath, out var entry))
                     return;
-                if (entry.IniWatcher != null)
+                if (entry.BuildSettingsMonitor != null)
                     return;
 
-                watcher = new FileSystemWatcher(projectDirectory, "*.*")
-                {
-                    IncludeSubdirectories = true,
-                    NotifyFilter = NotifyFilters.FileName
-                        | NotifyFilters.DirectoryName
-                        | NotifyFilters.LastWrite
-                        | NotifyFilters.CreationTime
-                };
-                entry.IniWatcher = watcher;
+                monitor = new BuildSettingsMonitor();
+                entry.BuildSettingsMonitor = monitor;
             }
 
-            void QueueRetry(string reason)
+            log.Info($"QML Language Server: monitoring generated build settings for"
+                + $" '{Path.GetFileName(projectFilePath)}'.");
+
+            QueueLoggedTask(async () =>
             {
-                log.Info($"QML Language Server: detected {reason} for"
-                    + $" '{Path.GetFileName(projectFilePath)}' - retrying injection.");
-                QueueLoggedTask(
-                    () => TryInjectProjectAsync(
-                        projectFilePath,
-                        CancellationToken.None,
-                        notifyUser),
-                    $"retry injection after build settings {reason} for"
-                    + $" {Path.GetFileName(projectFilePath)}");
+                var monitorToken = monitor.Token;
+                while (!monitorToken.IsCancellationRequested) {
+                    await Task.Delay(1000, monitorToken);
+
+                    var signatures = GetBuildSettingsSignatures(projectFilePath, monitorToken);
+                    var changed = monitor.UpdateSignatures(signatures);
+
+                    bool shouldRetry;
+                    var shouldLogChange = false;
+                    lock (registryLock) {
+                        if (!projectRegistry.TryGetValue(projectFilePath, out var entry))
+                            return;
+                        if (changed && entry.BuildDirsInjected) {
+                            entry.BuildDirsInjected = false;
+                            entry.RestartWhenIniReady = true;
+                            shouldLogChange = true;
+                        }
+                        shouldRetry = changed || (!entry.BuildDirsInjected && signatures.Count > 0);
+                    }
+
+                    if (!shouldRetry)
+                        continue;
+
+                    if (shouldLogChange) {
+                        log.Info($"QML Language Server: generated build settings changed for"
+                            + $" '{Path.GetFileName(projectFilePath)}' - retrying injection.");
+                    }
+                    await TryInjectProjectAsync(projectFilePath, CancellationToken.None,
+                        notifyUser: false);
+                }
+            }, $"monitor QML Language Server build settings for {Path.GetFileName(projectFilePath)}");
+        }
+
+        private Dictionary<string, FileSignature> GetBuildSettingsSignatures(
+            string projectFilePath,
+            CancellationToken ct)
+        {
+            string? projectDirectory, configKey;
+            lock (registryLock) {
+                if (!projectRegistry.TryGetValue(projectFilePath, out var entry))
+                    return [];
+                projectDirectory = entry.ProjectDirectory;
+                configKey = entry.ConfigKey;
             }
 
-            watcher.Created += (_, e) => QueueRetry($"new build file '{e.Name}'");
-            watcher.Changed += (_, e) => QueueRetry($"build file change '{e.Name}'");
-            watcher.Renamed += (_, e) => QueueRetry($"build file rename '{e.Name}'");
-            watcher.Error += (_, e) =>
-            {
-                log.Warning($"QML Language Server: build settings watcher failed for"
-                    + $" '{Path.GetFileName(projectFilePath)}': {e.GetException().Message}");
-            };
-            watcher.EnableRaisingEvents = true;
+            var metadataFilePath = metadataReader.FindMetadataFilePath(projectDirectory, configKey);
+            if (metadataFilePath == null)
+                return [];
 
-            log.Info($"QML Language Server: watching '{projectDirectory}'"
-                + " for .qmlls.build.ini and generated .qmltypes files.");
+            var readResult = metadataReader.TryRead(metadataFilePath, ct);
+            if (!readResult.Success)
+                return [];
+
+            var configuration = Path.GetFileName(configKey);
+            if (!metadataReader.Validate(readResult.Metadata!, projectFilePath, configuration))
+                return [];
+
+            var metadata = readResult.Metadata!;
+            var signatures = new Dictionary<string, FileSignature>(StringComparer.OrdinalIgnoreCase);
+            var buildDirs = metadata.Qml.BuildDirs
+                .Select(Path.GetFullPath)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            foreach (var buildDir in buildDirs) {
+                var dir = Path.Combine(buildDir, ".qt");
+                AddPathSignature(signatures, Path.Combine(dir, ".qmlls.build.ini"));
+                AddPathSignature(signatures, Path.Combine(dir, "qtbridge_project_sources.qrc"));
+            }
+
+            var generatedImportPaths = metadata.Qml.ImportPaths
+                .Where(path => buildDirs.Any(buildDir => IsPathUnder(path, buildDir)))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+            foreach (var importPath in generatedImportPaths) {
+                AddPathSignature(signatures, importPath);
+                if (!Directory.Exists(importPath))
+                    continue;
+                foreach (var qmlTypesPath in Directory.EnumerateFiles(
+                    importPath, "*.qmltypes", SearchOption.TopDirectoryOnly)) {
+                    AddPathSignature(signatures, qmlTypesPath);
+                }
+            }
+
+            return signatures;
+        }
+
+        private static void AddPathSignature(
+            IDictionary<string, FileSignature> signatures,
+            string path)
+        {
+            var normalizedPath = Path.GetFullPath(path);
+            try {
+                if (File.Exists(normalizedPath)) {
+                    var file = new FileInfo(normalizedPath);
+                    signatures[normalizedPath] = new FileSignature(true, file.LastWriteTimeUtc,
+                        file.Length);
+                    return;
+                }
+                if (Directory.Exists(normalizedPath)) {
+                    var directory = new DirectoryInfo(normalizedPath);
+                    signatures[normalizedPath] = new FileSignature(true, directory.LastWriteTimeUtc,
+                        0);
+                    return;
+                }
+            } catch (IOException) {
+                signatures[normalizedPath] = new FileSignature(true, DateTime.MinValue, -1);
+                return;
+            } catch (UnauthorizedAccessException) {
+                signatures[normalizedPath] = new FileSignature(true, DateTime.MinValue, -1);
+                return;
+            }
+
+            signatures[normalizedPath] = new FileSignature(false, DateTime.MinValue, 0);
         }
 
         private async Task RestartServerForProjectAsync(string projectFilePath)
         {
             if (!Enabled)
                 return;
+
+            lock (registryLock)
+                activePipe = null;
 
             Enabled = false;
             await Task.Delay(500);
@@ -759,8 +907,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                         return;
                     e.BuildDirsInjected = false;
                     e.RestartWhenIniReady = true;
-                    e.IniWatcher?.Dispose();
-                    e.IniWatcher = null;
                 }
 
                 // After a build, metadata JSON may appear before the build has finished writing

@@ -13,6 +13,9 @@ eventually stop patching `.qmlls.build.ini` and generating bridge-specific qrc f
   `.qmltypes`, then patches `.qmlls.build.ini`.
 - The extension currently generates `.qt/qtbridge_project_sources.qrc` from `qml.files` and adds
   it to the project-source-root alias section.
+- Because `.qmlls.build.ini` and `.qt/qtbridge_project_sources.qrc` are generated build outputs,
+  the extension also monitors the expected generated files and retries injection when they are
+  deleted or rewritten by rebuild, clean+build, or command-line builds.
 
 This fixes Visual Studio, but the bridge-specific mapping still lives in one editor integration.
 
