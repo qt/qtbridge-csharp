@@ -43,6 +43,17 @@ public:
         return *this;
     }
 
+    QDotNetRef module() const
+    {
+        if (!isValid())
+            return nullptr;
+        if (!fnModule.isValid()) {
+            const QList<QDotNetParameter> parameters{ QDotNetInbound<QDotNetRef>::Parameter };
+            fnModule = adapter().resolveInstanceMethod(*this, "get_Module", parameters);
+        }
+        return fnModule();
+    }
+
     QString assemblyQualifiedName() const
     {
         if (!isValid())
@@ -302,6 +313,7 @@ public:
     }
 
 private:
+    mutable QDotNetFunction<QDotNetRef> fnModule;
     mutable QDotNetFunction<QString> fnAssemblyQualifiedName;
     mutable QDotNetFunction<QString> fnFullName;
     mutable QString strFullName;
