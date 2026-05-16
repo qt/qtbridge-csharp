@@ -23,21 +23,21 @@ public:
         : QDotNetRef(typeRef)
     {}
 
-    QDotNetType(const QDotNetType &cpySrc)
+    QDotNetType(const QDotNetRef &cpySrc)
         : QDotNetRef(adapter().addObjectRef(&cpySrc))
     {}
 
-    QDotNetType &operator =(const QDotNetType &cpySrc)
+    QDotNetType &operator=(const QDotNetRef &cpySrc)
     {
         QDotNetRef::operator=(cpySrc);
         return *this;
     }
 
-    QDotNetType(QDotNetType &&movSrc) noexcept
+    QDotNetType(QDotNetRef &&movSrc) noexcept
         : QDotNetRef(std::move(movSrc))
     {}
 
-    QDotNetType &operator=(QDotNetType &&movSrc) noexcept
+    QDotNetType &operator=(QDotNetRef &&movSrc) noexcept
     {
         QDotNetRef::operator=(std::move(movSrc));
         return *this;
