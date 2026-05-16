@@ -66,7 +66,7 @@ namespace Test_Qt.Bridge.Project.Shared
         /// Creates the temp project, applies the given options, runs a build, saves the log
         /// and asserts that the build succeeded.
         /// </summary>
-        protected async Task InitializeAndBuildAsync(
+        protected static async Task InitializeAndBuildAsync(
             TempProject temp,
             CreationOptions options,
             Action<TempProject> configure = null)

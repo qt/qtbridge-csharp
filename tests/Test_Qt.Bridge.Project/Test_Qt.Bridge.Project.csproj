@@ -20,6 +20,7 @@
     <Compile Remove="CollectionsAndValues\Program.cs" />
     <Compile Remove="CustomMarshaling\Program.cs" />
     <Compile Remove="DelegatesAndEvents\Program.cs" />
+    <Compile Remove="DynamicObject\Program.cs" />
     <Compile Remove="FunctionCalls\Program.cs" />
     <Compile Remove="HostLifecycle\Program.cs" />
     <Compile Remove="Models\TableModel\Program.cs" />
@@ -86,6 +87,15 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="DelegatesAndEvents\Program.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DynamicObject\main.cpp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DynamicObject\Program.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DynamicObject\tst_callmethod.qml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="FunctionCalls\main.cpp">
@@ -196,6 +206,7 @@
     <PackageReference Include="MSTest" Version="3.10.4" />
     <PackageReference Include="MSTest.TestFramework" Version="3.10.4" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="9.0.5" />
   </ItemGroup>
 
   <ItemGroup>
