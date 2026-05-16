@@ -82,6 +82,14 @@ public:
         return fnEquals(obj);
     }
 
+    QDotNetRef getType() const
+    {
+        if (!fnGetType.isValid()) {
+            const QList<QDotNetParameter> parameters{ QDotNetInbound<QDotNetRef>::Parameter };
+            fnGetType = adapter().resolveInstanceMethod(*this, "GetType", parameters);
+        }
+        return fnGetType();
+    }
 
 protected:
     static QDotNetAdapter &adapter() { return QDotNetAdapter::instance(); }
@@ -120,6 +128,7 @@ private:
 
     mutable QDotNetFunction<QString> fnToString = nullptr;
     mutable QDotNetFunction<bool, QDotNetRef> fnEquals = nullptr;
+    mutable QDotNetFunction<QDotNetRef> fnGetType = nullptr;
 };
 
 template<typename T>
