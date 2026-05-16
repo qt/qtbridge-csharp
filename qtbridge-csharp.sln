@@ -26,6 +26,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "include", "include", "{63F4
 		include\qdotnetobject.h = include\qdotnetobject.h
 		include\qdotnetparameter.h = include\qdotnetparameter.h
 		include\qdotnetref.h = include\qdotnetref.h
+		include\qdotnetreflection.h = include\qdotnetreflection.h
 		include\qdotnetsafemethod.h = include\qdotnetsafemethod.h
 		include\qdotnetsignal.h = include\qdotnetsignal.h
 		include\qdotnetstatic.h = include\qdotnetstatic.h
