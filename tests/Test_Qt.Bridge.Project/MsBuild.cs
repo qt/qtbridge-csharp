@@ -4,6 +4,10 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Security;
+using System.Text;
+using System.Threading;
 
 namespace Test_Qt.Bridge.Project
 {
@@ -70,5 +74,68 @@ namespace Test_Qt.Bridge.Project
                 MsBuildPath == "dotnet" ? ["msbuild", .. args] : args,
                 envVars, stdOut, stdErr);
         }
+
+        public static string Evaluate(string msbuildExpr,
+            string workDir, (string Name, string Value)[] envVars = null, params string[] args)
+        {
+            return Evaluate(Timeout.Infinite, msbuildExpr, workDir, envVars, args);
+        }
+
+        public static string Evaluate(int timeout, string msbuildExpr,
+            string workDir, (string Name, string Value)[] envVars = null, params string[] args)
+        {
+            if (!Monitor.TryEnter(criticalSection_Evaluate, timeout))
+                throw new TimeoutException("Timed out waiting for MSBuild expression eval.");
+
+            bool createdTargetFile = false;
+            var targetFile = Path.GetFullPath(Path.Combine(workDir, "Directory.Build.targets"));
+            try {
+                if (File.Exists(targetFile))
+                    throw new InvalidOperationException($"Directory.Build.targets in {workDir}");
+
+                File.WriteAllText(targetFile,
+                    $"""
+                <?xml version="1.0" encoding="utf-8"?>
+                <Project>
+                  <Target Name="EvaluateExpression">
+                    <PropertyGroup>
+                      <ExpressionValue>{SecurityElement.Escape(msbuildExpr)}</ExpressionValue>
+                    </PropertyGroup>
+                  </Target>
+                </Project>
+                """);
+                createdTargetFile = true;
+
+                var stdOut = new StringBuilder();
+                var stdErr = new StringBuilder();
+                args = args
+                    .Append("-t:EvaluateExpression")
+                    .Append("-getProperty:ExpressionValue")
+                    .ToArray();
+                var msbuildProc = Start(
+                    x => stdOut.AppendLine(x), x => stdErr.AppendLine(x), workDir, envVars, args);
+                msbuildProc.WaitForExit();
+
+                File.Delete(targetFile);
+
+                if (msbuildProc.ExitCode != 0) {
+                    throw new Exception($"""
+                        Error evaluating MSBuild expression
+                        ----
+                        {stdOut.ToString()}
+                        ----
+                        {stdErr.ToString()}
+                        """);
+                }
+                return stdOut.ToString().Trim(' ', '\r', '\n');
+
+            } finally {
+                if (createdTargetFile)
+                    File.Delete(targetFile);
+                Monitor.Exit(criticalSection_Evaluate);
+            }
+        }
+
+        private static readonly object criticalSection_Evaluate = new();
     }
 }
