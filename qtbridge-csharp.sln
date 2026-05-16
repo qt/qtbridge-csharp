@@ -16,6 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "include", "include", "{63F4
 		include\qdotnetcallback.h = include\qdotnetcallback.h
 		include\qdotnetconvert.h = include\qdotnetconvert.h
 		include\qdotnetdelegate.h = include\qdotnetdelegate.h
+		include\qdotnetdynamicobject.h = include\qdotnetdynamicobject.h
 		include\qdotnetevent.h = include\qdotnetevent.h
 		include\qdotnetexception.h = include\qdotnetexception.h
 		include\qdotnetfunction.h = include\qdotnetfunction.h
