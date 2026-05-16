@@ -14,13 +14,20 @@ namespace Test_Qt.Bridge.Project
         public static class Build
         {
             public static string ProjectDir { get; private set; }
+            public static string Configuration { get; private set; }
+            public static string Platform { get; private set; }
 
             internal static void Init()
             {
-                ProjectDir = Assembly.GetExecutingAssembly()
+                var attribs = Assembly.GetExecutingAssembly()
                     .GetCustomAttributes<AssemblyMetadataAttribute>()
-                    .FirstOrDefault(m => m.Key == $"{nameof(Build)}.{nameof(ProjectDir)}")
-                    ?.Value;
+                    .ToDictionary(a => a.Key, a => a.Value);
+                var buildProps = typeof(Build)
+                    .GetProperties(BindingFlags.Static | BindingFlags.Public);
+                foreach (var buildProp in buildProps) {
+                    if (attribs.TryGetValue($"{nameof(Build)}.{buildProp.Name}", out var propValue))
+                        buildProp.SetValue(null, propValue);
+                }
             }
         }
 
