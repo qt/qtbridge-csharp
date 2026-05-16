@@ -82,7 +82,7 @@ struct QDotNetParameter
     {}
 
     QDotNetParameter(const QString &typeName,
-        UnmanagedType unmanagedType = UnmanagedType::ObjectRef,bool isIn = false,
+        UnmanagedType unmanagedType = UnmanagedType::ObjectRef, bool isIn = false,
         bool isOut = false, bool isArray = false, bool isFixedLength = false,
         qint32 arrayLength = 0, bool isWeakRef = false)
     {
@@ -94,6 +94,11 @@ struct QDotNetParameter
         paramInfo |= FLAG(isFixedLength, FLAGS_FIXEDLENGTH_BIT) << FLAGS_OFFSET;
         paramInfo |= FLAG(isWeakRef, FLAGS_WEAKREF_BIT) << FLAGS_OFFSET;
         paramInfo |= MASK(arrayLength, ARRAYLENGTH_SIZE) << ARRAYLENGTH_OFFSET;
+    }
+
+    UnmanagedType unmanagedType() const
+    {
+        return static_cast<UnmanagedType>(MASK(paramInfo, TYPE_SIZE));
     }
 
     static const QDotNetParameter &String;
