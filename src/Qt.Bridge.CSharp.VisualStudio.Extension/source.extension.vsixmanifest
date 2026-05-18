@@ -12,13 +12,17 @@
       Id="Qt.Bridge.CSharp.VisualStudio"
       Version="1.0"
       Language="en-US"
-      Publisher="The Qt Company Ltd." />
+      Publisher="Qt Group" />
     <DisplayName>Qt Bridge for C#</DisplayName>
     <Description
-      xml:space="preserve">Visual Studio extension for Qt Bridge for C# projects.</Description>
+      xml:space="preserve">QML editor support for Qt Bridge for C# projects in Visual Studio.</Description>
     <License>GPL-3.0-only.txt</License>
+    <MoreInfoUrl>https://doc-snapshots.qt.io/qtbridges-dev/qtbridges-csharp-index.html</MoreInfoUrl>
+    <GettingStartedGuide>https://doc-snapshots.qt.io/qtbridges-dev/qtbridges-csharp-getting-started.html</GettingStartedGuide>
+    <ReleaseNotes>https://raw.githubusercontent.com/qt/qtbridge-csharp/dev/CHANGELOG.md</ReleaseNotes>
     <Icon>qt.ico</Icon>
     <Preview>true</Preview>
+    <Tags>Qt QML C# Visual Studio language server completion diagnostics</Tags>
   </Metadata>
   <Installation ExtensionType="VSSDK+VisualStudio.Extensibility">
     <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.14,)">

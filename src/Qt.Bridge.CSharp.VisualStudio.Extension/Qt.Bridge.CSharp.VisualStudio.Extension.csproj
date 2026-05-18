@@ -29,6 +29,10 @@
       >$(MSBuildThisFileDirectory)..\..\nuget\Qt.Bridge.CSharp.Templates\Qt.Bridge.CSharp.Templates.csproj</QtBridgeTemplatesProjectPath>
     <QtBridgeTemplatesPackagePath
       >$(MSBuildThisFileDirectory)..\..\nuget\Qt.Bridge.CSharp.Templates\bin\$(Configuration)\$(QtBridgeTemplatesPackageFileName)</QtBridgeTemplatesPackagePath>
+    <VsixBuildNumber Condition="'$(Qt_BuildNum)' != ''">$(Qt_BuildNum)</VsixBuildNumber>
+    <VsixBuildNumber Condition="'$(VsixBuildNumber)' == '' AND '$(Qt_Timestamp)' != ''">$(Qt_Timestamp)</VsixBuildNumber>
+    <VsixBuildNumber Condition="'$(VsixBuildNumber)' == ''">0</VsixBuildNumber>
+    <VsixIdentityVersion>$(Qt_MajorNum).$(Qt_MinorNum).$(Qt_PatchNum).$(VsixBuildNumber)</VsixIdentityVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="$([MSBuild]::IsOsPlatform('Windows'))">
@@ -83,6 +87,13 @@
         <VSIXSubPath>ProjectTemplates\</VSIXSubPath>
       </VSIXSourceItem>
     </ItemGroup>
+  </Target>
+
+  <Target Name="UpdateVsixManifestVersion" AfterTargets="DetokenizeVsixManifestFile">
+    <XmlPoke XmlInputPath="$(IntermediateVsixManifest)"
+             Query="/vs:PackageManifest/vs:Metadata/vs:Identity/@Version"
+             Namespaces="&lt;Namespace Prefix='vs' Uri='http://schemas.microsoft.com/developer/vsx-schema/2011' /&gt;"
+             Value="$(VsixIdentityVersion)" />
   </Target>
 
   <!--
