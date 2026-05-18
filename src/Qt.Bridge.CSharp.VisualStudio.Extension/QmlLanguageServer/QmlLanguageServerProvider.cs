@@ -499,7 +499,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private async Task TryInjectProjectAsync(
             string projectFilePath,
             CancellationToken ct,
-            bool notifyUser = false)
+            bool notifyUser = false,
+            bool logNotReady = true)
         {
             QmlLanguageServerTransportPipe? pipe;
             string? projectDirectory, configKey;
@@ -558,7 +559,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     {
                         await Task.Delay(250, CancellationToken.None);
                         await TryInjectProjectAsync(projectFilePath, CancellationToken.None,
-                            notifyUser);
+                            notifyUser, logNotReady);
                     }, $"retry injection after metadata read for {Path.GetFileName(projectFilePath)}");
                 } else {
                     log.Error($"QML Language Server: failed to read metadata at '{readResult.Path}'"
@@ -597,25 +598,31 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             // will not revisit an already-seen build path in the current session.
             if (!BuildSettingsIniFilesExist(metadata)) {
                 ResetInjection();
-                log.Info($"QML Language Server: metadata not fully ready for"
-                    + $" '{Path.GetFileName(projectFilePath)}' - delaying injection until"
-                    + " .qmlls.build.ini exists.");
+                if (logNotReady) {
+                    log.Info($"QML Language Server: metadata not fully ready for"
+                        + $" '{Path.GetFileName(projectFilePath)}' - delaying injection until"
+                        + " .qmlls.build.ini exists.");
+                }
                 return;
             }
 
             if (!buildIniPatcher.TryPatch(metadata, projectFilePath)) {
                 ResetInjection();
-                log.Info($"QML Language Server: metadata not fully ready for"
-                    + $" '{Path.GetFileName(projectFilePath)}' - delaying injection until"
-                    + " .qmlls.build.ini exists.");
+                if (logNotReady) {
+                    log.Info($"QML Language Server: metadata not fully ready for"
+                        + $" '{Path.GetFileName(projectFilePath)}' - delaying injection until"
+                        + " .qmlls.build.ini exists.");
+                }
                 return;
             }
 
             if (!TryGeneratedQmlTypesReady(metadata, projectFilePath)) {
                 ResetInjection();
-                log.Info($"QML Language Server: metadata not fully ready for"
-                    + $" '{Path.GetFileName(projectFilePath)}' - delaying injection until"
-                    + " generated .qmltypes files exist.");
+                if (logNotReady) {
+                    log.Info($"QML Language Server: metadata not fully ready for"
+                        + $" '{Path.GetFileName(projectFilePath)}' - delaying injection until"
+                        + " generated .qmltypes files exist.");
+                }
                 return;
             }
 
@@ -696,7 +703,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
             foreach (var importPath in generatedImportPaths) {
                 if (!Directory.Exists(importPath)) {
-                    log.Info($"QML Language Server: generated import path not found"
+                    log.Verbose($"QML Language Server: generated import path not found"
                         + $" for '{Path.GetFileName(projectFilePath)}': '{importPath}'.");
                     return false;
                 }
@@ -704,7 +711,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 var qmlTypes = Directory.EnumerateFiles(
                     importPath, "*.qmltypes", SearchOption.TopDirectoryOnly).ToArray();
                 if (qmlTypes.Length == 0) {
-                    log.Info($"QML Language Server: no generated .qmltypes files found"
+                    log.Verbose($"QML Language Server: no generated .qmltypes files found"
                         + $" for '{Path.GetFileName(projectFilePath)}' in '{importPath}'.");
                     return false;
                 }
@@ -717,7 +724,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                             FileAccess.Read,
                             FileShare.Read);
                     } catch (IOException ex) {
-                        log.Info($"QML Language Server: generated .qmltypes file is not ready"
+                        log.Verbose($"QML Language Server: generated .qmltypes file is not ready"
                             + $" for '{Path.GetFileName(projectFilePath)}':"
                             + $" '{qmlTypesPath}' ({ex.Message}).");
                         return false;
@@ -758,7 +765,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 entry.BuildSettingsMonitor = monitor;
             }
 
-            log.Info($"QML Language Server: monitoring generated build settings for"
+            log.Verbose($"QML Language Server: monitoring generated build settings for"
                 + $" '{Path.GetFileName(projectFilePath)}'.");
 
             QueueLoggedTask(async () =>
@@ -791,7 +798,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                             + $" '{Path.GetFileName(projectFilePath)}' - retrying injection.");
                     }
                     await TryInjectProjectAsync(projectFilePath, CancellationToken.None,
-                        notifyUser: false);
+                        notifyUser: false,
+                        logNotReady: false);
                 }
             }, $"monitor QML Language Server build settings for {Path.GetFileName(projectFilePath)}");
         }

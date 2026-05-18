@@ -46,11 +46,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             var generatedKey = BuildSectionKey(metadata.Qml.SourceDir);
             var aliasKey = BuildSectionKey(projectSourceDir!);
 
-            log.Info($"QML Language Server: {BuildIni} patch - generatedKey={generatedKey}"
+            log.Verbose($"QML Language Server: {BuildIni} patch - generatedKey={generatedKey}"
                 + $" aliasKey={aliasKey}");
 
             if (string.Equals(generatedKey, aliasKey, StringComparison.OrdinalIgnoreCase)) {
-                log.Info($"QML Language Server: {BuildIni} patch skipped - keys are equal.");
+                log.Verbose($"QML Language Server: {BuildIni} patch skipped - keys are equal.");
                 return true;
             }
 
@@ -59,7 +59,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             foreach (var buildDir in metadata.Qml.BuildDirs) {
                 var iniPath = Path.Combine(buildDir, ".qt", BuildIni);
                 if (!File.Exists(iniPath)) {
-                    log.Info($"QML Language Server: {BuildIni} not found at '{iniPath}'.");
+                    log.Verbose($"QML Language Server: {BuildIni} not found at '{iniPath}'.");
                     allReady = false;
                     continue;
                 }
@@ -153,7 +153,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             if (lines.Any(l => string.Equals(
                 l.Trim(), aliasKey, StringComparison.OrdinalIgnoreCase))) {
                 EnsureV1AliasSectionValues(iniPath, lines, aliasKey, importPaths, resourceFiles);
-                log.Info($"QML Language Server: {BuildIni} already has alias '{aliasKey}'.");
+                log.Verbose($"QML Language Server: {BuildIni} already has alias '{aliasKey}'.");
                 return true;
             }
 
@@ -173,7 +173,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             }
 
             if (sectionLines.Count == 0) {
-                log.Info($"QML Language Server: {BuildIni} patch skipped - generated section"
+                log.Verbose($"QML Language Server: {BuildIni} patch skipped - generated section"
                     + $" '{generatedKey}' not found in '{iniPath}' ({lines.Length} lines).");
                 return false;
             }
@@ -261,7 +261,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 .Select(entry => (int?)entry.Key)
                 .FirstOrDefault();
             if (generatedIndex == null) {
-                log.Info($"QML Language Server: {BuildIni} patch skipped - generated"
+                log.Verbose($"QML Language Server: {BuildIni} patch skipped - generated"
                     + $" workspace '{generatedSourceDir}' not found in '{iniPath}'.");
                 return FormatPatchResult.NotReady;
             }
@@ -288,7 +288,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     aliasIndex.Value, "resourceFiles", resourceFiles);
                 if (!lines.SequenceEqual(updatedLines))
                     File.WriteAllLines(iniPath, updatedLines);
-                log.Info($"QML Language Server: {BuildIni} already has workspace alias"
+                log.Verbose($"QML Language Server: {BuildIni} already has workspace alias"
                     + $" '{projectSourceDir}'.");
                 return FormatPatchResult.Patched;
             }
