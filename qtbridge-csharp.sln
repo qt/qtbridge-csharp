@@ -109,6 +109,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "how-to", "how-to", "{429F92
 		HOW-TO build nuget and testapp.md = HOW-TO build nuget and testapp.md
 		HOW-TO debug generated code.md = HOW-TO debug generated code.md
 		HOW-TO Qt Bridge for C#.md = HOW-TO Qt Bridge for C#.md
+		HOW-TO resources.md = HOW-TO resources.md
 		HOW-TO versions.md = HOW-TO versions.md
 	EndProjectSection
 EndProject

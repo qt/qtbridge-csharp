@@ -21,6 +21,7 @@ using Qt Quick for the UI. The bridging mechanism is based on interoperability b
         1. [Building Qt 6 from source on Linux (Ubuntu / WSL)](#building-qt-6-from-source-on-linux-ubuntu--wsl)
 1. [Running examples](#running-examples)
 1. [Using dotnet CLI templates](#using-dotnet-cli-templates)
+1. [Using resources](#using-resources)
 1. [Troubleshooting](#troubleshooting)
 1. [What gets packaged](#what-gets-packaged)
 1. [Clean up](#clean-up)
@@ -320,6 +321,14 @@ copied alongside your app).
 ```bash
 dotnet new uninstall QtGroup.Qt.Bridge.CSharp.Templates
 ```
+
+## Using resources
+
+Qt Bridge for C# packages app resources into the Qt Resource System. QML uses `qrc:/` URLs
+directly, and C# uses `Qt.Resources` when it needs to read the same packaged files.
+
+See [Resources in Qt Bridge for C# apps](HOW-TO%20resources.md) for the resource authoring model,
+`.resx` integration, access modes, aliases, and cross-project resource usage.
 
 ## Troubleshooting
 
