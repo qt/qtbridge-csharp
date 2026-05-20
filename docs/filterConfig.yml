@@ -1,0 +1,14 @@
+### YamlMime:ManagedReference
+apiRules:
+- exclude:
+    uidRegex: ^Qt\.MetaObject(\..+)?$
+- exclude:
+    uidRegex: ^Qt\.Quick\.QmlFileAttribute$
+- exclude:
+    uidRegex: ^Qt\.Quick\.QmlModuleAttribute$
+- exclude:
+    uidRegex: ^Qt\.Bridge\.QtResourceAttribute$
+- exclude:
+    uidRegex: ^Qt\.Bridge\.ValueConverter$
+- include:
+    uidRegex: .*

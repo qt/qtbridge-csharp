@@ -1,0 +1,33 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "../src/Qt.Bridge.CSharp.Api",
+          "files": [ "**/*.csproj" ]
+        }
+      ],
+      "dest": "api",
+      "filter": "filterConfig.yml"
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [ "api/**.yml", "api/index.md" ]
+      },
+      {
+        "files": [ "toc.yml", "index.md" ]
+      }
+    ],
+    "dest": "_site",
+    "globalMetadata": {
+      "_appName": "Qt Bridge for C# API Reference",
+      "_appTitle": "Qt Bridge for C# API Reference",
+      "_enableSearch": true,
+      "_appFooter": "Copyright &copy; 2026 The Qt Company Ltd."
+    },
+    "template": [ "default", "modern", "template" ]
+  }
+}

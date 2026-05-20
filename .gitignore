@@ -26,3 +26,7 @@ nuget/Qt.Bridge.CSharp.Templates/templates/Qt.Bridge.CSharp.Project/NewProject.c
 
 # Auto-version properties
 qt_autoversion.props
+
+# DocFX generated output
+docs/api/
+docs/_site/

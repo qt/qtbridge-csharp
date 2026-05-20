@@ -1,0 +1,6 @@
+- name: Home
+  href: https://doc-snapshots.qt.io/qtbridges-dev/qtbridges-csharp-index.html
+- name: Overview
+  href: index.md
+- name: API Reference
+  href: api/Qt.html
