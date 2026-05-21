@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     auto *typeDef = QDotNetDynamicObject::defineType("PrimesApp.PrimeFactory", "Primes",
                                                      "Primes.dll", appDirPath);
 
-    QDotNetDynamicObject::bindMethod(
+    QDotNetDynamicObject::addMethod(
             typeDef, "GetNthPrime",
             qEnvironmentVariable("PrimesApp_PrimeFactory_GetNthPrime").toInt(),
             typeDef->addMethod("getNthPrime(int)", "int"),

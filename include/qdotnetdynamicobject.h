@@ -31,9 +31,9 @@
 class QDotNetDynamicObject : public QObject, public QDotNetRef
 {
 private:
-    struct AssemblyFile;
-    struct AssemblyType;
-    struct AssemblyMember;
+    struct Parameter;
+    struct DynamicType;
+    struct DynamicMethod;
 
 public:
     static QMetaObjectBuilder *defineType(const QString &typeName, const QString &assemblyName,
@@ -49,7 +49,7 @@ public:
         }
 
         auto *typeDef = new QMetaObjectBuilder();
-        auto *type = assemblyTypes[typeDef] = new AssemblyType();
+        auto *type = dynamicTypes[typeDef] = new DynamicType();
         type->name = typeName;
         type->assemblyPath = assemblyPath;
         type->assemblyQualifiedName = QString("%1, %2").arg(typeName).arg(assemblyName);
@@ -58,24 +58,31 @@ public:
         return typeDef;
     }
 
-    static void bindMethod(QMetaObjectBuilder *typeDef, const QString &methodName, int token,
-                           const QMetaMethodBuilder &method, QList<QDotNetParameter> params)
+    static bool addMethod(QMetaObjectBuilder *typeDef, const QString &methodName, int token,
+                          const QMetaMethodBuilder &methodDef, QList<QDotNetParameter> params)
     {
         if (!QCoreApplication::startingUp())
-            return;
+            return false;
 
-        const auto &itAssemblyType = assemblyTypes.find(typeDef);
-        if (itAssemblyType == assemblyTypes.end()) {
-            qWarning() << "QDotNetDynamicObject: Unrecognized type definition:" << typeDef;
-            return;
+        if (params.empty()) {
+            qWarning() << "QDotNetDynamicObject: Empty method parameter list";
+            return false;
         }
-        auto *type = *itAssemblyType;
-        auto *member = new AssemblyMember();
-        type->methods[method.index()] = member;
-        member->declaringType = type;
-        member->name = methodName;
-        member->token = token;
-        member->params = params;
+
+        const auto &itDynamicType = dynamicTypes.find(typeDef);
+        if (itDynamicType == dynamicTypes.end()) {
+            qWarning() << "QDotNetDynamicObject: Unrecognized type definition:" << typeDef;
+            return false;
+        }
+        auto *type = *itDynamicType;
+        auto *method = new DynamicMethod();
+        type->methods[methodDef.index()] = method;
+        method->declaringType = type;
+        method->name = methodName;
+        method->token = token;
+        method->params = { params.begin(), params.end() };
+
+        return true;
     }
 
     static const QMetaObject *buildType(const QMetaObjectBuilder *typeDef)
@@ -91,12 +98,12 @@ public:
         if (!QCoreApplication::startingUp())
             return nullptr;
 
-        const auto &itAssemblyType = assemblyTypes.find(typeDef);
-        if (itAssemblyType == assemblyTypes.end()) {
+        const auto &itDynamicType = dynamicTypes.find(typeDef);
+        if (itDynamicType == dynamicTypes.end()) {
             qWarning() << "QDotNetDynamicObject: Unrecognized type definition:" << typeDef;
             return nullptr;
         }
-        auto *type = *itAssemblyType;
+        auto *type = *itDynamicType;
         const auto *metaObject = typeDef->toMetaObject();
         type->metaObject = metaObject;
         typeDefs[metaObject] = typeDef;
@@ -121,7 +128,7 @@ public:
         t.revision = QTypeRevision::zero();
         t.objectSize = sizeof(QDotNetDynamicObject);
         t.create = QDotNetDynamicObject::createObject;
-        t.userdata = const_cast<AssemblyType *>(type);
+        t.userdata = const_cast<DynamicType *>(type);
         t.typeId = QmlMetaType<QDotNetDynamicObject>::self();
         t.listId = QmlMetaType<QDotNetDynamicObject>::list();
         t.parserStatusCast = StaticCastSelector<QQmlParserStatus>::cast();
@@ -215,7 +222,7 @@ private:
             }
         }
 
-        auto *type = static_cast<AssemblyType *>(args);
+        auto *type = static_cast<DynamicType *>(args);
 
         if (!type->assembly.isValid()) {
             QDotNetAssembly assembly = QtDotNet::call<QDotNetRef, QString>(
@@ -251,7 +258,7 @@ private:
         new (memory) QDotNetDynamicObject(type, std::move(obj));
     }
 
-    QDotNetDynamicObject(AssemblyType *type, QDotNetRef &&obj) : type(type) { moveFrom(obj); }
+    QDotNetDynamicObject(DynamicType *type, QDotNetRef &&obj) : type(type) { moveFrom(obj); }
 
     static void staticMetacall(QObject *obj, QMetaObject::Call call, int id, void **args)
     {
@@ -260,10 +267,10 @@ private:
             return;
         const auto *typeDef = *itTypeDef;
 
-        const auto &itType = assemblyTypes.find(typeDef);
-        if (itType == assemblyTypes.end())
+        const auto &itDynamicType = dynamicTypes.find(typeDef);
+        if (itDynamicType == dynamicTypes.end())
             return;
-        const auto *type = *itType;
+        const auto *type = *itDynamicType;
 
         auto *objProxy = qobject_cast<QDotNetDynamicObject *>(obj);
         if (!objProxy)
@@ -277,7 +284,7 @@ private:
         }
     }
 
-    static void invokeMetaMethod(QDotNetDynamicObject *obj, AssemblyMember *method, void **args)
+    static void invokeMetaMethod(QDotNetDynamicObject *obj, DynamicMethod *method, void **args)
     {
         if (!method->methodInfo.isValid()) {
             method->methodInfo = method->declaringType->module.resolveMethod(method->token);
@@ -294,9 +301,9 @@ private:
         writeResult(method->params[0], args[0], method->methodInfo.invoke(*obj, argValues));
     }
 
-    static QDotNetRef readArg(const QDotNetParameter &param, void *arg)
+    static QDotNetRef readArg(const Parameter &param, void *arg)
     {
-        switch (param.unmanagedType()) {
+        switch (param.unmanagedType) {
         case UnmanagedType::Bool:
             return QDotNetConvert::fromBoolean(*reinterpret_cast<bool *>(arg));
         case UnmanagedType::I1:
@@ -306,7 +313,7 @@ private:
         case UnmanagedType::I2:
             return QDotNetConvert::fromInt16(*reinterpret_cast<qint16 *>(arg));
         case UnmanagedType::U2:
-            if (QString(param.typeName) == QDotNetTypeOf<QChar>::TypeName)
+            if (param.typeName == QDotNetTypeOf<QChar>::TypeName)
                 return QDotNetConvert::fromChar(*reinterpret_cast<QChar *>(arg));
             else
                 return QDotNetConvert::fromUInt16(*reinterpret_cast<quint16 *>(arg));
@@ -325,17 +332,17 @@ private:
         case UnmanagedType::LPWStr:
             return QDotNetConvert::fromString(*reinterpret_cast<QString *>(arg));
         default:
-            if (QString(param.typeName) == QDotNetTypeOf<QDateTime>::TypeName)
+            if (param.typeName == QDotNetTypeOf<QDateTime>::TypeName)
                 return QDotNetConvert::fromDateTime(*reinterpret_cast<QDateTime *>(arg));
-            else if (QString(param.typeName) == QDotNetTypeOf<QUrl>::TypeName)
+            else if (param.typeName == QDotNetTypeOf<QUrl>::TypeName)
                 return QDotNetConvert::fromUri(*reinterpret_cast<QUrl *>(arg));
         }
         return nullptr;
     }
 
-    static void writeResult(const QDotNetParameter &param, void *arg, const QDotNetRef &obj)
+    static void writeResult(const Parameter &param, void *arg, const QDotNetRef &obj)
     {
-        switch (param.unmanagedType()) {
+        switch (param.unmanagedType) {
         case UnmanagedType::Bool:
             *reinterpret_cast<bool *>(arg) = QDotNetConvert::toBoolean(obj);
             break;
@@ -349,7 +356,7 @@ private:
             *reinterpret_cast<qint16 *>(arg) = QDotNetConvert::toInt16(obj);
             break;
         case UnmanagedType::U2:
-            if (QString(param.typeName) == QDotNetTypeOf<QChar>::TypeName)
+            if (param.typeName == QDotNetTypeOf<QChar>::TypeName)
                 *reinterpret_cast<QChar *>(arg) = QDotNetConvert::toChar(obj);
             else
                 *reinterpret_cast<quint16 *>(arg) = QDotNetConvert::toUInt16(obj);
@@ -376,9 +383,9 @@ private:
             *reinterpret_cast<QString *>(arg) = QDotNetConvert::toString(obj);
             break;
         default:
-            if (QString(param.typeName) == QDotNetTypeOf<QDateTime>::TypeName)
+            if (param.typeName == QDotNetTypeOf<QDateTime>::TypeName)
                 *reinterpret_cast<QDateTime *>(arg) = QDotNetConvert::toDateTime(obj);
-            else if (QString(param.typeName) == QDotNetTypeOf<QUrl>::TypeName)
+            else if (param.typeName == QDotNetTypeOf<QUrl>::TypeName)
                 *reinterpret_cast<QUrl *>(arg) = QDotNetConvert::toUri(obj);
             break;
         }
@@ -387,7 +394,18 @@ private:
     template <typename T>
     using StaticCastSelector = QQmlPrivate::StaticCastSelector<QDotNetDynamicObject, T>;
 
-    struct AssemblyType
+    struct Parameter
+    {
+        QString typeName;
+        UnmanagedType unmanagedType;
+
+        Parameter(const QDotNetParameter &p)
+            : typeName(p.typeName), unmanagedType(p.unmanagedType())
+        {
+        }
+    };
+
+    struct DynamicType
     {
         QString name;
         QString assemblyPath;
@@ -395,24 +413,29 @@ private:
         QDotNetAssembly assembly;
         QDotNetModule module;
         QDotNetType typeInfo;
-        QMap<int, AssemblyMember *> methods = {};
+        QMap<int, DynamicMethod *> methods = {};
         const QMetaObject *metaObject = nullptr;
     };
 
-    struct AssemblyMember
+    struct DynamicMember
     {
-        AssemblyType *declaringType = nullptr;
+        DynamicType *declaringType = nullptr;
         QString name;
-        QList<QDotNetParameter> params;
+        QList<Parameter> params;
         int token = 0;
+        virtual ~DynamicMember() = default;
+    };
+
+    struct DynamicMethod : public DynamicMember
+    {
         QDotNetMethodInfo methodInfo;
     };
 
     static inline QDotNetFunction<QDotNetRef, QDotNetType> createInstance = nullptr;
 
-    static inline QMap<const QMetaObjectBuilder *, AssemblyType *> assemblyTypes{};
+    static inline QMap<const QMetaObjectBuilder *, DynamicType *> dynamicTypes{};
     static inline QMap<const QMetaObject *, const QMetaObjectBuilder *> typeDefs{};
     static inline QSet<void *> objectPlacementAddrs{};
 
-    AssemblyType *type = nullptr;
+    DynamicType *type = nullptr;
 };
