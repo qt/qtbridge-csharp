@@ -25,6 +25,11 @@ namespace Qt.Bridge.CodeGeneration.Rules.Class
             var propType = prop.PropertyType;
             var cacheType = propType.IsValue() ? TypeOf<object>() : propType;
             var isDelegateProp = propType.IsAssignableTo(TypeOf<Delegate>());
+            var delegateInvoke = isDelegateProp ? propType.GetMethod("Invoke") : null;
+            var delegateReturnType = delegateInvoke?.ReturnType;
+            var delegateArgs = delegateInvoke?.GetParameters() ?? [];
+            var delegateInvokeName = $"invoke{prop.MFn(Src)}";
+            var delegateArgNames = delegateArgs.Select((_, i) => $"arg{i}").ToArray();
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -38,9 +43,9 @@ namespace Qt.Bridge.CodeGeneration.Rules.Class
             //
             if (type.GetPlaceholder(PropertyDeclarations) is not { } properties)
                 return Error();
-            // Delegate-typed properties are exposed to QML as write-only QJSValue setters.
-            // TODO: Expose a C#-held delegate back to QML (via typed invoke wrappers or
-            // DynamicInvoke-based dispatch).
+            // Delegate-typed properties accept QJSValue setters. A readable managed delegate is
+            // exposed to QML through a generated typed invoker because Qt 6 has no public native
+            // QJSValue-function factory.
             var qPropertyType = isDelegateProp ? "QJSValue" : propType.MFn(Ns | Name | Arg);
             var qPropertyRead = (!prop.CanRead || isDelegateProp) ? string.Empty
                 : $" READ {prop.MFn(Get)}";
@@ -50,6 +55,9 @@ Q_PROPERTY({qPropertyType} {prop.MFn()}{qPropertyRead}{(
     !prop.IsNotifiable() ? string.Empty : $" NOTIFY {prop.MFn(Signal)}")})
 {(!prop.CanRead || isDelegateProp ? Wrap : $"{propType.MFn(Ns | Name | Arg)} {prop.MFn(Get)}() const;")}
 {(!prop.CanRead || isDelegateProp ? Wrap : $"{propType.MFn(Ns | Name | Arg)} {prop.MFn(Get)}(bool cached) const;")}
+{(!prop.CanRead || !isDelegateProp ? Wrap : $@"Q_INVOKABLE {delegateReturnType.MFn(Ns | Name | Arg)} {delegateInvokeName}({
+    string.Join(", ", delegateArgs.Select((arg, i) =>
+        $"{arg.ParameterType.MFn(Ns | Name | Arg)} {delegateArgNames[i]}"))}) const;")}
 {(!prop.CanWrite ? Wrap : isDelegateProp
     ? $"void {prop.MFn(Set)}(QJSValue value);"
     : $"void {prop.MFn(Set)}({propType.MFn(Ns | Name | Arg)} value);")}
@@ -73,7 +81,7 @@ PROPERTY_{prop.MFn(Src)} Q_SIGNAL void {prop.MFn(Signal)}();
             if (type.GetPlaceholder(PrivateMemberDeclarations) is not { } privateMembers)
                 return Error();
             privateMembers += $@"
-{(!prop.CanRead || isDelegateProp ? Wrap : $@"{Wrap}
+{(!prop.CanRead ? Wrap : $@"{Wrap}
 mutable QDotNetFunction<{propType.MFn(Ns | Name)}> {prop.MFn(Get | Func)} = nullptr;")}
 {(!prop.CanWrite ? Wrap : $@"{Wrap}
 mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} = nullptr;")}
@@ -106,6 +114,20 @@ mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} 
             !propType.IsObject() ? "result"
             : propType.Is<object>() ? "Convert::toVariant(result)"
             : "Convert::moveToHeap(result, this)")}{(!propType.IsObject() ? "" : ")")};
+}}
+{Blank}")}
+{(!prop.CanRead || !isDelegateProp ? Wrap : $@"{Wrap}
+{delegateReturnType.MFn(Ns | Name | Arg)} {type.MFn(Ns | Name)}::{delegateInvokeName}({
+    string.Join(", ", delegateArgs.Select((arg, i) =>
+        $"{arg.ParameterType.MFn(Ns | Name | Arg)} {delegateArgNames[i]}"))}) const
+{{
+    auto callback = method(""{prop.MFn(Src | Get)}"", d->{prop.MFn(Get | Func)}).invoke(*this);
+    if (!callback.isValid()){(delegateReturnType.Is(typeof(void)) ? @"
+        return;" : $@"
+        return {ReturnNull(delegateReturnType)};")}
+    {(delegateReturnType.Is(typeof(void)) ? string.Empty : "auto result = ")}callback.invoke({
+        string.Join(", ", delegateArgs.Select((arg, i) => DelegateInvokeArg(arg.ParameterType, delegateArgNames[i])))});
+{ReturnResult(delegateReturnType)}
 }}
 {Blank}")}
 {(!prop.CanWrite ? Wrap : $@"{Wrap}
@@ -148,6 +170,33 @@ if (propertyName == ""{prop.MFn(Src)}"") {{
 }}";
 
             return Ok;
+
+            static string DelegateInvokeArg(Type argType, string argName)
+            {
+                if (argType.Is<object>())
+                    return $"Convert::fromVariant({argName})";
+                return $"{argType.MFn(Star)}{argName}";
+            }
+
+            static string ReturnNull(Type returnType)
+            {
+                if (returnType.Is<object>())
+                    return "QVariant()";
+                if (returnType.IsObject())
+                    return "nullptr";
+                return $"QtDotNet::null<{returnType.MFn(Ns | Name)}>()";
+            }
+
+            static string ReturnResult(Type returnType)
+            {
+                if (returnType.Is(typeof(void)))
+                    return Wrap.ToString();
+                if (!returnType.IsObject())
+                    return $"{Tab}return result;";
+                if (returnType.Is<object>())
+                    return $"{Tab}return Convert::toVariant(result);";
+                return $"{Tab}return Convert::moveToHeap(result, this);";
+            }
         }
     }
 }

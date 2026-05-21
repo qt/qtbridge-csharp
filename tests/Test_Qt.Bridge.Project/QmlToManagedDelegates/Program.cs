@@ -121,4 +121,28 @@ namespace Test_QmlToManagedDelegates
 
         public void Fire(int value) => ValueHandler?.Invoke(value);
     }
+
+    public class DelegateSource
+    {
+        public IntTransform StoredTransform { get; set; }
+
+        public DelegateSource()
+        {
+            StoredTransform = Add100;
+            StoredConsumer = value => LastConsumed = value;
+        }
+
+        private static int Add100(int value)
+        {
+            return value + 100;
+        }
+
+        public Func<int, int> StoredFunc { get; set; } = value => value + 200;
+        public Provider StoredProvider { get; set; } = () => 77;
+        public PointTransform StoredPointTransform { get; set; }
+            = point => new Point { X = point.X + 1, Y = point.Y + 2 };
+        public Action<int> StoredConsumer { get; set; }
+        public IntTransform EmptyTransform { get; set; }
+        public int LastConsumed { get; set; }
+    }
 }

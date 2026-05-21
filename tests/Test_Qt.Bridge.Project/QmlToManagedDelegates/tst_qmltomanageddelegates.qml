@@ -10,6 +10,7 @@ TestCase {
 
     Callback { id: callback }
     Sink { id: sink }
+    DelegateSource { id: delegateSource }
 
     function test_delegate_param_callback_int_return() {
         compare(callback.invokeSingle(function(value) {
@@ -99,5 +100,23 @@ TestCase {
         sink.valueHandler = function(v) { received = v; }
         sink.fire(42);
         compare(received, 42);
+    }
+
+    function test_managed_delegate_property_invokers() {
+        compare(delegateSource.invokeStoredTransform(23), 123);
+        compare(delegateSource.invokeStoredFunc(23), 223);
+        compare(delegateSource.invokeStoredProvider(), 77);
+
+        var point = Qt.createQmlObject("import Application; Point { x: 4; y: 5 }", delegateSource);
+        var transformed = delegateSource.invokeStoredPointTransform(point);
+        compare(transformed.x, 5);
+        compare(transformed.y, 7);
+
+        delegateSource.invokeStoredConsumer(64);
+        compare(delegateSource.lastConsumed, 64);
+    }
+
+    function test_null_managed_delegate_property_invoker() {
+        compare(delegateSource.invokeEmptyTransform(23), 0);
     }
 }
