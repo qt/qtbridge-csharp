@@ -15,6 +15,7 @@ using Qt Quick for the UI. The bridging mechanism is based on interoperability b
 1. [Requirements](#requirements)
 1. [Installing Qt Bridge](#installing-qt-bridge)
     1. [Importing Qt Bridge as a package reference](#importing-qt-bridge-as-a-package-reference)
+    1. [Using the Visual Studio extension](#using-the-visual-studio-extension)
     1. [Importing Qt Bridge as a local package reference](#importing-qt-bridge-as-a-local-package-reference)
         1. [Using an existing Qt installation](#using-an-existing-qt-installation)
         1. [Building Qt 6 from source on Windows](#building-qt-6-from-source-on-windows)
@@ -61,8 +62,9 @@ The currently supported workflow is:
 
 ## Installing Qt Bridge
 
-Qt Bridge is distributed as a NuGet package. You can add it to your project as a package
-dependency using a package reference.
+Qt Bridge is distributed as a NuGet package. You can add it to your project directly with a
+package reference, use the Visual Studio extension to create a preconfigured project, or build and
+consume local packages from this repository.
 
 ### Importing Qt Bridge as a package reference
 
@@ -83,6 +85,33 @@ dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.1.0.2-alpha
 # Linux x64 (Ubuntu / WSL)
 dotnet add package QtGroup.Qt.Bridge.CSharp.linux-x64 --version 0.1.0.2-alpha
 ```
+
+### Using the Visual Studio extension
+
+The Qt Bridge for C# Visual Studio extension is the recommended entry point for Visual Studio
+users. Installing the VSIX adds Qt Bridge project and item templates to Visual Studio, so you can
+create a Qt Bridge application without installing the dotnet templates separately.
+
+The extension packages the Qt Bridge template package inside the VSIX. Projects created from the
+extension template include the appropriate `PackageReference` to the Qt Bridge for C# NuGet package,
+which gives you another way to get started with the bridge package besides adding the package
+reference manually.
+
+The extension also activates QML Language Server support for Qt Bridge projects. After a project is
+built, Visual Studio can use the generated Qt Bridge metadata to provide QML language features for
+the QML files in the project.
+
+To use the extension:
+
+1. Install the `Qt.Bridge.CSharp.vsix` package.
+1. Restart Visual Studio if prompted.
+1. Create a new project using the Qt Bridge for C# project template, or add a QML file using the
+   Qt Bridge item template.
+1. Build the project so the Qt Bridge package can restore and generate the metadata used by the
+   QML Language Server integration.
+
+The extension is Windows/Visual Studio-only. The dotnet CLI template workflow remains available for
+CLI users and for Linux/WSL development.
 
 ### Importing Qt Bridge as a local package reference
 
@@ -274,6 +303,10 @@ QT_QPA_PLATFORM=offscreen ./examples/Primes/bin/Release/net8.0/Primes
 These templates are installed and used via the dotnet CLI (the dotnet command-line tool).
 
 ### Install the templates
+
+If you installed the Visual Studio extension, the Qt Bridge templates are already available in
+Visual Studio. Install the dotnet templates separately only when you want to create Qt Bridge
+projects or QML files from the `dotnet` CLI.
 
 From a **NuGet feed**:
 ```bash
