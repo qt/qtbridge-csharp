@@ -11,7 +11,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
     /// </summary>
     internal static class QmlLanguageServerPaths
     {
-        private const string ProductDirectoryName = "QtBridge";
         private const string ToolDirectoryName = "QmlLanguageServer";
         private const string VersionsDirectoryName = "versions";
         private const string CurrentManifestFileName = "current-installation.json";
@@ -20,9 +19,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
         private const string CurrentExecutableName = "qmlls";
 
         public static string RootDirectory =>
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                ProductDirectoryName,
-                ToolDirectoryName);
+            Path.Combine(QtBridgeUserDataPaths.RootDirectory, ToolDirectoryName);
 
         public static string VersionsDirectory =>
             Path.Combine(RootDirectory, VersionsDirectoryName);
