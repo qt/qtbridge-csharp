@@ -162,8 +162,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             // identical for all projects using the same NuGet package version, so the first project
             // with built metadata is a valid source even if the active project has none yet.
             var importPaths = await TryFindImportPathsAsync(ct);
-            if (importPaths is string[] logImportPaths) {
-                foreach (var importPath in logImportPaths)
+            if (importPaths != null) {
+                foreach (var importPath in importPaths)
                     log.Info($"QML Language Server: startup import path: {importPath}");
             } else {
                 log.Info("QML Language Server: startup import-path resolution found no paths.");
@@ -334,7 +334,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             return string.Join(" ", parts);
         }
 
-        private async Task<IEnumerable<string>?> TryFindImportPathsAsync(CancellationToken ct)
+        private async Task<string[]?> TryFindImportPathsAsync(CancellationToken ct)
         {
             var configuration = await contextService.GetActiveConfigurationAsync(ct);
             if (string.IsNullOrWhiteSpace(configuration))
@@ -348,6 +348,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 : configuration!;
 
             var importPaths = new List<string>();
+            var importPathKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var loadedPaths = await contextService.GetLoadedProjectPathsAsync(ct);
             foreach (var projectPath in loadedPaths) {
                 var meta = await projectService.TryGetMetadataForPathAsync(projectPath, ct);
@@ -356,9 +357,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
                 var packageImportPath = TryResolveNuGetQmlImportPath(projectPath, meta);
                 if (!string.IsNullOrWhiteSpace(packageImportPath)
-                    && Directory.Exists(packageImportPath)
-                    && !importPaths.Contains(packageImportPath, StringComparer.OrdinalIgnoreCase)) {
-                    importPaths.Add(packageImportPath!);
+                    && Directory.Exists(packageImportPath)) {
+                    AddStartupImportPath(importPaths, importPathKeys, packageImportPath!);
                 }
 
                 var projectDir = Path.GetDirectoryName(projectPath);
@@ -374,13 +374,33 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     continue;
 
                 foreach (var importPath in readResult.Metadata.Qml.ImportPaths) {
-                    if (!string.IsNullOrWhiteSpace(importPath)
-                        && !importPaths.Contains(importPath, StringComparer.OrdinalIgnoreCase)) {
-                        importPaths.Add(importPath);
-                    }
+                    if (!string.IsNullOrWhiteSpace(importPath))
+                        AddStartupImportPath(importPaths, importPathKeys, importPath);
                 }
             }
-            return importPaths.Count > 0 ? importPaths : null;
+            return importPaths.Count > 0 ? [..importPaths] : null;
+        }
+
+        private static void AddStartupImportPath(
+            ICollection<string> importPaths,
+            ISet<string> importPathKeys,
+            string path)
+        {
+            if (importPathKeys.Add(BuildStartupImportPathKey(path)))
+                importPaths.Add(path);
+        }
+
+        private static string BuildStartupImportPathKey(string path)
+        {
+            try {
+                path = Path.GetFullPath(path);
+            } catch (Exception ex) when (ex is ArgumentException or NotSupportedException
+                or PathTooLongException) {
+                // Ignore.
+            }
+
+            return path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
         }
 
         private string? TryResolveNuGetQmlImportPath(
