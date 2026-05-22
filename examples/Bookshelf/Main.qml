@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 
 import QtQuick
-import QtQuick.Controls
 
 Window {
     id: window
@@ -15,7 +14,7 @@ Window {
 
     // BookLibrary is the C# side that exposes resource-backed values to QML.
     BookLibrary {
-        id: library
+        id: bookLibrary
     }
 
     // Book metadata lives here in QML; dynamic text content (synopses, about)
@@ -50,7 +49,7 @@ Window {
 
     BookshelfView {
         anchors.fill: parent
-        library: library
+        library: bookLibrary
         model: bookModel
     }
 }

@@ -1,6 +1,8 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -212,7 +214,7 @@ Item {
                     ScrollBar.vertical.contentItem: Rectangle {
                         implicitWidth: 6
                         radius: 3
-                        color: parent.pressed ? "#8f8fd8" : "#6666aa"
+                        color: "#6666aa"
                     }
 
                     ScrollBar.horizontal.policy: ScrollBar.AsNeeded
@@ -227,7 +229,7 @@ Item {
                     ScrollBar.horizontal.contentItem: Rectangle {
                         implicitHeight: 6
                         radius: 3
-                        color: parent.pressed ? "#8f8fd8" : "#6666aa"
+                        color: "#6666aa"
                     }
 
                     Text {
