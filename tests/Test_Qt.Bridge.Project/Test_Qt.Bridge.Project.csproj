@@ -95,6 +95,9 @@
     <Content Include="DynamicObject\Program.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="DynamicObject\tst_property.qml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="DynamicObject\tst_callmethod.qml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

@@ -17,6 +17,7 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QJSEngine>
 #include <QList>
 #include <QMap>
 #include <QMetaObject>
@@ -34,6 +35,7 @@ private:
     struct Parameter;
     struct DynamicType;
     struct DynamicMethod;
+    struct DynamicProperty;
 
 public:
     static QMetaObjectBuilder *defineType(const QString &typeName, const QString &assemblyName,
@@ -81,6 +83,31 @@ public:
         method->name = methodName;
         method->token = token;
         method->params = { params.begin(), params.end() };
+
+        return true;
+    }
+
+    static bool addProperty(QMetaObjectBuilder *typeDef, const QString &propertyName,
+                            const QMetaPropertyBuilder &propertyDef, QDotNetParameter getReturnType,
+                            QDotNetParameter setValueType)
+    {
+        if (!QCoreApplication::startingUp())
+            return false;
+
+        const auto &itDynamicType = dynamicTypes.find(typeDef);
+        if (itDynamicType == dynamicTypes.end()) {
+            qWarning() << "QDotNetDynamicObject: Unrecognized type definition:" << typeDef;
+            return false;
+        }
+
+        auto *type = *itDynamicType;
+        auto *property = new DynamicProperty();
+        type->properties[propertyDef.index()] = property;
+        property->declaringType = type;
+        property->name = propertyName;
+        property->params = { getReturnType, setValueType };
+        property->isReadable = propertyDef.isReadable();
+        property->isWriteable = propertyDef.isWritable();
 
         return true;
     }
@@ -282,6 +309,20 @@ private:
                 return;
             return invokeMetaMethod(objProxy, *itMethod, args);
         }
+
+        if (call == QMetaObject::ReadProperty) {
+            const auto &itProp = type->properties.find(id);
+            if (itProp == type->properties.end())
+                return;
+            return readProperty(objProxy, *itProp, args);
+        }
+
+        if (call == QMetaObject::WriteProperty) {
+            const auto &itProp = type->properties.find(id);
+            if (itProp == type->properties.end())
+                return;
+            return writeProperty(objProxy, *itProp, args);
+        }
     }
 
     static void invokeMetaMethod(QDotNetDynamicObject *obj, DynamicMethod *method, void **args)
@@ -299,6 +340,44 @@ private:
             argValues.set(i - 1, readArg(method->params[i], args[i]));
 
         writeResult(method->params[0], args[0], method->methodInfo.invoke(*obj, argValues));
+    }
+
+    static void readProperty(QDotNetDynamicObject *obj, DynamicProperty *prop, void **args)
+    {
+        if (!prop->propertyInfo.isValid()) {
+            prop->propertyInfo = prop->declaringType->typeInfo.property(prop->name);
+            if (!prop->propertyInfo.isValid()) {
+                qFatal() << "QDotNetDynamicObject: ERROR resolving property:" << prop->name;
+                return;
+            }
+        }
+        if (!prop->isReadable) {
+            auto js = qjsEngine(obj);
+            if (js)
+                js->throwError(QString("Property is write-only: %1").arg(prop->name));
+            qWarning() << "QDotNetDynamicObject: property is write-only:" << prop->name;
+            return;
+        }
+        writeResult(prop->params[0], args[0], prop->propertyInfo.getValue(*obj));
+    }
+
+    static void writeProperty(QDotNetDynamicObject *obj, DynamicProperty *prop, void **args)
+    {
+        if (!prop->propertyInfo.isValid()) {
+            prop->propertyInfo = prop->declaringType->typeInfo.property(prop->name);
+            if (!prop->propertyInfo.isValid()) {
+                qFatal() << "QDotNetDynamicObject: ERROR resolving property:" << prop->name;
+                return;
+            }
+        }
+        if (!prop->isWriteable) {
+            auto js = qjsEngine(obj);
+            if (js)
+                js->throwError(QString("Property is read-only: %1").arg(prop->name));
+            qWarning() << "QDotNetDynamicObject: property is read-only:" << prop->name;
+            return;
+        }
+        prop->propertyInfo.setValue(*obj, readArg(prop->params[1], args[0]));
     }
 
     static QDotNetRef readArg(const Parameter &param, void *arg)
@@ -414,6 +493,7 @@ private:
         QDotNetModule module;
         QDotNetType typeInfo;
         QMap<int, DynamicMethod *> methods = {};
+        QMap<int, DynamicProperty *> properties = {};
         const QMetaObject *metaObject = nullptr;
     };
 
@@ -429,6 +509,13 @@ private:
     struct DynamicMethod : public DynamicMember
     {
         QDotNetMethodInfo methodInfo;
+    };
+
+    struct DynamicProperty : public DynamicMember
+    {
+        QDotNetPropertyInfo propertyInfo;
+        bool isReadable = true;
+        bool isWriteable = true;
     };
 
     static inline QDotNetFunction<QDotNetRef, QDotNetType> createInstance = nullptr;

@@ -52,6 +52,8 @@ namespace Test_Qt.Bridge.Project.DynamicObject
                         "DynamicObject", "Program.cs"));
                     project.CopyFile("tst_callmethod.qml", Path.Combine(
                         "DynamicObject", "tst_callmethod.qml"));
+                    project.CopyFile("tst_property.qml", Path.Combine(
+                        "DynamicObject", "tst_property.qml"));
                 });
 
             File.Copy(PrimesDll, Path.Combine(Temp.ExeDir, "Primes.dll"));
@@ -104,6 +106,18 @@ namespace Test_Qt.Bridge.Project.DynamicObject
                 EnvVars = DefaultEnvVars.Union([
                     ("PrimesApp_PrimeFactory_GetNthPrime", getNthPrime.MetadataToken.ToString())
                 ]),
+                StdErr = Redirect.StdOut
+            }));
+        }
+
+        [TestMethod]
+        public async Task Read_Write_Property()
+        {
+            CheckTestRun(await Temp.RunAsync(new()
+            {
+                WorkingDir = Temp.ExeDir,
+                Args = ["-input", Path.Combine(Temp.ExeDir, "Application", "tst_property.qml")],
+                EnvVars = DefaultEnvVars,
                 StdErr = Redirect.StdOut
             }));
         }

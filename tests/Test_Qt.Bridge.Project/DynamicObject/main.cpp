@@ -37,6 +37,21 @@ int main(int argc, char **argv)
 
     QDotNetDynamicObject::buildType(typeDef, "PrimeFactory", "Application", 1, 0);
 
+    auto *typePrime =
+            QDotNetDynamicObject::defineType("PrimesApp.Prime", "Primes", "Primes.dll", appDirPath);
+
+    QDotNetDynamicObject::addProperty(typePrime, "N", typePrime->addProperty("n", "qint32"),
+                                      QDotNetInbound<qint32>::Parameter,
+                                      QDotNetOutbound<qint32>::Parameter);
+
+    auto propValue = typePrime->addProperty("value", "qint32");
+    propValue.setWritable(false);
+    QDotNetDynamicObject::addProperty(typePrime, "Value", propValue,
+                                      QDotNetInbound<qint32>::Parameter,
+                                      QDotNetOutbound<void>::Parameter);
+
+    QDotNetDynamicObject::buildType(typePrime, "Prime", "Application", 1, 0);
+
     QTEST_SET_MAIN_SOURCE_PATH
     return quick_test_main(argc, argv, "Test_DynamicObject", nullptr);
 }
