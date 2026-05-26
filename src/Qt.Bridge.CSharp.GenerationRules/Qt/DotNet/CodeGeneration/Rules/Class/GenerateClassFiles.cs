@@ -53,18 +53,12 @@ namespace Qt.Bridge.CodeGeneration.Rules.Class
 
                     hppFile += $@"
 #pragma once
-#include <type_traits>
 #include <builtin_types.h>
 #include <convert.h>
 
 namespace {baseType.MFn(Ns)}
 {{
     {hppFile[new(ForwardDecl) { Distinct = true }]}
-}}
-
-namespace std
-{{
-    {hppFile[new(ForwardDeclBaseOf) { Distinct = true }]}
 }}
 
 {hppFile[new(ForwardDeclTypeOf) { Distinct = true }]}
@@ -105,7 +99,6 @@ namespace {baseType.MFn(Ns)}
 
             if (baseType != type) {
                 baseType.GetPlaceholder(ForwardDecl).CreateAlias(type);
-                baseType.GetPlaceholder(ForwardDeclBaseOf).CreateAlias(type);
                 baseType.GetPlaceholder(ForwardDeclTypeOf).CreateAlias(type);
                 baseType.GetPlaceholder(ForwardDeclPrivate).CreateAlias(type);
                 baseType.GetPlaceholder(PrivateIncludes).CreateAlias(type);

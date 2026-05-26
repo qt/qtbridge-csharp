@@ -60,16 +60,6 @@ namespace Qt.Bridge.CodeGeneration.Rules.Class
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
-            if (type.GetPlaceholder(ForwardDeclBaseOf) is not { } forwardDeclBaseOf)
-                return Error();
-            forwardDeclBaseOf += $@"
-template<>
-inline constexpr bool is_base_of_v<QDotNetRef, {type.MFn(Ns | Name)}> = true;
-template<>
-inline constexpr bool is_base_of_v<QDotNetObject, {type.MFn(Ns | Name)}> = true;
-";
-            ////////////////////////////////////////////////////////////////////////////////////////
-            //
             if (type.GetPlaceholder(ForwardDeclTypeOf) is not { } forwardDeclTypeOf)
                 return Error();
             forwardDeclTypeOf += $@"
