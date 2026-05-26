@@ -9,10 +9,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>12</LangVersion>
-    <UseWPF>true</UseWPF>
-    <VsixDeployOnDebug>true</VsixDeployOnDebug>
     <VssdkCompatibleExtension>true</VssdkCompatibleExtension>
-    <TargetVsixContainerName>Qt.Bridge.CSharp.vsix</TargetVsixContainerName>
     <NoWarn>$(NoWarn);VSEXTPREVIEW_LSP;VSEXTPREVIEW_SETTINGS</NoWarn>
     <!--
       The new extensibility Build SDK disables pkgdef generation by default; re-enable it so
@@ -32,6 +29,12 @@
       >$(MSBuildThisFileDirectory)..\..\nuget\Qt.Bridge.CSharp.Templates\Qt.Bridge.CSharp.Templates.csproj</QtBridgeTemplatesProjectPath>
     <QtBridgeTemplatesPackagePath
       >$(MSBuildThisFileDirectory)..\..\nuget\Qt.Bridge.CSharp.Templates\bin\$(Configuration)\$(QtBridgeTemplatesPackageFileName)</QtBridgeTemplatesPackagePath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$([MSBuild]::IsOsPlatform('Windows'))">
+    <UseWPF>true</UseWPF>
+    <VsixDeployOnDebug>true</VsixDeployOnDebug>
+    <TargetVsixContainerName>Qt.Bridge.CSharp.vsix</TargetVsixContainerName>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="GPL-3.0-only.txt" />
