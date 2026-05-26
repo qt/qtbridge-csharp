@@ -138,3 +138,62 @@ public:
 private:
     mutable QDotNetFunction<QDotNetRef, QDotNetRef, QDotNetArray<QDotNetRef>> fnInvoke;
 };
+
+class QDotNetPropertyInfo : public QDotNetRef
+{
+public:
+    static inline const QString &AssemblyQualifiedName =
+            QStringLiteral("System.Reflection.PropertyInfo");
+
+    QDotNetPropertyInfo(const void *objRef = nullptr) : QDotNetRef(objRef) { }
+
+    QDotNetPropertyInfo(const QDotNetRef &cpySrc) : QDotNetRef(adapter().addObjectRef(&cpySrc)) { }
+
+    QDotNetPropertyInfo &operator=(const QDotNetRef &cpySrc)
+    {
+        QDotNetRef::operator=(cpySrc);
+        return *this;
+    }
+
+    QDotNetPropertyInfo(QDotNetRef &&movSrc) noexcept : QDotNetRef(std::move(movSrc)) { }
+
+    QDotNetPropertyInfo &operator=(QDotNetRef &&movSrc) noexcept
+    {
+        QDotNetRef::operator=(std::move(movSrc));
+        return *this;
+    }
+
+    QDotNetRef getValue(QDotNetRef obj, QDotNetArray<QDotNetRef> parameters = nullptr) const
+    {
+        if (!isValid())
+            return nullptr;
+
+        if (!fnGet.isValid()) {
+            fnGet = adapter().resolveInstanceMethod(
+                    *this, "GetValue",
+                    { QDotNetInbound<QDotNetRef>::Parameter, QDotNetOutbound<QDotNetRef>::Parameter,
+                      QDotNetOutbound<QDotNetArray<QDotNetRef>>::Parameter });
+        }
+        return fnGet(obj, parameters);
+    }
+
+    QDotNetRef setValue(QDotNetRef obj, QDotNetRef value,
+                        QDotNetArray<QDotNetRef> parameters = nullptr) const
+    {
+        if (!isValid())
+            return nullptr;
+
+        if (!fnSet.isValid()) {
+            fnSet = adapter().resolveInstanceMethod(
+                    *this, "SetValue",
+                    { QDotNetInbound<QDotNetRef>::Parameter, QDotNetOutbound<QDotNetRef>::Parameter,
+                      QDotNetOutbound<QDotNetRef>::Parameter,
+                      QDotNetOutbound<QDotNetArray<QDotNetRef>>::Parameter });
+        }
+        return fnSet(obj, value, parameters);
+    }
+
+private:
+    mutable QDotNetFunction<QDotNetRef, QDotNetRef, QDotNetArray<QDotNetRef>> fnGet;
+    mutable QDotNetFunction<QDotNetRef, QDotNetRef, QDotNetRef, QDotNetArray<QDotNetRef>> fnSet;
+};
