@@ -226,7 +226,7 @@ private:
 
         if (!type->assembly.isValid()) {
             QDotNetAssembly assembly = QtDotNet::call<QDotNetRef, QString>(
-                    "System.Reflection.Assembly", "LoadFile", type->assemblyPath);
+                    "System.Reflection.Assembly", "LoadFrom", type->assemblyPath);
             if (!assembly.isValid()) {
                 qFatal() << "QDotNetDynamicObject: ERROR loading assembly:" << type->assemblyPath;
                 return;
