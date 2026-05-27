@@ -13,35 +13,29 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
     /// Writes extension diagnostics to <see cref="TraceSource"/> and to the Qt Bridge Visual
     /// Studio output channel.
     /// </summary>
-    internal sealed class ExtensionLog : IExtensionLog
+    internal sealed class ExtensionLog(TraceSource source, VisualStudioExtensibility vsExt)
+        : IExtensionLog
     {
-        private readonly TraceSource traceSource;
-        private readonly VisualStudioExtensibility extensibility;
+        private readonly TraceExtensionLog traceLog = new(source);
+        private readonly VisualStudioExtensibility extensibility = vsExt
+            ?? throw new ArgumentNullException(nameof(vsExt));
         private readonly object channelLock = new();
         private Task<OutputChannel?>? channelTask;
 
-        public ExtensionLog(TraceSource source, VisualStudioExtensibility vsExt)
-        {
-            traceSource = source ?? throw new ArgumentNullException(nameof(source));
-            extensibility = vsExt ?? throw new ArgumentNullException(nameof(vsExt));
-            traceSource.Listeners.Add(new DefaultTraceListener());
-            traceSource.Switch.Level = SourceLevels.Verbose;
-        }
-
         public void Verbose(string message)
         {
-            traceSource.TraceEvent(TraceEventType.Verbose, 0, message);
+            traceLog.Verbose(message);
         }
 
         public void Info(string message)
         {
-            traceSource.TraceEvent(TraceEventType.Information, 0, message);
+            traceLog.Info(message);
             WriteToPane($"[Info] {message}");
         }
 
         public void Warning(string message)
         {
-            traceSource.TraceEvent(TraceEventType.Warning, 0, message);
+            traceLog.Warning(message);
             WriteToPane($"[Warning] {message}");
         }
 
@@ -50,7 +44,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
             var fullMessage = exception != null
                 ? $"{message}{Environment.NewLine}{exception}"
                 : message;
-            traceSource.TraceEvent(TraceEventType.Error, 0, fullMessage);
+            traceLog.Error(message, exception);
             WriteToPane($"[Error] {fullMessage}");
         }
 
@@ -66,8 +60,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
                 if (channel != null)
                     await channel.WriteLineAsync($"[Qt Bridge] {message}");
             } catch (Exception ex) when (ex is not OperationCanceledException) {
-                traceSource.TraceEvent(TraceEventType.Warning, 0,
-                    $"Qt Bridge: failed to write to output pane: {ex.Message}");
+                traceLog.Warning($"Qt Bridge: failed to write to output pane: {ex.Message}");
             }
         }
 
@@ -84,8 +77,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
                 return await extensibility.Views().Output
                     .CreateOutputChannelAsync("Qt Bridge for C#", CancellationToken.None);
             } catch (Exception ex) when (ex is not OperationCanceledException) {
-                traceSource.TraceEvent(TraceEventType.Warning, 0,
-                    $"Qt Bridge: failed to create output channel: {ex.Message}");
+                traceLog.Warning($"Qt Bridge: failed to create output channel: {ex.Message}");
                 return null;
             }
         }
