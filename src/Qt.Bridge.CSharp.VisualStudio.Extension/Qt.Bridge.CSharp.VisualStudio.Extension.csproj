@@ -45,7 +45,10 @@
 
   <ItemGroup Condition="!$([MSBuild]::IsOsPlatform('Windows'))">
     <Compile Remove="Diagnostics\ToastWindow.xaml.cs" />
+    <Compile Remove="Settings\Notifications\NotificationOptionsControl.xaml.cs" />
+    <Compile Remove="Settings\Notifications\NotificationOptionsPage.cs" />
     <None Include="Diagnostics\ToastWindow.xaml" />
+    <None Include="Settings\Notifications\NotificationOptionsControl.xaml" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="GPL-3.0-only.txt" />

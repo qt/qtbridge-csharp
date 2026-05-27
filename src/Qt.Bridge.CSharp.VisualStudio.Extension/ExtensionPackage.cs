@@ -6,6 +6,9 @@ using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings;
+#if WINDOWS_DESKTOP
+using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.Notifications;
+#endif
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Welcome;
 
@@ -17,6 +20,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
     [ProvideOptionPage(typeof(LoggingOptionsPage), "Qt Bridge for C#",
         "Logging", 0, 0, true, SupportsProfiles = true,
         IsInUnifiedSettings = true)]
+#if WINDOWS_DESKTOP
+    [ProvideOptionPage(typeof(NotificationOptionsPage), "Qt Bridge for C#",
+        "Notifications", 0, 0, true, SupportsProfiles = false,
+        IsInUnifiedSettings = true)]
+#endif
     [ProvideAutoLoad(VSConstants.UICONTEXT.ShellInitialized_string,
         PackageAutoLoadFlags.BackgroundLoad)]
     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
