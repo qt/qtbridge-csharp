@@ -23,6 +23,7 @@ namespace Qt.Bridge.CodeGeneration
             ,
         MainCpp
             , MainIncludes
+            , MainStartingUp
             , MainBeforeAppExec
             ,
         HppFile

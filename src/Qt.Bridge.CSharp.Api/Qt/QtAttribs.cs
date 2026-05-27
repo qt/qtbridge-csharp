@@ -124,6 +124,11 @@ namespace Qt
         public string MainIncludes { get; set; }
 
         /// <summary>
+        /// Text inserted at the start of main(), before the QApplication object is created.
+        /// </summary>
+        public string MainStartingUp { get; set; }
+
+        /// <summary>
         /// Gets or sets text inserted before the application event loop is entered.
         /// </summary>
         public string MainBeforeAppExec { get; set; }

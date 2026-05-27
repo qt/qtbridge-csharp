@@ -31,6 +31,7 @@ namespace Qt.Bridge.CodeGeneration.Rules
 "#include <QtDebug>",
 "#include <QDir>",
 "#include <QFile>",
+"#include <QFileInfo>",
 "#include <QGuiApplication>",
 "#include <QQmlApplicationEngine>",
 "#include <QThread>",
@@ -47,10 +48,13 @@ QT_DOTNET_HOST(appName);
 
 int main(int argc, char *argv[])
 {{
+    auto appDirPath = QFileInfo(argv[0]).absoluteDir().path();
+    {mainCpp[new(MainStartingUp) { Sorted = false }]}
+
     QGuiApplication app(argc, argv);
-    auto assemblyPath = QDir(QCoreApplication::applicationDirPath()).filePath(appName);
+    auto assemblyPath = QDir(appDirPath).filePath(appName);
     if (!QFile::exists(assemblyPath)) {{
-        assemblyPath = QDir(QCoreApplication::applicationDirPath())
+        assemblyPath = QDir(appDirPath)
             .filePath(""{Root.Assembly.GetName().Name}.dll"");
     }}
     if (!QFile::exists(assemblyPath)) {{
@@ -87,7 +91,7 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine qmlEngine;
     QDotNetAdapter::instance().init(
-        QDir(QCoreApplication::applicationDirPath()).filePath(""Qt.DotNet.Adapter.dll""),
+        QDir(appDirPath).filePath(""Qt.DotNet.Adapter.dll""),
         ""Qt.DotNet.Adapter"", ""Qt.DotNet.Adapter"", &dotNetHost, &qmlEngine);
 
     QtDotNet::call<void>(""Qt.DotNet.Adapter, Qt.DotNet.Adapter"", ""SetMainThread"");
