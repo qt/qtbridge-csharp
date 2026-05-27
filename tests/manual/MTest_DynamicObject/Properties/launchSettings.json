@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "MTest_DynamicObject": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

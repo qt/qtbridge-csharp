@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build"
+         xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{9ABC29CB-5F7B-4CC1-AB57-DC8DE16A1BCC}</ProjectGuid>
+  </PropertyGroup>
+  <Import
+    Condition="Exists('$(VCTargetsPath)\Microsoft.Cpp.Default.props')"
+    Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup>
+    <ReadOnlyProject>true</ReadOnlyProject>
+    <PlatformToolset>v143</PlatformToolset>
+    <IncludePath
+>$(QtInstallRoot)\include;
+;$([System.String]::Join('%3B',$([System.IO.Directory]::GetDirectories($(QtInstallRoot)\include))));
+;$([System.IO.Directory]::GetDirectories($(QtInstallRoot)\include\QtCore,'6.*')[0]);
+;$([System.IO.Directory]::GetDirectories($(QtInstallRoot)\include\QtCore,'6.*')[0])\QtCore;
+;..\..\..\..\include;
+;..\obj\Debug\net8.0\qt\native\source\hpp;
+;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <Import
+    Condition="Exists('$(VCTargetsPath)\Microsoft.Cpp.props')"
+    Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="..\obj\**\*.h" />
+    <None Include="..\obj\**\*.cpp" />
+  </ItemGroup>
+  <Import
+    Condition="Exists('$(VCTargetsPath)\Microsoft.Cpp.targets')"
+    Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="Build" />
+  <Target Name="Clean" />
+  <Target Name="_IsProjectRestoreSupported"
+          Returns="@(_ValidProjectsForRestore)">
+    <ItemGroup>
+      <_ValidProjectsForRestore Include="$(MSBuildProjectFullPath)" />
+    </ItemGroup>
+  </Target>
+  <Target Name="_CheckForInvalidConfigurationAndPlatform" />
+</Project>
