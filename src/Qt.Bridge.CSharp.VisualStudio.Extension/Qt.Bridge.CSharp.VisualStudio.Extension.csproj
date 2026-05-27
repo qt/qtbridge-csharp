@@ -75,6 +75,9 @@
     <Content Include="Resources\WhatsNew\welcome.html">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
+    <Content Include="QtBridge.registration.json">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -93,6 +96,7 @@
     <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2142" PrivateAssets="all" />
     <PackageReference Include="System.Threading.Channels" Version="8.0.0" />
+    <Reference Include="Microsoft.VisualStudio.Utilities" />
   </ItemGroup>
 
   <Target Name="Build" Condition="!$([MSBuild]::IsOsPlatform('Windows'))">

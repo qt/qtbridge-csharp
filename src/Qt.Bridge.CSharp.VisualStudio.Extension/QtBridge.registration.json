@@ -1,0 +1,55 @@
+{
+  "$schema": "registration.schema.json",
+  "properties": {
+    "qtBridge.notifications.externalRegion": {
+      "type": "external",
+      "title": "Notifications",
+      "backingStoreDescription": "The build notification settings are stored in %qml-build-notifications.json%. Use Refresh to reload changes made outside this settings page.",
+      "realtimeNotifications": false,
+      "callback": {
+        "packageId": "D4E5F6A7-B8C9-4D2E-8F1A-3B5C7D9E1F2A",
+        "serviceId": "9F7F6A87-21C8-4329-95F4-776D9AA8D8E7"
+      },
+      "properties": {
+        "missingBuildOutputNotificationsEnabled": {
+          "type": "boolean",
+          "title": "Show missing QML build output notifications"
+        },
+        "suppressedProjectExpirationDays": {
+          "type": "integer",
+          "title": "Suppressed project expiration days",
+          "description": "Use 0 to never expire suppressions automatically.",
+          "minimum": 0,
+          "maximum": 365
+        },
+        "suppressedProjects": {
+          "type": "array",
+          "title": "Suppressed projects",
+          "items": {
+            "type": "object",
+            "properties": {
+              "displayName": {
+                "type": "string",
+                "title": "Project"
+              },
+              "projectFilePath": {
+                "type": "string",
+                "title": "Project file (.csproj)",
+                "format": "path",
+                "pathKind": "file"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "categories": {
+    "qtBridge": {
+      "title": "Qt Bridge for C#"
+    },
+    "qtBridge.notifications": {
+      "title": "Notifications"
+    }
+  }
+}

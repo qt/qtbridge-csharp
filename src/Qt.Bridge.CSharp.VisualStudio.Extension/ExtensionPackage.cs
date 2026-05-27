@@ -24,7 +24,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
     [ProvideOptionPage(typeof(NotificationOptionsPage), "Qt Bridge for C#",
         "Notifications", 0, 0, true, SupportsProfiles = false,
         IsInUnifiedSettings = true)]
+    [ProvideService(typeof(IQmlBuildNotificationSettingsService), IsCacheable = true)]
 #endif
+    [ProvideSettingsManifest(PackageRelativeManifestFile = "QtBridge.registration.json")]
     [ProvideAutoLoad(VSConstants.UICONTEXT.ShellInitialized_string,
         PackageAutoLoadFlags.BackgroundLoad)]
     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
@@ -41,7 +43,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             IProgress<ServiceProgressData> progress)
         {
             Instance = this;
-
+#if WINDOWS_DESKTOP
+            AddService(typeof(IQmlBuildNotificationSettingsService),
+                CreateQmlBuildNotificationExternalSettingsServiceAsync,
+                promote: true);
+#endif
             await base.InitializeAsync(cancellationToken, progress);
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 
@@ -60,5 +66,16 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
             await lifecycle.InitializeAsync(cancellationToken);
         }
+
+#if WINDOWS_DESKTOP
+        private Task<object?> CreateQmlBuildNotificationExternalSettingsServiceAsync(
+            IAsyncServiceContainer container,
+            CancellationToken cancellationToken,
+            Type serviceType)
+        {
+            var settings = new QmlBuildNotificationSettings(new TraceExtensionLog());
+            return Task.FromResult<object?>(new QmlBuildNotificationSettingsService(this, settings));
+        }
+#endif
     }
 }
