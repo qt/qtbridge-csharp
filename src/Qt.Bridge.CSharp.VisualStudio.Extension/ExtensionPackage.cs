@@ -11,7 +11,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 {
     [Guid(PackageGuidString)]
     [ProvideOptionPage(typeof(LoggingOptionsPage), "Qt Bridge for C#",
-        "QML Language Server Logging", 0, 0, true, SupportsProfiles = true,
+        "Logging", 0, 0, true, SupportsProfiles = true,
         IsInUnifiedSettings = true)]
     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
     public sealed class ExtensionPackage : AsyncPackage

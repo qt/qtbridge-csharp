@@ -3,7 +3,7 @@
   "QtBridge.QmlLanguageServer.DisplayName": "QML Language Server",
 
   "QtBridge.Settings.Root.DisplayName": "Qt Bridge for C#",
-  "QtBridge.Settings.QmlLanguageServerLogging.Category.Title": "QML Language Server Logging",
+  "QtBridge.Settings.QmlLanguageServerLogging.Category.Title": "Logging",
   "QtBridge.Settings.QmlLanguageServerLogging.Category.Description": "Controls QML Language Server process and LSP traffic logs. Changes apply on the next QML Language Server restart.",
   "QtBridge.Settings.QmllsLogEnabled.Title": "Enable QML Language Server verbose log",
   "QtBridge.Settings.QmllsLogEnabled.Description": "Passes --verbose -l <path> to QML Language Server on startup so its internal diagnostics are written to qtbridge-qmlls.log in the configured directory.",
