@@ -13,7 +13,7 @@ using Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer;
 using Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 using Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer.Contracts;
-using Qt.Bridge.CSharp.VisualStudio.Extension.Settings;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.Notifications;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;
 using Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext;
 
@@ -32,6 +32,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private readonly IQmlMetadataWatcher metadataWatcher;
         private readonly IQmlLanguageServerInstaller languageServerInstaller;
         private readonly ILoggingSettingsProvider loggingSettingsProvider;
+        private readonly IQmlBuildNotificationSettings buildNotificationSettings;
         private readonly IDisposable contextSubscription;
         private readonly QmllsBuildIniPatcher buildIniPatcher;
 
@@ -113,7 +114,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             IQmlMetadataReader metadataReader,
             IQmlMetadataWatcher metadataWatcher,
             IQmlLanguageServerInstaller languageServerInstaller,
-            ILoggingSettingsProvider loggingSettingsProvider)
+            ILoggingSettingsProvider loggingSettingsProvider,
+            IQmlBuildNotificationSettings buildNotificationSettings)
             : base(container, extensibilityObject)
         {
             log = extensionLog
@@ -131,6 +133,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 ?? throw new ArgumentNullException(nameof(languageServerInstaller));
             this.loggingSettingsProvider = loggingSettingsProvider
                 ?? throw new ArgumentNullException(nameof(loggingSettingsProvider));
+            this.buildNotificationSettings = buildNotificationSettings
+                ?? throw new ArgumentNullException(nameof(buildNotificationSettings));
 
             contextSubscription = contextSvc.SubscribeToContextChanged(
                 () => QueueLoggedTask(
@@ -564,10 +568,31 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 if (!shouldCheckNotificationSettings)
                     return;
 
+                var showNotification = await buildNotificationSettings
+                    .ShouldShowMissingBuildOutputNotificationAsync(projectFilePath, ct);
+                if (!showNotification)
+                    return;
+
+                lock (registryLock) {
+                    if (!projectRegistry.TryGetValue(projectFilePath, out var e)
+                        || e.MissingMetadataNotified) {
+                        return;
+                    }
+                    e.MissingMetadataNotified = true;
+                }
+
                 var projectName = Path.GetFileNameWithoutExtension(projectFilePath);
                 await notifications.ShowInfoAsync(
                     MissingMetadataNotificationKey(projectFilePath),
                     $"Qt Bridge: Build project '{projectName}' for full QML language support.",
+                    [
+                        new NotificationAction("Don't show for this project", actionCt =>
+                            buildNotificationSettings.SuppressMissingBuildOutputNotificationAsync(
+                                projectFilePath, actionCt)),
+                        new NotificationAction("Disable build notifications", actionCt =>
+                            buildNotificationSettings
+                                .SetMissingBuildOutputNotificationsEnabledAsync(false, actionCt))
+                    ],
                     ct);
                 return;
             }
@@ -1009,7 +1034,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 : "Disabled QML Language Server provider for Qt Bridge context.");
         }
 
-        private void RefreshProjectRegistry(IReadOnlyCollection<string> loadedProjectPaths)
+        private void RefreshProjectRegistry(IEnumerable<string> loadedProjectPaths)
         {
             var loadedProjects = loadedProjectPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
             List<ProjectEntry> removedEntries = [];
