@@ -54,6 +54,7 @@
       Condition="'$(QtBridgeExcludeQtResxFromManagedResources)' == ''">true</QtBridgeExcludeQtResxFromManagedResources>
 
     <QtBuildSystem Condition="'$(QtBuildSystem)' == ''">ninja</QtBuildSystem>
+    <QtBuildConfig Condition="'$(QtBuildConfig)' == ''">Release</QtBuildConfig>
   </PropertyGroup>
 
   <PropertyGroup>

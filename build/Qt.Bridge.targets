@@ -377,7 +377,7 @@ namespace Qt.Qml
       <QtVcVarsCmd Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' != '' and Exists('$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat')"
         >CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL &amp;&amp; </QtVcVarsCmd>
       <QtCMakeGenerator Condition="'$(QtCMakeGenerator)' == ''">Ninja</QtCMakeGenerator>
-      <QtCMakeExtraArgs Condition="'$(QtCMakeGenerator)' == 'Ninja'">-DCMAKE_BUILD_TYPE=Release</QtCMakeExtraArgs>
+      <QtCMakeExtraArgs Condition="'$(QtCMakeGenerator)' == 'Ninja'">-DCMAKE_BUILD_TYPE=$(QtBuildConfig)</QtCMakeExtraArgs>
     </PropertyGroup>
 
     <MakeDir Directories="$(QtNativeBuildDir)" />
@@ -412,7 +412,7 @@ namespace Qt.Qml
     </ItemGroup>
     <MSBuild Condition="'$(QtUseMsBuildGenerator)' == 'true'"
       Projects="@(NativeProject)" BuildInParallel="false" StopOnFirstFailure="true"
-      Properties="Platform=x64;Configuration=Release;CL_MP=true" Targets="Build" />
+      Properties="Platform=x64;Configuration=$(QtBuildConfig);CL_MP=true" Targets="Build" />
     <Exec Condition="'$(QtUseMsBuildGenerator)' != 'true'"
       Command="$(QtVcVarsCmd)cmake --build . --parallel"
       WorkingDirectory="$(QtNativeBuildDir)" EchoOff="true" IgnoreExitCode="true">
