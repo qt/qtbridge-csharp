@@ -328,7 +328,10 @@ private:
     static void invokeMetaMethod(QDotNetDynamicObject *obj, DynamicMethod *method, void **args)
     {
         if (!method->methodInfo.isValid()) {
-            method->methodInfo = method->declaringType->module.resolveMethod(method->token);
+            if (method->token)
+                method->methodInfo = method->declaringType->module.resolveMethod(method->token);
+            else
+                method->methodInfo = method->declaringType->typeInfo.method(method->name);
             if (!method->methodInfo.isValid()) {
                 qFatal() << "QDotNetDynamicObject: ERROR resolving method:" << method->name;
                 return;
