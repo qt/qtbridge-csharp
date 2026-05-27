@@ -66,6 +66,18 @@ public:
         return fnGetProperty(name);
     }
 
+    QDotNetRef method(const QString &name) const
+    {
+        if (!isValid())
+            return nullptr;
+        if (!fnGetMethod.isValid()) {
+            const QList<QDotNetParameter> parameters{ QDotNetInbound<QDotNetRef>::Parameter,
+                                                      QDotNetOutbound<QString>::Parameter };
+            fnGetMethod = adapter().resolveInstanceMethod(*this, "GetMethod", parameters);
+        }
+        return fnGetMethod(name);
+    }
+
     QString assemblyQualifiedName() const
     {
         if (!isValid())
@@ -327,6 +339,7 @@ public:
 private:
     mutable QDotNetFunction<QDotNetRef> fnModule;
     mutable QDotNetFunction<QDotNetRef, QString> fnGetProperty;
+    mutable QDotNetFunction<QDotNetRef, QString> fnGetMethod;
     mutable QDotNetFunction<QString> fnAssemblyQualifiedName;
     mutable QDotNetFunction<QString> fnFullName;
     mutable QString strFullName;
