@@ -9,6 +9,7 @@ using Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 using Qt.Bridge.CSharp.VisualStudio.Extension.QmlMetadata;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.Notifications;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;
 using Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext;
 
@@ -34,6 +35,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             serviceCollection.AddSingleton<INotificationService, NotificationService>();
             serviceCollection.AddSingleton<IToastNotificationService, ToastNotificationService>();
             serviceCollection.AddSingleton(_ => new SettingsStore(ShellSrvProvider.GlobalProvider));
+            serviceCollection.AddSingleton<IQmlBuildNotificationSettings,
+                QmlBuildNotificationSettings>();
 
             serviceCollection.AddSingleton<IQtBridgeProjectDetector, QtBridgeProjectDetector>();
             serviceCollection.AddSingleton<IQtBridgeProjectFileLocator,
