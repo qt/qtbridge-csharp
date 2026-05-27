@@ -6,8 +6,26 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
     internal interface INotificationService
     {
         Task ShowInfoAsync(string key, string message, CancellationToken ct);
+        Task ShowInfoAsync(
+            string key,
+            string message,
+            IReadOnlyCollection<NotificationAction> actions,
+            CancellationToken ct);
+
         Task ShowWarningAsync(string key, string message, CancellationToken ct);
+        Task ShowWarningAsync(
+            string key,
+            string message,
+            IReadOnlyCollection<NotificationAction> actions,
+            CancellationToken ct);
+
         Task ShowErrorAsync(string key, string message, CancellationToken ct);
+        Task ShowErrorAsync(
+            string key,
+            string message,
+            IReadOnlyCollection<NotificationAction> actions,
+            CancellationToken ct);
+
         void ClearRateLimit(string key);
     }
 }

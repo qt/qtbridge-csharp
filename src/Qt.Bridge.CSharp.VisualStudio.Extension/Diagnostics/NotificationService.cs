@@ -16,25 +16,46 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
         private readonly HashSet<string> notifiedKeys = [];
         private readonly object notifiedKeysLock = new();
 
-        public async Task ShowInfoAsync(string key, string message, CancellationToken ct)
+        public async Task ShowInfoAsync(string key, string message, CancellationToken ct) =>
+            await ShowInfoAsync(key, message, [], ct);
+
+        public async Task ShowInfoAsync(
+            string key,
+            string message,
+            IReadOnlyCollection<NotificationAction> actions,
+            CancellationToken ct)
         {
             log.Info($"Notification[{key}]: {message}");
             if (TryMarkNotified(key))
-                await ShowInfoBarSafeAsync(message, isError: false, ct);
+                await ShowInfoBarSafeAsync(message, isError: false, actions, ct);
         }
 
-        public async Task ShowWarningAsync(string key, string message, CancellationToken ct)
+        public async Task ShowWarningAsync(string key, string message, CancellationToken ct) =>
+            await ShowWarningAsync(key, message, [], ct);
+
+        public async Task ShowWarningAsync(
+            string key,
+            string message,
+            IReadOnlyCollection<NotificationAction> actions,
+            CancellationToken ct)
         {
             log.Warning($"Notification[{key}]: {message}");
             if (TryMarkNotified(key))
-                await ShowInfoBarSafeAsync(message, isError: false, ct);
+                await ShowInfoBarSafeAsync(message, isError: false, [], ct);
         }
 
-        public async Task ShowErrorAsync(string key, string message, CancellationToken ct)
+        public async Task ShowErrorAsync(string key, string message, CancellationToken ct) =>
+            await ShowErrorAsync(key, message, [], ct);
+
+        public async Task ShowErrorAsync(
+            string key,
+            string message,
+            IReadOnlyCollection<NotificationAction> actions,
+            CancellationToken ct)
         {
             log.Error($"Notification[{key}]: {message}");
             if (TryMarkNotified(key))
-                await ShowInfoBarSafeAsync(message, isError: true, ct);
+                await ShowInfoBarSafeAsync(message, isError: true, [], ct);
         }
 
         public void ClearRateLimit(string key)
@@ -51,17 +72,25 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
             }
         }
 
-        private async Task ShowInfoBarSafeAsync(string message, bool isError, CancellationToken ct)
+        private async Task ShowInfoBarSafeAsync(
+            string message,
+            bool isError,
+            IReadOnlyCollection<NotificationAction> actions,
+            CancellationToken ct)
         {
             try {
-                await ShowInfoBarAsync(message, isError, ct);
+                await ShowInfoBarAsync(message, isError, actions, ct);
             } catch (OperationCanceledException) {
             } catch (Exception ex) {
                 log.Warning($"Qt Bridge: failed to show InfoBar notification: {ex.Message}");
             }
         }
 
-        private static async Task ShowInfoBarAsync(string msg, bool isError, CancellationToken ct)
+        private async Task ShowInfoBarAsync(
+            string message,
+            bool isError,
+            IReadOnlyCollection<NotificationAction> actions,
+            CancellationToken ct)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(ct);
 
@@ -77,11 +106,64 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
                 return;
 
             var image = isError ? KnownMonikers.StatusError : KnownMonikers.StatusWarning;
-            var textSpans = new InfoBarTextSpan[] { new(msg) };
-            var model = new InfoBarModel(textSpans, image, isCloseButtonVisible: true);
+            var actionItems = actions.Select(action => new InfoBarButton(action.Text, action));
+            var model = new InfoBarModel(message, actionItems, image, isCloseButtonVisible: true);
+
             var uiElement = factory.CreateInfoBar(model);
-            if (uiElement != null)
+            if (uiElement != null) {
+                if (actions.Count > 0) {
+                    var events = new InfoBarEvents(log);
+                    uiElement.Advise(events, out var cookie);
+                    events.Initialize(cookie);
+                }
                 infoBarHost.AddInfoBar(uiElement);
+            }
+        }
+
+        private sealed class InfoBarEvents(IExtensionLog log) : IVsInfoBarUIEvents
+        {
+            private readonly IExtensionLog log = log ?? throw new ArgumentNullException(nameof(log));
+            private uint cookie;
+
+            public void Initialize(uint eventCookie)
+            {
+                cookie = eventCookie;
+            }
+
+            public void OnClosed(IVsInfoBarUIElement infoBarUiElement)
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+                if (cookie == 0)
+                    return;
+                infoBarUiElement.Unadvise(cookie);
+                cookie = 0;
+            }
+
+            public void OnActionItemClicked(
+                IVsInfoBarUIElement infoBarUiElement,
+                IVsInfoBarActionItem actionItem)
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+                if (actionItem.ActionContext is not NotificationAction action)
+                    return;
+
+                _ = ExecuteActionAsync(action, infoBarUiElement, CancellationToken.None);
+            }
+
+            private async Task ExecuteActionAsync(
+                NotificationAction action,
+                IVsInfoBarUIElement infoBarUiElement,
+                CancellationToken ct)
+            {
+                try {
+                    await action.ExecuteAsync(ct);
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(ct);
+                    infoBarUiElement.Close();
+                } catch (Exception ex) {
+                    log.Warning($"Qt Bridge: notification action '{action.Text}' failed: "
+                        + $"{ex.Message}");
+                }
+            }
         }
     }
 }
