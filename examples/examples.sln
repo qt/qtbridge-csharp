@@ -8,16 +8,6 @@ VisualStudioVersion = 17.13.35828.75
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tutorial", "Tutorial\Tutorial.csproj", "{A0AC7F1D-2072-6FE3-752C-528B16BC9E90}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ColorPalette", "ColorPalette\ColorPalette.csproj", "{5C4ADDEF-6893-811B-E91E-9E5F7C9ECADE}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UserView", "UserView", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserViewLib", "UserView\UserViewLib\UserViewLib.csproj", "{4E4A8F8B-858D-75F6-B906-4CC7E252C437}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserViewCli", "UserView\UserViewCli\UserViewCli.csproj", "{C7D5A6BF-E766-2295-FCAC-58DC8B9F7C57}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserViewQml", "UserView\UserViewQml\UserViewQml.csproj", "{BE55ED66-0433-1769-12BB-F632D34DA31B}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CityTemperatures", "CityTemperatures\CityTemperatures.csproj", "{516E99AF-0497-3922-BD96-F22C4E15E260}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Primes", "Primes\Primes.csproj", "{EB6EBA4B-967A-C5E5-DCB8-88278E2546A2}"
@@ -38,22 +28,6 @@ Global
 		{A0AC7F1D-2072-6FE3-752C-528B16BC9E90}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A0AC7F1D-2072-6FE3-752C-528B16BC9E90}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A0AC7F1D-2072-6FE3-752C-528B16BC9E90}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5C4ADDEF-6893-811B-E91E-9E5F7C9ECADE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5C4ADDEF-6893-811B-E91E-9E5F7C9ECADE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5C4ADDEF-6893-811B-E91E-9E5F7C9ECADE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5C4ADDEF-6893-811B-E91E-9E5F7C9ECADE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4E4A8F8B-858D-75F6-B906-4CC7E252C437}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4E4A8F8B-858D-75F6-B906-4CC7E252C437}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4E4A8F8B-858D-75F6-B906-4CC7E252C437}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4E4A8F8B-858D-75F6-B906-4CC7E252C437}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C7D5A6BF-E766-2295-FCAC-58DC8B9F7C57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C7D5A6BF-E766-2295-FCAC-58DC8B9F7C57}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C7D5A6BF-E766-2295-FCAC-58DC8B9F7C57}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C7D5A6BF-E766-2295-FCAC-58DC8B9F7C57}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BE55ED66-0433-1769-12BB-F632D34DA31B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BE55ED66-0433-1769-12BB-F632D34DA31B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BE55ED66-0433-1769-12BB-F632D34DA31B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BE55ED66-0433-1769-12BB-F632D34DA31B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{516E99AF-0497-3922-BD96-F22C4E15E260}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{516E99AF-0497-3922-BD96-F22C4E15E260}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{516E99AF-0497-3922-BD96-F22C4E15E260}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -77,11 +51,6 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{4E4A8F8B-858D-75F6-B906-4CC7E252C437} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
-		{C7D5A6BF-E766-2295-FCAC-58DC8B9F7C57} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
-		{BE55ED66-0433-1769-12BB-F632D34DA31B} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8EDCC779-E93E-447F-996C-4A197D449CAB}
