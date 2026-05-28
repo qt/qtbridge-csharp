@@ -27,6 +27,7 @@ namespace Qt.Bridge.CodeGeneration
             ,
         HppFile
             , ForwardDecl
+            , ForwardDeclBaseOf
             , ForwardDeclTypeOf
             , ForwardDecl3rdParty
             , Includes

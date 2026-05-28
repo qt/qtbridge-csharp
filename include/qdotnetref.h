@@ -13,7 +13,7 @@ public:
     const void *gcHandle() const { return objectRef; }
     bool isValid() const { return gcHandle() != nullptr; }
 
-    template<typename T, std::enable_if_t<std::is_base_of_v<QDotNetRef, T>, bool> = true>
+    template<typename T, std::enable_if_t<QDotNetIsRef_v<T>, bool> = true>
     T cast(bool copy = false)
     {
         T newObj(nullptr);
@@ -53,7 +53,7 @@ public:
         return moveFrom(movSrc);
     }
 
-    template<typename T, std::enable_if_t<std::is_base_of_v<QDotNetRef, T>, bool> = true>
+    template<typename T, std::enable_if_t<QDotNetIsRef_v<T>, bool> = true>
     class Null
     {};
 
@@ -132,7 +132,7 @@ private:
 };
 
 template<typename T>
-struct QDotNetOutbound<QDotNetRef::Null<T>, std::enable_if_t<std::is_base_of_v<QDotNetRef, T>>>
+struct QDotNetOutbound<QDotNetRef::Null<T>, std::enable_if_t<QDotNetIsRef_v<T>>>
 {
     using SourceType = nullptr_t;
     using OutboundType = const void*;

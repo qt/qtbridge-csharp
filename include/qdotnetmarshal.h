@@ -55,6 +55,22 @@ class QDotNetException;
 class QDotNetRef;
 class QDotNetType;
 
+template<typename T, typename Enable = void>
+struct QDotNetIsRef : std::false_type
+{};
+
+template<typename T>
+struct QDotNetIsRef<T, std::void_t<decltype(sizeof(T))>>
+    : std::bool_constant<std::is_base_of_v<QDotNetRef, T>>
+{};
+
+template<>
+struct QDotNetIsRef<QDotNetRef> : std::true_type
+{};
+
+template<typename T>
+inline constexpr bool QDotNetIsRef_v = QDotNetIsRef<T>::value;
+
 namespace QtDotNet::TypeNames::System
 {
     static constexpr char Void[]{ "System.Void" };
@@ -322,7 +338,7 @@ struct QDotNetTypeOf<QDotNetException>
 };
 
 template<typename T>
-struct QDotNetOutbound<T, std::enable_if_t<std::is_base_of_v<QDotNetRef, T>>>
+struct QDotNetOutbound<T, std::enable_if_t<QDotNetIsRef_v<T>>>
 {
     using SourceType = const T&;
     using OutboundType = const void*;
@@ -335,7 +351,7 @@ struct QDotNetOutbound<T, std::enable_if_t<std::is_base_of_v<QDotNetRef, T>>>
 };
 
 template<typename T>
-struct QDotNetInbound<T, std::enable_if_t<std::is_base_of_v<QDotNetRef, T>>>
+struct QDotNetInbound<T, std::enable_if_t<QDotNetIsRef_v<T>>>
 {
     using InboundType = const void*;
     using TargetType = T;
@@ -348,7 +364,7 @@ struct QDotNetInbound<T, std::enable_if_t<std::is_base_of_v<QDotNetRef, T>>>
 };
 
 template<typename T>
-struct QDotNetNull<T, std::enable_if_t<std::is_base_of_v<QDotNetRef, T>>>
+struct QDotNetNull<T, std::enable_if_t<QDotNetIsRef_v<T>>>
 {
     static T value() { return T(nullptr); }
     static bool isNull(const T &obj) { return !obj.isValid(); }

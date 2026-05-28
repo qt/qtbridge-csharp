@@ -388,6 +388,10 @@ inline void QDOTNETFUNCTION_CALLTYPE QDotNetObject::eventCallback(void *context,
     receiver->handleEvent(eventName, eventSource, eventArgs);
 }
 
+template<>
+struct QDotNetIsRef<QDotNetObject> : std::true_type
+{};
+
 template<typename T>
 struct QDotNetTypeOf<T, std::enable_if_t<std::is_base_of_v<QDotNetObject, T>>>
 {

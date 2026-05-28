@@ -18,7 +18,7 @@
 template <typename T, std::enable_if_t<
     std::is_fundamental_v<T>
     || std::is_same_v<T, QString>
-    || std::is_base_of_v<QDotNetRef, T>, bool> = true>
+    || QDotNetIsRef_v<T>, bool> = true>
 class QDotNetArray : public QDotNetObject
 {
     class Element;
@@ -52,7 +52,7 @@ public:
             return method("Get", fnGetValue).invoke(*this, idx);
         if constexpr (std::is_same_v<T, QString>)
             return method("Get", fnGetObject).invoke(*this, idx).toString();
-        if constexpr (std::is_base_of_v<QDotNetRef, T>)
+        if constexpr (QDotNetIsRef_v<T>)
             return method("Get", fnGetObject).invoke(*this, idx).template cast<T>();
         throw std::invalid_argument("T");
     }
@@ -158,3 +158,7 @@ private:
     QDotNetSafeMethod<void, qint32, T> fnSet;
     QDotNetSafeMethod<void, qint32, QDotNetObject> fnSetString;
 };
+
+template<typename T>
+struct QDotNetIsRef<QDotNetArray<T>> : std::true_type
+{};

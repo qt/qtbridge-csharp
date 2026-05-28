@@ -61,6 +61,7 @@ namespace {baseType.MFn(Ns)}
     {hppFile[new(ForwardDecl) { Distinct = true }]}
 }}
 
+{hppFile[new(ForwardDeclBaseOf) { Distinct = true }]}
 {hppFile[new(ForwardDeclTypeOf) { Distinct = true }]}
 {hppFile[new(ForwardDecl3rdParty) { Distinct = true }]}
 {hppFile[includes = new(Includes) { Distinct = true }]}
@@ -99,6 +100,7 @@ namespace {baseType.MFn(Ns)}
 
             if (baseType != type) {
                 baseType.GetPlaceholder(ForwardDecl).CreateAlias(type);
+                baseType.GetPlaceholder(ForwardDeclBaseOf).CreateAlias(type);
                 baseType.GetPlaceholder(ForwardDeclTypeOf).CreateAlias(type);
                 baseType.GetPlaceholder(ForwardDeclPrivate).CreateAlias(type);
                 baseType.GetPlaceholder(PrivateIncludes).CreateAlias(type);
