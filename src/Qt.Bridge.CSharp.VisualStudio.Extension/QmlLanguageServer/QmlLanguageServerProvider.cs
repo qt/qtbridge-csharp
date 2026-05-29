@@ -35,6 +35,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private readonly IDisposable contextSubscription;
         private readonly QmllsBuildIniPatcher buildIniPatcher;
 
+        private static string MissingMetadataNotificationKey(string projectFilePath) =>
+            $"qmls-no-metadata:{projectFilePath}";
+
         private sealed class ProjectEntry(
             IDisposable watcher,
             string projectDirectory,
@@ -550,22 +553,22 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
             var metadataFilePath = metadataReader.FindMetadataFilePath(projectDirectory, configKey);
             if (metadataFilePath == null) {
-                var shouldNotify = false;
+                var shouldCheckNotificationSettings = false;
                 lock (registryLock) {
                     if (projectRegistry.TryGetValue(projectFilePath, out var e)) {
                         e.BuildDirsInjected = false;
-                        shouldNotify = notifyUser && !e.MissingMetadataNotified;
-                        if (shouldNotify)
-                            e.MissingMetadataNotified = true;
+                        shouldCheckNotificationSettings = notifyUser && !e.MissingMetadataNotified;
                     }
                 }
 
-                if (!shouldNotify)
+                if (!shouldCheckNotificationSettings)
                     return;
 
                 var projectName = Path.GetFileNameWithoutExtension(projectFilePath);
-                await notifications.ShowInfoAsync($"qmls-no-metadata:{projectFilePath}",
-                    $"Qt Bridge: Build project '{projectName}' for full QML language support.", ct);
+                await notifications.ShowInfoAsync(
+                    MissingMetadataNotificationKey(projectFilePath),
+                    $"Qt Bridge: Build project '{projectName}' for full QML language support.",
+                    ct);
                 return;
             }
 
@@ -954,6 +957,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         {
             var ct = CancellationToken.None;
             var (shouldEnable, contextReady) = await EvaluateEnabledStateAsync(ct);
+            var loadedPaths = await contextService.GetLoadedProjectPathsAsync(ct);
+            RefreshProjectRegistry(loadedPaths);
 
             switch (shouldEnable) {
             case false when !contextReady:
@@ -978,7 +983,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                         ? Path.Combine(platform!, configuration!)
                         : configuration!;
 
-                    var loadedPaths = await contextService.GetLoadedProjectPathsAsync(ct);
                     foreach (var projectPath in loadedPaths) {
                         var meta = await projectService
                             .TryGetMetadataForPathAsync(projectPath, ct);
@@ -1003,6 +1007,31 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             log.Info(shouldEnable
                 ? "Enabled QML Language Server provider for Qt Bridge context."
                 : "Disabled QML Language Server provider for Qt Bridge context.");
+        }
+
+        private void RefreshProjectRegistry(IReadOnlyCollection<string> loadedProjectPaths)
+        {
+            var loadedProjects = loadedProjectPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            List<ProjectEntry> removedEntries = [];
+            List<string> removedProjectPaths = [];
+            lock (registryLock) {
+                foreach (var project in projectRegistry.ToList()) {
+                    if (loadedProjects.Contains(project.Key))
+                        continue;
+
+                    projectRegistry.Remove(project.Key);
+                    removedEntries.Add(project.Value);
+                    removedProjectPaths.Add(project.Key);
+                }
+            }
+
+            foreach (var entry in removedEntries) {
+                entry.Watcher.Dispose();
+                entry.BuildSettingsMonitor?.Dispose();
+            }
+
+            foreach (var projectPath in removedProjectPaths)
+                notifications.ClearRateLimit(MissingMetadataNotificationKey(projectPath));
         }
 
         /// <summary>

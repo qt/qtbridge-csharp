@@ -37,6 +37,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
                 await ShowInfoBarSafeAsync(message, isError: true, ct);
         }
 
+        public void ClearRateLimit(string key)
+        {
+            lock (notifiedKeysLock) {
+                notifiedKeys.Remove(key);
+            }
+        }
+
         private bool TryMarkNotified(string key)
         {
             lock (notifiedKeysLock) {

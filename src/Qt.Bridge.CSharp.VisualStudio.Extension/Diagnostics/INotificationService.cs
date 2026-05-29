@@ -8,5 +8,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
         Task ShowInfoAsync(string key, string message, CancellationToken ct);
         Task ShowWarningAsync(string key, string message, CancellationToken ct);
         Task ShowErrorAsync(string key, string message, CancellationToken ct);
+        void ClearRateLimit(string key);
     }
 }
