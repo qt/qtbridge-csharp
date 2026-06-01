@@ -55,6 +55,15 @@ dotnet build
 dotnet run
 ```
 
+On Linux, Qt is not bundled with the bridge package. Install Qt 6 for your target system and set
+one of the supported Qt prefix selectors before building:
+
+```bash
+dotnet build -p:QtDir=/path/to/qt-prefix
+```
+
+The Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`.
+
 This generates:
 ```
 MyQtApp/
@@ -81,7 +90,9 @@ dotnet new uninstall __PACKAGE_ID__
 ## Platforms & requirements
 
 - **Runtime:** .NET 8 or newer.
-- **OS:** Windows only. Platform availability depends on the packaged Qt runtime.
+- **OS:** Windows and Linux only.
+- **Qt:** Windows packages include Qt. Linux packages require an external Qt 6 installation selected
+  with `QtDir`.
 - **Tooling:** `dotnet` SDK 8+, a C++ toolchain for native build steps is required.
 
 ## Stay in touch

@@ -26,6 +26,10 @@
     <PackageType>Template</PackageType>
     <IncludeContentInPack>true</IncludeContentInPack>
     <PackageTags>dotnet-new;templates;Qt.Bridge.CSharp</PackageTags>
+    <QtBridgePackageFloatingVersion Condition="'$(QtBridgePackageFloatingVersion)' == '' AND '$(Qt_Tag)' != ''"
+      >$(Qt_MajorNum).$(Qt_MinorNum).*-*</QtBridgePackageFloatingVersion>
+    <QtBridgePackageFloatingVersion Condition="'$(QtBridgePackageFloatingVersion)' == ''"
+      >$(Qt_MajorNum).$(Qt_MinorNum).*</QtBridgePackageFloatingVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -38,7 +42,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="templates\**\*" PackagePath="content\"
+    <Content Include="templates\**\*" PackagePath="content"
              Exclude="templates\**\bin\**;templates\**\obj\**;templates\Qt.Bridge.CSharp.Project\NewProject.template.csproj;templates\Qt.Bridge.CSharp.Project\NewProject.csproj" />
     <Compile Remove="**\*" />
   </ItemGroup>
@@ -51,7 +55,7 @@
     <!-- Final README.md and project file to be included in the NuGet package -->
     <None Include="README.md" Pack="true" PackagePath="" Visible="false"/>
     <None Include="templates/Qt.Bridge.CSharp.Project/NewProject.csproj"
-          Pack="true" PackagePath="content\Qt.Bridge.CSharp.Project" Visible="false"/>
+          Pack="true" PackagePath="content/Qt.Bridge.CSharp.Project" Visible="false"/>
 
     <!-- Templates remain in the project but are not packed into the NuGet -->
     <None Include="README.template.md" Pack="false" />
@@ -66,8 +70,11 @@
       <QtTemplateToken Include="__PACKAGE_ID__">
         <ReplacementValue>$(PackageId)</ReplacementValue>
       </QtTemplateToken>
-      <QtTemplateToken Include="__QT_BRIDGE_PACKAGE_ID__">
-        <ReplacementValue>$(QtBridgePackageId)</ReplacementValue>
+      <QtTemplateToken Include="__QT_BRIDGE_PACKAGE_PREFIX__">
+        <ReplacementValue>$(QtBridgePackagePrefix)</ReplacementValue>
+      </QtTemplateToken>
+      <QtTemplateToken Include="__QT_BRIDGE_PACKAGE_VERSION__">
+        <ReplacementValue>$(QtBridgePackageFloatingVersion)</ReplacementValue>
       </QtTemplateToken>
       <QtTemplateToken Include="__PACKAGE_VERSION__">
         <ReplacementValue>$(PackageVersion)</ReplacementValue>

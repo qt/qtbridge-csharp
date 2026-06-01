@@ -6,18 +6,12 @@
     "name": "QML Application",
     "description": "A project for creating a C# + QML application.",
     "shortName": "qt",
-    "classifications": [ "QML", "Qt", "Windows", "Desktop" ],
+    "classifications": [ "QML", "Qt", "Windows", "Linux", "Desktop" ],
     "sourceName": "NewProject",
     "preferNameDirectory": true,
     "tags": {
         "language": "C#",
         "type": "project"
-    },
-    "constraints": {
-        "win-only": {
-            "type": "os",
-            "args": "Windows"
-        }
     },
     "primaryOutputs": [
         {
