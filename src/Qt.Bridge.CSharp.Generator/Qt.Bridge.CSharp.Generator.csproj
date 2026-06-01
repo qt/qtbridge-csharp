@@ -13,6 +13,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <AssemblyName>qbgen</AssemblyName>
+    <RollForward>Major</RollForward>
   </PropertyGroup>
 
   <ItemGroup>
