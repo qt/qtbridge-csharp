@@ -340,6 +340,19 @@ namespace Qt.Qml
 
   <!--
   //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtBridgeValidateQt
+  -->
+  <Target Name="QtBridgeValidateQt" BeforeTargets="QtBridgeBuild"
+    Condition="'$(DesignTimeBuild)' != 'true'">
+    <Error Condition="'$(QtDir)' == ''"
+      Text="Qt Bridge for C# could not find Qt. Set QtDir to a Qt 6 installation prefix containing lib/cmake/Qt6/Qt6Config.cmake. QtInstallRoot is also accepted as a compatibility alias." />
+    <Error Condition="'$(QtDir)' != '' AND !Exists('$(QtDir)/lib/cmake/Qt6/Qt6Config.cmake')"
+      Text="Qt Bridge for C# could not find Qt at '$(QtDir)'. Set QtDir to a Qt 6 installation prefix containing lib/cmake/Qt6/Qt6Config.cmake." />
+  </Target>
+  <!-- END QtBridgeValidateQt -->
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
   // QtBridgeBuild
   -->
   <Target Name="QtBridgeBuild"
@@ -498,13 +511,13 @@ namespace Qt.Qml
       <_QtIdeJSourceQmlDir>$([System.String]::Copy(
         '$(_QtIdeSrcDir)\qml').Replace('\', '\\'))</_QtIdeJSourceQmlDir>
       <_QtIdeJQtQmlDir Condition="'$(QtDir)' != ''">$([System.String]::Copy(
-        $([System.IO.Path]::GetFullPath('$(QtDir)\qml'))).Replace('\', '\\'))</_QtIdeJQtQmlDir>
+        $([System.IO.Path]::GetFullPath('$(QtDir)/qml'))).Replace('\', '\\'))</_QtIdeJQtQmlDir>
 
       <!--
         importPaths JSON array content (no surrounding brackets).
         Always includes the QML module output directory and the generated source QML
-        root for copied QML modules such as QtExampleStyle. Appends the Qt QML
-        directory from the NuGet package tools tree when $(QtDir) is set,
+        root for copied QML modules such as QtExampleStyle. Appends the active Qt QML
+        directory when $(QtDir) is set,
         suppressing the CI-baked qmlls fallback import path (D:/a/qmlls-workflow/...).
         Written as a compact single-line array in the metadata file.
       -->

@@ -14,7 +14,7 @@
     <QtHostIsMacOS Condition="$([MSBuild]::IsOSPlatform('OSX'))">true</QtHostIsMacOS>
     <QtHostIsMacOS Condition="'$(QtHostIsMacOS)' == ''">false</QtHostIsMacOS>
 
-    <QtDir Condition="'$(QtDir)' == '' and Exists('$(QtInstallRoot)\lib\cmake\Qt6\Qt6Config.cmake')"
+    <QtDir Condition="'$(QtDir)' == '' and '$(QtInstallRoot)' != '' and Exists('$(QtInstallRoot)/lib/cmake/Qt6/Qt6Config.cmake')"
       >$(QtInstallRoot)</QtDir>
 
     <QtDotNetSolutionDir Condition="'$(SolutionDir)' != '' AND Exists('$(SolutionDir)qtbridge-csharp.sln')"

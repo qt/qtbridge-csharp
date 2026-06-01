@@ -21,6 +21,8 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <Description>Qt Bridge for C# ($(QtRid))</Description>
+    <QtBridgePackBundledQt Condition="'$(QtBridgePackBundledQt)' == '' AND '$(QtRid)' == 'linux-x64'">false</QtBridgePackBundledQt>
+    <QtBridgePackBundledQt Condition="'$(QtBridgePackBundledQt)' == ''">true</QtBridgePackBundledQt>
   </PropertyGroup>
 
   <ItemGroup>
@@ -123,7 +125,7 @@
 
   </ItemGroup>
 
-  <ItemGroup Condition="'$(QtInstallRoot)' != '' AND Exists('$(QtInstallRoot)')">
+  <ItemGroup Condition="'$(QtBridgePackBundledQt)' == 'true' AND '$(QtInstallRoot)' != '' AND Exists('$(QtInstallRoot)')">
     <!-- Qt BIN: DLLs, Tools (inkl. windeployqt.exe). Doku/PDBs raus. -->
     <None Include="$(QtInstallRoot)\bin\**\*"
           Exclude="$(QtInstallRoot)\bin\**\*.pdb;$(QtInstallRoot)\bin\**\*.ilk;$(QtInstallRoot)\bin\**\*.exp"
@@ -173,9 +175,12 @@
     <UpToDateCheckInput Include="@(None)" />
   </ItemGroup>
 
-  <Target Name="WarnIfQtInstallRootMissing" BeforeTargets="Pack">
-    <Warning Condition="'$(QtInstallRoot)' == '' OR !Exists('$(QtInstallRoot)\')"
+  <Target Name="WarnIfBundledQtMissing" BeforeTargets="Pack">
+    <Warning Condition="'$(QtBridgePackBundledQt)' == 'true' AND ('$(QtInstallRoot)' == '' OR !Exists('$(QtInstallRoot)/'))"
              Text="QtInstallRoot is not set or invalid. Qt will NOT be included in the NuGet package." />
+    <Message Condition="'$(QtBridgePackBundledQt)' != 'true'"
+             Importance="high"
+             Text="QtBridgePackBundledQt is false for $(QtRid); Qt will not be included in the NuGet package." />
   </Target>
 
   <Target Name="CleanPackage">
@@ -232,7 +237,7 @@
       <None Pack="true" Include="..\..\include\**\*"
         PackagePath="include\" Visible="false" />
     </ItemGroup>
-    <ItemGroup Condition="!Exists('$(QtInstallRoot)\translations\catalogs.json')">
+    <ItemGroup Condition="'$(QtBridgePackBundledQt)' == 'true' AND !Exists('$(QtInstallRoot)/translations/catalogs.json')">
       <None Include="catalogs.json"
             Pack="true"
             PackagePath="tools\qt\translations\" Visible="false" />

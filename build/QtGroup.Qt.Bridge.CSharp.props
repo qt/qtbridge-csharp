@@ -6,10 +6,13 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
   <PropertyGroup>
-    <QtPackgeRoot>$(MSBuildThisFileDirectory)..\..\tools\qt</QtPackgeRoot>
-    <QtDir Condition="'$(QtDir)' == '' and Exists('$(QtPackgeRoot)\lib\cmake\Qt6\Qt6Config.cmake')"
-      >$(QtPackgeRoot)</QtDir>
+    <QtPackageRoot>$(MSBuildThisFileDirectory)..\..\tools\qt</QtPackageRoot>
   </PropertyGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)Qt.Bridge.props"/>
+
+  <PropertyGroup>
+    <QtDir Condition="'$(QtDir)' == '' and Exists('$(QtPackageRoot)/lib/cmake/Qt6/Qt6Config.cmake')"
+      >$(QtPackageRoot)</QtDir>
+  </PropertyGroup>
 </Project>
