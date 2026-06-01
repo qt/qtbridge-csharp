@@ -39,7 +39,7 @@
 
   <ItemGroup>
     <Content Include="templates\**\*" PackagePath="content\"
-             Exclude="templates\**\bin\**;templates\**\obj\**;templates/Qt.Bridge.CSharp.Project/NewProject.template.csproj" />
+             Exclude="templates\**\bin\**;templates\**\obj\**;templates\Qt.Bridge.CSharp.Project\NewProject.template.csproj;templates\Qt.Bridge.CSharp.Project\NewProject.csproj" />
     <Compile Remove="**\*" />
   </ItemGroup>
 
