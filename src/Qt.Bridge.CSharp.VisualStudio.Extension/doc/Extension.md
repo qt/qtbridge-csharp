@@ -100,13 +100,14 @@ down the current connection, then sets `Enabled = true` again to trigger a fresh
 **The server starts unconditionally; metadata is injected after initialization.**
 The server is launched as soon as any Qt Bridge project is detected in the solution. Metadata
 is not required at startup. Before launch the provider resolves import paths from two sources:
-the Qt Bridge NuGet package's `tools/qt/qml` directory (located via `project.assets.json`
-without requiring a build) and the import path lists from any projects that have already been
-built. This ensures standard Qt modules such as `QtQuick` resolve from the moment the server
-starts, even before the first build. Per-project `workspace/didChangeWorkspaceFolders` and
-`$/addBuildDirs` notifications are then sent after the LSP handshake completes and again
-whenever the metadata file changes. This removes the hard dependency on metadata being present
-at launch and allows the server to cover multiple projects in one session without restarting.
+the Qt Bridge NuGet package's `tools/qt/qml` directory when the package contains bundled Qt
+(located via `project.assets.json` without requiring a build), and the import path lists from any
+projects that have already been built. This ensures standard Qt modules such as `QtQuick` resolve
+from the moment the server starts when bundled Qt is available. Per-project
+`workspace/didChangeWorkspaceFolders` and `$/addBuildDirs` notifications are then sent after the
+LSP handshake completes and again whenever the metadata file changes. This removes the hard
+dependency on metadata being present at launch and allows the server to cover multiple projects in
+one session without restarting.
 
 **Active document takes precedence over selected project.**
 When `CreateServerConnectionAsync` resolves which project to configure the server for, it
@@ -149,9 +150,9 @@ settings in the running session. Instead, `TryInjectProjectAsync` checks two rea
 conditions before proceeding: `TryPatchQmllsBuildIni` must succeed (ini file present and
 native section found) and `TryGeneratedQmlTypesReady` must confirm that every generated
 import path exists and contains at least one readable `.qmltypes` file. If either check
-fails, the injection is deferred: `EnsureBuildSettingsWatcher` starts a `FileSystemWatcher`
-on the project directory and retries `TryInjectProjectAsync` on each file-system event until
-both conditions are met.
+fails, the injection is deferred: `EnsureBuildSettingsMonitor` starts a `BuildSettingsMonitor`
+that polls the expected build output files by signature and retries `TryInjectProjectAsync`
+whenever a change is detected, until both conditions are met.
 
 **Metadata change defers restart until build output is ready.**
 When the metadata watcher fires, the provider sets `RestartWhenIniReady = true` on the
@@ -345,8 +346,8 @@ the extension root stays limited to composition and cross-cutting extension serv
 
 `Contracts/Lsp.cs` contains the DTOs used to serialize LSP notifications and injected
 requests. `Contracts/ProjectAssets.cs` contains only the subset of `project.assets.json`
-needed to locate the Qt Bridge package's `tools/qt/qml` directory. These are implementation
-contracts for serialization, not domain models.
+needed to locate the Qt Bridge package's bundled `tools/qt/qml` directory when present. These are
+implementation contracts for serialization, not domain models.
 
 `LspByteBuffer` is a feature-local helper that accumulates raw stream bytes and extracts
 complete LSP messages. The transport uses it for outbound message forwarding and, when LSP
@@ -372,9 +373,11 @@ directory, the config key, and four state fields:
 - `RestartWhenIniReady` - set by `OnProjectMetadataChanged` to signal that the server should
   be restarted once the build output is fully ready. Cleared by `TryInjectProjectAsync` when
   it detects all readiness checks pass.
-- `IniWatcher` - holds the `FileSystemWatcher` that retries injection while waiting for
-  `.qmlls.build.ini` or generated `.qmltypes` files to appear. Disposed and nulled once
-  injection succeeds or the entry is displaced by a config change.
+- `BuildSettingsMonitor` - polls the generated qmlls build-settings files (`.qmlls.build.ini`
+  and `.qmltypes`) by comparing file signatures (exists, last-write time, length). Fires
+  `TryInjectProjectAsync` when any signature changes. Disposed and nulled once injection
+  succeeds or the entry is displaced by a config change. Polling only the expected output
+  files avoids reacting to unrelated CMake, Ninja, and Qt build noise.
 
 **Enabled-state management.**
 On construction, and whenever the VS context changes (project selection, document open,
@@ -392,12 +395,18 @@ Called by the VS SDK when `Enabled` is `true`. The sequence is:
    a per-error-kind InfoBar error is shown via `INotificationService` (keyed so the same
    failure is not re-shown on restart). The method returns `null` on any install failure.
 2. Collect import paths from two sources across all loaded Qt Bridge projects, deduplicated:
-   - **NuGet package path**: reads `obj/project.assets.json` for each project, locates the
+   - **Bundled NuGet package path**: reads `obj/project.assets.json` for each project, locates the
      Qt Bridge package entry in the `libraries` map, resolves it via `packageFolders`, and
      returns `<folder>/<path>/tools/qt/qml` if that directory exists. This works without a
-     prior build and ensures built-in Qt types resolve immediately.
+     prior build when the package contains bundled Qt and ensures built-in Qt types resolve
+     immediately.
    - **Built metadata paths**: reads `qtbridge-qml.ide.json` for each project that has one
      and adds its `ImportPaths` list.
+   Deduplication uses a normalized full-path key (resolved via `Path.GetFullPath`, trailing
+   separator stripped, forward-slash normalized, case-insensitive) while the original path
+   text is preserved for the qmlls `-I` command-line arguments. This handles the same
+   directory appearing with different slash or casing forms from package metadata and
+   generated project metadata.
    Each resolved path is logged at `Info` level; a "no paths found" entry is logged if the
    scan produces nothing.
 3. Resolve the active project context (directory, project file path, config key).
@@ -421,10 +430,11 @@ sending any notifications:
    location is under a build directory) does not exist on disk, contains no `.qmltypes`
    files, or has a `.qmltypes` file that cannot be opened for reading (still being written).
 
-If either check fails, injection is reset and `EnsureBuildSettingsWatcher` is called to
-start a `FileSystemWatcher` on the project directory. The watcher re-queues
-`TryInjectProjectAsync` on `Created`, `Changed`, or `Renamed` events until both checks
-pass. Once both pass and `RestartWhenIniReady` is set, the method clears the flag and calls
+If either check fails, injection is reset and `EnsureBuildSettingsMonitor` is called to
+start a `BuildSettingsMonitor` that polls the expected build output files by comparing file
+signatures (exists, last-write time, length). The monitor re-queues `TryInjectProjectAsync`
+whenever a signature change is detected, until both checks pass. Once both pass and
+`RestartWhenIniReady` is set, the method clears the flag and calls
 `RestartServerForProjectAsync` instead of injecting into the current session. Otherwise it
 enqueues `workspace/didChangeWorkspaceFolders` and `$/addBuildDirs` on the active pipe.
 
@@ -442,7 +452,7 @@ initialization and each successful build-directory injection.
 
 **`OnProjectMetadataChanged`.**
 Called by each project's `IQmlMetadataWatcher` when the metadata file timestamp changes.
-Resets `BuildDirsInjected`, sets `RestartWhenIniReady`, disposes any existing `IniWatcher`,
+Resets `BuildDirsInjected`, sets `RestartWhenIniReady`, disposes any existing `BuildSettingsMonitor`,
 and calls `TryInjectProjectAsync`. The actual server restart is deferred until
 `TryInjectProjectAsync` confirms that `.qmlls.build.ini` is patched and all generated
 `.qmltypes` files are readable. If `Enabled` is already `false`, calls
@@ -577,7 +587,7 @@ DteContextSubscription fires (solution opened)
   |- Enabled = true  (VS SDK calls CreateServerConnectionAsync)
        │
        |- IQmlLanguageServerInstaller.EnsureInstalledAsync()  -> executable path
-       |- TryFindImportPathsAsync()  -> NuGet tools/qt/qml + built metadata import paths
+       |- TryFindImportPathsAsync()  -> bundled NuGet tools/qt/qml + built metadata import paths
        |- ResolveActiveProjectContextAsync()  -> (dir, projectFile, configKey)
        |- ReadLoggingConfigAsync()  -> qmlls process log + LSP traffic log settings
        │

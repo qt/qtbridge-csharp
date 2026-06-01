@@ -130,9 +130,25 @@ returned by `EnsureInstalledAsync` and handed to the language server startup log
 
 ---
 
+### `QtBridgeUserDataPaths` (public)
+
+Centralises the shared per-user root directory for all Qt Bridge user data:
+
+```
+%LocalAppData%\QtBridge\
+```
+
+`RootDirectory` is the single source of truth for this path. Any component
+that needs to store per-user data under the Qt Bridge directory should derive
+its path from `QtBridgeUserDataPaths.RootDirectory` rather than constructing
+the path independently.
+
+---
+
 ### `QmlLanguageServerPaths` (internal)
 
-Centralises all path conventions for the per-user install tree rooted at
+Centralises all path conventions for the QML Language Server install tree.
+The root is derived from `QtBridgeUserDataPaths.RootDirectory`:
 `%LocalAppData%\QtBridge\QmlLanguageServer\`:
 
 ```
