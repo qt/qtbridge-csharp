@@ -96,17 +96,11 @@ add_custom_command(
 )";
 #if DEBUG
             cmake += $@"
-add_custom_command(
-  TARGET {Root.MFn(Target)}
-  POST_BUILD
-  COMMAND ${{CMAKE_COMMAND}}
-  ARGS -E copy $<TARGET_FILE:{Root.MFn(Target)}> ../../../../../../bin/Debug/net8.0
-)
 file(GENERATE OUTPUT ALL_BUILD.vcxproj.user
     CONTENT ""<?xml version=\""1.0\"" encoding=\""utf-8\""?>
 <Project ToolsVersion=\""Current\"" xmlns=\""http://schemas.microsoft.com/developer/msbuild/2003\"">
   <PropertyGroup>
-    <LocalDebuggerWorkingDirectory>$([System.IO.Path]::GetFullPath('$(TargetDir)../../../../../../../../bin/Debug/net8.0/'))</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>$([System.IO.Path]::GetFullPath('$(TargetDir)..\bin\'))</LocalDebuggerWorkingDirectory>
     <LocalDebuggerCommand>$(LocalDebuggerWorkingDirectory){Root.MFn(Target)}.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerDebuggerType>NativeWithManagedCore</LocalDebuggerDebuggerType>
