@@ -360,6 +360,13 @@ dotnet build
 dotnet run
 ```
 
+The project template defaults to `net8.0`. To target a newer framework supported by your installed
+.NET SDK, pass `--Framework`, for example:
+
+```bash
+dotnet new qt -n MyQtApp --Framework net9.0
+```
+
 This generates:
 ```
 MyQtApp/

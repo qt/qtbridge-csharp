@@ -26,6 +26,28 @@
             "displayName": "Add sample code to project",
             "description": "Select this option to add sample code to the C# and QML source files."
         },
+        "Framework": {
+            "type": "parameter",
+            "datatype": "choice",
+            "defaultValue": "net8.0",
+            "replaces": "net8.0",
+            "displayName": "Target framework",
+            "description": "The target framework for the generated project.",
+            "choices": [
+                {
+                    "choice": "net8.0",
+                    "description": ".NET 8"
+                },
+                {
+                    "choice": "net9.0",
+                    "description": ".NET 9"
+                },
+                {
+                    "choice": "net10.0",
+                    "description": ".NET 10"
+                }
+            ]
+        },
         "CopyrightHeader":{
             "type": "computed",
             "datatype":"bool",
