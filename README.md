@@ -42,8 +42,9 @@ Detailed documentation can be found
 
 The currently supported workflow is:
 
-- **Windows x64 with .NET 8+**
-- **Linux x64 with .NET 8+** (validated on Ubuntu and WSL/Ubuntu)
+- **Windows x64 with .NET 8+** using the bundled Qt runtime or an external Qt installation.
+- **Linux x64 with .NET 8+** using an external Qt installation from or compatible with the target
+  Linux distribution.
 
 ## Requirements
 
@@ -76,7 +77,9 @@ consume local packages from this repository.
 
 #### Add via dotnet CLI
 
-Choose the package that matches your RID (runtime identifier):
+Choose the package that matches your RID (runtime identifier). The Windows package includes a
+minimal Qt runtime. The Linux package does not include Qt; set `QtDir` to a Qt 6 installation
+prefix before building.
 
 ```bash
 # Windows x64
@@ -85,6 +88,14 @@ dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.1.0.2-alpha
 # Linux x64 (Ubuntu / WSL)
 dotnet add package QtGroup.Qt.Bridge.CSharp.linux-x64 --version 0.1.0.2-alpha
 ```
+
+Linux example:
+
+```bash
+dotnet build -p:QtDir=/usr/lib/qt6
+```
+
+The selected Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`.
 
 ### Using the Visual Studio extension
 
@@ -119,18 +130,21 @@ CLI users and for Linux/WSL development.
 
 If you already have a Qt 6 installation that includes `qtbase`, `qtsvg`, `qtshadertools`,
 `qtdeclarative`, `qtquick3d`, `qtquick3dphysics`, and `qtquicktimeline`, you can skip building Qt
-from source. Set `QtInstallRoot` to the Qt installation prefix (the folder that contains `bin`,
-`lib`, and `include`), then continue with **Build the Qt Bridge for C#**.
+from source. Set `QtDir` to the Qt installation prefix (the folder that contains `bin`, `lib`, and
+`include`), then continue with **Build the Qt Bridge for C#**.
 
 Windows (`cmd` / Native Tools Prompt):
 ```bat
-set QtInstallRoot=D:\Qt\6.11.0\msvc2022_64
+set QtDir=D:\Qt\6.11.0\msvc2022_64
 ```
 
 Linux / WSL (`bash`):
 ```bash
-export QtInstallRoot=~/work/qt6-install
+export QtDir=~/work/qt6-install
 ```
+
+If you already use the Qt `QTDIR` environment variable, MSBuild will also honor it because
+environment variables are available as build properties.
 
 #### Building Qt 6 from source on Windows
 
@@ -234,11 +248,25 @@ The resulting Qt installation is placed in `~/work/qt6-install` and contains the
 
 #### Build Qt Bridge for C#
 
-After Qt is available and `QtInstallRoot` is set in your current shell, run from this repository
-root:
+After Qt is available, run from this repository root:
 
 ```bash
 dotnet build -c Release
+```
+
+On Windows, setting `QtInstallRoot` before the build lets the local `win-x64` package include the
+Qt payload.
+
+On Linux, the local `linux-x64` package does not include Qt by default, even when `QtInstallRoot`
+points to a valid Qt installation. Projects that consume the package must select a compatible
+system Qt by setting `QtDir`.
+
+To build a Linux package with a bundled Qt payload for local testing, opt in explicitly:
+
+```bash
+dotnet build -c Release \
+  -p:QtBridgePackBundledQt=true \
+  -p:QtInstallRoot=/path/to/qt
 ```
 
 #### Add the local NuGet package source
@@ -283,9 +311,9 @@ sudo apt install -y libxcb-cursor0
 QT_QPA_PLATFORM=xcb ./examples/Primes/bin/Release/net8.0/Primes
 ```
 
-- If startup reports `QFontDatabase: Cannot find font directory .../tools/qt/lib/fonts`, the Qt
-  package does not have bundled fonts on that system. Point Qt to a system font directory before
-  launching the app, for example:
+- If startup reports `QFontDatabase: Cannot find font directory .../lib/fonts`, the selected Qt
+  installation does not provide bundled fonts for that system. Point Qt to a system font directory
+  before launching the app, for example:
 
 ```bash
 export QT_QPA_FONTDIR=/usr/share/fonts/truetype/ubuntu
@@ -390,9 +418,9 @@ The NuGet contains:
 - **Generator** (discovers your types and emits interop glue)
 - **Filtering rules** (Include/Ignore/Exclude attributes)
 - **C++ include headers** for the native bridge
-- A **minimal open-source Qt Quick runtime subset** sufficient to run QML
+- On Windows packages, a **minimal open-source Qt Quick runtime subset** sufficient to run QML
 
-All parts are versioned together to ensure compatibility.
+Linux packages do not contain Qt. They use the Qt installation selected with `QtDir`.
 
 ## Clean up
 
@@ -402,12 +430,14 @@ Windows:
 
 ```bat
 set QtInstallRoot=
+set QtDir=
 ```
 
 Ubuntu / WSL:
 
 ```bash
 unset QtInstallRoot
+unset QtDir
 ```
 
 ## Stay in touch

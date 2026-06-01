@@ -10,7 +10,7 @@ using Qt Quick for the UI. The bridging mechanism is based on interoperability b
 
 ## Contents
 
-Bring **QML/Qt Quick** to **C#/.NET** with a single package. This bundle ships:
+Bring **QML/Qt Quick** to **C#/.NET** with a single package. This package ships:
 
 - A custom **.NET host** that also functions as **QML engine bootstrap**.
 - A **Qt/.NET adapter** module that handles interoperability between C# and QML.
@@ -18,11 +18,11 @@ Bring **QML/Qt Quick** to **C#/.NET** with a single package. This bundle ships:
 - **Filtering rules** (`[Qt.Include]`, `[Qt.Ignore]`, `[Qt.IgnoreType]`) to control what becomes
   visible to QML.
 - **C++ include headers** used by the native side of the bridge.
-- A **minimal, open-source Qt Quick runtime subset** sufficient to load and run QML (no full or
-  commercial Qt installation).
+- On Windows packages, a **minimal, open-source Qt Quick runtime subset** sufficient to load and
+  run QML.
 
-> Target framework: **.NET 8+**. Works currently on Windows x64 only, subject to the available Qt
-  runtime in this package.
+> Target framework: **.NET 8+**. Windows packages include Qt. Linux packages require an external
+  Qt installation selected with `QtDir`.
 
 ## Why use this package?
 
@@ -32,8 +32,8 @@ Bring **QML/Qt Quick** to **C#/.NET** with a single package. This bundle ships:
   automatically.
 - **Precise surface control.** Attribute-based filters let you decide exactly which types/members
   are exposed to QML.
-- **Batteries included.** Comes with the native headers and a minimal Qt Quick runtime so you can
-  start quickly.
+- **Windows runtime included.** Comes with the native headers and a minimal Qt Quick runtime so you
+  can start quickly.
 
 ## Install
 
@@ -45,6 +45,13 @@ dotnet add package __PACKAGE_ID__ --version __PACKAGE_VERSION__
 ## Quick start
 
 1. **Reference the package** in your .NET 8+ project.
+1. **On Linux, select Qt** before building:
+
+   ```bash
+   dotnet build -p:QtDir=/path/to/qt-prefix
+   ```
+
+   The Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`.
 1. Manage the **visibility of C# types and type members in QML**:
    - By default, the set of types and type members exposed to QML includes all C# `public` types
      defined in the project.
@@ -59,7 +66,9 @@ dotnet add package __PACKAGE_ID__ --version __PACKAGE_VERSION__
 ## Platforms & requirements
 
 - **Runtime:** .NET 8 or newer.
-- **OS:** Windows only. Platform availability depends on the packaged Qt runtime.
+- **OS:** Windows x64 and Linux x64.
+- **Qt:** Windows packages include Qt. Linux packages require a Qt 6 installation from the target
+  system or a Qt installation compatible with that system.
 - **Tooling:** `dotnet` SDK 8+, a C++ toolchain for native build steps is required.
 
 ## Future plans
