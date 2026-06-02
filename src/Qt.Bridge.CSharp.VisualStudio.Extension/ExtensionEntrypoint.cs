@@ -23,7 +23,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
         protected override void InitializeServices(IServiceCollection serviceCollection)
         {
-            if (SupportsVisualStudioExtensibility())
+            if (VisualStudioVersion.SupportsVisualStudioExtensibility())
                 serviceCollection.AddSettingsObservers();
             base.InitializeServices(serviceCollection);
 
@@ -45,7 +45,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
             serviceCollection.AddSingleton<IProjectContextService, DteProjectContextService>();
 
-            if (SupportsVisualStudioExtensibility()) {
+            if (VisualStudioVersion.SupportsVisualStudioExtensibility()) {
                 // VS 2026+: use the source-generated settings observer.
                 serviceCollection.AddSingleton<ExtensibilityLoggingSettingsProvider>();
                 serviceCollection.AddSingleton<ILoggingSettingsProvider>(sp =>
@@ -55,18 +55,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 serviceCollection.AddSingleton<ILoggingSettingsProvider,
                     VssdkLoggingSettingsProvider>();
             }
-        }
-
-        private static bool SupportsVisualStudioExtensibility()
-        {
-            try {
-                var module = System.Diagnostics.Process.GetCurrentProcess().MainModule;
-                if (module != null) {
-                    var v = System.Diagnostics.FileVersionInfo.GetVersionInfo(module.FileName);
-                    return v.FileMajorPart >= 18;
-                }
-            } catch (Exception) { }
-            return true;
         }
     }
 }

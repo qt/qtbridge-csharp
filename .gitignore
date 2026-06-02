@@ -23,6 +23,7 @@ nuget/local/
 nuget/Qt.Bridge.CSharp.Package/README.md
 nuget/Qt.Bridge.CSharp.Templates/README.md
 nuget/Qt.Bridge.CSharp.Templates/templates/Qt.Bridge.CSharp.Project/NewProject.csproj
+src/Qt.Bridge.CSharp.VisualStudio.Extension/.vsextension/string-resources.json
 
 # Auto-version properties
 qt_autoversion.props

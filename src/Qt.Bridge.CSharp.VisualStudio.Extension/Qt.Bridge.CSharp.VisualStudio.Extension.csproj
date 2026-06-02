@@ -4,6 +4,7 @@
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_version.props))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_template.targets))" />
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -42,6 +43,7 @@
   </PropertyGroup>
   <ItemGroup>
     <None Remove="GPL-3.0-only.txt" />
+    <None Remove=".vsextension\string-resources.json" />
     <None Remove="Templates.pkgdef" />
     <None Remove="qt.ico" />
   </ItemGroup>
@@ -54,6 +56,12 @@
     </Content>
     <Content Include="Templates.pkgdef">
       <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include=".vsextension\string-resources.json">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Update=".vsextension\string-resources.template.json">
+      <IncludeInVSIX>false</IncludeInVSIX>
     </Content>
   </ItemGroup>
 
@@ -71,6 +79,20 @@
 
   <Target Name="Build" Condition="!$([MSBuild]::IsOsPlatform('Windows'))">
     <Message Importance="High" Text="$(MSBuildProjectName): skipped (Windows only)" />
+  </Target>
+
+  <Target Name="GenerateStringResources" BeforeTargets="BeforeBuild">
+    <ItemGroup>
+      <QtTemplateToken Remove="@(QtTemplateToken)" />
+      <QtTemplateToken Include="__QT_BRIDGE_VERSION__">
+        <ReplacementValue>$(VsixIdentityVersion)</ReplacementValue>
+      </QtTemplateToken>
+    </ItemGroup>
+
+    <QtTemplateFile Template=".vsextension\string-resources.template.json"
+                    OutputFileName=".vsextension\string-resources.json"
+                    Tokens="@(QtTemplateToken)" />
+
   </Target>
 
   <Target Name="EnsureQtBridgeTemplatesPackage" BeforeTargets="PreCreateVsixContainer">

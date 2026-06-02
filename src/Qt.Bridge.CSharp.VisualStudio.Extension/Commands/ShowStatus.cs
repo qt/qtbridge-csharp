@@ -1,5 +1,6 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
+#if DEBUG
 
 using System.Diagnostics;
 using Microsoft;
@@ -8,7 +9,7 @@ using Microsoft.VisualStudio.Extensibility.Commands;
 using Microsoft.VisualStudio.Extensibility.Shell;
 using Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem;
 
-namespace Qt.Bridge.CSharp.VisualStudio.Extension
+namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
 {
 
     /// <summary>
@@ -16,19 +17,17 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
     /// detection result for the active project or selected item.
     /// </summary>
     [VisualStudioContribution]
-    internal sealed class QtBridgeStatusCommand(
-        TraceSource traceSource,
-        IQtBridgeProjectService projectService) : Command
+    internal sealed class ShowStatus(TraceSource traceSource, IQtBridgeProjectService projectSrv)
+        : Command
     {
         private readonly TraceSource logger = Requires.NotNull(traceSource);
-        private readonly IQtBridgeProjectService projectService = Requires.NotNull(projectService);
+        private readonly IQtBridgeProjectService projectService = Requires.NotNull(projectSrv);
 
         public override CommandConfiguration CommandConfiguration =>
             new("%QtBridge.ShowStatus.DisplayName%")
             {
-                Icon = new CommandIconConfiguration(ImageMoniker.KnownValues.Extension,
-                IconSettings.IconAndText),
-                Placements = [CommandPlacement.KnownPlacements.ExtensionsMenu]
+                Icon = new CommandIconConfiguration(ImageMoniker.KnownValues.DebugTemplate,
+                IconSettings.IconAndText)
             };
 
         public override Task InitializeAsync(CancellationToken cancellationToken)
@@ -37,36 +36,29 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             return base.InitializeAsync(cancellationToken);
         }
 
-        public override async Task ExecuteCommandAsync(
-            IClientContext context,
-            CancellationToken cancellationToken)
+        public override async Task ExecuteCommandAsync(IClientContext context, CancellationToken ct)
         {
             var message = "No active Qt Bridge project context was found.";
 
-            var activeProject = await context.GetActiveProjectAsync(cancellationToken);
+            var activeProject = await context.GetActiveProjectAsync(ct);
             if (activeProject?.Path is { } projectPath && !string.IsNullOrWhiteSpace(projectPath)) {
-                var metadata = await projectService.TryGetMetadataForPathAsync(projectPath,
-                    cancellationToken);
+                var metadata = await projectService.TryGetMetadataForPathAsync(projectPath, ct);
                 if (metadata != null)
                     message = QtBridgeProjectSummaryFormatter.Format(metadata);
             } else {
                 Uri? selectedPath = null;
                 try {
-                    selectedPath = await context.GetSelectedPathAsync(cancellationToken);
+                    selectedPath = await context.GetSelectedPathAsync(ct);
                 } catch (Exception) {}
 
                 if (TryGetLocalPath(selectedPath, out var selectionPath) && selectionPath != null) {
-                    var metadata = await projectService.TryGetMetadataForPathAsync(selectionPath,
-                        cancellationToken);
-                    if (metadata != null)
-                        message = QtBridgeProjectSummaryFormatter.Format(metadata);
+                    var data = await projectService.TryGetMetadataForPathAsync(selectionPath, ct);
+                    if (data != null)
+                        message = QtBridgeProjectSummaryFormatter.Format(data);
                 }
             }
 
-            await Extensibility.Shell().ShowPromptAsync(
-                message,
-                PromptOptions.OK,
-                cancellationToken);
+            await Extensibility.Shell().ShowPromptAsync(message, PromptOptions.OK, ct);
         }
 
         private static bool TryGetLocalPath(Uri? uri, out string? localPath)
@@ -80,3 +72,4 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         }
     }
 }
+#endif

@@ -1,5 +1,9 @@
 {
-  "QtBridge.ShowStatus.DisplayName": "Qt Bridge Status",
+  "QtBridge.Menu.DisplayName": "Qt Bridge for C#",
+  "QtBridge.Options.DisplayName": "Options...",
+  "QtBridge.Version.DisplayName": "Version: __QT_BRIDGE_VERSION__",
+  "QtBridge.ShowStatus.DisplayName": "Show Qt Bridge Status...",
+
   "QtBridge.QmlLanguageServer.DisplayName": "QML Language Server",
 
   "QtBridge.Settings.Root.DisplayName": "Qt Bridge for C#",

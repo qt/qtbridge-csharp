@@ -20,10 +20,14 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
         internal static LoggingOptionsPage? LoggingPage { get; private set; }
 
+        public static ExtensionPackage? Instance { get; private set; }
+
         protected override async Task InitializeAsync(
             CancellationToken cancellationToken,
             IProgress<ServiceProgressData> progress)
         {
+            Instance = this;
+
             await base.InitializeAsync(cancellationToken, progress);
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 
