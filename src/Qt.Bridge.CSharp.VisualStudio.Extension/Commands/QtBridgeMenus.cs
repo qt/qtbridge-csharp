@@ -13,13 +13,14 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
         {
             Placements =
             [
-                CommandPlacement.KnownPlacements.ExtensionsMenu.WithPriority(0x100),
+                CommandPlacement.KnownPlacements.ExtensionsMenu.WithPriority(0x100)
             ],
             Children =
             [
                 MenuChild.Command<Options>(),
 #if DEBUG
                 MenuChild.Separator,
+                MenuChild.Command<ResetSettingsStore>(),
                 MenuChild.Command<ShowToast>(),
                 MenuChild.Command<ShowStatus>(),
 #endif

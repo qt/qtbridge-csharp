@@ -8,8 +8,11 @@ using Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer;
 using Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 using Qt.Bridge.CSharp.VisualStudio.Extension.QmlMetadata;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Settings;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;
 using Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext;
+
+using ShellSrvProvider = Microsoft.VisualStudio.Shell.ServiceProvider;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension
 {
@@ -30,6 +33,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             serviceCollection.AddSingleton<IExtensionLog, ExtensionLog>();
             serviceCollection.AddSingleton<INotificationService, NotificationService>();
             serviceCollection.AddSingleton<IToastNotificationService, ToastNotificationService>();
+            serviceCollection.AddSingleton(_ => new SettingsStore(ShellSrvProvider.GlobalProvider));
 
             serviceCollection.AddSingleton<IQtBridgeProjectDetector, QtBridgeProjectDetector>();
             serviceCollection.AddSingleton<IQtBridgeProjectFileLocator,
