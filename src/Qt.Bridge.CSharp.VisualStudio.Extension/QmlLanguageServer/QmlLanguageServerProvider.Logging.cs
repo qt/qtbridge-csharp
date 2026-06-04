@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using System.IO;
-using Qt.Bridge.CSharp.VisualStudio.Extension.Settings;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer

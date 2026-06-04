@@ -9,7 +9,6 @@ using System.Text;
 using System.Threading.Channels;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 using Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer.Contracts;
-using Qt.Bridge.CSharp.VisualStudio.Extension.Settings;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer

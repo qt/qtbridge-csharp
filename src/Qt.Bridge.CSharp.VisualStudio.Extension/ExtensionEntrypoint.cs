@@ -58,7 +58,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             } else {
                 // VS 2022: the new extensibility settings UI is not supported; use DialogPage.
                 serviceCollection.AddSingleton<ILoggingSettingsProvider,
-                    VssdkLoggingSettingsProvider>();
+                    VsSdkLoggingSettingsProvider>();
             }
         }
     }

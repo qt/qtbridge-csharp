@@ -7,7 +7,7 @@
 namespace System.Runtime.CompilerServices
 {
     /// <summary>Required by the C# compiler for init-only properties and records.</summary>
-    internal static class IsExternalInit { }
+    internal static class IsExternalInit;
 }
 
 namespace System.Diagnostics.CodeAnalysis

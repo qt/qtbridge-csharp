@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
 {
-    internal sealed class VssdkLoggingSettingsProvider : ILoggingSettingsProvider
+    internal sealed class VsSdkLoggingSettingsProvider : ILoggingSettingsProvider
     {
         public async Task<LoggingOptions> GetOptionsAsync(CancellationToken ct)
         {
