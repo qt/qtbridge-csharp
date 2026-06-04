@@ -100,7 +100,7 @@ file(GENERATE OUTPUT ALL_BUILD.vcxproj.user
     CONTENT ""<?xml version=\""1.0\"" encoding=\""utf-8\""?>
 <Project ToolsVersion=\""Current\"" xmlns=\""http://schemas.microsoft.com/developer/msbuild/2003\"">
   <PropertyGroup>
-    <LocalDebuggerWorkingDirectory>$([System.IO.Path]::GetFullPath('$(TargetDir)..\bin\'))</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>$([System.IO.Path]::GetFullPath('$(TargetDir)../bin/'))</LocalDebuggerWorkingDirectory>
     <LocalDebuggerCommand>$(LocalDebuggerWorkingDirectory){Root.MFn(Target)}.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerDebuggerType>NativeWithManagedCore</LocalDebuggerDebuggerType>
