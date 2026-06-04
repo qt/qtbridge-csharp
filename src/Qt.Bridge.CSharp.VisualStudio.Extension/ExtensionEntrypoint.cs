@@ -29,6 +29,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
             serviceCollection.AddSingleton<IExtensionLog, ExtensionLog>();
             serviceCollection.AddSingleton<INotificationService, NotificationService>();
+            serviceCollection.AddSingleton<IToastNotificationService, ToastNotificationService>();
 
             serviceCollection.AddSingleton<IQtBridgeProjectDetector, QtBridgeProjectDetector>();
             serviceCollection.AddSingleton<IQtBridgeProjectFileLocator,

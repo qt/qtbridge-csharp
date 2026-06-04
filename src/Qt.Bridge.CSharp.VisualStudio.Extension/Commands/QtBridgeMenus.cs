@@ -20,6 +20,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
                 MenuChild.Command<Options>(),
 #if DEBUG
                 MenuChild.Separator,
+                MenuChild.Command<ShowToast>(),
                 MenuChild.Command<ShowStatus>(),
 #endif
                 MenuChild.Separator,

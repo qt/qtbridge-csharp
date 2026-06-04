@@ -2,6 +2,7 @@
   "QtBridge.Menu.DisplayName": "Qt Bridge for C#",
   "QtBridge.Options.DisplayName": "Options...",
   "QtBridge.Version.DisplayName": "Version: __QT_BRIDGE_VERSION__",
+  "QtBridge.ShowToast.DisplayName": "Show Qt Bridge Toast...",
   "QtBridge.ShowStatus.DisplayName": "Show Qt Bridge Status...",
 
   "QtBridge.QmlLanguageServer.DisplayName": "QML Language Server",
