@@ -83,10 +83,10 @@ prefix before building.
 
 ```bash
 # Windows x64
-dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.1.0.2-alpha
+dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.3.*-*
 
 # Linux x64 (Ubuntu / WSL)
-dotnet add package QtGroup.Qt.Bridge.CSharp.linux-x64 --version 0.1.0.2-alpha
+dotnet add package QtGroup.Qt.Bridge.CSharp.linux-x64 --version 0.3.*-*
 ```
 
 Linux example:
@@ -365,6 +365,12 @@ The project template defaults to `net8.0`. To target a newer framework supported
 
 ```bash
 dotnet new qt -n MyQtApp --Framework net9.0
+```
+
+To include a small C# and QML counter sample in the generated project, pass `--SampleCode`:
+
+```bash
+dotnet new qt -n MyQtApp --SampleCode
 ```
 
 This generates:

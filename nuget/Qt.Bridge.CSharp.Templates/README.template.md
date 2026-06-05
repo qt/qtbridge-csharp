@@ -62,6 +62,12 @@ The project template defaults to `net8.0`. To target a newer framework supported
 dotnet new qt -n MyQtApp --Framework net9.0
 ```
 
+To include a small C# and QML counter sample in the generated project, pass `--SampleCode`:
+
+```bash
+dotnet new qt -n MyQtApp --SampleCode
+```
+
 On Linux, Qt is not bundled with the bridge package. Install Qt 6 for your target system and set
 one of the supported Qt prefix selectors before building:
 
