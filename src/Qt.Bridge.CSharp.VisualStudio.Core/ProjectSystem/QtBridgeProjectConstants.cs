@@ -13,6 +13,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem
             "QtGroup.Qt.Bridge.CSharp."
         ];
 
+        /// <summary>
+        /// MSBuild property reference used by generated app templates in place of a literal package
+        /// id, resolved per runtime identifier at restore/build time.
+        /// </summary>
+        public const string TemplatedQtBridgePackageId = "$(QtBridgePackageId)";
+
         public static readonly IReadOnlyList<string> KnownImportedFiles =
         [
             "QtGroup.Qt.Bridge.CSharp.props",
@@ -42,6 +48,27 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem
 
             return KnownPackageIdPrefixes
                 .Any(prefix => packageId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if <paramref name="packageId"/> is the templated
+        /// <c>$(QtBridgePackageId)</c> reference used by generated app templates.
+        /// </summary>
+        public static bool IsTemplatedQtBridgePackageReference(string packageId) =>
+            string.Equals(packageId, TemplatedQtBridgePackageId, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Returns <see langword="true"/> if <paramref name="prefixValue"/> is the value of a
+        /// <c>QtBridgePackagePrefix</c> property that, combined with a runtime identifier suffix,
+        /// would form a known Qt Bridge package id.
+        /// </summary>
+        public static bool IsKnownQtBridgePackagePrefixValue(string prefixValue)
+        {
+            if (string.IsNullOrWhiteSpace(prefixValue))
+                return false;
+
+            return KnownPackageIdPrefixes
+                .Any(prefix => prefix.StartsWith(prefixValue, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>

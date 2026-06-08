@@ -3,6 +3,8 @@
 
 using System.Xml.Linq;
 
+using static Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem.QtBridgeProjectConstants;
+
 namespace Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem
 {
     /// <summary>
@@ -31,12 +33,27 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem
                 LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
             var properties = CollectProperties(document);
 
-            var packageReference = document
+            var packageReferenceIds = document
                 .Descendants()
                 .Where(element => element.Name.LocalName == "PackageReference")
                 .Select(element => (string?)element.Attribute("Include"))
-                .FirstOrDefault(packageId => packageId != null
-                    && QtBridgeProjectConstants.IsKnownQtBridgePackageId(packageId));
+                .Where(packageId => !string.IsNullOrWhiteSpace(packageId))
+                .Select(packageId => packageId!)
+                .ToArray();
+
+            var packagePrefixValue = document
+                .Descendants()
+                .Where(element => element.Parent?.Name.LocalName == "PropertyGroup"
+                    && element.Name.LocalName == "QtBridgePackagePrefix")
+                .Select(element => element.Value.Trim())
+                .FirstOrDefault(value => !string.IsNullOrEmpty(value));
+
+            // Generated app templates reference the bridge package via the templated
+            // $(QtBridgePackageId) property, which only resolves to a known package id
+            // when combined with a QtBridgePackagePrefix that matches a known prefix.
+            var hasTemplatedPackageReference = packagePrefixValue != null
+                && IsKnownQtBridgePackagePrefixValue(packagePrefixValue)
+                && packageReferenceIds.Any(IsTemplatedQtBridgePackageReference);
 
             var importedFiles = document
                 .Descendants()
@@ -45,15 +62,17 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem
                 .Where(project => !string.IsNullOrWhiteSpace(project))
                 .ToArray();
 
+            var packageReference = packageReferenceIds.FirstOrDefault(IsKnownQtBridgePackageId)
+                ?? (hasTemplatedPackageReference ? TemplatedQtBridgePackageId : null);
+
             var importsQtBridgeProps = importedFiles.Any(path =>
-                path != null && QtBridgeProjectConstants.IsKnownImportedFile(path, ".props"));
+                path != null && IsKnownImportedFile(path, ".props"));
 
             var importsQtBridgeTargets = importedFiles.Any(path =>
-                path != null && QtBridgeProjectConstants.IsKnownImportedFile(path, ".targets"));
+                path != null && IsKnownImportedFile(path, ".targets"));
 
             var hasKnownQtBridgeProperty = properties.Keys.Any(key =>
-                QtBridgeProjectConstants.KnownPropertyNames
-                    .Contains(key, StringComparer.OrdinalIgnoreCase));
+                KnownPropertyNames.Contains(key, StringComparer.OrdinalIgnoreCase));
 
             var isQtBridgeProject = packageReference != null
                 || importsQtBridgeProps
@@ -79,7 +98,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem
             foreach (var propertyElement in document
                 .Descendants()
                 .Where(element => element.Parent?.Name.LocalName == "PropertyGroup")) {
-                if (!QtBridgeProjectConstants.KnownPropertyNames.Contains(
+                if (!KnownPropertyNames.Contains(
                     propertyElement.Name.LocalName,
                     StringComparer.OrdinalIgnoreCase)) {
                     continue;
