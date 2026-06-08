@@ -1,44 +1,102 @@
 # Project Templates
 
-Implementation notes for this page:
+Project templates give you a working C# and QML application without wiring the bridge by hand. This
+page explains what the templates create, which options are available, and how to add more QML files
+as the project grows.
 
-## Scope boundary
+## Create a project
 
-Owns:
+The .NET CLI, Visual Studio, and editor workflows all use the same underlying templates, so the
+generated project looks the same no matter which one you choose.
 
-* Project and item templates across .NET CLI, Visual Studio, and editor workflows.
-* Template options such as `--Framework` and `--SampleCode`.
-* The generated project shape and what each generated file is for.
+### From the .NET CLI
 
-Does not own:
+Install the templates once, then create a project:
 
-* Platform-specific toolchain setup or first-build troubleshooting.
-* Adding Qt Bridge for C# to an existing non-template project.
-* Deep conceptual explanation of C# and QML data flow.
+```bash
+dotnet new install QtGroup.Qt.Bridge.CSharp.Templates
+dotnet new qt -n MyQtApp
+```
 
-Current overlap note: some template-option details, such as `--Framework`, `--SampleCode`, and
-the generated project shape, are currently mentioned in the platform getting-started pages. When
-this page is written, those pages should keep only the shortest runnable workflow and link here for
-template details.
+`dotnet new qt` creates a new C# and QML application project. Two options shape what it generates:
 
-## Content ideas
+* `--Framework` selects the target framework, for example `net9.0`. The default is `net8.0`.
+* `--SampleCode` adds a small counter sample that wires a C# object to a QML button and label, so
+  you have something running and bound end to end before you write your own code.
 
-* Make this page the "next step" after the simple getting-started workflow.
-* Explain what `dotnet new qt` creates.
-* Explain what `dotnet new qml` creates.
-* Explain that Visual Studio exposes equivalent project and item templates through the extension.
-* Show the basic generated project shape:
-  * Project file
-  * C# entry point
-  * Main QML file
-* Show the minimal `Program.cs` entry point with `Qml.LoadFromRootModule(...)` and
-  `Qml.WaitForExit(...)`.
-* If examples are included, treat them as supporting material rather than the main page purpose.
-* Map supporting examples to common learning goals:
-  * Basic app startup
-  * C# object exposed to QML
-  * .NET collection or model used from QML
-  * Resource usage
-  * Custom model/data flow
-* Keep this page action-oriented rather than conceptual.
-* Add links to examples once the preferred example order is confirmed.
+```bash
+dotnet new qt -n MyQtApp --Framework net9.0 --SampleCode
+```
+
+To add another QML file to an existing Qt Bridge for C# project, use the item template:
+
+```bash
+dotnet new qml --FileName=MainPage
+```
+
+### From Visual Studio
+
+The Visual Studio extension exposes the same templates as project and item templates in the
+**Create a new project** and **Add new item** dialogs. Filter by **C#**, **Windows**, and **Qt** or
+**QML** to find the Qt Bridge for C# QML application template.
+
+Use **Add &gt; New Item** in a Qt Bridge for C# project to add a QML file. The generated project
+shape, framework selection, and sample-code option match what you get from `dotnet new qt`.
+
+## What the project template creates
+
+A project created without `--SampleCode` has three files at its core:
+
+```text
+MyQtApp/
+  MyQtApp.csproj
+  Program.cs
+  Main.qml
+```
+
+* **`MyQtApp.csproj`** is a regular .NET project file. It references the Qt Bridge for C# package
+  for your platform and includes `Program.cs` and `Main.qml` as project items. You build and run it
+  the same way you would any other .NET project, with `dotnet build` and `dotnet run` or from your
+  editor.
+* **`Program.cs`** is the C# entry point. It loads the QML side and keeps the application running
+  until the QML window closes.
+* **`Main.qml`** is the first QML file the application loads. It describes the window and the user
+  interface that appears when the application starts.
+
+`--SampleCode` adds a small `Counter` C# class that QML can see, and extends `Main.qml` with a
+button and a label bound to it. Use it as a tour of how a C# object and a QML item connect; remove
+it once you start building your own UI.
+
+## The minimal entry point
+
+Every template project starts QML the same way:
+
+```csharp
+public class Program
+{
+    internal static void Main(string[] args)
+    {
+        Qml.LoadFromRootModule("Main");
+        Qml.WaitForExit();
+    }
+}
+```
+
+* [`Qml.LoadFromRootModule("Main")`](api/Qt.Quick.Qml.yml) loads `Main.qml` as the application's
+  root QML file and creates the window it describes.
+* [`Qml.WaitForExit()`](api/Qt.Quick.Qml.yml) blocks `Main` until the QML side shuts down, so the
+  process stays alive while the UI runs.
+
+You do not need to change either call for a typical project. Add your own C# types above `Program`,
+expose them to QML the way [C# and QML](csharp-and-qml.md) describes, and reference them from
+`Main.qml` or from QML files you add with the item template.
+
+## Examples
+
+The repository includes a separate
+[examples overview](https://github.com/qt/qtbridge-csharp/tree/dev/examples) with runnable sample
+applications.
+
+Use the examples after you understand the generated project shape. They go beyond the template and
+show common next steps, including C# objects exposed to QML, model/view data, resources, and larger
+multi-file UI flows.

@@ -33,6 +33,9 @@ information it needs to understand QML-facing C# types and imports.
   <strong>Qt</strong> or <strong>QML</strong> to find the Qt Bridge QML application template.
 </p>
 
+For generated project structure, template options, and QML item templates, see
+[Project Templates](templates-and-examples.md).
+
 ## Check your setup
 
 After the first build, check that:

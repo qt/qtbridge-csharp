@@ -41,18 +41,8 @@ dotnet build -p:QtDir=/path/to/qt-prefix
 dotnet run
 ```
 
-The project template defaults to `net8.0`. To target a newer framework supported by your installed
-.NET SDK, pass `--Framework`:
-
-```bash
-dotnet new qt -n MyQtApp --Framework net9.0
-```
-
-To include a small C# and QML counter sample in the generated project, pass `--SampleCode`:
-
-```bash
-dotnet new qt -n MyQtApp --SampleCode
-```
+For template options such as `--Framework` and `--SampleCode`, generated project structure, and QML
+item templates, see [Project Templates](templates-and-examples.md).
 
 ## Add Qt Bridge for C# to an existing project
 
