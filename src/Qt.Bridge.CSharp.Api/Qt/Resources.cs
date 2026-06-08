@@ -45,11 +45,13 @@ namespace Qt
         /// </exception>
         /// <remarks>
         /// Use this method before optional resource reads:
-        /// <code language="csharp"><![CDATA[
+        /// <![CDATA[
+        /// ```csharp
         /// if (Resources.Exists("qrc:/assemblies/MyApp/help/welcome.html")) {
         ///     string html = Resources.ReadAllText("qrc:/assemblies/MyApp/help/welcome.html");
         /// }
-        /// ]]></code>
+        /// ```
+        /// ]]>
         /// </remarks>
         public static bool Exists(string qrcUrl)
         {
@@ -66,12 +68,14 @@ namespace Qt
         /// </exception>
         /// <remarks>
         /// A return value of <c>-1</c> means the resource could not be opened:
-        /// <code language="csharp"><![CDATA[
+        /// <![CDATA[
+        /// ```csharp
         /// long bytes = Resources.Size("qrc:/assemblies/MyApp/data/catalog.bin");
         /// if (bytes >= 0) {
         ///     Console.WriteLine($"Catalog size: {bytes} bytes");
         /// }
-        /// ]]></code>
+        /// ```
+        /// ]]>
         /// </remarks>
         public static long Size(string qrcUrl)
         {
@@ -95,11 +99,13 @@ namespace Qt
         /// <remarks>
         /// Use this method for binary resources such as images, fonts, and data files when the
         /// consuming C# API expects bytes or streams:
-        /// <code language="csharp"><![CDATA[
+        /// <![CDATA[
+        /// ```csharp
         /// byte[] fontData = Resources.ReadAllBytes(
         ///     "qrc:/assemblies/MyApp/fonts/Inter-Regular.ttf");
         /// using var stream = new MemoryStream(fontData);
-        /// ]]></code>
+        /// ```
+        /// ]]>
         /// </remarks>
         public static byte[] ReadAllBytes(string qrcUrl)
         {
@@ -139,12 +145,14 @@ namespace Qt
         /// <remarks>
         /// The default encoding is UTF-8. Pass an explicit encoding when the resource uses a
         /// different text encoding:
-        /// <code language="csharp"><![CDATA[
+        /// <![CDATA[
+        /// ```csharp
         /// string json = Resources.ReadAllText("qrc:/assemblies/MyApp/config/appsettings.json");
         /// string legacyText = Resources.ReadAllText(
         ///     "qrc:/assemblies/MyApp/text/legacy.txt",
         ///     Encoding.GetEncoding("windows-1252"));
-        /// ]]></code>
+        /// ```
+        /// ]]>
         /// </remarks>
         public static string ReadAllText(string qrcUrl, Encoding encoding = null)
         {

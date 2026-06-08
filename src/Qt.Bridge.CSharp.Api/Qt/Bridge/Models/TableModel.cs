@@ -81,7 +81,8 @@ namespace Qt.Bridge.Models
     /// or remove rows or columns, implement the corresponding <c>Can*</c> and protected mutation
     /// methods such as <see cref="CanInsertRows"/> and <see cref="InsertRows(int, int)"/>.
     /// </para>
-    /// <code language="csharp"><![CDATA[
+    /// <![CDATA[
+    /// ```csharp
     /// public class ScoreTable : TableModel<int>
     /// {
     ///     private readonly int[,] values =
@@ -107,7 +108,8 @@ namespace Qt.Bridge.Models
     ///         _ => string.Empty
     ///     };
     /// }
-    /// ]]></code>
+    /// ```
+    /// ]]>
     /// </remarks>
     public abstract class TableModel<T> : TableModel
     {

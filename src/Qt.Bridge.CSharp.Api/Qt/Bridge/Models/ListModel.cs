@@ -78,7 +78,8 @@ namespace Qt.Bridge.Models
     /// lookup logic, derive from <see cref="ListModel"/> instead and override
     /// <see cref="Model.RoleNames"/> and <see cref="Model.Data(ModelIndex, int)"/> yourself.
     /// </para>
-    /// <code language="csharp"><![CDATA[
+    /// <![CDATA[
+    /// ```csharp
     /// public class NameList : ListModel<string>
     /// {
     ///     private List<string> Names { get; } = ["Ada", "Linus", "Grace"];
@@ -92,7 +93,8 @@ namespace Qt.Bridge.Models
     ///         return Names[index];
     ///     }
     /// }
-    /// ]]></code>
+    /// ```
+    /// ]]>
     /// </remarks>
     public abstract class ListModel<T> : ListModel
     {

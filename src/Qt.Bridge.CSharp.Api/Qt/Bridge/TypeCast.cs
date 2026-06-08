@@ -23,7 +23,8 @@ namespace Qt.Bridge
     /// <para>
     /// For example, a bridged C# type like this:
     /// </para>
-    /// <code language="csharp"><![CDATA[
+    /// <![CDATA[
+    /// ```csharp
     /// namespace ColorPalette;
     ///
     /// public class ColorResource
@@ -31,14 +32,16 @@ namespace Qt.Bridge
     ///     public string Name { get; set; }
     ///     public int ColorId { get; set; }
     /// }
-    /// ]]></code>
+    /// ```
+    /// ]]>
     /// <para>
     /// produces a QML cast helper named <c>TypeCast.as_ColorPalette_ColorResource(obj)</c>. In
     /// QML, you call that method with an object reference. If the object actually represents a
     /// <c>ColorPalette.ColorResource</c> instance, the return value can be used as that type.
     /// Otherwise, the result is <c>null</c>.
     /// </para>
-    /// <code language="qml"><![CDATA[
+    /// <![CDATA[
+    /// ```qml
     /// function showColorDetails(obj) {
     ///     let color = TypeCast.as_ColorPalette_ColorResource(obj)
     ///     if (color == null)
@@ -47,7 +50,8 @@ namespace Qt.Bridge
     ///     console.log(color.name)
     ///     console.log(color.colorId)
     /// }
-    /// ]]></code>
+    /// ```
+    /// ]]>
     /// <para>
     /// Method names are derived from the C# namespace and type name, with namespace separators
     /// replaced by <c>_</c>.

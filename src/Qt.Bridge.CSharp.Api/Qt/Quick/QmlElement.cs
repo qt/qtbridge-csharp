@@ -15,22 +15,26 @@ namespace Qt.Quick
     /// Use <see cref="Name"/> to override the default QML type name and
     /// <see cref="Singleton"/> to register the type as a QML singleton.
     /// </para>
-    /// <code language="csharp"><![CDATA[
+    /// <![CDATA[
+    /// ```csharp
     /// [QmlElement(Name = "Counter", Singleton = true)]
     /// public class CounterService
     /// {
     ///     public int Clicks { get; set; }
     /// }
-    /// ]]></code>
+    /// ```
+    /// ]]>
     /// <para>
     /// In QML, the type is exposed under the name <c>Counter</c>. Because it is registered as a
     /// singleton, it is intended to be shared as one instance rather than created repeatedly.
     /// </para>
-    /// <code language="qml"><![CDATA[
+    /// <![CDATA[
+    /// ```qml
     /// Text {
     ///     text: Counter.clicks
     /// }
-    /// ]]></code>
+    /// ```
+    /// ]]>
     /// </remarks>
     [AttributeUsage(
         AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface,
@@ -92,7 +96,8 @@ namespace Qt.Quick
     /// child objects declared inside the element in QML and wire them to the parent service or
     /// controller object.
     /// </para>
-    /// <code language="csharp"><![CDATA[
+    /// <![CDATA[
+    /// ```csharp
     /// public class ApiResource
     /// {
     ///     public string Path { get; set; }
@@ -117,12 +122,14 @@ namespace Qt.Quick
     ///         }
     ///     }
     /// }
-    /// ]]></code>
+    /// ```
+    /// ]]>
     /// <para>
     /// With a C# type like the one above, QML can declare nested child objects inside the parent
     /// element:
     /// </para>
-    /// <code language="qml"><![CDATA[
+    /// <![CDATA[
+    /// ```qml
     /// ApiClient {
     ///     ApiResource {
     ///         path: "users"
@@ -132,7 +139,8 @@ namespace Qt.Quick
     ///         path: "orders"
     ///     }
     /// }
-    /// ]]></code>
+    /// ```
+    /// ]]>
     /// <para>
     /// When the QML component is complete, Qt Bridge passes those nested child objects to
     /// <see cref="QmlComponentComplete(object[])"/>, where the implementation can inspect, cast,

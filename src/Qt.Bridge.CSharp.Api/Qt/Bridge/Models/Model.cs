@@ -78,7 +78,8 @@ namespace Qt.Bridge.Models
     /// must also be called. This is part of the base class contract and should usually be enforced
     /// with a <c>try</c>/<c>finally</c> block around the model modification.
     /// </para>
-    /// <code language="csharp"><![CDATA[
+    /// <![CDATA[
+    /// ```csharp
     /// public class NameListModel : Model
     /// {
     ///     private List<string> Items { get; } = ["John", "Paul", "George", "Ringo"];
@@ -116,7 +117,8 @@ namespace Qt.Bridge.Models
     ///         return true;
     ///     }
     /// }
-    /// ]]></code>
+    /// ```
+    /// ]]>
     /// </remarks>
     public abstract class Model
     {

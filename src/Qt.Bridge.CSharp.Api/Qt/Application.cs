@@ -13,7 +13,8 @@ namespace Qt
     /// Qt Bridge for C# forwards these values to the native application object as soon
     /// as you assign them. In practice, set them near the start of <c>Main</c>, before
     /// <see cref="Quick.Qml.LoadFromRootModule"/>, so the UI sees them from the beginning:
-    /// <code language="csharp"><![CDATA[
+    /// <![CDATA[
+    /// ```csharp
     /// static void Main(string[] args)
     /// {
     ///     Qt.Application.Name               = "MyApp";
@@ -26,7 +27,8 @@ namespace Qt
     ///     Qml.LoadFromRootModule("Main");
     ///     Qml.WaitForExit();
     /// }
-    /// ]]></code>
+    /// ```
+    /// ]]>
     /// </remarks>
     public static class Application
     {

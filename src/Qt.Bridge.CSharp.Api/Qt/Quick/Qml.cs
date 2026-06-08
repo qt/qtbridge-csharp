@@ -21,13 +21,15 @@ namespace Qt
         /// typical application loads one or more QML components by URI and type name, then blocks
         /// on <see cref="WaitForExit(int)"/> until the user closes the window.
         /// </para>
-        /// <code language="csharp"><![CDATA[
+        /// <![CDATA[
+        /// ```csharp
         /// static void Main(string[] args)
         /// {
         ///     Qml.LoadFromRootModule("MainWindow");
         ///     Qml.WaitForExit();
         /// }
-        /// ]]></code>
+        /// ```
+        /// ]]>
         /// </remarks>
         public static class Qml
         {
@@ -90,14 +92,16 @@ namespace Qt
             /// </param>
             /// <remarks>
             /// Multiple components can be loaded before calling <see cref="WaitForExit(int)"/>:
-            /// <code language="csharp"><![CDATA[
+            /// <![CDATA[
+            /// ```csharp
             /// static void Main(string[] args)
             /// {
             ///     Qml.LoadFromModule("MyApp.Views", "ListView");
             ///     Qml.LoadFromModule("MyApp.Views", "TableView");
             ///     Qml.WaitForExit();
             /// }
-            /// ]]></code>
+            /// ```
+            /// ]]>
             /// </remarks>
             public static void LoadFromModule(string uri, string typeName)
             {
@@ -119,7 +123,8 @@ namespace Qt
             /// <remarks>
             /// A finite timeout makes it possible to interleave C# work with the event loop. A
             /// common pattern is a polling loop that modifies model data between short waits:
-            /// <code language="csharp"><![CDATA[
+            /// <![CDATA[
+            /// ```csharp
             /// static void Main(string[] args)
             /// {
             ///     Qml.LoadFromRootModule("Main");
@@ -127,7 +132,8 @@ namespace Qt
             ///         // update model data while the UI remains responsive
             ///     }
             /// }
-            /// ]]></code>
+            /// ```
+            /// ]]>
             /// </remarks>
             public static bool WaitForExit(int timeout = -1)
             {
@@ -147,7 +153,8 @@ namespace Qt
             /// amount of time. Calling <see cref="ProcessEvents"/> periodically prevents the UI
             /// from freezing while the operation completes:
             /// </para>
-            /// <code language="csharp"><![CDATA[
+            /// <![CDATA[
+            /// ```csharp
             /// public void ImportData(string path)
             /// {
             ///     foreach (var record in ReadRecords(path)) {
@@ -155,7 +162,8 @@ namespace Qt
             ///         Qml.ProcessEvents(); // keep the UI alive
             ///     }
             /// }
-            /// ]]></code>
+            /// ```
+            /// ]]>
             /// </remarks>
             public static void ProcessEvents()
             {

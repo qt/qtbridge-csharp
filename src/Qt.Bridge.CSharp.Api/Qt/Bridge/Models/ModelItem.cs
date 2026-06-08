@@ -20,7 +20,8 @@ namespace Qt.Bridge.Models
     /// have different interaction rules. For example, a totals item might be enabled but not
     /// selectable, or a placeholder item might be neither enabled nor selectable.
     /// </para>
-    /// <code language="csharp"><![CDATA[
+    /// <![CDATA[
+    /// ```csharp
     /// public sealed class ContactItem : IModelItem, IDisplayable, IEditable
     /// {
     ///     public string Name { get; set; }
@@ -38,7 +39,8 @@ namespace Qt.Bridge.Models
     ///         set => Name = value?.ToString() ?? string.Empty;
     ///     }
     /// }
-    /// ]]></code>
+    /// ```
+    /// ]]>
     /// <para>
     /// In a <see cref="ListModel{T}"/> or <see cref="TableModel{T}"/> based on
     /// <c>ContactItem</c>, the display role would use
