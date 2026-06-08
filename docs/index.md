@@ -1,44 +1,64 @@
----
-_layout: landing
----
-
-<div class="hero">
-  <div class="hero-content">
-    <h1>Qt Bridge for C# API Reference</h1>
+<div class="docs-home docs-home-landing">
+  <section class="docs-intro">
+    <h1>Qt Bridge for C# Documentation</h1>
     <p class="lead">
-      Full API documentation for Qt Bridge for C# — namespaces, types, properties,
-      methods, and attributes for building Qt applications in idiomatic C#.
+      Qt Bridge for C# lets .NET developers keep application logic in familiar C# while QML
+      describes the user interface rendered by Qt Quick.
     </p>
-    <div class="hero-actions">
-      <a class="btn btn-primary btn-lg" href="api/Qt.html">Browse API</a>
-    </div>
-    <p class="pre-release">
-      <i class="bi bi-exclamation-triangle"></i>
-      <strong>Pre-release</strong> — By installing this package you agree to the
-      <a href="https://www.qt.io/terms-conditions">Qt terms and conditions</a>.
+    <p>
+      Start with the overview and setup pages, then move into Visual Studio workflow, project templates, and
+      the generated API reference when you need exact type details.
     </p>
-  </div>
-</div>
+  </section>
 
-<div class="features">
-  <div class="feature-card">
-    <h3><i class="bi bi-braces feature-icon"></i> Qt</h3>
-    <p>Core types, attributes, and interfaces for exposing C# classes to QML.</p>
-    <a href="api/Qt.html">Browse</a>
-  </div>
-  <div class="feature-card">
-    <h3><i class="bi bi-table feature-icon"></i> Qt.Bridge.Models</h3>
-    <p>Base classes for <code>QAbstractItemModel</code>, list models, and table models.</p>
-    <a href="api/Qt.Bridge.Models.html">Browse</a>
-  </div>
-  <div class="feature-card">
-    <h3><i class="bi bi-box-seam feature-icon"></i> Qt.Resources</h3>
-    <p>Access <code>qrc:/</code> resources packaged with your application.</p>
-    <a href="api/Qt.Resources.html">Browse</a>
-  </div>
-  <div class="feature-card">
-    <h3><i class="bi bi-lightning feature-icon"></i> Qt.Quick</h3>
-    <p>Attributes and interfaces for QML element registration and lifecycle hooks.</p>
-    <a href="api/Qt.Quick.html">Browse</a>
-  </div>
+  <section class="section-block">
+    <h2>Getting Started</h2>
+    <div class="card-grid">
+      <a class="doc-card" href="introduction.md">
+        <h3>Introduction</h3>
+        <p>What Qt Bridge for C# is, why it exists, and how C# backend code connects to a QML frontend.</p>
+      </a>
+      <a class="doc-card" href="getting-started.md">
+        <h3>Getting Started</h3>
+        <p>Choose the right workflow for your operating system, development environment, and first Qt Bridge for C# project.</p>
+      </a>
+      <a class="doc-card" href="csharp-and-qml.md">
+        <h3>C# and QML</h3>
+        <p>Learn the mental model for using C# application logic with a QML user interface.</p>
+      </a>
+    </div>
+  </section>
+
+  <section class="section-block">
+    <h2>Workflows</h2>
+    <div class="card-grid">
+      <a class="doc-card" href="templates-and-examples.md">
+        <h3>Project Templates</h3>
+        <p>Understand <code>dotnet new qt</code>, generated project structure, and QML item templates.</p>
+      </a>
+      <a class="doc-card" href="existing-csharp-projects.md">
+        <h3>Adding QML to Existing C# Projects</h3>
+        <p>Add Qt Bridge for C# to an existing app and expose your current objects and models to QML.</p>
+      </a>
+      <a class="doc-card" href="visual-studio-workflow.md">
+        <h3>Editing QML in Visual Studio</h3>
+        <p>Use Visual Studio diagnostics, completion, semantic support, and project-aware QML imports.</p>
+      </a>
+    </div>
+  </section>
+
+  <section class="section-block">
+    <h2>Reference</h2>
+    <div class="card-grid">
+      <a class="doc-card" href="api-reference.md">
+        <h3>API Reference</h3>
+        <p>Browse namespaces, attributes, models, resource helpers, and bridge-specific API details.</p>
+      </a>
+      <a class="doc-card" href="release-status.md">
+        <h3>Release Status</h3>
+        <p>Understand the current beta status, expected changes, and early-adopter considerations.</p>
+      </a>
+    </div>
+  </section>
+
 </div>

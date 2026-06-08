@@ -1,6 +1,25 @@
-- name: Home
-  href: https://doc-snapshots.qt.io/qtbridges-dev/qtbridges-csharp-index.html
 - name: Overview
   href: index.md
+- name: Introduction
+  href: introduction.md
+- name: Getting Started
+  href: getting-started.md
+  items:
+  - name: Windows and Visual Studio
+    href: getting-started-windows-visual-studio.md
+  - name: Windows with .NET CLI or VS Code
+    href: getting-started-windows-cli-vscode.md
+  - name: Linux with .NET CLI
+    href: getting-started-linux.md
+- name: C# and QML
+  href: csharp-and-qml.md
+- name: Project Templates
+  href: templates-and-examples.md
+- name: Adding QML to Existing C# Projects
+  href: existing-csharp-projects.md
+- name: Editing QML in Visual Studio
+  href: visual-studio-workflow.md
+- name: Release Status
+  href: release-status.md
 - name: API Reference
-  href: api/Qt.html
+  href: api-reference.md
