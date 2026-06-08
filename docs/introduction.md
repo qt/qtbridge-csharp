@@ -62,9 +62,10 @@ A Qt Bridge for C# application has two main sides:
 * QML describes the user interface that Qt Quick renders.
 * C# contains the application logic, data models, bridge attributes, and resources.
 
-When building your application, Qt Bridge for C# generates the interop pieces needed for the QML
-side to understand the C# types you expose. The Visual Studio extension can provide QML
-diagnostics, completion, semantic editor support, and project-aware imports.
+When you build your application, Qt Bridge for C# produces the bridge information and native
+support needed for the QML side to understand the C# types you expose. The Visual Studio
+extension can provide QML diagnostics, completion, semantic editor support, and project-aware
+imports.
 
 ## What is included?
 
@@ -82,13 +83,9 @@ applications:
 ## Current product status
 
 Qt Bridge for C# is currently in beta. APIs, workflows, and documentation may evolve as feedback
-arrives.
+arrives. For beta expectations, licensing, terms, and dependency notes, see
+[Release Status](release-status.md).
 
-By installing this package, you agree to the [Qt terms and conditions](https://www.qt.io/terms-conditions).
-Those terms also apply to the Qt Framework, which is a major dependency of the package.
+## Where to go from here
 
-Qt Bridge for C# is built using the .NET SDK and Runtime, developed and maintained by Microsoft and
-the .NET Foundation. No Microsoft code or binaries are redistributed as part of Qt Bridge for C#.
-.NET and C# are trademarks of Microsoft Corporation. This project is not affiliated with or endorsed
-by Microsoft.
-
+* See [Getting Started](getting-started.md) to choose a workflow and create your first project.

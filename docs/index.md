@@ -56,7 +56,7 @@
       </a>
       <a class="doc-card" href="release-status.md">
         <h3>Release Status</h3>
-        <p>Understand the current beta status, expected changes, and early-adopter considerations.</p>
+        <p>See what beta means today, what may change, and how to plan around the current state.</p>
       </a>
     </div>
   </section>
