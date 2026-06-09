@@ -15,7 +15,7 @@
     Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup>
     <ReadOnlyProject>true</ReadOnlyProject>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
     <IncludePath
 >$(QtInstallRoot)\include;
 ;$([System.String]::Join('%3B',$([System.IO.Directory]::GetDirectories($(QtInstallRoot)\include))));
