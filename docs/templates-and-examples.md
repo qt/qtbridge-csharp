@@ -100,3 +100,10 @@ applications.
 Use the examples after you understand the generated project shape. They go beyond the template and
 show common next steps, including C# objects exposed to QML, model/view data, resources, and larger
 multi-file UI flows.
+
+## Where to go from here
+
+* See [C# and QML](csharp-and-qml.md) for the mental model behind how C# types and QML connect.
+* See [Adding QML to Existing C# Projects](existing-csharp-projects.md) if you want to apply these
+  ideas to a codebase you already have.
+* See [Application Resources](resources.md) for packaging images, fonts, and other data files.

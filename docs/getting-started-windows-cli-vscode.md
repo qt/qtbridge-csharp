@@ -55,6 +55,9 @@ dotnet build
 dotnet run
 ```
 
+For the full migration workflow, including QML files, startup calls, and exposing your existing
+C# objects to QML, see [Adding QML to Existing C# Projects](existing-csharp-projects.md).
+
 ## Check your setup
 
 After the first build, check that:

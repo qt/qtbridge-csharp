@@ -55,3 +55,12 @@ It:
 Basic QML syntax highlighting and completion are available when you open a QML file. The first
 build gives the editor the project information it needs to understand QML-facing C# types and
 imports.
+
+## Where to go from here
+
+* See [C# and QML](csharp-and-qml.md) for the mental model behind how your C# code and QML
+  interface connect.
+* See [Project Templates](templates-and-examples.md) for the generated project structure and
+  template options.
+* See [Adding QML to Existing C# Projects](existing-csharp-projects.md) if you want to add the
+  bridge to an app you already have.

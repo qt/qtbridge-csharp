@@ -17,6 +17,9 @@
   href: templates-and-examples.md
 - name: Adding QML to Existing C# Projects
   href: existing-csharp-projects.md
+  items:
+  - name: Application Resources
+    href: resources.md
 - name: Editing QML in Visual Studio
   href: visual-studio-workflow.md
 - name: Release Status
