@@ -45,6 +45,9 @@ After the first build, check that:
 * QML files are present and editable
 * QML diagnostics and completion include QML-facing C# types after the first build
 
+For the diagnostics, completion, semantic editor support, and project-aware imports the extension
+provides, see [Editing QML in Visual Studio](visual-studio-workflow.md).
+
 ## Common first issues
 
 If the project does not build or the editor support looks incomplete, check these areas first:

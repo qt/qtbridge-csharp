@@ -6,8 +6,8 @@
       describes the user interface rendered by Qt Quick.
     </p>
     <p>
-      Start with the overview and setup pages, then move into Visual Studio workflow, project templates, and
-      the generated API reference when you need exact type details.
+      Start with Introduction and Getting Started, then explore C# and QML, project templates, and
+      existing-project workflows. Use Visual Studio editing support and the API reference as you go.
     </p>
   </section>
 
