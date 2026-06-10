@@ -165,17 +165,15 @@
         AND '%(_QtResolvedResource.AccessMode)' != 'ManagedOnly'"
       Text="Qt Bridge resource '%(_QtResolvedResource.Identity)' has invalid AccessMode '%(_QtResolvedResource.AccessMode)'. Expected Default, ManagedAndNative, or ManagedOnly." />
 
-    <MakeDir Condition="'@(_QtResolvedResource)' != ''"
-      Directories="$(IntermediateOutputPath)qt\csharp" />
-    <WriteLinesToFile Condition="'@(_QtResolvedResource)' != ''" Overwrite="true"
+    <MakeDir Directories="$(IntermediateOutputPath)qt\csharp" />
+    <WriteLinesToFile Overwrite="true"
       WriteOnlyWhenDifferent="true" File="$(ProjectDir)$(IntermediateOutputPath)$(QtResourceFilesCs)"
       Lines="@(_QtResolvedResource->'[assembly: Qt.Bridge.QtResource(
     SourcePath = @&quot;%(SourcePath)&quot;, Alias = &quot;%(Alias)&quot;, Prefix = &quot;%(Prefix)&quot;,
     AssemblyId = &quot;%(AssemblyId)&quot;, Key = &quot;%(Key)&quot;,
     AccessMode = &quot;%(AccessMode)&quot;, Reason = &quot;%(Reason)&quot;)]')" />
     <ItemGroup>
-      <Compile Condition="'@(_QtResolvedResource)' != ''"
-        Include="$(IntermediateOutputPath)qt\csharp\QtResources.cs" />
+      <Compile Include="$(IntermediateOutputPath)qt\csharp\QtResources.cs" />
     </ItemGroup>
   </Target>
   <!-- END QtBridgeAddResources -->

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
 using System;
+using System.IO;
 
 namespace Test_Qt.Bridge.Project
 {
@@ -102,6 +103,29 @@ ApplicationWindow {{
 
             check = cppFiles.HasFlag(Cpp.MyClassB) ? Assert.IsTrue : Assert.IsFalse;
             check(target.HasMessage(new(@"\bmyclassb.cpp\b")));
+        }
+
+        // QtResources.cs is declared as an UpToDateCheckOutput (Set="QtResource") regardless of
+        // whether the project has any @(QtResource)/@(QtResx) items. If it is only written when
+        // such items are present, VS FastUpToDate will report the output as missing and force a
+        // full rebuild on every build, even with no changes.
+        [TestMethod]
+        public async Task QtResourcesOutputWrittenWithoutResourceItems()
+        {
+            using var temp = new TempProject();
+            temp.Create(new()
+            {
+                PackageReferences = [Packages.QtBridge]
+            });
+            temp.AddFile("Program.cs", ProgramCs);
+            temp.AddFile("Main.qml", MainQml);
+            await temp.BuildAsync(new() { Targets = ["CoreCompile"] });
+
+            var outputPath = await temp.GetPropertyAsync("IntermediateOutputPath");
+            var qtResourceFilesCs = await temp.GetPropertyAsync("QtResourceFilesCs");
+            var qtResourcesCs = Path.Combine(temp.ProjectDir, outputPath, qtResourceFilesCs);
+            Assert.IsTrue(File.Exists(qtResourcesCs), $"Expected '{qtResourcesCs}' to be written "
+                + "always, since it is declared as an UpToDateCheckOutput.");
         }
     }
 }
