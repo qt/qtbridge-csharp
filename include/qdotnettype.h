@@ -85,9 +85,9 @@ public:
         if (!fnAssemblyQualifiedName.isValid()) {
             fnAssemblyQualifiedName = adapter().resolveInstanceMethod(*this,
                 "get_AssemblyQualifiedName", { UnmanagedType::LPWStr });
-            strFullName = fnAssemblyQualifiedName();
+            strAssemblyQualifiedName = fnAssemblyQualifiedName();
         }
-        return strFullName;
+        return strAssemblyQualifiedName;
     }
 
     QString fullName() const
@@ -342,6 +342,7 @@ private:
     mutable QDotNetFunction<QDotNetRef, QString> fnGetMethod;
     mutable QDotNetFunction<QString> fnAssemblyQualifiedName;
     mutable QDotNetFunction<QString> fnFullName;
+    mutable QString strAssemblyQualifiedName;
     mutable QString strFullName;
     mutable QDotNetFunction<bool, QDotNetRef> fnIsAssignableFrom;
     mutable QDotNetFunction<bool, QDotNetRef> fnIsAssignableTo;
