@@ -181,6 +181,24 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dynamic Object", "Dynamic Object", "{A84500DF-E315-44FC-B14E-EAC92618109D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Qt.Bridge.CSharp.VisualStudio.Extension", "tests\Test_Qt.Bridge.CSharp.VisualStudio.Extension\Test_Qt.Bridge.CSharp.VisualStudio.Extension.csproj", "{0FA89422-DD55-4DF1-A22D-0A7DCD7F591C}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docfx", "docfx", "{09802621-E22A-4F5D-A98A-F44BF953B9E4}"
+	ProjectSection(SolutionItems) = preProject
+		docs\api-reference.md = docs\api-reference.md
+		docs\csharp-and-qml.md = docs\csharp-and-qml.md
+		docs\existing-csharp-projects.md = docs\existing-csharp-projects.md
+		docs\getting-started-linux.md = docs\getting-started-linux.md
+		docs\getting-started-windows-cli-vscode.md = docs\getting-started-windows-cli-vscode.md
+		docs\getting-started-windows-visual-studio.md = docs\getting-started-windows-visual-studio.md
+		docs\getting-started.md = docs\getting-started.md
+		docs\index.md = docs\index.md
+		docs\introduction.md = docs\introduction.md
+		docs\README.md = docs\README.md
+		docs\release-status.md = docs\release-status.md
+		docs\resources.md = docs\resources.md
+		docs\templates-and-examples.md = docs\templates-and-examples.md
+		docs\visual-content-plan.md = docs\visual-content-plan.md
+		docs\visual-studio-workflow.md = docs\visual-studio-workflow.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -518,6 +536,7 @@ Global
 		{9ABC29CB-5F7B-4CC1-AB57-DC8DE16A1BCC} = {A84500DF-E315-44FC-B14E-EAC92618109D}
 		{A84500DF-E315-44FC-B14E-EAC92618109D} = {C50AAC52-E619-45DF-AD9F-D98434A2A467}
 		{0FA89422-DD55-4DF1-A22D-0A7DCD7F591C} = {0828626A-BAD8-4E02-99DC-3AAA15073223}
+		{09802621-E22A-4F5D-A98A-F44BF953B9E4} = {373D7EB2-18E1-47D0-B07E-C3D1301DB3FB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E4CDB648-EF1A-4ADE-B6EA-D4E9D668E676}
