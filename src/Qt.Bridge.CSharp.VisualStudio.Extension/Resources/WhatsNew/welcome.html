@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="THEME">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Qt Bridge for C# — Welcome</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+
+    /* -- Light theme (default) -- */
+    body        { font-family: "Segoe UI", sans-serif; font-size: 13px;
+                  color: #1e1e1e; background: #ffffff;
+                  overflow-x: hidden; overflow-y: auto; }
+    #nav        { background: #f3f3f3; border-right: 1px solid #e0e0e0; }
+    #nav a      { color: #1e1e1e; }
+    #nav a:hover,
+    #nav a.active { background: #e8e8e8; }
+    .nav-title,
+    .nav-footer,
+    h2, .dim    { color: #6e6e6e; }
+    .card       { background: #f8f8f8; border-color: #e0e0e0; }
+    .card p     { color: #6e6e6e; }
+    pre         { background: #f3f3f3; border: 1px solid #e0e0e0; }
+    .limits     { background: #f8f8f8; border: 1px solid #e0e0e0; }
+    .btn.ghost:hover { background: #e5f0fb; }
+    .ext-links  { border-top: 1px solid #e0e0e0; }
+
+    /* -- Dark theme -- */
+    html[data-theme="dark"] body     { color: #cccccc; background: #1e1e1e; }
+    html[data-theme="dark"] #nav     { background: #252526; border-right-color: #3e3e3e; }
+    html[data-theme="dark"] #nav a   { color: #cccccc; }
+    html[data-theme="dark"] #nav a:hover,
+    html[data-theme="dark"] #nav a.active { background: #37373d; }
+    html[data-theme="dark"] .nav-title,
+    html[data-theme="dark"] .nav-footer,
+    html[data-theme="dark"] h2,
+    html[data-theme="dark"] .dim     { color: #969696; }
+    html[data-theme="dark"] h1       { color: #d4d4d4; }
+    html[data-theme="dark"] .card    { background: #2d2d2d; border-color: #3e3e3e; }
+    html[data-theme="dark"] .card h3 { color: #d4d4d4; }
+    html[data-theme="dark"] .card p  { color: #969696; }
+    html[data-theme="dark"] pre      { background: #141414;
+                                       border-color: #3e3e3e; color: #d4d4d4; }
+    html[data-theme="dark"] .limits  { background: #252526; border-color: #3e3e3e; }
+    html[data-theme="dark"] .limits li { color: #969696; }
+    html[data-theme="dark"] .btn.ghost:hover { background: rgba(0,120,212,0.18); }
+    html[data-theme="dark"] .ext-links { border-top-color: #3e3e3e; }
+    html[data-theme="dark"] .dot.ok  { background: #4ec94e; }
+    html[data-theme="dark"] .ready   { color: #4ec94e; }
+
+    /* -- Shell layout -- */
+    #shell   { display: table; width: 100%; height: 100%; }
+    #nav     { display: table-cell; width: 190px; vertical-align: top; padding: 8px 0; }
+    #content { display: table-cell; vertical-align: top; height: 100%; }
+
+    /* -- Sidebar -- */
+    .nav-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; padding: 6px 16px 14px;
+    }
+    #nav a {
+      display: block; padding: 6px 16px 6px 19px;
+      border-left: 3px solid transparent; text-decoration: none;
+    }
+    #nav a.active { border-left-color: #0078d4; font-weight: 600; }
+    .nav-sep { height: 1px; background: #e0e0e0; margin: 8px 16px; }
+    html[data-theme="dark"] .nav-sep { background: #3e3e3e; }
+
+    /* -- Main content -- */
+    #main { padding: 28px 40px 40px; }
+
+    h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+    .intro { font-size: 13px; line-height: 1.6; margin-bottom: 28px; max-width: 680px; }
+
+    h2 {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; margin-bottom: 10px;
+    }
+    .section { margin-bottom: 28px; }
+
+    /* -- Setup status -- */
+    .setup-table { border-collapse: collapse; margin-bottom: 4px; }
+    .setup-table td { padding: 4px 10px 4px 0; vertical-align: middle; }
+    .dot {
+      display: inline-block; width: 16px; height: 16px; border-radius: 8px;
+      text-align: center; line-height: 16px; font-size: 10px; font-weight: 700;
+      color: #fff;
+    }
+    .dot.ok   { background: #107c10; }
+    .dot.warn { background: #c27d00; }
+    .ready    { font-size: 11px; color: #107c10; padding-left: 8px; }
+    .ready.warn { color: #c27d00; }
+    /* TODO: When lifecycle state store is wired, replace static Ready labels with
+       dynamic status + actionable links (Configure Qt, Repair, Enable, Open settings). */
+
+    /* -- Buttons -- */
+    .actions { margin-bottom: 4px; }
+    .action-hint { font-size: 12px; line-height: 1.5; margin-top: 6px; max-width: 680px; }
+    .btn {
+      display: inline-block; padding: 5px 14px; font-size: 13px;
+      font-family: "Segoe UI", sans-serif; border-radius: 2px; cursor: pointer;
+      text-decoration: none; margin-right: 8px;
+    }
+    .btn.primary { background: #0078d4; border: 1px solid #0078d4; color: #fff; }
+    .btn.primary:hover { background: #106ebe; border-color: #106ebe; }
+    .btn.ghost  { background: transparent; border: 1px solid #0078d4; color: #0078d4; }
+
+    /* -- Code example -- */
+    /* Two-column table so cells equalise to the taller side's height.
+       height:1px on the cell is the standard IE11 trick that lets
+       height:100% resolve correctly on children. */
+    .example-cols { display: table; width: 100%; table-layout: fixed; }
+    .example-col  {
+      display: table-cell; vertical-align: top;
+      width: 50%; height: 1px;
+    }
+    .example-col:first-child { padding-right: 16px; }
+    .example-col h3 { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+    pre {
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 12px; line-height: 1.5;
+      padding: 12px 14px; border-radius: 2px;
+      overflow-x: auto; white-space: pre;
+      /* IE11: fills table cell height minus h3 (~26px) to equalise both boxes.
+         min-height: overrides the 1px cell trick in Chromium/Edge. */
+      height: calc(100% - 26px);
+      min-height: 460px;
+    }
+    .example-note { font-size: 12px; margin-top: 10px; padding-left: 18px; }
+    .example-note li { line-height: 1.5; margin-bottom: 3px; }
+
+    /* -- What's new cards -- */
+    .cards {
+      display: table; width: 100%; table-layout: fixed;
+      border-collapse: collapse;
+    }
+    .card-slot {
+      display: table-cell; width: 33.333%; vertical-align: top;
+      height: 1px; padding-right: 12px;
+    }
+    .card-slot:last-child { padding-right: 0; }
+    .card {
+      height: 100%; min-height: 100px;
+      border: 1px solid; border-radius: 2px;
+      padding: 14px; font-size: 13px;
+    }
+    .card h3 { font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+    .card p  { font-size: 12px; line-height: 1.5; margin-bottom: 10px; }
+    .card a  { font-size: 12px; color: #0078d4; text-decoration: none; }
+    .card a:hover { text-decoration: underline; }
+
+    /* -- Known limitations -- */
+    .limits {
+      border: 1px solid; border-radius: 2px;
+      padding: 14px 18px; margin-bottom: 10px;
+    }
+    .limits ul { padding-left: 16px; }
+    .limits li { font-size: 13px; line-height: 1.6; margin-bottom: 3px; }
+    .limits-footer { margin-top: 10px; }
+
+    /* -- External links footer -- */
+    .ext-links { padding-top: 20px; margin-top: 8px; }
+    .ext-links a {
+      display: inline-block; font-size: 12px; color: #0078d4;
+      text-decoration: none; margin-right: 20px;
+    }
+    .ext-links a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div id="shell">
+
+  <div id="nav">
+    <div class="nav-title">What's New?</div>
+    <a href="#" class="active">Welcome</a>
+    <a href="https://www.qt.io/blog/tag/qt-bridges">What's new</a>
+    <a href="https://doc-snapshots.qt.io/qtbridges-dev/qtbridges-csharp-index.html"
+       >Getting started</a>
+    <a href="https://doc.qt.io/qt-6/qmlreference.html"
+      >The QML reference</a>
+    <a href="https://doc-snapshots.qt.io/qtbridge-csharp/index.html"
+      >C# API documentation</a>
+    <div class="nav-sep"></div>
+    <a href="qtbridge://open-settings">Open Settings...</a>
+  </div>
+
+  <div id="content">
+    <div id="main">
+
+      <!-- -- What Is Qt Bridge For C#? -- -->
+      <div class="section">
+        <h1>Qt Bridge for C# is installed</h1>
+        <p class="intro">
+          Qt Bridge for C# lets you build C# applications with QML-based Qt user interfaces
+          in Visual Studio. QML is Qt&#8217;s declarative UI language, roughly comparable to
+          XAML, but rendered by Qt Quick. Your application logic stays in familiar C# while
+          QML describes the user interface.
+        </p>
+      </div>
+
+      <!-- -- Setup Status -- -->
+      <div class="section">
+        <h2>Setup status</h2>
+        <table class="setup-table">
+          <tr>
+            <td><span class="dot ok">&#10003;</span></td>
+            <td>Qt selected</td>
+            <td><span class="ready">Ready</span></td>
+          </tr>
+          <tr>
+            <td><span class="dot ok">&#10003;</span></td>
+            <td>Project templates</td>
+            <td><span class="ready">Ready</span></td>
+          </tr>
+          <tr>
+            <td><span class="dot ok">&#10003;</span></td>
+            <td>QML language server</td>
+            <td><span class="ready">Ready</span></td>
+          </tr>
+          <tr>
+            <td><span class="dot ok">&#10003;</span></td>
+            <td>Build notifications</td>
+            <td><span class="ready">Ready</span></td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- -- Start Here -- -->
+      <div class="section">
+        <h2>Start here</h2>
+        <div class="actions">
+          <a class="btn primary" href="qtbridge://create-project">Create project</a>
+          <a class="btn ghost"
+             href="https://github.com/qt/qtbridge-csharp/tree/dev/examples">Explore examples</a>
+          <a class="btn ghost"
+             href="https://doc-snapshots.qt.io/qtbridges-dev/qtbridges-csharp-index.html"
+             >Read getting started</a>
+        </div>
+        <p class="action-hint dim">
+          In the new project dialog, filter by C#, Windows or Linux, and Qt or QML to find the Qt
+          Bridge QML application template.
+        </p>
+      </div>
+
+      <!-- -- Tiny Example -- -->
+      <div class="section">
+        <h2>How it works</h2>
+        <div class="example-cols">
+          <div class="example-col">
+            <h3>MainWindow.qml &mdash; the UI layer</h3>
+<pre>ApplicationWindow {
+    ...
+
+    Counter {
+        id: counter
+    }
+
+    Column {
+        ...
+
+        Button {
+            text: "Clicks: " + counter.count
+            onClicked: counter.increment()
+        }
+
+        Button {
+            text: "&#xD7;2"
+            onClicked: counter.transform(
+                function(value) {
+                    return value * 2
+                })
+        }
+    }
+}</pre>
+          </div><div class="example-col">
+            <h3>Counter.cs &mdash; the logic layer</h3>
+<pre>public delegate int CounterTransform(int value);
+
+public class Counter : INotifyPropertyChanged
+{
+    public event PropertyChangedEventHandler PropertyChanged;
+
+    private int _count;
+    public int Count
+    {
+        get => _count;
+        private set => { ... }
+    }
+
+    public void Increment() => Count++;
+
+    public void Transform(CounterTransform transform)
+        =&gt; Count = transform?.Invoke(Count) ?? Count;
+}</pre>
+          </div>
+        </div>
+        <ul class="example-note dim">
+          <li>Names are lowercased in QML (<code>Count</code> &#8594; <code>count</code>).</li>
+          <li><code>INotifyPropertyChanged</code> keeps the <code>text</code> binding live.</li>
+          <li>Public C# types and members are exposed to QML automatically.</li>
+          <li>JavaScript functions passed from QML map to C# delegates automatically &mdash;
+            no marshaling needed. See the
+            <a href="https://doc-snapshots.qt.io/qtbridge-csharp/index.html"
+               >C# API documentation</a> for details.
+          </li>
+        </ul>
+      </div>
+
+      <!-- -- New In Qt Bridge -- -->
+      <div class="section">
+        <h2>New in Qt Bridge for C#</h2>
+        <div class="cards">
+          <div class="card-slot">
+            <div class="card">
+              <h3>Resource support</h3>
+              <p>Package files and <code>.resx</code> entries as Qt resources, then read
+                 them from QML or C# through <code>qrc:/</code> URLs.</p>
+              <a href="https://github.com/qt/qtbridge-csharp/blob/dev/HOW-TO%20resources.md"
+                 >Learn more &#8594;</a>
+            </div>
+          </div><div class="card-slot">
+            <div class="card">
+              <h3>Attribute-based generation</h3>
+              <p>Use attributes to include or ignore C# types and members when generating
+                 the QML-facing bridge API.</p>
+              <a href="https://github.com/qt/qtbridge-csharp/blob/dev/HOW-TO%20attribs.md"
+                >Learn more &#8594;</a>
+            </div>
+          </div><div class="card-slot">
+            <div class="card">
+              <h3>Latest changes</h3>
+              <p>Review the changelog for the full list of bridge features, fixes, and
+                 compatibility notes since the last release.</p>
+              <a href="https://github.com/qt/qtbridge-csharp/blob/dev/CHANGELOG.md"
+                 >Read changelog &#8594;</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- -- Future plans -- -->
+      <!-- TODO: Review this section before public release. -->
+      <div class="section">
+        <h2>Future plans</h2>
+        <div class="limits">
+        <ul>
+            <li>Remove the requirement of a C++ compiler.</li>
+            <li>Expand interoperability between C# and Qt/QML.</li>
+          </ul>
+          <div class="limits-footer">
+            <a class="btn ghost"
+               href="https://qt-project.atlassian.net/jira/software/c/projects/QTBRIDGES/issues"
+               >View issues and roadmap &#8594;</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- -- External links -- -->
+      <div class="ext-links">
+        <a href="https://www.qt.io/development/qt-framework/qt-bridges"
+           >Qt Bridges overview &#8599;</a>
+        <a href="https://doc-snapshots.qt.io/qtbridges-dev/qtbridges-csharp-index.html"
+           >Qt Bridge for C# &#8599;</a>
+        <a href="https://doc-snapshots.qt.io/qtbridge-csharp/index.html"
+           >C# API documentation &#8599;</a>
+        <a href="https://qt-project.atlassian.net/jira/software/c/projects/QTBRIDGES/issues"
+           >View issues and roadmap &#8599;</a>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

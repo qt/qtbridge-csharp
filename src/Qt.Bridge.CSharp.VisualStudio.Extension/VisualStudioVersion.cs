@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.PlatformUI;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;
@@ -21,6 +22,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             } catch (Exception) {}
 
             return false;
+        }
+
+        public static bool IsDarkTheme()
+        {
+            return VSColorTheme
+                .GetThemedColor(EnvironmentColors.ToolWindowBackgroundColorKey)
+                .GetBrightness() < 0.5f;
         }
 
         public static void OpenSettings()

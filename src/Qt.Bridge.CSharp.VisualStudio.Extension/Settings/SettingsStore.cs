@@ -9,6 +9,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings
     internal sealed class SettingsStore
     {
         private const string RootCollectionPath = "QtBridge";
+        private const string WelcomeCollectionPath = RootCollectionPath + "\\Welcome";
+        private const string LastSeenVersionProperty = "LastSeenVersion";
 
         private readonly WritableSettingsStore store;
 
@@ -18,10 +20,32 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings
             store = manager.GetWritableSettingsStore(SettingsScope.UserSettings);
         }
 
+        public string? LastSeenVersion
+        {
+            get
+            {
+                EnsureWelcomeCollection();
+                return store.PropertyExists(WelcomeCollectionPath, LastSeenVersionProperty)
+                    ? store.GetString(WelcomeCollectionPath, LastSeenVersionProperty)
+                    : null;
+            }
+            set
+            {
+                EnsureWelcomeCollection();
+                store.SetString(WelcomeCollectionPath, LastSeenVersionProperty, value ?? "");
+            }
+        }
+
         public void Reset()
         {
             if (store.CollectionExists(RootCollectionPath))
                 store.DeleteCollection(RootCollectionPath);
+        }
+
+        private void EnsureWelcomeCollection()
+        {
+            if (!store.CollectionExists(WelcomeCollectionPath))
+                store.CreateCollection(WelcomeCollectionPath);
         }
     }
 }

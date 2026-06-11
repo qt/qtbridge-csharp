@@ -2,8 +2,12 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
 using System.Runtime.InteropServices;
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Settings;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Welcome;
 
 using Task = System.Threading.Tasks.Task;
 
@@ -13,6 +17,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
     [ProvideOptionPage(typeof(LoggingOptionsPage), "Qt Bridge for C#",
         "Logging", 0, 0, true, SupportsProfiles = true,
         IsInUnifiedSettings = true)]
+    [ProvideAutoLoad(VSConstants.UICONTEXT.ShellInitialized_string,
+        PackageAutoLoadFlags.BackgroundLoad)]
     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
     public sealed class ExtensionPackage : AsyncPackage
     {
@@ -32,6 +38,19 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 
             LoggingPage = (LoggingOptionsPage)GetDialogPage(typeof(LoggingOptionsPage));
+
+            await InitializeWelcomeLifecycleAsync(cancellationToken);
+        }
+
+        private async Task InitializeWelcomeLifecycleAsync(CancellationToken cancellationToken)
+        {
+            var log = new TraceExtensionLog();
+            var lifecycle = new WelcomeLifecycleService(
+                new SettingsStore(this),
+                new ToastNotificationService(new NotificationService(log), log),
+                log);
+
+            await lifecycle.InitializeAsync(cancellationToken);
         }
     }
 }
