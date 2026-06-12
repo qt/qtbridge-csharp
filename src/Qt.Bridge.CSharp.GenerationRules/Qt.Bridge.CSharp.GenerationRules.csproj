@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
     <ProjectReference Include="..\Qt.Bridge.CSharp.Generator\Qt.Bridge.CSharp.Generator.csproj" />
     <ProjectReference Include="..\..\utils\Text\Text.csproj" />
   </ItemGroup>

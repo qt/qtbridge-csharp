@@ -127,6 +127,17 @@ ADAPTER::FreeObjectRef: WARNING Invalid object reference: 0x{objRefPtr:x16}");
             delegateRef.Ref.Handle.Free();
         }
 
+        public static string GetStableAssemblyQualifiedName(IntPtr typeRefPtr)
+        {
+#if DEBUG
+            _ = new Delegates.GetStableAssemblyQualifiedName(GetStableAssemblyQualifiedName);
+#endif
+            var objRef = GetObjectRefFromPtr(typeRefPtr);
+            if (objRef?.Target is not Type type)
+                throw new ArgumentException("Invalid type reference", nameof(typeRefPtr));
+            return StableTypeNameBuilder.Build(type);
+        }
+
         public static IntPtr GetObject(IntPtr objRefPtr, string path)
         {
 #if DEBUG

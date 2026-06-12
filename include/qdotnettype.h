@@ -78,6 +78,8 @@ public:
         return fnGetMethod(name);
     }
 
+    // Exact CLR System.Type.AssemblyQualifiedName. Use for same-runtime reflection and cleanup
+    // paths where the full assembly identity is intentional.
     QString assemblyQualifiedName() const
     {
         if (!isValid())
@@ -88,6 +90,17 @@ public:
             strAssemblyQualifiedName = fnAssemblyQualifiedName();
         }
         return strAssemblyQualifiedName;
+    }
+
+    // Version-independent CLR type key shared with generated code. Use for generated/runtime
+    // comparisons, not for places that require the exact assembly identity.
+    QString stableAssemblyQualifiedName() const
+    {
+        if (!isValid())
+            return QStringLiteral("");
+        if (strStableAssemblyQualifiedName.isEmpty())
+            strStableAssemblyQualifiedName = adapter().stableAssemblyQualifiedName(*this);
+        return strStableAssemblyQualifiedName;
     }
 
     QString fullName() const
@@ -343,6 +356,7 @@ private:
     mutable QDotNetFunction<QString> fnAssemblyQualifiedName;
     mutable QDotNetFunction<QString> fnFullName;
     mutable QString strAssemblyQualifiedName;
+    mutable QString strStableAssemblyQualifiedName;
     mutable QString strFullName;
     mutable QDotNetFunction<bool, QDotNetRef> fnIsAssignableFrom;
     mutable QDotNetFunction<bool, QDotNetRef> fnIsAssignableTo;

@@ -137,6 +137,10 @@ namespace Qt.DotNet
                 [In] string typeName);
 
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+            [return: MarshalAs(UnmanagedType.LPWStr)]
+            public delegate string GetStableAssemblyQualifiedName([In] IntPtr typeRefPtr);
+
+            [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             [return: MarshalAs(UnmanagedType.CustomMarshaler,
                 MarshalTypeRef = typeof(ObjectMarshaler))]
             public delegate InterfaceProxy AddInterfaceProxy(

@@ -5,6 +5,7 @@ using System.Text;
 
 namespace Qt.Bridge.CodeGeneration.MetaFunctions
 {
+    using DotNet;
     using Extensions;
     using static Traits;
 
@@ -24,7 +25,7 @@ namespace Qt.Bridge.CodeGeneration.MetaFunctions
 
             if (traits.HasTraits(Src)) {
                 if (traits.HasTraits(Fqn))
-                    return type.AssemblyQualifiedName;
+                    return StableTypeNameBuilder.Build(type);
                 if (traits.HasTraits(Ns | Name))
                     return type.FullName;
                 if (traits.HasTraits(Ns))

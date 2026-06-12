@@ -110,6 +110,7 @@ public:
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(FreeDelegateRef));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(FreeObjectRef));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(FreeTypeRef));
+        host->resolveFunction(QDOTNETADAPTER_DELEGATE(GetStableAssemblyQualifiedName));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(AddInterfaceProxy));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(AddDelegateProxy));
         host->resolveFunction(QDOTNETADAPTER_DELEGATE(SetInterfaceMethod));
@@ -298,6 +299,14 @@ public:
         fnFreeTypeRef(typeName);
     }
 
+    QString stableAssemblyQualifiedName(const QDotNetRef &typeRef) const
+    {
+        init();
+        if (QtDotNet::isNull(typeRef))
+            return QStringLiteral("");
+        return fnGetStableAssemblyQualifiedName(typeRef);
+    }
+
     void *addInterfaceProxy(const QString &interfaceName, void *data, void *cleanUp) const
     {
         init();
@@ -387,6 +396,7 @@ private:
     mutable QDotNetFunction<void, void *> fnFreeDelegateRef;
     mutable QDotNetFunction<void, QDotNetRef> fnFreeObjectRef;
     mutable QDotNetFunction<void, QString> fnFreeTypeRef;
+    mutable QDotNetFunction<QString, QDotNetRef> fnGetStableAssemblyQualifiedName;
     mutable QDotNetFunction<void *, QString, void *, void *> fnAddInterfaceProxy;
     mutable QDotNetFunction<void *, QString, qint32, QList<QDotNetParameter>, void *, void *,
         void *, void *, void *, void *> fnAddDelegateProxy;

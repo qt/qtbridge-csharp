@@ -74,7 +74,7 @@ static const QHash<QString, Factory>& registry()
 
 QObject *QtDotNet::objectDispatch(QDotNetObject &args)
 {{
-    const QString key = args.type().assemblyQualifiedName();
+    const QString key = args.type().stableAssemblyQualifiedName();
     if (const auto it = registry().constFind(key); it != registry().cend())
         return (*it)(args);
     return nullptr;
