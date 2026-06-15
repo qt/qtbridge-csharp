@@ -22,7 +22,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.WhatsNew
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(ct);
 
-            var currentVersion = GetInstalledVersion();
+            var currentVersion = ExtensionVersionInfo.GetInstalledVersion();
             var lastSeenVersion = stateStore.LastSeenVersion;
             log.Verbose("Qt Bridge what's new lifecycle: "
                 + $"currentVersion={currentVersion}, "
@@ -49,8 +49,5 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.WhatsNew
                     Commands.WhatsNew.OpenWhatsNewPageAsync),
                 secondary: new NotificationAction("Dismiss", _ => Task.CompletedTask));
         }
-
-        private static string GetInstalledVersion() =>
-            typeof(ExtensionPackage).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
     }
 }

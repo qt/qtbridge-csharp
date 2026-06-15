@@ -10,6 +10,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core
         private const string ProductDirectoryName = "QtBridge";
         private const string VisualStudioDirectoryName = "VisualStudio";
         private const string NotificationsDirectoryName = "Notifications";
+        private const string WhatsNewDirectoryName = "WhatsNew";
 
         private const string LocalAppDataEnvironmentVariable = "%LocalAppData%";
 
@@ -30,5 +31,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core
 
         public static string VisualStudioNotificationsDirectoryDisplayPath =>
             Path.Combine(VisualStudioDirectoryDisplayPath, NotificationsDirectoryName);
+
+        public static string VisualStudioWhatsNewDirectory =>
+            Path.Combine(VisualStudioDirectory, WhatsNewDirectoryName);
+
+        public static string VisualStudioWhatsNewDirectoryDisplayPath =>
+            Path.Combine(VisualStudioDirectoryDisplayPath, WhatsNewDirectoryName);
     }
 }

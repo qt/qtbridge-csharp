@@ -3,6 +3,7 @@
 
 using System.Runtime.InteropServices;
 using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.PlatformUI;
 using Microsoft.VisualStudio.Shell;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings;
@@ -52,8 +53,25 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 
             LoggingPage = (LoggingOptionsPage)GetDialogPage(typeof(LoggingOptionsPage));
+            VSColorTheme.ThemeChanged += OnVsThemeChanged;
 
             await InitializeWhatsNewLifecycleAsync(cancellationToken);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+#pragma warning disable VSTHRD104
+            if (disposing)
+                JoinableTaskFactory.Run(DisposeAsync);
+#pragma warning restore VSTHRD104
+
+            base.Dispose(disposing);
+        }
+
+        private async Task DisposeAsync()
+        {
+            await JoinableTaskFactory.SwitchToMainThreadAsync();
+            VSColorTheme.ThemeChanged -= OnVsThemeChanged;
         }
 
         private async Task InitializeWhatsNewLifecycleAsync(CancellationToken cancellationToken)
@@ -77,5 +95,14 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             return Task.FromResult<object?>(new QmlBuildNotificationSettingsService(this, settings));
         }
 #endif
+
+        private void OnVsThemeChanged(ThemeChangedEventArgs e)
+        {
+            _ = JoinableTaskFactory.RunAsync(async delegate
+            {
+                await JoinableTaskFactory.SwitchToMainThreadAsync(DisposalToken);
+                Commands.WhatsNew.RefreshOpenWhatsNewPageForThemeChange();
+            });
+        }
     }
 }

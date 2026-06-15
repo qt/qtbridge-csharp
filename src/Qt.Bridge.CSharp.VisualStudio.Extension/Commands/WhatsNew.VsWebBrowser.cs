@@ -11,8 +11,23 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
     internal sealed partial class WhatsNew
     {
         private static readonly Guid BrowserOwner = new("4074B4BA-0555-43D9-961D-37FEF8DF72A6");
-        private static readonly List<VsWebBrowser> Browsers = [];
         private static readonly object BrowserUsersLock = new();
+        private static IVsWindowFrame? _currentBrowserFrame;
+        private static VsWebBrowser? _currentBrowserUser;
+
+        private static bool HasOpenBrowser()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            lock (BrowserUsersLock) {
+                if (IsBrowserFrameVisible(_currentBrowserFrame))
+                    return true;
+
+                _currentBrowserFrame = null;
+                _currentBrowserUser = null;
+                return false;
+            }
+        }
 
         private static void OpenBrowserWithFile(string path)
         {
@@ -35,15 +50,30 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
             ErrorHandler.ThrowOnFailure(service.CreateWebBrowser(
                 flags,
                 ref browserOwner,
-                "Qt Bridge for C# - What's New",
+                "",
                 startUrl,
                 browserUser,
                 out _,
                 out var frame));
             lock (BrowserUsersLock) {
-                Browsers.Add(browserUser);
+                _currentBrowserFrame = frame;
+                _currentBrowserUser = browserUser;
             }
             ErrorHandler.ThrowOnFailure(frame.Show());
+        }
+
+        private static bool IsBrowserFrameVisible(IVsWindowFrame? frame)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            if (frame is null)
+                return false;
+
+            try {
+                return frame.IsVisible() == VSConstants.S_OK;
+            } catch {
+                return false;
+            }
         }
 
         private sealed class VsWebBrowser(string whatsNewUrl) : IVsWebBrowserUser
@@ -88,7 +118,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
             public int Disconnect()
             {
                 lock (BrowserUsersLock) {
-                    Browsers.Remove(this);
+                    if (ReferenceEquals(_currentBrowserUser, this)) {
+                        _currentBrowserUser = null;
+                        _currentBrowserFrame = null;
+                    }
                 }
                 return VSConstants.S_OK;
             }
