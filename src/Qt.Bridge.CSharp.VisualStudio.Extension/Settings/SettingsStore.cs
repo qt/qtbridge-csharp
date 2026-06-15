@@ -9,7 +9,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings
     internal sealed class SettingsStore
     {
         private const string RootCollectionPath = "QtBridge";
-        private const string WelcomeCollectionPath = RootCollectionPath + "\\Welcome";
+        private const string WhatsNewCollectionPath = RootCollectionPath + "\\WhatsNew";
         private const string LastSeenVersionProperty = "LastSeenVersion";
 
         private readonly WritableSettingsStore store;
@@ -24,15 +24,15 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings
         {
             get
             {
-                EnsureWelcomeCollection();
-                return store.PropertyExists(WelcomeCollectionPath, LastSeenVersionProperty)
-                    ? store.GetString(WelcomeCollectionPath, LastSeenVersionProperty)
+                EnsureWhatsNewCollection();
+                return store.PropertyExists(WhatsNewCollectionPath, LastSeenVersionProperty)
+                    ? store.GetString(WhatsNewCollectionPath, LastSeenVersionProperty)
                     : null;
             }
             set
             {
-                EnsureWelcomeCollection();
-                store.SetString(WelcomeCollectionPath, LastSeenVersionProperty, value ?? "");
+                EnsureWhatsNewCollection();
+                store.SetString(WhatsNewCollectionPath, LastSeenVersionProperty, value ?? "");
             }
         }
 
@@ -42,10 +42,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings
                 store.DeleteCollection(RootCollectionPath);
         }
 
-        private void EnsureWelcomeCollection()
+        private void EnsureWhatsNewCollection()
         {
-            if (!store.CollectionExists(WelcomeCollectionPath))
-                store.CreateCollection(WelcomeCollectionPath);
+            if (!store.CollectionExists(WhatsNewCollectionPath))
+                store.CreateCollection(WhatsNewCollectionPath);
         }
     }
 }

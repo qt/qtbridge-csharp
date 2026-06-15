@@ -72,7 +72,7 @@
     <Content Update=".vsextension\string-resources.template.json">
       <IncludeInVSIX>false</IncludeInVSIX>
     </Content>
-    <Content Include="Resources\WhatsNew\welcome.html">
+    <Content Include="Resources\WhatsNew\whatsnew.html">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
     <Content Include="QtBridge.registration.json">

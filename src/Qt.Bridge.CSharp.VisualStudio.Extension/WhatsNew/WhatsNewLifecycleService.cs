@@ -1,16 +1,13 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
-using System.IO;
-using System.Xml.Linq;
 using Microsoft.VisualStudio.Shell;
-using Qt.Bridge.CSharp.VisualStudio.Extension.Commands;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings;
 
-namespace Qt.Bridge.CSharp.VisualStudio.Extension.Welcome
+namespace Qt.Bridge.CSharp.VisualStudio.Extension.WhatsNew
 {
-    internal sealed class WelcomeLifecycleService(
+    internal sealed class WhatsNewLifecycleService(
         SettingsStore stateStore,
         IToastNotificationService toastNotifications,
         IExtensionLog log)
@@ -27,7 +24,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Welcome
 
             var currentVersion = GetInstalledVersion();
             var lastSeenVersion = stateStore.LastSeenVersion;
-            log.Verbose("Qt Bridge lifecycle: "
+            log.Verbose("Qt Bridge what's new lifecycle: "
                 + $"currentVersion={currentVersion}, "
                 + $"lastSeenVersion={lastSeenVersion ?? "<none>"}.");
 
@@ -37,8 +34,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Welcome
             stateStore.LastSeenVersion = currentVersion;
 
             if (string.IsNullOrWhiteSpace(lastSeenVersion)) {
-                log.Info($"Qt Bridge welcome page first shown for version {currentVersion}.");
-                await WhatsNew.OpenWelcomePageAsync(ct);
+                log.Info($"Qt Bridge What's New page first shown for version {currentVersion}.");
+                await Commands.WhatsNew.OpenWhatsNewPageAsync(ct);
                 return;
             }
 
@@ -48,34 +45,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Welcome
                 $"Version {currentVersion} is installed.",
                 ct,
                 primary: new NotificationAction(
-                    "Open Welcome",
-                    WhatsNew.OpenWelcomePageAsync),
+                    "Open What's New",
+                    Commands.WhatsNew.OpenWhatsNewPageAsync),
                 secondary: new NotificationAction("Dismiss", _ => Task.CompletedTask));
         }
 
-        private static string GetInstalledVersion()
-        {
-            var assemblyDir = Path.GetDirectoryName(typeof(ExtensionPackage).Assembly.Location)
-                ?? string.Empty;
-            var manifestPath = Path.Combine(assemblyDir, "extension.vsixmanifest");
-
-            if (File.Exists(manifestPath)) {
-                try {
-                    var document = XDocument.Load(manifestPath);
-                    var identity = document.Root?
-                        .Elements()
-                        .FirstOrDefault(e => e.Name.LocalName == "Metadata")?
-                        .Elements()
-                        .FirstOrDefault(e => e.Name.LocalName == "Identity");
-                    var version = identity?.Attribute("Version")?.Value;
-                    if (!string.IsNullOrWhiteSpace(version))
-                        return version!;
-                } catch {
-                    // Fall back to the assembly version below.
-                }
-            }
-
-            return typeof(ExtensionPackage).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
-        }
+        private static string GetInstalledVersion() =>
+            typeof(ExtensionPackage).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
     }
 }

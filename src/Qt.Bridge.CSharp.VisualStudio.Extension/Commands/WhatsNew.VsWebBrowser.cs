@@ -35,7 +35,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
             ErrorHandler.ThrowOnFailure(service.CreateWebBrowser(
                 flags,
                 ref browserOwner,
-                "Qt Bridge for C# - Welcome",
+                "Qt Bridge for C# - What's New",
                 startUrl,
                 browserUser,
                 out _,
@@ -46,7 +46,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
             ErrorHandler.ThrowOnFailure(frame.Show());
         }
 
-        private sealed class VsWebBrowser(string welcomeUrl) : IVsWebBrowserUser
+        private sealed class VsWebBrowser(string whatsNewUrl) : IVsWebBrowserUser
         {
             public int TranslateUrl(uint dwReserved, string lpszUrlIn, out string pbstrUrlOut)
             {
@@ -58,7 +58,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
 
                 if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) {
                     VsShellUtilities.OpenSystemBrowser(uri.AbsoluteUri);
-                    pbstrUrlOut = welcomeUrl;
+                    pbstrUrlOut = whatsNewUrl;
                     return VSConstants.S_OK;
                 }
 
@@ -66,7 +66,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
                     return VSConstants.S_OK;
 
                 ExecuteQtBridgeAction(uri.Host);
-                pbstrUrlOut = welcomeUrl;
+                pbstrUrlOut = whatsNewUrl;
                 return VSConstants.S_OK;
             }
 

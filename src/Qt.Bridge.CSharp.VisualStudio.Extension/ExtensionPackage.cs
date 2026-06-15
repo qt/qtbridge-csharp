@@ -10,7 +10,7 @@ using Qt.Bridge.CSharp.VisualStudio.Extension.Settings;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.Notifications;
 #endif
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;
-using Qt.Bridge.CSharp.VisualStudio.Extension.Welcome;
+using Qt.Bridge.CSharp.VisualStudio.Extension.WhatsNew;
 
 using Task = System.Threading.Tasks.Task;
 
@@ -53,13 +53,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
             LoggingPage = (LoggingOptionsPage)GetDialogPage(typeof(LoggingOptionsPage));
 
-            await InitializeWelcomeLifecycleAsync(cancellationToken);
+            await InitializeWhatsNewLifecycleAsync(cancellationToken);
         }
 
-        private async Task InitializeWelcomeLifecycleAsync(CancellationToken cancellationToken)
+        private async Task InitializeWhatsNewLifecycleAsync(CancellationToken cancellationToken)
         {
             var log = new TraceExtensionLog();
-            var lifecycle = new WelcomeLifecycleService(
+            var lifecycle = new WhatsNewLifecycleService(
                 new SettingsStore(this),
                 new ToastNotificationService(new NotificationService(log), log),
                 log);
