@@ -17,6 +17,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
             ],
             Children =
             [
+                MenuChild.Command<WhatsNew>(),
                 MenuChild.Command<Options>(),
 #if DEBUG
                 MenuChild.Separator,
