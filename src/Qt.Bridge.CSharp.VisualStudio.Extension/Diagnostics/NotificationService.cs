@@ -15,6 +15,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
         private readonly IExtensionLog log = log ?? throw new ArgumentNullException(nameof(log));
         private readonly HashSet<string> notifiedKeys = [];
         private readonly object notifiedKeysLock = new();
+        private readonly Dictionary<string, IVsInfoBarUIElement> activeInfoBars = [];
+        private readonly object activeInfoBarsLock = new();
 
         public async Task ShowInfoAsync(string key, string message, CancellationToken ct) =>
             await ShowInfoAsync(key, message, [], ct);
@@ -27,7 +29,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
         {
             log.Info($"Notification[{key}]: {message}");
             if (TryMarkNotified(key))
-                await ShowInfoBarSafeAsync(message, isError: false, actions, ct);
+                await ShowInfoBarSafeAsync(key, message, isError: false, actions, ct);
         }
 
         public async Task ShowWarningAsync(string key, string message, CancellationToken ct) =>
@@ -41,7 +43,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
         {
             log.Warning($"Notification[{key}]: {message}");
             if (TryMarkNotified(key))
-                await ShowInfoBarSafeAsync(message, isError: false, [], ct);
+                await ShowInfoBarSafeAsync(key, message, isError: false, [], ct);
         }
 
         public async Task ShowErrorAsync(string key, string message, CancellationToken ct) =>
@@ -55,7 +57,26 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
         {
             log.Error($"Notification[{key}]: {message}");
             if (TryMarkNotified(key))
-                await ShowInfoBarSafeAsync(message, isError: true, [], ct);
+                await ShowInfoBarSafeAsync(key, message, isError: true, [], ct);
+        }
+
+        public async Task DismissAsync(string key, CancellationToken ct)
+        {
+            IVsInfoBarUIElement infoBar;
+            lock (activeInfoBarsLock) {
+                if (!activeInfoBars.TryGetValue(key, out infoBar))
+                    return;
+                activeInfoBars.Remove(key);
+            }
+
+            try {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(ct);
+                infoBar.Close();
+            } catch (OperationCanceledException) {
+            } catch (Exception ex) {
+                log.Warning($"Qt Bridge: failed to dismiss InfoBar notification '{key}': "
+                    + $"{ex.Message}");
+            }
         }
 
         public void ClearRateLimit(string key)
@@ -73,13 +94,14 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
         }
 
         private async Task ShowInfoBarSafeAsync(
+            string key,
             string message,
             bool isError,
             IReadOnlyCollection<NotificationAction> actions,
             CancellationToken ct)
         {
             try {
-                await ShowInfoBarAsync(message, isError, actions, ct);
+                await ShowInfoBarAsync(key, message, isError, actions, ct);
             } catch (OperationCanceledException) {
             } catch (Exception ex) {
                 log.Warning($"Qt Bridge: failed to show InfoBar notification: {ex.Message}");
@@ -87,6 +109,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
         }
 
         private async Task ShowInfoBarAsync(
+            string key,
             string message,
             bool isError,
             IReadOnlyCollection<NotificationAction> actions,
@@ -111,18 +134,35 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
 
             var uiElement = factory.CreateInfoBar(model);
             if (uiElement != null) {
-                if (actions.Count > 0) {
-                    var events = new InfoBarEvents(log);
-                    uiElement.Advise(events, out var cookie);
-                    events.Initialize(cookie);
+                var events = new InfoBarEvents(log, key, RemoveActiveInfoBar);
+                uiElement.Advise(events, out var cookie);
+                events.Initialize(cookie);
+                lock (activeInfoBarsLock) {
+                    activeInfoBars[key] = uiElement;
                 }
                 infoBarHost.AddInfoBar(uiElement);
             }
         }
 
-        private sealed class InfoBarEvents(IExtensionLog log) : IVsInfoBarUIEvents
+        private void RemoveActiveInfoBar(string key, IVsInfoBarUIElement infoBarUiElement)
+        {
+            lock (activeInfoBarsLock) {
+                if (activeInfoBars.TryGetValue(key, out var current)
+                    && ReferenceEquals(current, infoBarUiElement)) {
+                    activeInfoBars.Remove(key);
+                }
+            }
+        }
+
+        private sealed class InfoBarEvents(
+            IExtensionLog log,
+            string key,
+            Action<string, IVsInfoBarUIElement> onClosed) : IVsInfoBarUIEvents
         {
             private readonly IExtensionLog log = log ?? throw new ArgumentNullException(nameof(log));
+            private readonly string key = key ?? throw new ArgumentNullException(nameof(key));
+            private readonly Action<string, IVsInfoBarUIElement> onClosed = onClosed
+                ?? throw new ArgumentNullException(nameof(onClosed));
             private uint cookie;
 
             public void Initialize(uint eventCookie)
@@ -133,6 +173,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
             public void OnClosed(IVsInfoBarUIElement infoBarUiElement)
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
+                onClosed(key, infoBarUiElement);
                 if (cookie == 0)
                     return;
                 infoBarUiElement.Unadvise(cookie);

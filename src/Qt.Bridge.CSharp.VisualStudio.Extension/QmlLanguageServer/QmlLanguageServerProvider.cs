@@ -36,7 +36,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private readonly IDisposable contextSubscription;
         private readonly QmllsBuildIniPatcher buildIniPatcher;
 
-        private static string MissingMetadataNotificationKey(string projectFilePath) =>
+        private static string BuildOutputNotificationKey(string projectFilePath) =>
             $"qmls-no-metadata:{projectFilePath}";
 
         private sealed class ProjectEntry(
@@ -583,7 +583,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
                 var projectName = Path.GetFileNameWithoutExtension(projectFilePath);
                 await notifications.ShowInfoAsync(
-                    MissingMetadataNotificationKey(projectFilePath),
+                    BuildOutputNotificationKey(projectFilePath),
                     $"Qt Bridge: Build project '{projectName}' for full QML language support.",
                     [
                         new NotificationAction("Don't show for this project", actionCt =>
@@ -716,6 +716,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     entry.MissingMetadataNotified = false;
                 }
             }
+            await notifications.DismissAsync(BuildOutputNotificationKey(projectFilePath), ct);
 
             var projectFileName = Path.GetFileName(projectFilePath);
             log.Info($"QML Language Server: injected build dirs for '{projectFileName}'.");
@@ -1056,7 +1057,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             }
 
             foreach (var projectPath in removedProjectPaths)
-                notifications.ClearRateLimit(MissingMetadataNotificationKey(projectPath));
+                notifications.ClearRateLimit(BuildOutputNotificationKey(projectPath));
         }
 
         /// <summary>

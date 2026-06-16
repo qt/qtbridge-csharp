@@ -254,7 +254,8 @@ A rate-limited InfoBar notification service. `ShowInfoAsync`, `ShowWarningAsync`
 a `HashSet<string>` of previously shown keys; if the same key is presented a second time,
 the InfoBar is not shown again for the lifetime of the extension session. This prevents the
 same error (e.g. a missing asset or a failed installation) from spawning repeated InfoBar
-banners across server restart cycles.
+banners across server restart cycles. The service also tracks currently open keyed InfoBars
+so callers can dismiss a still-visible notification when the underlying condition clears.
 
 Each notification is also forwarded to `IExtensionLog` at the corresponding severity level
 so the event is captured in the diagnostics log even if the user dismisses the InfoBar.
@@ -441,7 +442,8 @@ enqueues `workspace/didChangeWorkspaceFolders` and `$/addBuildDirs` on the activ
 If no metadata file exists, a "build project X" InfoBar is shown once (controlled by
 `MissingMetadataNotified`). If the active pipe changed while awaiting async work,
 `BuildDirsInjected` is reset so the next session retries. On successful injection,
-`QueueSemanticTokensRefresh` is called to prompt VS to re-classify open documents.
+the provider dismisses any still-open missing-build InfoBar for that project and calls
+`QueueSemanticTokensRefresh` to prompt VS to re-classify open documents.
 
 **`QueueSemanticTokensRefresh`.**
 qmlls does not send a `workspace/semanticTokens/refresh` request to VS after it receives new

@@ -26,6 +26,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
             IReadOnlyCollection<NotificationAction> actions,
             CancellationToken ct);
 
+        Task DismissAsync(string key, CancellationToken ct);
+
         void ClearRateLimit(string key);
     }
 }
