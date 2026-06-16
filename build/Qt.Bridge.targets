@@ -59,7 +59,13 @@
                 if (string.IsNullOrWhiteSpace(fileRef) || Path.GetInvalidPathChars().Any(fileRef.Contains))
                     continue;
 
-                var sourcePath = Path.GetFullPath(Path.Combine(resxDir, fileRef));
+                // ResXFileRef paths are commonly serialized with Windows separators.
+                // Normalize both slash styles before resolving so the same .resx works
+                // on non-Windows builds too.
+                var normalizedFileRef = fileRef
+                    .Replace('\\', Path.DirectorySeparatorChar)
+                    .Replace('/', Path.DirectorySeparatorChar);
+                var sourcePath = Path.GetFullPath(Path.Combine(resxDir, normalizedFileRef));
                 if (!File.Exists(sourcePath))
                     continue;
 

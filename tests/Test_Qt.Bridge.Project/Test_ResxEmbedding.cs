@@ -34,6 +34,7 @@ namespace Test_Qt.Bridge.Project
             """
               <PropertyGroup>
                 <QtBridgeResourceLibrary>true</QtBridgeResourceLibrary>
+                <UseAppHost>false</UseAppHost>
               </PropertyGroup>
               <ItemGroup>
                 <QtResourceAccess Include="ResDefault.resx::Entry" Mode="Default" />
@@ -139,6 +140,40 @@ namespace Test_Qt.Bridge.Project
                 "ResManagedAndNative.resx must remain in EmbeddedResource after QtBridgeAddResources");
             Assert.IsFalse(HasLoggedItem(output, "FinalEmbedded", "ResDefault.resx"),
                 "ResDefault.resx must be removed from EmbeddedResource by QtBridgeAddResources");
+        }
+
+        [TestMethod]
+        public async Task ResxFileRef_WithWindowsSeparators_ResolvesOnLinux()
+        {
+            using var temp = new TempProject();
+            temp.Create(new CreationOptions
+            {
+                PackageReferences = [Packages.QtBridge],
+                AfterSdkTargets =
+                    """
+                      <PropertyGroup>
+                        <QtBridgeResourceLibrary>true</QtBridgeResourceLibrary>
+                        <UseAppHost>false</UseAppHost>
+                      </PropertyGroup>
+                      <ItemGroup>
+                        <QtResourceAccess Include="Books.resx::SynopsisHistory" Mode="ManagedAndNative" />
+                      </ItemGroup>
+                      <Target Name="InspectResolvedResources"
+                              DependsOnTargets="QtBridgeAddResources">
+                        <Message Text="ResolvedResource: %(_QtResolvedResxResource.Key)"
+                                 Importance="High" />
+                      </Target>
+                    """
+            });
+
+            temp.AddFile("Books.resx", ResxWithFile(@"synopsis\history.txt", "SynopsisHistory"));
+            temp.AddFile("synopsis/history.txt", "history content");
+
+            var (ok, output) = await temp.BuildAsync(BuildTarget("InspectResolvedResources"));
+            temp.SaveLog();
+            Assert.IsTrue(ok, output);
+            Assert.IsTrue(HasLoggedItem(output, "ResolvedResource", "Books.resx::SynopsisHistory"),
+                "Windows-style ResXFileRef path separators must resolve on non-Windows hosts");
         }
     }
 }
