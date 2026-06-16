@@ -37,6 +37,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
             NotificationAction? primary,
             NotificationAction? secondary)
         {
+#if WINDOWS_DESKTOP
             try {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(ct);
                 new ToastWindow(title, detail, primary, secondary, ToastDuration, log).Show();
@@ -45,6 +46,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
                 log.Warning($"Toast notification failed: {ex.Message}");
                 return false;
             }
+#else
+            await Task.CompletedTask;
+            return false;
+#endif
         }
     }
 }

@@ -40,7 +40,13 @@
     <UseWPF>true</UseWPF>
     <VsixDeployOnDebug>true</VsixDeployOnDebug>
     <TargetVsixContainerName>Qt.Bridge.CSharp.vsix</TargetVsixContainerName>
+    <DefineConstants>$(DefineConstants);WINDOWS_DESKTOP</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup Condition="!$([MSBuild]::IsOsPlatform('Windows'))">
+    <Compile Remove="Diagnostics\ToastWindow.xaml.cs" />
+    <None Include="Diagnostics\ToastWindow.xaml" />
+  </ItemGroup>
   <ItemGroup>
     <None Remove="GPL-3.0-only.txt" />
     <None Remove=".vsextension\string-resources.json" />
