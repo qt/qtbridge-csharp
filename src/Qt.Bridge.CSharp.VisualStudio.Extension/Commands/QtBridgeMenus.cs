@@ -9,12 +9,18 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
     internal static class QtBridgeMenus
     {
         [VisualStudioContribution]
+        internal static CommandGroupConfiguration QtBridgeMenuGroup =>
+            new(GroupPlacement.KnownPlacements.ExtensionsMenu.WithPriority(0x010))
+        {
+            Children =
+            [
+                GroupChild.Menu(QtBridgeMenu)
+            ],
+        };
+
+        [VisualStudioContribution]
         internal static MenuConfiguration QtBridgeMenu => new("%QtBridge.Menu.DisplayName%")
         {
-            Placements =
-            [
-                CommandPlacement.KnownPlacements.ExtensionsMenu.WithPriority(0x100)
-            ],
             Children =
             [
                 MenuChild.Command<WhatsNew>(),
