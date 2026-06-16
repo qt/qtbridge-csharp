@@ -13,10 +13,14 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
     internal sealed class NotificationService(IExtensionLog log) : INotificationService
     {
         private readonly IExtensionLog log = log ?? throw new ArgumentNullException(nameof(log));
-        private readonly HashSet<string> notifiedKeys = [];
-        private readonly object notifiedKeysLock = new();
-        private readonly Dictionary<string, IVsInfoBarUIElement> activeInfoBars = [];
-        private readonly object activeInfoBarsLock = new();
+        private readonly Dictionary<string, NotificationState> notifications = [];
+        private readonly object notificationsLock = new();
+
+        private sealed class NotificationState
+        {
+            public bool WasShown { get; set; }
+            public IVsInfoBarUIElement? ActiveInfoBar { get; set; }
+        }
 
         public async Task ShowInfoAsync(string key, string message, CancellationToken ct) =>
             await ShowInfoAsync(key, message, [], ct);
@@ -63,10 +67,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
         public async Task DismissAsync(string key, CancellationToken ct)
         {
             IVsInfoBarUIElement infoBar;
-            lock (activeInfoBarsLock) {
-                if (!activeInfoBars.TryGetValue(key, out infoBar))
+            lock (notificationsLock) {
+                if (!notifications.TryGetValue(key, out var state) || state.ActiveInfoBar == null)
                     return;
-                activeInfoBars.Remove(key);
+                infoBar = state.ActiveInfoBar;
+                state.ActiveInfoBar = null;
             }
 
             try {
@@ -81,15 +86,28 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
 
         public void ClearRateLimit(string key)
         {
-            lock (notifiedKeysLock) {
-                notifiedKeys.Remove(key);
+            lock (notificationsLock) {
+                if (!notifications.TryGetValue(key, out var state))
+                    return;
+
+                state.WasShown = false;
+                if (state.ActiveInfoBar == null)
+                    notifications.Remove(key);
             }
         }
 
         private bool TryMarkNotified(string key)
         {
-            lock (notifiedKeysLock) {
-                return notifiedKeys.Add(key);
+            lock (notificationsLock) {
+                if (!notifications.TryGetValue(key, out var state)) {
+                    state = new NotificationState();
+                    notifications.Add(key, state);
+                }
+                if (state.WasShown)
+                    return false;
+
+                state.WasShown = true;
+                return true;
             }
         }
 
@@ -123,8 +141,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
                     var events = new InfoBarEvents(log, key, RemoveActiveInfoBar);
                     uiElement.Advise(events, out var cookie);
                     events.Initialize(cookie);
-                    lock (activeInfoBarsLock) {
-                        activeInfoBars[key] = uiElement;
+                    lock (notificationsLock) {
+                        if (!notifications.TryGetValue(key, out var state)) {
+                            state = new NotificationState();
+                            notifications.Add(key, state);
+                        }
+                        state.ActiveInfoBar = uiElement;
                     }
                     infoBarHost.AddInfoBar(uiElement);
                 }
@@ -136,11 +158,15 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
 
         private void RemoveActiveInfoBar(string key, IVsInfoBarUIElement infoBarUiElement)
         {
-            lock (activeInfoBarsLock) {
-                if (activeInfoBars.TryGetValue(key, out var current)
-                    && ReferenceEquals(current, infoBarUiElement)) {
-                    activeInfoBars.Remove(key);
-                }
+            lock (notificationsLock) {
+                if (!notifications.TryGetValue(key, out var state))
+                    return;
+                if (!ReferenceEquals(state.ActiveInfoBar, infoBarUiElement))
+                    return;
+
+                state.ActiveInfoBar = null;
+                if (!state.WasShown)
+                    notifications.Remove(key);
             }
         }
 
