@@ -24,7 +24,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
         public async Task ShowInfoAsync(
             string key,
             string message,
-            IReadOnlyCollection<NotificationAction> actions,
+            IEnumerable<NotificationAction> actions,
             CancellationToken ct)
         {
             log.Info($"Notification[{key}]: {message}");
@@ -38,12 +38,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
         public async Task ShowWarningAsync(
             string key,
             string message,
-            IReadOnlyCollection<NotificationAction> actions,
+            IEnumerable<NotificationAction> actions,
             CancellationToken ct)
         {
             log.Warning($"Notification[{key}]: {message}");
             if (TryMarkNotified(key))
-                await ShowInfoBarSafeAsync(key, message, isError: false, [], ct);
+                await ShowInfoBarSafeAsync(key, message, isError: false, actions, ct);
         }
 
         public async Task ShowErrorAsync(string key, string message, CancellationToken ct) =>
@@ -52,12 +52,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
         public async Task ShowErrorAsync(
             string key,
             string message,
-            IReadOnlyCollection<NotificationAction> actions,
+            IEnumerable<NotificationAction> actions,
             CancellationToken ct)
         {
             log.Error($"Notification[{key}]: {message}");
             if (TryMarkNotified(key))
-                await ShowInfoBarSafeAsync(key, message, isError: true, [], ct);
+                await ShowInfoBarSafeAsync(key, message, isError: true, actions, ct);
         }
 
         public async Task DismissAsync(string key, CancellationToken ct)
@@ -97,50 +97,40 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
             string key,
             string message,
             bool isError,
-            IReadOnlyCollection<NotificationAction> actions,
+            IEnumerable<NotificationAction> actions,
             CancellationToken ct)
         {
             try {
-                await ShowInfoBarAsync(key, message, isError, actions, ct);
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(ct);
+
+                if (Package.GetGlobalService(typeof(SVsShell)) is not IVsShell vsShell)
+                    return;
+
+                vsShell.GetProperty((int)__VSSPROPID7.VSSPROPID_MainWindowInfoBarHost, out var host);
+                if (host is not IVsInfoBarHost infoBarHost)
+                    return;
+
+                var tmp = Package.GetGlobalService(typeof(SVsInfoBarUIFactory));
+                if (tmp is not IVsInfoBarUIFactory factory)
+                    return;
+
+                var image = isError ? KnownMonikers.StatusError : KnownMonikers.StatusWarning;
+                var actionItems = actions.Select(action => new InfoBarButton(action.Text, action));
+                var model = new InfoBarModel(message, actionItems, image, isCloseButtonVisible: true);
+
+                var uiElement = factory.CreateInfoBar(model);
+                if (uiElement != null) {
+                    var events = new InfoBarEvents(log, key, RemoveActiveInfoBar);
+                    uiElement.Advise(events, out var cookie);
+                    events.Initialize(cookie);
+                    lock (activeInfoBarsLock) {
+                        activeInfoBars[key] = uiElement;
+                    }
+                    infoBarHost.AddInfoBar(uiElement);
+                }
             } catch (OperationCanceledException) {
             } catch (Exception ex) {
                 log.Warning($"Qt Bridge: failed to show InfoBar notification: {ex.Message}");
-            }
-        }
-
-        private async Task ShowInfoBarAsync(
-            string key,
-            string message,
-            bool isError,
-            IReadOnlyCollection<NotificationAction> actions,
-            CancellationToken ct)
-        {
-            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(ct);
-
-            if (Package.GetGlobalService(typeof(SVsShell)) is not IVsShell vsShell)
-                return;
-
-            vsShell.GetProperty((int)__VSSPROPID7.VSSPROPID_MainWindowInfoBarHost, out var host);
-            if (host is not IVsInfoBarHost infoBarHost)
-                return;
-
-            var tmp = Package.GetGlobalService(typeof(SVsInfoBarUIFactory));
-            if (tmp is not IVsInfoBarUIFactory factory)
-                return;
-
-            var image = isError ? KnownMonikers.StatusError : KnownMonikers.StatusWarning;
-            var actionItems = actions.Select(action => new InfoBarButton(action.Text, action));
-            var model = new InfoBarModel(message, actionItems, image, isCloseButtonVisible: true);
-
-            var uiElement = factory.CreateInfoBar(model);
-            if (uiElement != null) {
-                var events = new InfoBarEvents(log, key, RemoveActiveInfoBar);
-                uiElement.Advise(events, out var cookie);
-                events.Initialize(cookie);
-                lock (activeInfoBarsLock) {
-                    activeInfoBars[key] = uiElement;
-                }
-                infoBarHost.AddInfoBar(uiElement);
             }
         }
 

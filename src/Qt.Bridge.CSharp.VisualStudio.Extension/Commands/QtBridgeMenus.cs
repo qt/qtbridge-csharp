@@ -15,7 +15,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
             Children =
             [
                 GroupChild.Menu(QtBridgeMenu)
-            ],
+            ]
         };
 
         [VisualStudioContribution]
@@ -33,7 +33,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
 #endif
                 MenuChild.Separator,
                 MenuChild.Command<Version>()
-            ],
+            ]
         };
     }
 }

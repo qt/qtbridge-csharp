@@ -9,21 +9,21 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
         Task ShowInfoAsync(
             string key,
             string message,
-            IReadOnlyCollection<NotificationAction> actions,
+            IEnumerable<NotificationAction> actions,
             CancellationToken ct);
 
         Task ShowWarningAsync(string key, string message, CancellationToken ct);
         Task ShowWarningAsync(
             string key,
             string message,
-            IReadOnlyCollection<NotificationAction> actions,
+            IEnumerable<NotificationAction> actions,
             CancellationToken ct);
 
         Task ShowErrorAsync(string key, string message, CancellationToken ct);
         Task ShowErrorAsync(
             string key,
             string message,
-            IReadOnlyCollection<NotificationAction> actions,
+            IEnumerable<NotificationAction> actions,
             CancellationToken ct);
 
         Task DismissAsync(string key, CancellationToken ct);
