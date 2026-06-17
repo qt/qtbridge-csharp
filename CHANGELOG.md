@@ -1,5 +1,38 @@
 # Change Log
 
+## Version 0.3.0 &ndash; Beta
+
+### Features
+
+* Build C# + QML applications in Linux.
+
+* [Visual Studio extension](https://marketplace.visualstudio.com/publishers/TheQtCompany)
+
+  - C# + QML project template
+
+  - QML Intellisense via the [QML Language Server](https://doc.qt.io/qt-6/qtqml-tooling-qmlls.html)
+
+* [App resources](HOW-TO%20resources.md)
+
+* [App properties](src/Qt.Bridge.CSharp.Api/Qt/Application.cs)
+
+* Support for C# delegates
+
+  - Pass QML/JS functions to C# as delegates
+
+  - Invoke C# delegates in QML
+
+### Bug Fixes
+
+| #                                                                      | Summary                 |
+|------------------------------------------------------------------------|-------------------------|
+| [QTBRIDGES-276](https://qt-project.atlassian.net/browse/QTBRIDGES-276) | C# Bridge has hard dependency on .NET 8 |
+
+### Examples
+
+* [Bookshelf](examples/Bookshelf)
+
+
 ## Version 0.2.0 &ndash; Beta / Internal Milestone
 
 ### Features
