@@ -25,6 +25,7 @@
 
   <ItemGroup Condition="'$(IsWindows)' != 'True'">
     <Compile Remove="Test_QmlBuildNotificationSettings.cs" />
+    <Compile Remove="Test_QmllsBuildIniPatcher.cs" />
   </ItemGroup>
 
   <ItemGroup>

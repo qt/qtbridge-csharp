@@ -8,6 +8,8 @@ using CoreQmlMetadata = Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata.QmlMetada
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 {
+    using V2WorkspaceEntries = Dictionary<int, Dictionary<string, string>>;
+
     /// <summary>
     /// Patches the <c>.qmlls.build.ini</c> file used by the QML Language Server to provide
     /// correct import paths, resource files, and workspace aliases for QML projects.
@@ -157,24 +159,24 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 return true;
             }
 
-            var inGenerated = false;
-            var sectionLines = new List<string>();
-            foreach (var line in lines) {
-                var trimmed = line.Trim();
-                if (trimmed.StartsWith("[") && trimmed.EndsWith("]")) {
-                    if (inGenerated)
-                        break;
-                    inGenerated = string.Equals(trimmed, generatedKey,
-                        StringComparison.OrdinalIgnoreCase);
-                    continue;
-                }
-                if (inGenerated && trimmed.Length > 0)
-                    sectionLines.Add(line);
+            var generatedStart = Array.FindIndex(lines, l =>
+                string.Equals(l.Trim(), generatedKey, StringComparison.OrdinalIgnoreCase));
+            if (generatedStart < 0) {
+                log.Verbose($"QML Language Server: {BuildIni} patch skipped - generated section"
+                    + $" '{generatedKey}' not found in '{iniPath}' ({lines.Length} lines).");
+                return false;
             }
+
+            var generatedEnd = FindSectionEnd(lines, generatedStart);
+            var sectionLines = lines
+                .Skip(generatedStart + 1)
+                .Take(generatedEnd - generatedStart - 1)
+                .Where(l => l.Trim().Length > 0)
+                .ToList();
 
             if (sectionLines.Count == 0) {
                 log.Verbose($"QML Language Server: {BuildIni} patch skipped - generated section"
-                    + $" '{generatedKey}' not found in '{iniPath}' ({lines.Length} lines).");
+                    + $" '{generatedKey}' is empty in '{iniPath}'.");
                 return false;
             }
 
@@ -219,47 +221,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             if (workspacesStart < 0)
                 return FormatPatchResult.NotRecognized;
 
-            var workspacesEnd = lines.Length;
-            for (var i = workspacesStart + 1; i < lines.Length; ++i) {
-                var trimmed = lines[i].Trim();
-                if (!trimmed.StartsWith("[") || !trimmed.EndsWith("]"))
-                    continue;
-                workspacesEnd = i;
-                break;
-            }
+            var workspacesEnd = FindSectionEnd(lines, workspacesStart);
+            var (entries, sizeIndex, sizeValue) =
+                ParseV2WorkspaceEntries(lines, workspacesStart, workspacesEnd);
 
-            var entries = new Dictionary<int, Dictionary<string, string>>();
-            var sizeIndex = -1;
-            var sizeValue = 0;
-            for (var i = workspacesStart + 1; i < workspacesEnd; ++i) {
-                var line = lines[i].Trim();
-                if (line.StartsWith("size=", StringComparison.OrdinalIgnoreCase)) {
-                    sizeIndex = i;
-                    _ = int.TryParse(line.Substring("size=".Length), out sizeValue);
-                    continue;
-                }
-
-                var slash = line.IndexOf('\\');
-                var equals = line.IndexOf('=');
-                if (slash <= 0 || equals <= slash)
-                    continue;
-                if (!int.TryParse(line.Substring(0, slash), out var idx))
-                    continue;
-
-                var key = line.Substring(slash + 1, equals - slash - 1);
-                var value = Unquote(line.Substring(equals + 1).Trim());
-                if (!entries.TryGetValue(idx, out var values)) {
-                    values = [];
-                    entries[idx] = values;
-                }
-                values[key] = value;
-            }
-
-            var generatedIndex = entries
-                .Where(entry => entry.Value.TryGetValue("sourcePath", out var sourcePath)
-                    && SamePath(sourcePath, generatedSourceDir))
-                .Select(entry => (int?)entry.Key)
-                .FirstOrDefault();
+            var generatedIndex = FindV2WorkspaceByPath(entries, generatedSourceDir);
             if (generatedIndex == null) {
                 log.Verbose($"QML Language Server: {BuildIni} patch skipped - generated"
                     + $" workspace '{generatedSourceDir}' not found in '{iniPath}'.");
@@ -267,20 +233,14 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             }
 
             var generated = entries[generatedIndex.Value];
-            var importPaths = generated.TryGetValue("importPaths", out var imports)
-                ? imports
-                : "";
-            var resourceFiles = generated.TryGetValue("resourceFiles", out var resources)
-                ? AddResourcePath(resources, projectSourcesQrcPath)
-                : AddResourcePath("", projectSourcesQrcPath);
-
-            var aliasIndex = entries
-                .Where(entry => entry.Value.TryGetValue("sourcePath", out var sourcePath)
-                    && SamePath(sourcePath, projectSourceDir))
-                .Select(entry => (int?)entry.Key)
-                .FirstOrDefault();
+            var importPaths = generated.TryGetValue("importPaths", out var imports) ? imports : "";
+            var resourceFiles = AddResourcePath(
+                generated.TryGetValue("resourceFiles", out var resources) ? resources : "",
+                projectSourcesQrcPath);
 
             var updatedLines = lines.ToList();
+            var aliasIndex = FindV2WorkspaceByPath(entries, projectSourceDir);
+
             if (aliasIndex != null) {
                 SetV2WorkspaceValue(updatedLines, workspacesStart, workspacesEnd,
                     aliasIndex.Value, "importPaths", importPaths);
@@ -314,6 +274,72 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         }
 
         /// <summary>
+        /// Returns the line index of the next INI section header after
+        /// <paramref name="sectionStart"/>, or <c>lines.Length</c> if no subsequent section exists.
+        /// </summary>
+        private static int FindSectionEnd(IReadOnlyList<string> lines, int sectionStart)
+        {
+            for (var i = sectionStart + 1; i < lines.Count; ++i) {
+                var trimmed = lines[i].Trim();
+                if (trimmed.StartsWith("[") && trimmed.EndsWith("]"))
+                    return i;
+            }
+            return lines.Count;
+        }
+
+        /// <summary>
+        /// Parses all workspace entries from the <c>[workspaces]</c> section of a v2 INI file.
+        /// </summary>
+        private static (V2WorkspaceEntries, int, int) ParseV2WorkspaceEntries(
+            IReadOnlyList<string> lines,
+            int workspacesStart,
+            int workspacesEnd)
+        {
+            var entries = new V2WorkspaceEntries();
+            var sizeIndex = -1;
+            var sizeValue = 0;
+
+            for (var i = workspacesStart + 1; i < workspacesEnd; ++i) {
+                var line = lines[i].Trim();
+                if (line.StartsWith("size=", StringComparison.OrdinalIgnoreCase)) {
+                    sizeIndex = i;
+                    _ = int.TryParse(line.Substring("size=".Length), out sizeValue);
+                    continue;
+                }
+
+                var slash = line.IndexOf('\\');
+                var equals = line.IndexOf('=');
+                if (slash <= 0 || equals <= slash)
+                    continue;
+                if (!int.TryParse(line.Substring(0, slash), out var idx))
+                    continue;
+
+                var key = line.Substring(slash + 1, equals - slash - 1);
+                var value = Unquote(line.Substring(equals + 1).Trim());
+                if (!entries.TryGetValue(idx, out var values)) {
+                    values = [];
+                    entries[idx] = values;
+                }
+                values[key] = value;
+            }
+
+            return (entries, sizeIndex, sizeValue);
+        }
+
+        /// <summary>
+        /// Returns the index of the first workspace entry whose <c>sourcePath</c> matches
+        /// <paramref name="targetPath"/>, or <c>null</c> if not found.
+        /// </summary>
+        private static int? FindV2WorkspaceByPath(V2WorkspaceEntries entries, string targetPath)
+        {
+            return entries
+                .Where(e =>
+                    e.Value.TryGetValue("sourcePath", out var sp) && SamePath(sp, targetPath))
+                .Select(e => (int?)e.Key)
+                .FirstOrDefault();
+        }
+
+        /// <summary>
         /// Ensures that the alias section in a v1 INI file has the correct <c>importPaths</c> and
         /// <c>resourceFiles</c> values.
         /// </summary>
@@ -332,15 +358,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             if (start < 0)
                 return;
 
-            var end = lines.Length;
-            for (var i = start + 1; i < lines.Length; ++i) {
-                var trimmed = lines[i].Trim();
-                if (!trimmed.StartsWith("[") || !trimmed.EndsWith("]"))
-                    continue;
-                end = i;
-                break;
-            }
-
+            var end = FindSectionEnd(lines, start);
             var sectionLines = lines.Skip(start + 1).Take(end - start - 1).ToArray();
             var merged = MergeV1SectionValues(sectionLines, importPaths, resourceFiles).ToArray();
             if (sectionLines.SequenceEqual(merged))
