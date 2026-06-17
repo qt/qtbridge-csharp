@@ -18,6 +18,8 @@ using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;
 using Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext;
 
 using CoreQmlMetadata = Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata.QmlMetadata;
+using Debugger = System.Diagnostics.Debugger;
+using Process = System.Diagnostics.Process;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 {
@@ -469,77 +471,130 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             bool notifyUser = false,
             bool logNotReady = true)
         {
-            QmlLanguageServerTransportPipe? pipe;
-            string? projectDirectory, configKey;
-            lock (registryLock) {
-                pipe = activePipe;
-                if (pipe == null)
-                    return;
-                if (!projectRegistry.TryGetValue(projectFilePath, out var e))
-                    return;
-                if (e.BuildDirsInjected)
-                    return;
-                // Claim the slot now so a concurrent call that also read false above cannot
-                // proceed to a duplicate injection while we are awaiting async work below.
-                e.BuildDirsInjected = true;
-                projectDirectory = e.ProjectDirectory;
-                configKey = e.ConfigKey;
-            }
-
-            // Local helper: release the claim so a future call can retry.
-            void ResetInjection()
-            {
-                lock (registryLock) {
-                    if (projectRegistry.TryGetValue(projectFilePath, out var e))
-                        e.BuildDirsInjected = false;
-                }
+            if (!TryBeginProjectInjection(projectFilePath,
+                out var pipe,
+                out var projectDirectory,
+                out var configKey)) {
+                return;
             }
 
             var metadataFilePath = metadataReader.FindMetadataFilePath(projectDirectory, configKey);
             if (metadataFilePath == null) {
-                var shouldCheckNotificationSettings = false;
-                lock (registryLock) {
-                    if (projectRegistry.TryGetValue(projectFilePath, out var e)) {
-                        e.BuildDirsInjected = false;
-                        shouldCheckNotificationSettings = notifyUser && !e.MissingMetadataNotified;
-                    }
-                }
-
-                if (!shouldCheckNotificationSettings)
-                    return;
-
-                var showNotification = await buildNotificationSettings
-                    .ShouldShowMissingBuildOutputNotificationAsync(projectFilePath, ct);
-                if (!showNotification)
-                    return;
-
-                lock (registryLock) {
-                    if (!projectRegistry.TryGetValue(projectFilePath, out var e)
-                        || e.MissingMetadataNotified) {
-                        return;
-                    }
-                    e.MissingMetadataNotified = true;
-                }
-
-                var projectName = Path.GetFileNameWithoutExtension(projectFilePath);
-                await notifications.ShowInfoAsync(
-                    BuildOutputNotificationKey(projectFilePath),
-                    $"Qt Bridge: Build project '{projectName}' for full QML language support.",
-                    [
-                        new NotificationAction("Don't show for this project", actionCt =>
-                            buildNotificationSettings.SuppressMissingBuildOutputNotificationAsync(
-                                projectFilePath, actionCt)),
-                        new NotificationAction("Disable build notifications", actionCt =>
-                            buildNotificationSettings
-                                .SetMissingBuildOutputNotificationsEnabledAsync(false, actionCt))
-                    ],
-                    ct);
+                await HandleMissingMetadataAsync(projectFilePath, notifyUser, ct);
                 return;
             }
 
+            var metadata = TryResolveInjectableMetadata(
+                projectFilePath,
+                metadataFilePath,
+                configKey,
+                ct,
+                notifyUser,
+                logNotReady);
+            if (metadata == null)
+                return;
+
+            // qmlls memoizes build-dir settings for a session, so only inject after the build
+            // outputs are fully ready. If a metadata change was waiting on ready build outputs,
+            // restart once so the fresh session observes the patched ini from the outset.
+            if (await TryRestartForReadyBuildSettingsAsync(projectFilePath))
+                return;
+
+            await InjectBuildDirectoriesAsync(projectFilePath, pipe, metadata, ct);
+        }
+
+        private bool TryBeginProjectInjection(
+            string projectFilePath,
+            out QmlLanguageServerTransportPipe pipe,
+            out string projectDirectory,
+            out string configKey)
+        {
+            lock (registryLock) {
+                pipe = activePipe!;
+                projectDirectory = string.Empty;
+                configKey = string.Empty;
+
+                if (activePipe == null)
+                    return false;
+                if (!projectRegistry.TryGetValue(projectFilePath, out var entry))
+                    return false;
+                if (entry.BuildDirsInjected)
+                    return false;
+
+                // Claim the slot now so a concurrent call that also read false above cannot
+                // proceed to a duplicate injection while we are awaiting async work below.
+                entry.BuildDirsInjected = true;
+                pipe = activePipe;
+                projectDirectory = entry.ProjectDirectory;
+                configKey = entry.ConfigKey;
+                return true;
+            }
+        }
+
+        private void ResetInjection(string projectFilePath)
+        {
+            lock (registryLock) {
+                if (projectRegistry.TryGetValue(projectFilePath, out var entry))
+                    entry.BuildDirsInjected = false;
+            }
+        }
+
+        private async Task HandleMissingMetadataAsync(
+            string projectFilePath,
+            bool notifyUser,
+            CancellationToken ct)
+        {
+            var shouldCheckNotificationSettings = false;
+            lock (registryLock) {
+                if (projectRegistry.TryGetValue(projectFilePath, out var entry)) {
+                    entry.BuildDirsInjected = false;
+                    shouldCheckNotificationSettings =
+                        notifyUser && !entry.MissingMetadataNotified;
+                }
+            }
+
+            if (!shouldCheckNotificationSettings)
+                return;
+
+            var showNotification = await buildNotificationSettings
+                .ShouldShowMissingBuildOutputNotificationAsync(projectFilePath, ct);
+            if (!showNotification)
+                return;
+
+            lock (registryLock) {
+                if (!projectRegistry.TryGetValue(projectFilePath, out var entry)
+                    || entry.MissingMetadataNotified) {
+                    return;
+                }
+                entry.MissingMetadataNotified = true;
+            }
+
+            var projectName = Path.GetFileNameWithoutExtension(projectFilePath);
+            await notifications.ShowInfoAsync(
+                BuildOutputNotificationKey(projectFilePath),
+                $"Qt Bridge: Build project '{projectName}' for full QML language support.",
+                [
+                    new NotificationAction("Don't show for this project", actionCt =>
+                        buildNotificationSettings.SuppressMissingBuildOutputNotificationAsync(
+                            projectFilePath, actionCt)),
+                    new NotificationAction("Disable build notifications", actionCt =>
+                        buildNotificationSettings
+                            .SetMissingBuildOutputNotificationsEnabledAsync(false, actionCt))
+                ],
+                ct);
+        }
+
+        private CoreQmlMetadata? TryResolveInjectableMetadata(
+            string projectFilePath,
+            string metadataFilePath,
+            string configKey,
+            CancellationToken ct,
+            bool notifyUser,
+            bool logNotReady)
+        {
             var readResult = metadataReader.TryRead(metadataFilePath, ct);
             if (!readResult.Success) {
-                ResetInjection();
+                ResetInjection(projectFilePath);
                 if (readResult.Error == QmlMetadataReadError.IoError) {
                     log.Info($"QML Language Server: metadata file is not ready for"
                         + $" '{Path.GetFileName(projectFilePath)}' - will retry.");
@@ -553,67 +608,67 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     log.Error($"QML Language Server: failed to read metadata at '{readResult.Path}'"
                         + $" ({readResult.Error}).", readResult.Exception);
                 }
-                return;
+                return null;
             }
 
             var configuration = Path.GetFileName(configKey);
             if (!metadataReader.Validate(readResult.Metadata!, projectFilePath, configuration)) {
-                ResetInjection();
-                return;
+                ResetInjection(projectFilePath);
+                return null;
             }
 
-            var metadata = readResult.Metadata!;
-            var sourceDir = metadata.Qml.ProjectSourceDir;
-            var buildDirs = metadata.Qml.BuildDirs;
-
-            if (string.IsNullOrEmpty(sourceDir) || buildDirs.Count == 0) {
-                ResetInjection();
+            var section = readResult.Metadata!.Qml;
+            if (string.IsNullOrEmpty(section.ProjectSourceDir) || section.BuildDirs.Count == 0) {
+                ResetInjection(projectFilePath);
                 log.Warning(
                     $"QML Language Server: metadata for '{Path.GetFileName(projectFilePath)}'"
                     + " has no source dir or build dirs - skipping injection.");
-                return;
+                return null;
             }
 
-            // qmlls selects .qmlls.build.ini settings by matching the file path against the
-            // section header (startsWith check). The generated section is keyed by the generated
-            // source root (e.g. obj/.../qt/native/source), which does not match user-authored
-            // QML files under the project root. Add an alias section for the project root so
-            // qmlls can resolve project-specific types (e.g. C#-exposed types) in those files.
-            //
-            // The .qmlls.build.ini is generated during the native build, which can complete after
-            // the metadata JSON that triggered this injection attempt. Do not send $/addBuildDirs
-            // until the ini exists and has been patched; qmlls memoizes build-dir settings and
-            // will not revisit an already-seen build path in the current session.
-            if (!BuildSettingsIniFilesExist(metadata)) {
-                ResetInjection();
+            var metadata = readResult.Metadata!;
+            if (AreBuildOutputsReady(metadata, projectFilePath, logNotReady))
+                return metadata;
+
+            ResetInjection(projectFilePath);
+            return null;
+        }
+
+        private bool AreBuildOutputsReady(
+            CoreQmlMetadata metadata,
+            string projectFilePath,
+            bool logNotReady)
+        {
+            bool NotReady(string reason)
+            {
                 if (logNotReady) {
                     log.Info($"QML Language Server: metadata not fully ready for"
                         + $" '{Path.GetFileName(projectFilePath)}' - delaying injection until"
-                        + " .qmlls.build.ini exists.");
+                        + $" {reason}.");
                 }
-                return;
+                return false;
             }
 
-            if (!buildIniPatcher.TryPatch(metadata, projectFilePath)) {
-                ResetInjection();
-                if (logNotReady) {
-                    log.Info($"QML Language Server: metadata not fully ready for"
-                        + $" '{Path.GetFileName(projectFilePath)}' - delaying injection until"
-                        + " .qmlls.build.ini exists.");
-                }
-                return;
-            }
+            // qmlls matches .qmlls.build.ini sections by source-root prefix. Patch the
+            // generated ini before injection so project-root QML files resolve against
+            // the project alias, and wait until generated .qmltypes files are readable
+            // as well.
 
-            if (!TryGeneratedQmlTypesReady(metadata, projectFilePath)) {
-                ResetInjection();
-                if (logNotReady) {
-                    log.Info($"QML Language Server: metadata not fully ready for"
-                        + $" '{Path.GetFileName(projectFilePath)}' - delaying injection until"
-                        + " generated .qmltypes files exist.");
-                }
-                return;
-            }
+            if (!BuildSettingsIniFilesExist(metadata))
+                return NotReady(".qmlls.build.ini exists");
 
+            if (!buildIniPatcher.TryPatch(metadata, projectFilePath))
+                return NotReady(".qmlls.build.ini exists");
+
+            if (TryGeneratedQmlTypesReady(metadata, projectFilePath))
+                return true;
+
+            return NotReady("generated .qmltypes files exist");
+        }
+
+        private async Task<bool> TryRestartForReadyBuildSettingsAsync(
+            string projectFilePath)
+        {
             var shouldRestart = false;
             lock (registryLock) {
                 if (projectRegistry.TryGetValue(projectFilePath, out var entry)
@@ -623,14 +678,25 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     shouldRestart = true;
                 }
             }
-            if (shouldRestart) {
-                log.Info($"QML Language Server: .qmlls.build.ini is ready for"
-                    + $" '{Path.GetFileName(projectFilePath)}' - restarting qmlls with"
-                    + " a clean build-settings cache.");
-                await RestartServerForProjectAsync(projectFilePath);
-                return;
-            }
 
+            if (!shouldRestart)
+                return false;
+
+            log.Info($"QML Language Server: .qmlls.build.ini is ready for"
+                + $" '{Path.GetFileName(projectFilePath)}' - restarting qmlls with"
+                + " a clean build-settings cache.");
+            await RestartServerForProjectAsync(projectFilePath);
+            return true;
+        }
+
+        private async Task InjectBuildDirectoriesAsync(
+            string projectFilePath,
+            QmlLanguageServerTransportPipe pipe,
+            CoreQmlMetadata metadata,
+            CancellationToken ct)
+        {
+            var sourceDir = metadata.Qml.ProjectSourceDir!;
+            var buildDirs = metadata.Qml.BuildDirs;
             var folderUri = new Uri(sourceDir).AbsoluteUri;
             log.Info($"QML Language Server: registering workspace folder for"
                 + $" '{Path.GetFileName(projectFilePath)}' (uri={folderUri}).");
@@ -645,17 +711,18 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             // If activePipe changed while we were working the notifications went to a dead
             // pipe. Reset so CreateServerConnectionAsync rehydrates on the new session.
             lock (registryLock) {
+                ProjectEntry entry;
                 if (!ReferenceEquals(activePipe, pipe)) {
-                    if (projectRegistry.TryGetValue(projectFilePath, out var e))
-                        e.BuildDirsInjected = false;
+                    if (projectRegistry.TryGetValue(projectFilePath, out entry))
+                        entry.BuildDirsInjected = false;
                     log.Info($"QML Language Server: pipe replaced during injection of"
                         + $" '{Path.GetFileName(projectFilePath)}' - will retry on new session.");
                     return;
                 }
-                if (projectRegistry.TryGetValue(projectFilePath, out var entry)) {
+                if (projectRegistry.TryGetValue(projectFilePath, out entry))
                     entry.MissingMetadataNotified = false;
-                }
             }
+
             await notifications.DismissAsync(BuildOutputNotificationKey(projectFilePath), ct);
 
             var projectFileName = Path.GetFileName(projectFilePath);
