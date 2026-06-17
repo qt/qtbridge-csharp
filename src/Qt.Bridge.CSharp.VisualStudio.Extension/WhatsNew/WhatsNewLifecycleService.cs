@@ -22,12 +22,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.WhatsNew
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(ct);
 
-#if !DEBUG
-            return; // Temporarily disable the what's new lifecycle to avoid showing
-                    // the notification for the current release. Re-enable once the
-                    // final documentation has been published.
-#endif
-
             var currentVersion = ExtensionVersionInfo.GetInstalledVersion();
             var lastSeenVersion = stateStore.LastSeenVersion;
             log.Verbose("Qt Bridge what's new lifecycle: "
