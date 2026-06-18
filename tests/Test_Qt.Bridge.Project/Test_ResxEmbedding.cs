@@ -34,7 +34,6 @@ namespace Test_Qt.Bridge.Project
             """
               <PropertyGroup>
                 <QtBridgeResourceLibrary>true</QtBridgeResourceLibrary>
-                <UseAppHost>false</UseAppHost>
               </PropertyGroup>
               <ItemGroup>
                 <QtResourceAccess Include="ResDefault.resx::Entry" Mode="Default" />
@@ -153,7 +152,6 @@ namespace Test_Qt.Bridge.Project
                     """
                       <PropertyGroup>
                         <QtBridgeResourceLibrary>true</QtBridgeResourceLibrary>
-                        <UseAppHost>false</UseAppHost>
                       </PropertyGroup>
                       <ItemGroup>
                         <QtResourceAccess Include="Books.resx::SynopsisHistory" Mode="ManagedAndNative" />

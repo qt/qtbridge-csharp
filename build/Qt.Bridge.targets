@@ -171,7 +171,7 @@
         AND '%(_QtResolvedResource.AccessMode)' != 'ManagedOnly'"
       Text="Qt Bridge resource '%(_QtResolvedResource.Identity)' has invalid AccessMode '%(_QtResolvedResource.AccessMode)'. Expected Default, ManagedAndNative, or ManagedOnly." />
 
-    <MakeDir Directories="$(IntermediateOutputPath)qt\csharp" />
+    <MakeDir Directories="$(IntermediateOutputPath)qt/csharp" />
     <WriteLinesToFile Overwrite="true"
       WriteOnlyWhenDifferent="true" File="$(ProjectDir)$(IntermediateOutputPath)$(QtResourceFilesCs)"
       Lines="@(_QtResolvedResource->'[assembly: Qt.Bridge.QtResource(
@@ -179,7 +179,7 @@
     AssemblyId = &quot;%(AssemblyId)&quot;, Key = &quot;%(Key)&quot;,
     AccessMode = &quot;%(AccessMode)&quot;, Reason = &quot;%(Reason)&quot;)]')" />
     <ItemGroup>
-      <Compile Include="$(IntermediateOutputPath)qt\csharp\QtResources.cs" />
+      <Compile Include="$(IntermediateOutputPath)$(QtResourceFilesCs)" />
     </ItemGroup>
   </Target>
   <!-- END QtBridgeAddResources -->
@@ -228,7 +228,7 @@
       SourceFiles="$(ProjectDir)%(RelativeDir)%(Filename)%(Extension)"
       DestinationFolder="$(IntermediateOutputPath)$(QtQmlSourceDir)%(SourceDir)" />
     <MakeDir Condition="'@(Qml)' != '' OR '@(QmlModule)' != ''"
-      Directories="$(IntermediateOutputPath)qt\csharp" />
+      Directories="$(IntermediateOutputPath)qt/csharp" />
     <!-- Add C# source with paths of QML files; this will be an input for code generation -->
     <WriteLinesToFile Condition="'@(Qml)' != '' OR '@(QmlModule)' != ''" Overwrite="true"
       WriteOnlyWhenDifferent="false" File="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlFilesCs)"
@@ -248,7 +248,7 @@ namespace Qt.Qml
 " />
     <ItemGroup>
       <Compile Condition="'@(Qml)' != '' OR '@(QmlModule)' != ''"
-        Include="$(IntermediateOutputPath)qt\csharp\QmlFiles.cs" />
+        Include="$(IntermediateOutputPath)$(QtQmlFilesCs)" />
     </ItemGroup>
   </Target>
   <!-- END QtBridgeAddQmlFiles -->

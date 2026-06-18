@@ -45,9 +45,9 @@
     <QtGenCmd>$(QtGenCmd) --ref "$(QtDotNetAdapter)"</QtGenCmd>
     <QtGenCmd>$(QtGenCmd) --rules "$(QtDotNetGenRules)"</QtGenCmd>
 
-    <QtQmlFilesCs>qt\csharp\QmlFiles.cs</QtQmlFilesCs>
-    <QtResourceFilesCs>qt\csharp\QtResources.cs</QtResourceFilesCs>
-    <QtQmlSourceDir>qt\native\source\qml\</QtQmlSourceDir>
+    <QtQmlFilesCs>qt/csharp/QmlFiles.cs</QtQmlFilesCs>
+    <QtResourceFilesCs>qt/csharp/QtResources.cs</QtResourceFilesCs>
+    <QtQmlSourceDir>qt/native/source/qml/</QtQmlSourceDir>
     <QtBridgeAssemblyResourceId Condition="'$(QtBridgeAssemblyResourceId)' == ''"
       >$(AssemblyName)</QtBridgeAssemblyResourceId>
     <QtBridgeExcludeQtResxFromManagedResources
