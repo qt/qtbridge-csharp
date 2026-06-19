@@ -200,6 +200,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docfx", "docfx", "{09802621
 		docs\visual-studio-workflow.md = docs\visual-studio-workflow.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Qt.Bridge.CSharp.Build.Tasks", "src\Qt.Bridge.CSharp.Build.Tasks\Qt.Bridge.CSharp.Build.Tasks.csproj", "{45B99DAF-18F9-4CCE-97BB-15558BBA5F3E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -488,6 +490,18 @@ Global
 		{0FA89422-DD55-4DF1-A22D-0A7DCD7F591C}.Release|x64.Build.0 = Release|Any CPU
 		{0FA89422-DD55-4DF1-A22D-0A7DCD7F591C}.Release|x86.ActiveCfg = Release|Any CPU
 		{0FA89422-DD55-4DF1-A22D-0A7DCD7F591C}.Release|x86.Build.0 = Release|Any CPU
+		{45B99DAF-18F9-4CCE-97BB-15558BBA5F3E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45B99DAF-18F9-4CCE-97BB-15558BBA5F3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45B99DAF-18F9-4CCE-97BB-15558BBA5F3E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{45B99DAF-18F9-4CCE-97BB-15558BBA5F3E}.Debug|x64.Build.0 = Debug|Any CPU
+		{45B99DAF-18F9-4CCE-97BB-15558BBA5F3E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{45B99DAF-18F9-4CCE-97BB-15558BBA5F3E}.Debug|x86.Build.0 = Debug|Any CPU
+		{45B99DAF-18F9-4CCE-97BB-15558BBA5F3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45B99DAF-18F9-4CCE-97BB-15558BBA5F3E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45B99DAF-18F9-4CCE-97BB-15558BBA5F3E}.Release|x64.ActiveCfg = Release|Any CPU
+		{45B99DAF-18F9-4CCE-97BB-15558BBA5F3E}.Release|x64.Build.0 = Release|Any CPU
+		{45B99DAF-18F9-4CCE-97BB-15558BBA5F3E}.Release|x86.ActiveCfg = Release|Any CPU
+		{45B99DAF-18F9-4CCE-97BB-15558BBA5F3E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -536,6 +550,7 @@ Global
 		{A84500DF-E315-44FC-B14E-EAC92618109D} = {C50AAC52-E619-45DF-AD9F-D98434A2A467}
 		{0FA89422-DD55-4DF1-A22D-0A7DCD7F591C} = {0828626A-BAD8-4E02-99DC-3AAA15073223}
 		{09802621-E22A-4F5D-A98A-F44BF953B9E4} = {373D7EB2-18E1-47D0-B07E-C3D1301DB3FB}
+		{45B99DAF-18F9-4CCE-97BB-15558BBA5F3E} = {EE16DD31-3C19-4809-8AB3-2C6108598A1B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E4CDB648-EF1A-4ADE-B6EA-D4E9D668E676}

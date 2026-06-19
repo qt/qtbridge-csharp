@@ -30,6 +30,13 @@
     <UpToDateCheckOutput Set="NuPkg" Include="$(OutputPath)..\$(PackageId).$(PackageVersion).nupkg" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference
+      Include="..\..\src\Qt.Bridge.CSharp.Build.Tasks\Qt.Bridge.CSharp.Build.Tasks.csproj"
+      ReferenceOutputAssembly="false"
+      PrivateAssets="all" />
+  </ItemGroup>
+
   <PropertyGroup>
     <BuildDependsOn>Clean;$(BuildDependsOn)</BuildDependsOn>
     <GenerateNuspecDependsOn
@@ -120,6 +127,9 @@
     <None Pack="true"
           Include="..\..\build\QtGroup.Qt.Bridge.CSharp.targets"
           PackagePath="build\$(TargetFramework)\$(PackageId).targets" Visible="false" />
+    <None Pack="true"
+          Include="..\..\src\Qt.Bridge.CSharp.Build.Tasks\bin\$(Configuration)\netstandard2.0\Qt.Bridge.CSharp.Build.Tasks.dll"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
 
     <!-- 4) Native Qt.DotNet headers (added in target UpdatePackageFiles) -->
 
