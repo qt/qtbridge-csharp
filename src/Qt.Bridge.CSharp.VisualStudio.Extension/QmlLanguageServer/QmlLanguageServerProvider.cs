@@ -41,11 +41,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private static string BuildOutputNotificationKey(string projectFilePath) =>
             $"qmls-no-metadata:{projectFilePath}";
 
-        private readonly object registryLock = new();
-        private readonly Dictionary<string, ProjectEntry> projectRegistry = [];
-        private bool registryDisposed;
-        private QmlLanguageServerTransportPipe? activePipe;
-
         public QmlLanguageServerProvider(
             ExtensionCore container,
             VisualStudioExtensibility extensibilityObject,
@@ -134,13 +129,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 return null;
             }
 
-            List<string> existingProjects;
-            lock (registryLock) {
-                activePipe = pipe;
-                foreach (var entry in projectRegistry.Values)
-                    entry.BuildDirsInjected = false;
-                existingProjects = [..projectRegistry.Keys];
-            }
+            var existingProjects = ActivatePipe(pipe);
 
             // Update all previously registered projects so the new server session has full
             // workspace and build-directory context for every project the user has visited.
@@ -182,14 +171,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         {
             if (disposing) {
                 contextSubscription.Dispose();
-                activePipe = null;
-                lock (registryLock) {
-                    registryDisposed = true;
-                    foreach (var entry in projectRegistry.Values) {
-                        entry.Watcher.Dispose();
-                        entry.BuildSettingsMonitor?.Dispose();
-                    }
-                    projectRegistry.Clear();
+                foreach (var entry in DisposeRegistry()) {
+                    entry.Watcher.Dispose();
+                    entry.BuildSettingsMonitor?.Dispose();
                 }
             }
 
@@ -424,41 +408,32 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             CancellationToken ct,
             bool notifyUser = false)
         {
-            bool needsWatcher;
-            lock (registryLock) {
-                if (registryDisposed)
-                    return;
-                needsWatcher = !projectRegistry.TryGetValue(projectFilePath, out var existing)
-                    || existing.ConfigKey != configKey;
-            }
-
-            if (needsWatcher) {
+            var registrationNeeded = IsProjectRegistrationNeeded(projectFilePath, configKey);
+            switch (registrationNeeded) {
+            case ProjectRegistrationNeed.Current:
+                break;
+            case ProjectRegistrationNeed.RegistryDisposed:
+                return;
+            case ProjectRegistrationNeed.Required:
                 var watcher = metadataWatcher.Watch(
-                    projectDirectory, configKey,
+                    projectDirectory,
+                    configKey,
                     () => OnProjectMetadataChanged(projectFilePath));
 
-                IDisposable? displaced = null;
-                IDisposable? displacedBuildSettingsMonitor = null;
-                lock (registryLock) {
-                    if (registryDisposed) {
-                        watcher.Dispose();
-                        return;
-                    }
+                var registration = RegisterProject(
+                    projectFilePath, projectDirectory, configKey, watcher);
+                if (registration.Result != ProjectRegistrationResult.Registered)
+                    watcher.Dispose();
+                if (registration.Result == ProjectRegistrationResult.RegistryDisposed)
+                    return;
 
-                    if (projectRegistry.TryGetValue(projectFilePath, out var existing)
-                            && existing.ConfigKey == configKey) {
-                        watcher.Dispose(); // another thread already registered this config
-                    } else {
-                        if (projectRegistry.TryGetValue(projectFilePath, out existing)) {
-                            displaced = existing.Watcher; // config changed, displace old watcher
-                            displacedBuildSettingsMonitor = existing.BuildSettingsMonitor;
-                        }
-                        projectRegistry[projectFilePath] =
-                            new ProjectEntry(watcher, projectDirectory, configKey);
-                    }
+                if (registration.DisplacedEntry != null) {
+                    registration.DisplacedEntry.Watcher.Dispose();
+                    registration.DisplacedEntry.BuildSettingsMonitor?.Dispose();
                 }
-                displaced?.Dispose();
-                displacedBuildSettingsMonitor?.Dispose();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
             }
 
             EnsureBuildSettingsMonitor(projectFilePath);
@@ -503,57 +478,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             await InjectBuildDirectoriesAsync(projectFilePath, pipe, metadata, ct);
         }
 
-        private bool TryBeginProjectInjection(
-            string projectFilePath,
-            out QmlLanguageServerTransportPipe pipe,
-            out string projectDirectory,
-            out string configKey)
-        {
-            lock (registryLock) {
-                pipe = activePipe!;
-                projectDirectory = string.Empty;
-                configKey = string.Empty;
-
-                if (activePipe == null)
-                    return false;
-                if (!projectRegistry.TryGetValue(projectFilePath, out var entry))
-                    return false;
-                if (entry.BuildDirsInjected)
-                    return false;
-
-                // Claim the slot now so a concurrent call that also read false above cannot
-                // proceed to a duplicate injection while we are awaiting async work below.
-                entry.BuildDirsInjected = true;
-                pipe = activePipe;
-                projectDirectory = entry.ProjectDirectory;
-                configKey = entry.ConfigKey;
-                return true;
-            }
-        }
-
-        private void ResetInjection(string projectFilePath)
-        {
-            lock (registryLock) {
-                if (projectRegistry.TryGetValue(projectFilePath, out var entry))
-                    entry.BuildDirsInjected = false;
-            }
-        }
-
         private async Task HandleMissingMetadataAsync(
             string projectFilePath,
             bool notifyUser,
             CancellationToken ct)
         {
-            var shouldCheckNotificationSettings = false;
-            lock (registryLock) {
-                if (projectRegistry.TryGetValue(projectFilePath, out var entry)) {
-                    entry.BuildDirsInjected = false;
-                    shouldCheckNotificationSettings =
-                        notifyUser && !entry.MissingMetadataNotified;
-                }
-            }
-
-            if (!shouldCheckNotificationSettings)
+            if (!ResetInjectionAndShouldCheckNotification(projectFilePath, notifyUser))
                 return;
 
             var showNotification = await buildNotificationSettings
@@ -561,13 +491,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             if (!showNotification)
                 return;
 
-            lock (registryLock) {
-                if (!projectRegistry.TryGetValue(projectFilePath, out var entry)
-                    || entry.MissingMetadataNotified) {
-                    return;
-                }
-                entry.MissingMetadataNotified = true;
-            }
+            if (!TryMarkMissingMetadataNotified(projectFilePath))
+                return;
 
             var projectName = Path.GetFileNameWithoutExtension(projectFilePath);
             await notifications.ShowInfoAsync(
@@ -669,17 +594,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private async Task<bool> TryRestartForReadyBuildSettingsAsync(
             string projectFilePath)
         {
-            var shouldRestart = false;
-            lock (registryLock) {
-                if (projectRegistry.TryGetValue(projectFilePath, out var entry)
-                    && entry.RestartWhenIniReady) {
-                    entry.RestartWhenIniReady = false;
-                    entry.BuildDirsInjected = false;
-                    shouldRestart = true;
-                }
-            }
-
-            if (!shouldRestart)
+            if (!TryConsumePendingRestart(projectFilePath))
                 return false;
 
             log.Info($"QML Language Server: .qmlls.build.ini is ready for"
@@ -710,17 +625,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
             // If activePipe changed while we were working the notifications went to a dead
             // pipe. Reset so CreateServerConnectionAsync rehydrates on the new session.
-            lock (registryLock) {
-                ProjectEntry entry;
-                if (!ReferenceEquals(activePipe, pipe)) {
-                    if (projectRegistry.TryGetValue(projectFilePath, out entry))
-                        entry.BuildDirsInjected = false;
-                    log.Info($"QML Language Server: pipe replaced during injection of"
-                        + $" '{Path.GetFileName(projectFilePath)}' - will retry on new session.");
-                    return;
-                }
-                if (projectRegistry.TryGetValue(projectFilePath, out entry))
-                    entry.MissingMetadataNotified = false;
+            if (!CompleteProjectInjection(projectFilePath, pipe)) {
+                log.Info($"QML Language Server: pipe replaced during injection of"
+                    + $" '{Path.GetFileName(projectFilePath)}' - will retry on new session.");
+                return;
             }
 
             await notifications.DismissAsync(BuildOutputNotificationKey(projectFilePath), ct);
@@ -736,10 +644,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             QueueLoggedTask(async () =>
             {
                 await Task.Delay(250);
-                QmlLanguageServerTransportPipe? pipe;
-                lock (registryLock)
-                    pipe = activePipe;
-                pipe?.EnqueueSemanticTokensRefresh();
+                GetActivePipe()?.EnqueueSemanticTokensRefresh();
                 log.Info($"QML Language Server: requested semantic token refresh after {reason}.");
             }, $"semantic token refresh after {reason}");
         }
@@ -810,16 +715,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
         private void EnsureBuildSettingsMonitor(string projectFilePath)
         {
-            BuildSettingsMonitor? monitor;
-            lock (registryLock) {
-                if (!projectRegistry.TryGetValue(projectFilePath, out var entry))
-                    return;
-                if (entry.BuildSettingsMonitor != null)
-                    return;
-
-                monitor = new BuildSettingsMonitor();
-                entry.BuildSettingsMonitor = monitor;
-            }
+            if (!TryCreateBuildSettingsMonitor(projectFilePath, out var monitor))
+                return;
 
             log.Verbose($"QML Language Server: monitoring generated build settings for"
                 + $" '{Path.GetFileName(projectFilePath)}'.");
@@ -833,23 +730,15 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     var signatures = GetBuildSettingsSignatures(projectFilePath, monitorToken);
                     var changed = monitor.UpdateSignatures(signatures);
 
-                    bool shouldRetry;
-                    var shouldLogChange = false;
-                    lock (registryLock) {
-                        if (!projectRegistry.TryGetValue(projectFilePath, out var entry))
-                            return;
-                        if (changed && entry.BuildDirsInjected) {
-                            entry.BuildDirsInjected = false;
-                            entry.RestartWhenIniReady = true;
-                            shouldLogChange = true;
-                        }
-                        shouldRetry = changed || (!entry.BuildDirsInjected && signatures.Count > 0);
-                    }
+                    var monitorUpdate = UpdateBuildSettingsState(
+                        projectFilePath, changed, signatures.Count > 0);
+                    if (!monitorUpdate.ProjectRegistered)
+                        return;
 
-                    if (!shouldRetry)
+                    if (!monitorUpdate.ShouldRetry)
                         continue;
 
-                    if (shouldLogChange) {
+                    if (monitorUpdate.ShouldLogChange) {
                         log.Info($"QML Language Server: generated build settings changed for"
                             + $" '{Path.GetFileName(projectFilePath)}' - retrying injection.");
                     }
@@ -864,12 +753,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             string projectFilePath,
             CancellationToken ct)
         {
-            string? projectDirectory, configKey;
-            lock (registryLock) {
-                if (!projectRegistry.TryGetValue(projectFilePath, out var entry))
-                    return [];
-                projectDirectory = entry.ProjectDirectory;
-                configKey = entry.ConfigKey;
+            if (!TryGetProjectContext(projectFilePath,
+                out var projectDirectory,
+                out var configKey)) {
+                return [];
             }
 
             var metadataFilePath = metadataReader.FindMetadataFilePath(projectDirectory, configKey);
@@ -947,8 +834,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             if (!Enabled)
                 return;
 
-            lock (registryLock)
-                activePipe = null;
+            ClearActivePipe();
 
             Enabled = false;
             await Task.Delay(500);
@@ -966,12 +852,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     return;
                 }
 
-                lock (registryLock) {
-                    if (!projectRegistry.TryGetValue(projectFilePath, out var e))
-                        return;
-                    e.BuildDirsInjected = false;
-                    e.RestartWhenIniReady = true;
-                }
+                if (!MarkProjectMetadataChanged(projectFilePath))
+                    return;
 
                 // After a build, metadata JSON may appear before the build has finished writing
                 // .qmlls.build.ini. Wait until the ini exists and is patched,
@@ -1045,26 +927,15 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private void RefreshProjectRegistry(IEnumerable<string> loadedProjectPaths)
         {
             var loadedProjects = loadedProjectPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
-            List<ProjectEntry> removedEntries = [];
-            List<string> removedProjectPaths = [];
-            lock (registryLock) {
-                foreach (var project in projectRegistry.ToList()) {
-                    if (loadedProjects.Contains(project.Key))
-                        continue;
+            var removedProjects = RemoveUnloadedProjects(loadedProjects);
 
-                    projectRegistry.Remove(project.Key);
-                    removedEntries.Add(project.Value);
-                    removedProjectPaths.Add(project.Key);
-                }
+            foreach (var project in removedProjects) {
+                project.Entry.Watcher.Dispose();
+                project.Entry.BuildSettingsMonitor?.Dispose();
             }
 
-            foreach (var entry in removedEntries) {
-                entry.Watcher.Dispose();
-                entry.BuildSettingsMonitor?.Dispose();
-            }
-
-            foreach (var projectPath in removedProjectPaths)
-                notifications.ClearRateLimit(BuildOutputNotificationKey(projectPath));
+            foreach (var project in removedProjects)
+                notifications.ClearRateLimit(BuildOutputNotificationKey(project.ProjectFilePath));
         }
 
         /// <summary>
