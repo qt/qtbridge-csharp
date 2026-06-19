@@ -30,7 +30,8 @@ information it needs to understand QML-facing C# types and imports.
 
 <p class="docs-hint">
   In the new project dialog, filter by <strong>C#</strong>, <strong>Windows</strong>, and
-  <strong>Qt</strong> or <strong>QML</strong> to find the Qt Bridge QML application template.
+  <strong>Qt Bridge for C#</strong> or <strong>Qt</strong> to find the Qt Bridge for C#
+  application template.
 </p>
 
 For generated project structure, template options, and QML item templates, see

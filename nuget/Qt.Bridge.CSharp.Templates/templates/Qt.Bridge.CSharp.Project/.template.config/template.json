@@ -1,12 +1,12 @@
 {
     "$schema": "http://json.schemastore.org/template",
-    "author": "qt.io",
+    "author": "The Qt Company Ltd.",
     "identity": "Qt.Bridge.CSharp.Project",
     "groupIdentity": "Qt.Bridge.CSharp.App",
-    "name": "QML Application",
-    "description": "A project for creating a C# + QML application.",
+    "name": "Qt Bridge for C# Application",
+    "description": "A project for creating a Qt Bridge for C# application with a C# backend and QML user interface.",
     "shortName": "qt",
-    "classifications": [ "QML", "Qt", "Windows", "Linux", "Desktop" ],
+    "classifications": [ "Qt Bridge for C#", "Qt", "Desktop", "Windows", "Linux" ],
     "sourceName": "NewProject",
     "preferNameDirectory": true,
     "tags": {

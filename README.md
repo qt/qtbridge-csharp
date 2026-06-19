@@ -384,7 +384,7 @@ MyQtApp/
 ### Add a QML item to an existing project
 
 ```bash
-dotnet new qml --FileName=MainPage
+ dotnet new qml -n MainPage
 ```
 
 This creates `MainPage.qml`. The build integrates QML files automatically (they are registered and

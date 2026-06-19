@@ -3,23 +3,24 @@
     "author": "The Qt Company Ltd.",
     "identity": "Qt.Bridge.CSharp.QMLFile",
     "groupIdentity": "Qt.Bridge.CSharp.Item.Qml",
-    "name": "Qt.Bridge.CSharp QML File (.qml)",
-    "description": "Adds a new QML file to a Qt.Bridge.CSharp project.",
+    "name": "QML File",
+    "description": "A new QML file for a Qt Bridge for C# project.",
     "shortName": "qml",
-    "classifications": [ "Qt.Bridge", "QML", "Item" ],
+    "classifications": [ "Qt Bridge for C#", "QML", "Item" ],
+    "generatorVersions": "[1.0.0.0-*)",
     "sourceName": "NewFile",
+    "defaultName": "NewFile",
+    "preferDefaultName": true,
+    "precedence": "0",
     "tags": {
         "language": "C#",
         "type": "item"
     },
     "primaryOutputs": [ { "path": "NewFile.qml" } ],
-    "symbols": {
-        "FileName": {
-            "type": "parameter",
-            "datatype": "string",
-            "description": "Name of the QML file (without extension).",
-            "defaultValue": "NewFile",
-            "fileRename": "NewFile"
+    "constraints": {
+        "csharp-only": {
+            "type": "project-capability",
+            "args": "CSharp"
         }
     }
 }

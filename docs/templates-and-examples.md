@@ -31,14 +31,18 @@ dotnet new qt -n MyQtApp --Framework net9.0 --SampleCode
 To add another QML file to an existing Qt Bridge for C# project, use the item template:
 
 ```bash
-dotnet new qml --FileName=MainPage
+dotnet new qml -n MainPage
 ```
+
+The item template now takes the requested name from `-n`/`--name` and creates `MainPage.qml`
+directly.
 
 ### From Visual Studio
 
 The Visual Studio extension exposes the same templates as project and item templates in the
-**Create a new project** and **Add new item** dialogs. Filter by **C#**, **Windows**, and **Qt** or
-**QML** to find the Qt Bridge for C# QML application template.
+**Create a new project** and **Add new item** dialogs. Filter by **C#**, **Windows**, and
+**Qt Bridge for C#** or **Qt** to find the Qt Bridge for C# application template. In
+**Add New Item**, select **QML File**; the item name becomes the generated `.qml` file name.
 
 Use **Add &gt; New Item** in a Qt Bridge for C# project to add a QML file. The generated project
 shape, framework selection, and sample-code option match what you get from `dotnet new qt`.
