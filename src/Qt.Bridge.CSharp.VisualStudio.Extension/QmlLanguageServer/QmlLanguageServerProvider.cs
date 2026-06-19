@@ -269,49 +269,55 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
         private async Task<string[]?> TryFindImportPathsAsync(CancellationToken ct)
         {
-            var configuration = await contextService.GetActiveConfigurationAsync(ct);
-            if (string.IsNullOrWhiteSpace(configuration))
+            var configKey = await ResolveConfigKeyAsync(ct);
+            if (configKey == null)
                 return null;
-
-            var platform = await contextService.GetActivePlatformAsync(ct);
-            var isRealPlatform = !string.IsNullOrWhiteSpace(platform)
-                && !string.Equals(platform, "Any CPU", StringComparison.OrdinalIgnoreCase);
-            var configKey = isRealPlatform
-                ? Path.Combine(platform!, configuration!)
-                : configuration!;
 
             var importPaths = new List<string>();
             var importPathKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var loadedPaths = await contextService.GetLoadedProjectPathsAsync(ct);
             foreach (var projectPath in loadedPaths) {
-                var meta = await projectService.TryGetMetadataForPathAsync(projectPath, ct);
-                if (meta?.IsQtBridgeProject != true)
+                var metadata = await TryGetQtBridgeProjectMetadataAsync(projectPath, ct);
+                if (metadata == null)
                     continue;
 
-                var packageImportPath = TryResolveNuGetQmlImportPath(projectPath, meta);
-                if (!string.IsNullOrWhiteSpace(packageImportPath)
-                    && Directory.Exists(packageImportPath)) {
-                    AddStartupImportPath(importPaths, importPathKeys, packageImportPath!);
-                }
-
-                var projectDir = Path.GetDirectoryName(projectPath);
-                if (projectDir == null)
-                    continue;
-
-                var metadataPath = metadataReader.FindMetadataFilePath(projectDir, configKey);
-                if (metadataPath == null)
-                    continue;
-
-                var readResult = metadataReader.TryRead(metadataPath, ct);
-                if (!readResult.Success || readResult.Metadata!.Qml.ImportPaths.Count == 0)
-                    continue;
-
-                foreach (var importPath in readResult.Metadata.Qml.ImportPaths) {
-                    if (!string.IsNullOrWhiteSpace(importPath))
-                        AddStartupImportPath(importPaths, importPathKeys, importPath);
-                }
+                AddProjectImportPaths(
+                    projectPath, metadata, configKey, importPaths, importPathKeys, ct);
             }
             return importPaths.Count > 0 ? [..importPaths] : null;
+        }
+
+        private void AddProjectImportPaths(
+            string projectFilePath,
+            QtBridgeProjectMetadata projectMetadata,
+            string configKey,
+            ICollection<string> importPaths,
+            ISet<string> importPathKeys,
+            CancellationToken ct)
+        {
+            var packageImportPath = TryResolveNuGetQmlImportPath(
+                projectFilePath, projectMetadata);
+            if (!string.IsNullOrWhiteSpace(packageImportPath)
+                && Directory.Exists(packageImportPath)) {
+                AddStartupImportPath(importPaths, importPathKeys, packageImportPath!);
+            }
+
+            var projectDirectory = Path.GetDirectoryName(projectFilePath);
+            if (projectDirectory == null)
+                return;
+
+            var metadataPath = metadataReader.FindMetadataFilePath(projectDirectory, configKey);
+            if (metadataPath == null)
+                return;
+
+            var readResult = metadataReader.TryRead(metadataPath, ct);
+            if (!readResult.Success)
+                return;
+
+            foreach (var importPath in readResult.Metadata!.Qml.ImportPaths) {
+                if (!string.IsNullOrWhiteSpace(importPath))
+                    AddStartupImportPath(importPaths, importPathKeys, importPath);
+            }
         }
 
         private static void AddStartupImportPath(
@@ -888,30 +894,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
                 // Register all other loaded Qt Bridge projects so the server has full solution
                 // coverage without requiring the user to visit each project first.
-                // configKey is solution-wide (platform\configuration), resolved once.
-                var configuration = await contextService.GetActiveConfigurationAsync(ct);
-                var platform = await contextService.GetActivePlatformAsync(ct);
-                if (!string.IsNullOrWhiteSpace(configuration)) {
-                    var isRealPlatform = !string.IsNullOrWhiteSpace(platform)
-                        && !string.Equals(platform, "Any CPU", StringComparison.OrdinalIgnoreCase);
-                    var configKey = isRealPlatform
-                        ? Path.Combine(platform!, configuration!)
-                        : configuration!;
-
-                    foreach (var projectPath in loadedPaths) {
-                        var meta = await projectService
-                            .TryGetMetadataForPathAsync(projectPath, ct);
-                        if (meta?.IsQtBridgeProject != true) continue;
-                        var projectDir = Path.GetDirectoryName(projectPath);
-                        if (projectDir == null) continue;
-                        await EnsureProjectRegisteredAsync(
-                            projectPath,
-                            projectDir,
-                            configKey,
-                            ct,
-                            notifyUser: false);
-                    }
-                }
+                await RegisterLoadedProjectsAsync(loadedPaths, ct);
                 break;
             }
 
@@ -922,6 +905,32 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             log.Info(shouldEnable
                 ? "Enabled QML Language Server provider for Qt Bridge context."
                 : "Disabled QML Language Server provider for Qt Bridge context.");
+        }
+
+        private async Task RegisterLoadedProjectsAsync(
+            IEnumerable<string> loadedProjectPaths,
+            CancellationToken ct)
+        {
+            // configKey is solution-wide (platform\configuration), so resolve it once.
+            var configKey = await ResolveConfigKeyAsync(ct);
+            if (configKey == null)
+                return;
+
+            foreach (var projectFilePath in loadedProjectPaths) {
+                if (await TryGetQtBridgeProjectMetadataAsync(projectFilePath, ct) == null)
+                    continue;
+
+                var projectDirectory = Path.GetDirectoryName(projectFilePath);
+                if (projectDirectory == null)
+                    continue;
+
+                await EnsureProjectRegisteredAsync(
+                    projectFilePath,
+                    projectDirectory,
+                    configKey,
+                    ct,
+                    notifyUser: false);
+            }
         }
 
         private void RefreshProjectRegistry(IEnumerable<string> loadedProjectPaths)
@@ -956,19 +965,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private async Task<(string? dir, string? file, string? configKey)>
             ResolveActiveProjectContextAsync(CancellationToken ct)
         {
-            var configuration = await contextService.GetActiveConfigurationAsync(ct);
-            if (string.IsNullOrWhiteSpace(configuration))
+            var configKey = await ResolveConfigKeyAsync(ct);
+            if (configKey == null)
                 return (null, null, null);
-
-            var platform = await contextService.GetActivePlatformAsync(ct);
-
-            // Any CPU means MSBuild omits the platform segment from BaseIntermediateOutputPath,
-            // producing obj\Debug\ rather than obj\Any CPU\Debug\.
-            var isRealPlatform = !string.IsNullOrWhiteSpace(platform)
-                && !string.Equals(platform, "Any CPU", StringComparison.OrdinalIgnoreCase);
-            var configKey = isRealPlatform
-                ? Path.Combine(platform!, configuration!)
-                : configuration!;
 
             // (1) Active document - must belong to a Qt Bridge project.
             //     If a document is active but is not owned by a Qt Bridge project, return
@@ -980,12 +979,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 if (owningPath == null)
                     return (null, null, null);
 
-                var meta = await projectService.TryGetMetadataForPathAsync(owningPath, ct);
-                if (meta?.IsQtBridgeProject != true)
-                    return (null, null, null);
-
-                var dir = Path.GetDirectoryName(owningPath);
-                return dir != null ? (dir, owningPath, configKey) : (null, null, null);
+                return await ResolveProjectContextAsync(owningPath, configKey, ct);
             }
 
             // (2) No active document - use the explicitly selected project as proxy.
@@ -994,42 +988,78 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             if (string.IsNullOrWhiteSpace(activeProject))
                 return (null, null, null);
 
-            var activeMeta = await projectService.TryGetMetadataForPathAsync(activeProject!, ct);
-            if (activeMeta?.IsQtBridgeProject != true)
+            return await ResolveProjectContextAsync(activeProject!, configKey, ct);
+        }
+
+        private async Task<(string? dir, string? file, string? configKey)>
+            ResolveProjectContextAsync(
+                string projectFilePath,
+                string configKey,
+                CancellationToken ct)
+        {
+            if (await TryGetQtBridgeProjectMetadataAsync(projectFilePath, ct) == null)
                 return (null, null, null);
 
-            var activeDir = Path.GetDirectoryName(activeProject);
-            return activeDir != null ? (activeDir, activeProject, configKey) : (null, null, null);
+            var projectDirectory = Path.GetDirectoryName(projectFilePath);
+            return projectDirectory != null
+                ? (projectDirectory, projectFilePath, configKey)
+                : (null, null, null);
+        }
+
+        private async Task<string?> ResolveConfigKeyAsync(CancellationToken ct)
+        {
+            var configuration = await contextService.GetActiveConfigurationAsync(ct);
+            if (string.IsNullOrWhiteSpace(configuration))
+                return null;
+
+            var platform = await contextService.GetActivePlatformAsync(ct);
+
+            // Any CPU means MSBuild omits the platform segment from BaseIntermediateOutputPath,
+            // producing obj\Debug\ rather than obj\Any CPU\Debug\.
+            var isRealPlatform = !string.IsNullOrWhiteSpace(platform)
+                && !string.Equals(platform, "Any CPU", StringComparison.OrdinalIgnoreCase);
+            return isRealPlatform
+                ? Path.Combine(platform!, configuration)
+                : configuration;
         }
 
         private async Task<(bool, bool)> EvaluateEnabledStateAsync(CancellationToken ct)
         {
             var activeProjectPath = await contextService.GetActiveProjectPathAsync(ct);
-            if (await IsQtBridgeProjectAsync(activeProjectPath, ct))
-                return (true, true);
-
             var activeDocumentPath = await contextService.GetActiveDocumentPathAsync(ct);
-            if (await IsQtBridgeProjectAsync(activeDocumentPath, ct))
+            if (await ContainsQtBridgeProjectAsync(
+                [activeProjectPath, activeDocumentPath], ct)) {
                 return (true, true);
+            }
 
             var loadedProjectPaths = await contextService.GetLoadedProjectPathsAsync(ct);
-            foreach (var projectPath in loadedProjectPaths) {
-                if (await IsQtBridgeProjectAsync(projectPath, ct))
-                    return (true, true);
-            }
+            if (await ContainsQtBridgeProjectAsync(loadedProjectPaths, ct))
+                return (true, true);
 
             var contextReady = loadedProjectPaths.Count > 0
                 || !string.IsNullOrWhiteSpace(activeProjectPath);
             return (false, contextReady);
         }
 
-        private async Task<bool> IsQtBridgeProjectAsync(string? path, CancellationToken ct)
+        private async Task<bool> ContainsQtBridgeProjectAsync(
+            IEnumerable<string?> paths,
+            CancellationToken ct)
         {
-            if (path == null || string.IsNullOrWhiteSpace(path))
-                return false;
+            foreach (var path in paths) {
+                if (await TryGetQtBridgeProjectMetadataAsync(path, ct) != null)
+                    return true;
+            }
+            return false;
+        }
 
-            var metadata = await projectService.TryGetMetadataForPathAsync(path, ct);
-            return metadata?.IsQtBridgeProject == true;
+        private async Task<QtBridgeProjectMetadata?> TryGetQtBridgeProjectMetadataAsync(
+            string? path,
+            CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return null;
+            var metadata = await projectService.TryGetMetadataForPathAsync(path!, ct);
+            return metadata?.IsQtBridgeProject == true ? metadata : null;
         }
 
         private static string InstallErrorMessage(QmlLanguageServerInstallError err) => err switch
