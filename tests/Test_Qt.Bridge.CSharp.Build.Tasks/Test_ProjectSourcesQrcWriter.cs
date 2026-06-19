@@ -10,7 +10,8 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
     public sealed class Test_ProjectSourcesQrcWriter : TestBase
     {
         private static readonly string[] ViewAliases = ["Details.qml", "List.qml"];
-        private static readonly string[] ModulePrefixes = ["/qt/qml/Application", "/qt/qml/Views"];
+        private static readonly string[] ModulePrefixes =
+            ["/qt/qml/Application", "/qt/qml/Views", "/qt/qml/views"];
         private static readonly string[] ApplicationAliases = ["A.qml", "B.qml"];
 
         [TestMethod]
@@ -41,7 +42,7 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
         }
 
         [TestMethod]
-        public void Write_OrdersModulesAndFilesDeterministicallyIgnoringCase()
+        public void Write_PreservesCaseDistinctModuleIdentities()
         {
             var buildDirectory = CreateBuildDirectory();
             var files = new[]
@@ -65,6 +66,14 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
                 document.Root.Elements("qresource").First().Elements("file")
                     .Select(file => (string?)file.Attribute("alias"))
                     .ToArray());
+            Assert.AreEqual(
+                "a.qml",
+                (string?)document.Root.Elements("qresource").ElementAt(1)
+                    .Elements("file").Single().Attribute("alias"));
+            Assert.AreEqual(
+                "z.qml",
+                (string?)document.Root.Elements("qresource").ElementAt(2)
+                    .Elements("file").Single().Attribute("alias"));
         }
 
         [TestMethod]

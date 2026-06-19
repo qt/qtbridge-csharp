@@ -46,9 +46,9 @@ namespace Qt.Bridge.CSharp.Build.Tasks
             var content = new StringBuilder();
             content.AppendLine("<RCC>");
             foreach (var module in qmlFileInfos
-                .OrderBy(file => file.ModulePath, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(file => file.TypeName, StringComparer.OrdinalIgnoreCase)
-                .GroupBy(file => file.ModulePath, StringComparer.OrdinalIgnoreCase)) {
+                .OrderBy(file => file.ModulePath, StringComparer.Ordinal)
+                .ThenBy(file => file.TypeName, StringComparer.Ordinal)
+                .GroupBy(file => file.ModulePath, StringComparer.Ordinal)) {
                 var prefix = "/qt/qml/" + PathUtilities.ToForwardSlashes(module.Key).Trim('/');
                 content.Append("  <qresource prefix=\"");
                 content.Append(XmlEscape(prefix));
