@@ -18,4 +18,10 @@
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.14.28" PrivateAssets="all" />
   </ItemGroup>
 
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Test_Qt.Bridge.CSharp.Build.Tasks</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>
