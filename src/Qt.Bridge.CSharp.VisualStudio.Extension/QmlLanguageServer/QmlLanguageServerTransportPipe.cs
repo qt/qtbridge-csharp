@@ -6,7 +6,6 @@ using System.IO;
 using System.IO.Pipelines;
 using System.Runtime.Serialization.Json;
 using System.Text;
-using System.Threading.Channels;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 using Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer.Contracts;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;
@@ -26,34 +25,16 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private readonly Pipe vsReadPipe;
         private readonly Pipe vsWritePipe;
         private readonly CancellationTokenSource cts;
-        private readonly TaskCompletionSource<bool> serverInitializedSource =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly Channel<byte[]> pendingNotifications =
-            Channel.CreateUnbounded<byte[]>(new UnboundedChannelOptions
-            {
-                SingleReader = true,
-                SingleWriter = false,
-                AllowSynchronousContinuations = false
-            });
-        private readonly Channel<byte[]> pendingServerRequests =
-            Channel.CreateUnbounded<byte[]>(new UnboundedChannelOptions
-            {
-                SingleReader = true,
-                SingleWriter = false,
-                AllowSynchronousContinuations = false
-            });
-        private readonly object injectedRequestLock = new();
-        private readonly HashSet<string> injectedRequestIds = [];
-        private long nextInjectedRequestId;
+        private readonly InjectedMessageQueue injectedMessages = new();
         private readonly Task relayFromTask;
         private readonly Task relayToTask;
 
         public QmlLanguageServerTransportPipe(
-            Process process,
+            Process proc,
             IExtensionLog extensionLog,
             LoggingOptions loggingOptions)
         {
-            this.process = process;
+            process = proc;
             log = extensionLog;
             cts = new CancellationTokenSource();
             vsReadPipe = new Pipe();
@@ -69,9 +50,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             process.ErrorDataReceived += OnErrorDataReceived;
             process.BeginErrorReadLine();
 
-            var ct = cts.Token;
-            relayFromTask = RelayFromProcessAsync(ct);
-            relayToTask = RelayToProcessAsync(ct);
+            relayFromTask = RelayFromProcessAsync(cts.Token);
+            relayToTask = RelayToProcessAsync(cts.Token);
         }
 
         public PipeReader Input { get; }
@@ -86,7 +66,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         {
             var framed = Encoding.UTF8.GetBytes(FrameLspMessage(json));
             TraceLspTraffic("EXT -> QML LS (queued)", framed);
-            pendingNotifications.Writer.TryWrite(framed);
+            injectedMessages.EnqueueNotification(framed);
         }
 
         /// <summary>
@@ -95,14 +75,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         /// </summary>
         public void EnqueueSemanticTokensRefresh()
         {
-            var requestId = "qtbridge-semanticTokens-refresh-"
-                + Interlocked.Increment(ref nextInjectedRequestId);
-            lock (injectedRequestLock)
-                injectedRequestIds.Add(requestId);
-
-            var framed = Encoding.UTF8.GetBytes(FrameLspMessage(
-                BuildSemanticTokensRefreshRequest(requestId)));
-            pendingServerRequests.Writer.TryWrite(framed);
+            injectedMessages.EnqueueServerRequest(
+                "qtbridge-semanticTokens-refresh-",
+                BuildSemanticTokensRefreshRequest);
         }
 
         public void Dispose()
@@ -111,8 +86,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             process.ErrorDataReceived -= OnErrorDataReceived;
             cts.Cancel();
 
-            pendingNotifications.Writer.TryComplete();
-            pendingServerRequests.Writer.TryComplete();
+            injectedMessages.Complete();
 
             try {
                 // Use JoinableTaskFactory.Run so VS main-thread pumping continues while we
@@ -165,7 +139,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         /// <paramref name="buildDirs"/> are filesystem paths passed directly to qmlls.
         /// </summary>
         internal static string BuildAddBuildDirsNotification(
-            string folderUri, IEnumerable<string> buildDirs)
+            string folderUri,
+            IEnumerable<string> buildDirs)
         {
             var dto = new AddBuildDirsNotificationDto {
                 Params = new AddBuildDirsParamsDto {
@@ -211,6 +186,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private void OnProcessExited(object? sender, EventArgs e)
         {
             log.Info("QML Language Server: process exited.");
+
             // Signal the relay tasks to stop. They will complete the pipe ends
             // as part of their own cleanup, keeping completion single-ownership.
             try {
@@ -229,25 +205,28 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private async Task RelayFromProcessAsync(CancellationToken ct)
         {
             log.Info("QML Language Server transport: process -> VS relay started.");
-            var logBuffer = lspLogEnabled ? new LspByteBuffer() : null;
+
             Exception? fault = null;
+            var logBuffer = lspLogEnabled ? new LspByteBuffer() : null;
             try {
                 var source = process.StandardOutput.BaseStream;
                 var writer = vsReadPipe.Writer;
                 var buffer = new byte[4096];
                 var readTask = source.ReadAsync(buffer, 0, buffer.Length, ct);
                 while (!ct.IsCancellationRequested) {
-                    if (!serverInitializedSource.Task.IsCompleted) {
+                    if (!injectedMessages.ServerInitialized.IsCompleted) {
 #pragma warning disable VSTHRD003 // relay task owns both awaited tasks
-                        var completed = await Task.WhenAny(readTask, serverInitializedSource.Task);
+                        var completed = await Task.WhenAny(
+                            readTask, injectedMessages.ServerInitialized);
 #pragma warning restore VSTHRD003
                         if (completed != readTask)
                             continue;
                     } else {
-                        var pendingTask = pendingServerRequests.Reader.WaitToReadAsync(ct).AsTask();
+                        var pendingTask = injectedMessages
+                            .WaitToReadServerRequestsAsync(ct).AsTask();
                         var completed = await Task.WhenAny(readTask, pendingTask);
                         if (completed != readTask) {
-                            while (pendingServerRequests.Reader.TryRead(out var pending)) {
+                            while (injectedMessages.TryReadServerRequest(out var pending)) {
                                 var pendingMem = writer.GetMemory(pending.Length);
                                 pending.CopyTo(pendingMem);
                                 writer.Advance(pending.Length);
@@ -287,7 +266,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             } catch (Exception ex) {
                 fault = ex;
             }
+
             await vsReadPipe.Writer.CompleteAsync(fault);
+
             if (fault != null)
                 log.Error("QML Language Server transport: process -> VS relay faulted.", fault);
             else
@@ -297,9 +278,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private async Task RelayToProcessAsync(CancellationToken ct)
         {
             log.Info("QML Language Server transport: VS -> process relay started.");
-            var msgBuffer = new LspByteBuffer();
-            var handshakeComplete = false;
+
             Exception? fault = null;
+            var msgBuffer = new LspByteBuffer();
             try {
                 var reader = vsWritePipe.Reader;
                 var dest = process.StandardInput.BaseStream;
@@ -308,12 +289,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
                     // After initialized: drain pending notifications immediately without waiting
                     // for VS to send a message (project switches produce no VS LSP traffic).
-                    if (handshakeComplete) {
+                    if (injectedMessages.IsServerInitialized) {
                         while (!vsReadTask.IsCompleted) {
-                            var task = pendingNotifications.Reader.WaitToReadAsync(ct).AsTask();
+                            var task = injectedMessages
+                                .WaitToReadNotificationsAsync(ct).AsTask();
                             if (await Task.WhenAny(vsReadTask, task) == vsReadTask)
                                 break;
-                            while (pendingNotifications.Reader.TryRead(out var pending)) {
+                            while (injectedMessages.TryReadNotification(out var pending)) {
                                 TraceLspTraffic("EXT -> QML LS (written)", pending);
                                 await dest.WriteAsync(pending, 0, pending.Length, ct);
                             }
@@ -334,19 +316,16 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                             : $"VS -> QML LS: response ({message.Length} B)");
                         TraceLspTraffic("VS -> QML LS", message, method);
 
-                        if (IsInjectedRequestResponse(message)
-                            || IsVsRefreshEchoNotification(message, method)) {
+                        if (injectedMessages.ShouldSuppressClientMessage(message, method))
                             continue;
-                        }
 
                         await dest.WriteAsync(message, 0, message.Length, ct);
 
-                        if (!handshakeComplete
+                        if (!injectedMessages.IsServerInitialized
                             && string.Equals(method, "initialized", StringComparison.Ordinal)) {
-                            handshakeComplete = true;
-                            serverInitializedSource.TrySetResult(true);
+                            injectedMessages.MarkServerInitialized();
                             // Drain anything enqueued before initialized arrived.
-                            while (pendingNotifications.Reader.TryRead(out var pending)) {
+                            while (injectedMessages.TryReadNotification(out var pending)) {
                                 TraceLspTraffic("EXT -> QML LS (written)", pending);
                                 await dest.WriteAsync(pending, 0, pending.Length, ct);
                             }
@@ -362,38 +341,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             } catch (Exception ex) {
                 fault = ex;
             }
+
             await vsWritePipe.Reader.CompleteAsync(fault);
+
             if (fault != null)
                 log.Error("QML Language Server transport: VS -> process relay faulted.", fault);
             else
                 log.Info("QML Language Server transport: VS -> process relay completed.");
-        }
-
-        private bool IsInjectedRequestResponse(byte[] message)
-        {
-            var body = LspByteBuffer.TryExtractBody(message);
-            if (body == null || LspByteBuffer.TryExtractMethod(message) != null)
-                return false;
-
-            lock (injectedRequestLock) {
-                foreach (var id in injectedRequestIds) {
-                    if (body.IndexOf($"\"id\":\"{id}\"", StringComparison.Ordinal) < 0)
-                        continue;
-                    injectedRequestIds.Remove(id);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private static bool IsVsRefreshEchoNotification(byte[] message, string? method)
-        {
-            if (!string.Equals(method, "NotificationReceived", StringComparison.Ordinal))
-                return false;
-            var body = LspByteBuffer.TryExtractBody(message);
-            return body?.IndexOf(
-                "\"MethodName\":\"workspace/semanticTokens/refresh\"",
-                StringComparison.Ordinal) >= 0;
         }
 
     }
