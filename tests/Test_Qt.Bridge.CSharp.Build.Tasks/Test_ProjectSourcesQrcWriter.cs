@@ -77,6 +77,61 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
         }
 
         [TestMethod]
+        public void Write_FiltersDuplicateResourceIdentitiesDeterministically()
+        {
+            var buildDirectory = Path.Combine(TempDirectory, "build");
+            var firstSourcePath = Path.Combine(ProjectDirectory, "First", "View.qml");
+            var secondSourcePath = Path.Combine(ProjectDirectory, "Second", "View.qml");
+
+            Directory.CreateDirectory(Path.GetDirectoryName(firstSourcePath)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(secondSourcePath)!);
+            File.WriteAllText(firstSourcePath, "");
+            File.WriteAllText(secondSourcePath, "");
+
+            var result = ProjectSourcesQrcWriter.Write(buildDirectory,
+            [
+                new QmlFileInfo(firstSourcePath, "Views", "FirstView"),
+                new QmlFileInfo(secondSourcePath, @"Views\", "SecondView")
+            ]);
+
+            Assert.IsTrue(result.Changed);
+            Assert.HasCount(1, result.Collisions);
+            Assert.AreEqual("/qt/qml/Views/View.qml", result.Collisions.Single().ResourcePath);
+            CollectionAssert.AreEqual(
+                new[]
+                {
+                    firstSourcePath.Replace('\\', '/'),
+                    secondSourcePath.Replace('\\', '/')
+                },
+                result.Collisions.Single().SourcePaths.ToArray());
+            CollectionAssert.AreEqual(
+                new[] { "View.qml" },
+                XDocument.Load(result.Path!).Descendants("file")
+                    .Select(file => (string?)file.Attribute("alias"))
+                    .ToArray());
+        }
+
+        [TestMethod]
+        public void Write_AllowsCaseDistinctResourceIdentities()
+        {
+            var buildDirectory = CreateBuildDirectory();
+            var upperCasePath = Path.Combine(ProjectDirectory, "View.qml");
+            var lowerCasePath = Path.Combine(ProjectDirectory, "view.qml");
+
+            var result = ProjectSourcesQrcWriter.Write(buildDirectory,
+            [
+                new QmlFileInfo(upperCasePath, "Views", "View"),
+                new QmlFileInfo(lowerCasePath, "Views", "view")
+            ]);
+
+            CollectionAssert.AreEqual(
+                new[] { "View.qml", "view.qml" },
+                XDocument.Load(result.Path!).Descendants("file")
+                    .Select(file => (string?)file.Attribute("alias"))
+                    .ToArray());
+        }
+
+        [TestMethod]
         public void Write_EscapesXmlAndNormalizesModuleSeparators()
         {
             var buildDirectory = CreateBuildDirectory();
