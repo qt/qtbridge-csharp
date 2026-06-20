@@ -28,5 +28,7 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             if (tempDirectory != null && Directory.Exists(tempDirectory))
                 Directory.Delete(tempDirectory, recursive: true);
         }
+
+        protected static string Normalize(string path) => path.Replace('\\', '/');
     }
 }

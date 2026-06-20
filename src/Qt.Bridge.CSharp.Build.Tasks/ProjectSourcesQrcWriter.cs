@@ -8,7 +8,7 @@ namespace Qt.Bridge.CSharp.Build.Tasks
 {
     internal static partial class ProjectSourcesQrcWriter
     {
-        private const string FileName = "qtbridge_project_sources.qrc";
+        internal const string FileName = "qtbridge_project_sources.qrc";
 
         public static WriteResult Write(string buildDir, IReadOnlyCollection<QmlFileInfo> fileInfos)
         {
