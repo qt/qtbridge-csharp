@@ -21,8 +21,16 @@
       >$([System.String]::Copy('$(IntermediateOutputPath)').Replace('\','/'))qt/native/source</QtNativeSourceDir>
     <QtNativeBinDir Condition="'$(_QtNativeBinDirIsDefault)' == 'true'"
       >$([System.String]::Copy('$(IntermediateOutputPath)').Replace('\','/'))qt/native/bin</QtNativeBinDir>
+    <QtBridgeBuildTasks Condition="'$(QtBridgeBuildTasks)' == ''"
+      >$(MSBuildThisFileDirectory)Qt.Bridge.CSharp.Build.Tasks.dll</QtBridgeBuildTasks>
+    <QtBridgeBuildTasks Condition="!Exists('$(QtBridgeBuildTasks)') AND '$(QtDotNetSolutionDir)' != ''"
+      >$(QtDotNetSolutionDir)src/Qt.Bridge.CSharp.Build.Tasks/bin/$(Configuration)/netstandard2.0/Qt.Bridge.CSharp.Build.Tasks.dll</QtBridgeBuildTasks>
     <_QtQmlSourceDir>$(QtNativeSourceDir)/qml/</_QtQmlSourceDir>
   </PropertyGroup>
+
+  <UsingTask
+    TaskName="Qt.Bridge.CSharp.Build.Tasks.PrepareQmlBuildMetadata"
+    AssemblyFile="$(QtBridgeBuildTasks)" />
 
   <UsingTask TaskName="QtBridgeResolveResxFileRefs"
              TaskFactory="RoslynCodeTaskFactory"
@@ -462,6 +470,57 @@ namespace Qt.Qml
     </PropertyGroup>
   </Target>
   <!-- END QtBridgeBuild-->
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtBridgePrepareQmlBuildMetadata
+  -->
+  <Target Name="QtBridgePrepareQmlBuildMetadata"
+    AfterTargets="QtBridgeBuild"
+    DependsOnTargets="QtBridgeSetupQml"
+    Condition="'$(DesignTimeBuild)' != 'true'">
+
+    <PropertyGroup>
+      <_QtQmllsBuildDir
+        >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(QtNativeBuildDir)'))</_QtQmllsBuildDir>
+      <_QtQmllsSourceDir
+        >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(QtNativeSourceDir)'))</_QtQmllsSourceDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_QtQmllsQml Include="@(Qml)">
+        <SourcePath>%(FullPath)</SourcePath>
+        <ModulePath>%(SourceDir)</ModulePath>
+        <TypeName>%(TypeName)</TypeName>
+      </_QtQmllsQml>
+      <_QtQmllsImportPath Include="$(_QtQmllsBuildDir)/$(QtQmlRootModuleName)" />
+      <_QtQmllsImportPath Include="$(_QtQmllsSourceDir)/qml" />
+      <_QtQmllsImportPath Include="$(QtDir)/qml" Condition="'$(QtDir)' != ''" />
+      <_QtQmllsResourceFile Include="$(_QtQmllsBuildDir)/**/*.qrc" />
+      <_QtQmllsResourceFile
+        Remove="$(_QtQmllsBuildDir)/.qt/qtbridge_project_sources.qrc" />
+    </ItemGroup>
+
+    <PrepareQmlBuildMetadata
+      ContinueOnError="WarnAndContinue"
+      BuildDirectory="$(_QtQmllsBuildDir)"
+      GeneratedSourceDirectory="$(_QtQmllsSourceDir)"
+      ProjectSourceDirectory="$(MSBuildProjectDirectory)"
+      QmlFiles="@(_QtQmllsQml)"
+      ImportPaths="@(_QtQmllsImportPath)"
+      ResourceFiles="@(_QtQmllsResourceFile)">
+      <Output TaskParameter="BuildIniPath" PropertyName="QtQmllsBuildIniPath" />
+      <Output
+        TaskParameter="ProjectSourcesQrcPath"
+        PropertyName="QtQmllsProjectSourcesQrcPath" />
+      <Output TaskParameter="BuildIniChanged" PropertyName="_QtQmllsBuildIniChanged" />
+      <Output
+        TaskParameter="ProjectSourcesQrcChanged"
+        PropertyName="_QtQmllsProjectSourcesQrcChanged" />
+    </PrepareQmlBuildMetadata>
+
+  </Target>
+  <!-- END QtBridgePrepareQmlBuildMetadata -->
 
   <!--
   //////////////////////////////////////////////////////////////////////////////////////////////////
