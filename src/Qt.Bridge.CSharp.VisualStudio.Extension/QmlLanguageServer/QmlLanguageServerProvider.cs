@@ -36,7 +36,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private readonly ILoggingSettingsProvider loggingSettingsProvider;
         private readonly IQmlBuildNotificationSettings buildNotificationSettings;
         private readonly IDisposable contextSubscription;
-        private readonly QmllsBuildIniPatcher buildIniPatcher;
+        private readonly LegacyQmllsBuildMetadataSupport legacyBuildMetadata;
 
         private static string BuildOutputNotificationKey(string projectFilePath) =>
             $"qmls-no-metadata:{projectFilePath}";
@@ -57,7 +57,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         {
             log = extensionLog
                 ?? throw new ArgumentNullException(nameof(extensionLog));
-            buildIniPatcher = new QmllsBuildIniPatcher(log);
+            legacyBuildMetadata = new LegacyQmllsBuildMetadataSupport(log);
             notifications = notificationsSvc
                 ?? throw new ArgumentNullException(nameof(notificationsSvc));
             projectService = projectSvc ?? throw new ArgumentNullException(nameof(projectSvc));
@@ -580,6 +580,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 return false;
             }
 
+            // TODO: After dropping legacy producer support, replace the active block with:
+            // var readyFile = QmlBuildMetadataContract.GetReadyMarkerPath(metadata);
+            // if (string.IsNullOrWhiteSpace(readyFile))
+            //     return NotReady("the project publishes qmlLanguageServer.readyFile");
+            // return File.Exists(readyFile)
+            //     || NotReady("the build-generated qmlls ready marker exists");
+
             // qmlls matches .qmlls.build.ini sections by source-root prefix. Patch the
             // generated ini before injection so project-root QML files resolve against
             // the project alias, and wait until generated .qmltypes files are readable
@@ -590,16 +597,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     || NotReady("the build-generated qmlls ready marker exists");
             }
 
-            if (!BuildSettingsIniFilesExist(metadata))
-                return NotReady(".qmlls.build.ini exists");
-
-            if (!buildIniPatcher.TryPatch(metadata, projectFilePath))
-                return NotReady(".qmlls.build.ini exists");
-
-            if (TryGeneratedQmlTypesReady(metadata, projectFilePath))
-                return true;
-
-            return NotReady("generated .qmltypes files exist");
+            return legacyBuildMetadata.AreReady(metadata, projectFilePath)
+                || NotReady(legacyBuildMetadata.NotReadyReason);
         }
 
         private async Task<bool> TryRestartForReadyBuildSettingsAsync(
@@ -658,70 +657,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 GetActivePipe()?.EnqueueSemanticTokensRefresh();
                 log.Info($"QML Language Server: requested semantic token refresh after {reason}.");
             }, $"semantic token refresh after {reason}");
-        }
-
-        private bool TryGeneratedQmlTypesReady(CoreQmlMetadata metadata, string projectFilePath)
-        {
-            var buildDirs = metadata.Qml.BuildDirs
-                .Select(Path.GetFullPath)
-                .ToArray();
-            var generatedImportPaths = metadata.Qml.ImportPaths
-                .Where(path => buildDirs.Any(buildDir => IsPathUnder(path, buildDir)))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-
-            if (generatedImportPaths.Length == 0)
-                return true;
-
-            foreach (var importPath in generatedImportPaths) {
-                if (!Directory.Exists(importPath)) {
-                    log.Verbose($"QML Language Server: generated import path not found"
-                        + $" for '{Path.GetFileName(projectFilePath)}': '{importPath}'.");
-                    return false;
-                }
-
-                var qmlTypes = Directory.EnumerateFiles(
-                    importPath, "*.qmltypes", SearchOption.TopDirectoryOnly).ToArray();
-                if (qmlTypes.Length == 0) {
-                    log.Verbose($"QML Language Server: no generated .qmltypes files found"
-                        + $" for '{Path.GetFileName(projectFilePath)}' in '{importPath}'.");
-                    return false;
-                }
-
-                foreach (var qmlTypesPath in qmlTypes) {
-                    try {
-                        using var _ = new FileStream(
-                            qmlTypesPath,
-                            FileMode.Open,
-                            FileAccess.Read,
-                            FileShare.Read);
-                    } catch (IOException ex) {
-                        log.Verbose($"QML Language Server: generated .qmltypes file is not ready"
-                            + $" for '{Path.GetFileName(projectFilePath)}':"
-                            + $" '{qmlTypesPath}' ({ex.Message}).");
-                        return false;
-                    }
-                }
-            }
-
-            return true;
-        }
-
-        private static bool BuildSettingsIniFilesExist(CoreQmlMetadata metadata)
-        {
-            return metadata.Qml.BuildDirs
-                .All(buildDir => File.Exists(Path.Combine(buildDir, ".qt", ".qmlls.build.ini")));
-        }
-
-        private static bool IsPathUnder(string path, string root)
-        {
-            var fullPath = Path.GetFullPath(path)
-                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                + Path.DirectorySeparatorChar;
-            var fullRoot = Path.GetFullPath(root)
-                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                + Path.DirectorySeparatorChar;
-            return fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase);
         }
 
         private void EnsureBuildSettingsMonitor(string projectFilePath)
@@ -790,29 +725,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 return signatures;
             }
 
-            var buildDirs = metadata.Qml.BuildDirs
-                .Select(Path.GetFullPath)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-
-            foreach (var buildDir in buildDirs) {
-                var dir = Path.Combine(buildDir, ".qt");
-                AddPathSignature(signatures, Path.Combine(dir, ".qmlls.build.ini"));
-                AddPathSignature(signatures, Path.Combine(dir, "qtbridge_project_sources.qrc"));
-            }
-
-            var generatedImportPaths = metadata.Qml.ImportPaths
-                .Where(path => buildDirs.Any(buildDir => IsPathUnder(path, buildDir)))
-                .Distinct(StringComparer.OrdinalIgnoreCase);
-            foreach (var importPath in generatedImportPaths) {
-                AddPathSignature(signatures, importPath);
-                if (!Directory.Exists(importPath))
-                    continue;
-                foreach (var qmlTypesPath in Directory.EnumerateFiles(
-                    importPath, "*.qmltypes", SearchOption.TopDirectoryOnly)) {
-                    AddPathSignature(signatures, qmlTypesPath);
-                }
-            }
+            // TODO: After dropping legacy producer support, remove the following two lines.
+            foreach (var path in legacyBuildMetadata.GetWatchedPaths(metadata))
+                AddPathSignature(signatures, path);
 
             return signatures;
         }

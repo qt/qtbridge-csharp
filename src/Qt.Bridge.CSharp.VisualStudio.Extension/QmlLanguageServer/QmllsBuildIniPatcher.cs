@@ -16,6 +16,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
     ///
     /// This class ensures that the QML Language Server can resolve imports and resources
     /// at design time, even when the build directory structure differs from the source directory.
+    ///
+    /// TODO: After dropping legacy producer support, remove this class.
     /// </summary>
     internal sealed class QmllsBuildIniPatcher(IExtensionLog log)
     {
