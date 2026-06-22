@@ -597,6 +597,12 @@ namespace Qt.Qml
         '$(_QtIdeBldDir)/$(QtQmlRootModuleName)').Replace('\', '/'))</_QtIdeJModDir>
       <_QtIdeJSourceQmlDir>$([System.String]::Copy(
         '$(_QtIdeSrcDir)/qml').Replace('\', '/'))</_QtIdeJSourceQmlDir>
+      <_QtIdeJReadyFile>$([System.String]::Copy(
+        '$(_QtIdeBldDir)/.qt/qtbridge-build.ready').Replace('\', '/'))</_QtIdeJReadyFile>
+      <_QtIdeJBuildIni>$([System.String]::Copy(
+        '$(_QtIdeBldDir)/.qt/.qmlls.build.ini').Replace('\', '/'))</_QtIdeJBuildIni>
+      <_QtIdeJProjectSourcesQrc>$([System.String]::Copy(
+        '$(_QtIdeBldDir)/.qt/qtbridge_project_sources.qrc').Replace('\', '/'))</_QtIdeJProjectSourcesQrc>
       <_QtIdeJQtQmlDir Condition="'$(QtDir)' != ''">$([System.String]::Copy(
         $([System.IO.Path]::GetFullPath('$(QtDir)/qml'))).Replace('\', '/'))</_QtIdeJQtQmlDir>
 
@@ -655,7 +661,10 @@ namespace Qt.Qml
     ]
   },
   "qmlLanguageServer": {
-    "disableCMakeCalls": true
+    "disableCMakeCalls": true,
+    "readyFile": "$(_QtIdeJReadyFile)",
+    "buildIni": "$(_QtIdeJBuildIni)",
+    "projectSourcesQrc": "$(_QtIdeJProjectSourcesQrc)"
   }
 }]]></_QtMetadataJson>
     </PropertyGroup>

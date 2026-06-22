@@ -150,7 +150,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
                         .ToArray() ?? []),
                 qmlLanguageServer: new QmlMetadata.QmlLanguageServerSection(
                     disableCMakeCalls: dto.QmlLanguageServer?.DisableCMakeCalls
-                        ?? dto.LegacyQmlLanguageServer?.DisableCMakeCalls ?? true));
+                        ?? dto.LegacyQmlLanguageServer?.DisableCMakeCalls ?? true,
+                    readyFile: dto.QmlLanguageServer?.ReadyFile,
+                    buildIni: dto.QmlLanguageServer?.BuildIni,
+                    projectSourcesQrc: dto.QmlLanguageServer?.ProjectSourcesQrc));
         }
 
         [DataContract]
@@ -218,6 +221,15 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
         {
             [DataMember(Name = "disableCMakeCalls")]
             public bool? DisableCMakeCalls { get; set; }
+
+            [DataMember(Name = "readyFile")]
+            public string? ReadyFile { get; set; }
+
+            [DataMember(Name = "buildIni")]
+            public string? BuildIni { get; set; }
+
+            [DataMember(Name = "projectSourcesQrc")]
+            public string? ProjectSourcesQrc { get; set; }
         }
     }
 }

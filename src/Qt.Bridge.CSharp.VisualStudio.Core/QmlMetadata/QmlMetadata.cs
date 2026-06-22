@@ -64,9 +64,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
                 ?? throw new ArgumentNullException(nameof(importPaths));
 
             /// <summary>
-            /// Original project QML files and their generated module locations. Used by the
-            /// Visual Studio extension to map editor files back into the generated QML module
-            /// resource tree for qmlls.
+            /// Original project QML files and their generated module locations. Build
+            /// producers use these to generate the qmlls project-source resource mapping.
             /// </summary>
             public IReadOnlyList<QmlFile> Files { get; } = files
                 ?? throw new ArgumentNullException(nameof(files));
@@ -89,13 +88,30 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
         }
 
         /// <summary> QML Language Server startup policy from the metadata file. </summary>
-        public sealed class QmlLanguageServerSection(bool disableCMakeCalls)
+        public sealed class QmlLanguageServerSection(
+            bool disableCMakeCalls,
+            string? readyFile = null,
+            string? buildIni = null,
+            string? projectSourcesQrc = null)
         {
             /// <summary>
             /// Whether to launch the QML Language Server executable with --no-cmake-calls.
             /// Defaults to true for qtbridge-csharp projects.
             /// </summary>
             public bool DisableCMakeCalls { get; } = disableCMakeCalls;
+
+            /// <summary>
+            /// Optional publication marker for build-generated qmlls artifacts. When present,
+            /// editor integrations must treat the build outputs as read-only and wait for this
+            /// file before using them.
+            /// </summary>
+            public string? ReadyFile { get; } = readyFile;
+
+            /// <summary>Optional path to the build-generated qmlls settings file.</summary>
+            public string? BuildIni { get; } = buildIni;
+
+            /// <summary>Optional path to the project-source QRC used by qmlls.</summary>
+            public string? ProjectSourcesQrc { get; } = projectSourcesQrc;
         }
     }
 }

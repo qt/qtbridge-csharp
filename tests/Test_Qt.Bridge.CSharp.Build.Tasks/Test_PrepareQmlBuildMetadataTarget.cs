@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Security;
+using System.Text.Json;
 using Qt.Bridge.CSharp.Build.Tasks;
 
 namespace Test_Qt.Bridge.CSharp.Build.Tasks
@@ -161,7 +162,56 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             Assert.IsFalse(File.Exists(markerPath));
         }
 
+        [TestMethod]
+        public void QtBridgeWriteQmlMetadataFile_ExposesQmllsArtifacts()
+        {
+            var projectPath = WriteProject(generatedWorkspaceExists: true);
+
+            var result = RunMsBuild(projectPath, "QtBridgeWriteQmlMetadataFile");
+
+            Assert.AreEqual(0, result.ExitCode, result.Output);
+            var metadataPath = Directory
+                .EnumerateFiles(
+                    Path.Combine(TempDirectory, "obj"),
+                    "qtbridge-qml.ide.json",
+                    SearchOption.AllDirectories)
+                .Single();
+            using var document = JsonDocument.Parse(File.ReadAllText(metadataPath));
+            AssertMetadataPath(document.RootElement.GetProperty("projectFile").GetString()!);
+            var qml = document.RootElement.GetProperty("qml");
+            AssertMetadataPath(qml.GetProperty("sourceDir").GetString()!);
+            AssertMetadataPath(qml.GetProperty("projectSourceDir").GetString()!);
+            AssertMetadataPath(qml.GetProperty("buildDirs")[0].GetString()!);
+            AssertMetadataPath(qml.GetProperty("importPaths")[0].GetString()!);
+            AssertMetadataPath(qml.GetProperty("importPaths")[1].GetString()!);
+            var qmlls = document.RootElement.GetProperty("qmlLanguageServer");
+            AssertMetadataPath(qmlls.GetProperty("readyFile").GetString()!);
+            AssertMetadataPath(qmlls.GetProperty("buildIni").GetString()!);
+            AssertMetadataPath(qmlls.GetProperty("projectSourcesQrc").GetString()!);
+            var buildDirectory = Path.Combine(TempDirectory, "native", "build");
+            Assert.AreEqual(
+                NormalizeHostPath(Path.Combine(
+                    buildDirectory,
+                    ".qt",
+                    BuildReadyMarker.FileName)),
+                NormalizeHostPath(qmlls.GetProperty("readyFile").GetString()!));
+            Assert.AreEqual(
+                NormalizeHostPath(Path.Combine(
+                    buildDirectory,
+                    ".qt",
+                    QmllsBuildIniPatcher.FileName)),
+                NormalizeHostPath(qmlls.GetProperty("buildIni").GetString()!));
+            Assert.AreEqual(
+                NormalizeHostPath(Path.Combine(
+                    buildDirectory,
+                    ".qt",
+                   ProjectSourcesQrcWriter.FileName)),
+                NormalizeHostPath(qmlls.GetProperty("projectSourcesQrc").GetString()!));
+        }
+
         protected override string TempDirectoryName => "qtbridge-qmlls-target-tests";
+
+        private static void AssertMetadataPath(string path) => Assert.DoesNotContain('\\', path);
 
         private string WriteProject(
             bool generatedWorkspaceExists,
@@ -199,6 +249,7 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
                     <BaseOutputPath>bin/</BaseOutputPath>
                     <BaseIntermediateOutputPath>obj/</BaseIntermediateOutputPath>
                     <IntermediateOutputPath>obj/Debug/</IntermediateOutputPath>
+                    <ProjectDir>{XmlEscape(TempDirectory + Path.DirectorySeparatorChar)}</ProjectDir>
                     <QtNativeBuildDir>native/build</QtNativeBuildDir>
                     <QtNativeSourceDir>native/source</QtNativeSourceDir>
                     <QtDir>{XmlEscape(qtPath)}</QtDir>
@@ -279,6 +330,9 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
         }
 
         private static string XmlEscape(string value) => SecurityElement.Escape(value) ?? "";
+
+        private static string NormalizeHostPath(string path) =>
+            Path.GetFullPath(PathUtilities.ToHostSeparators(path));
 
         private sealed record BuildResult(int ExitCode, string Output);
     }

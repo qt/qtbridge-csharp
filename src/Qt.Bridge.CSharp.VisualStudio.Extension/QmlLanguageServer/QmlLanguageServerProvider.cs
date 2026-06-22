@@ -584,6 +584,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             // generated ini before injection so project-root QML files resolve against
             // the project alias, and wait until generated .qmltypes files are readable
             // as well.
+            var readyFile = QmlBuildMetadataContract.GetReadyMarkerPath(metadata);
+            if (readyFile != null) {
+                return File.Exists(readyFile)
+                    || NotReady("the build-generated qmlls ready marker exists");
+            }
 
             if (!BuildSettingsIniFilesExist(metadata))
                 return NotReady(".qmlls.build.ini exists");
@@ -779,6 +784,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
             var metadata = readResult.Metadata!;
             var signatures = new Dictionary<string, FileSignature>(StringComparer.OrdinalIgnoreCase);
+            var readyFile = QmlBuildMetadataContract.GetReadyMarkerPath(metadata);
+            if (readyFile != null) {
+                AddPathSignature(signatures, readyFile);
+                return signatures;
+            }
+
             var buildDirs = metadata.Qml.BuildDirs
                 .Select(Path.GetFullPath)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -846,7 +857,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             await Task.Delay(500);
             Enabled = true;
             log.Info($"QML Language Server: restarted after"
-                + $" '{Path.GetFileName(projectFilePath)}' ini became ready.");
+                + $" '{Path.GetFileName(projectFilePath)}' build metadata became ready.");
         }
 
         private void OnProjectMetadataChanged(string projectFilePath)
@@ -861,13 +872,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 if (!MarkProjectMetadataChanged(projectFilePath))
                     return;
 
-                // After a build, metadata JSON may appear before the build has finished writing
-                // .qmlls.build.ini. Wait until the ini exists and is patched,
-                // then restart once so open documents enter the new qmlls session with the
-                // correct startup import paths and build-dir settings from the outset.
+                // Metadata JSON may appear before the build has published complete qmlls
+                // artifacts. Wait for the producer-specific readiness boundary, then restart
+                // once so open documents enter the new session with complete build settings.
                 log.Info($"QML Language Server: metadata changed for"
                     + $" '{Path.GetFileName(projectFilePath)}', waiting for"
-                    + " .qmlls.build.ini before restart.");
+                    + " qmlls build metadata before restart.");
                 await TryInjectProjectAsync(projectFilePath,
                     CancellationToken.None,
                     notifyUser: false);
