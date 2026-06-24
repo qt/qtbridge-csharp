@@ -40,8 +40,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
 #if WINDOWS_DESKTOP
             try {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(ct);
-                new ToastWindow(title, detail, primary, secondary, ToastDuration, log).Show();
-                return true;
+                return await ToastWindow.TryShowAsync(title, detail, primary, secondary,
+                    ToastDuration, log, ct);
             } catch (Exception ex) {
                 log.Warning($"Toast notification failed: {ex.Message}");
                 return false;

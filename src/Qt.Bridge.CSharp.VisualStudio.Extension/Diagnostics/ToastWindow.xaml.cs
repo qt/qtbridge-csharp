@@ -8,6 +8,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
@@ -63,11 +64,40 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
             };
         }
 
+        public static async Task<bool> TryShowAsync(
+            string title,
+            string detail,
+            NotificationAction? primaryAction,
+            NotificationAction? secondaryAction,
+            TimeSpan displayDuration,
+            IExtensionLog log,
+            CancellationToken ct)
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(ct);
+
+            var owner = GetVisibleVsMainWindow();
+            if (owner == null) {
+                await WaitForMainWindowVisibleAsync(ct);
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(ct);
+                owner = GetVisibleVsMainWindow();
+            }
+
+            if (owner == null) {
+                log.Warning("Toast notification skipped: Visual Studio main window was not ready.");
+                return false;
+            }
+
+            var toast = new ToastWindow(title, detail, primaryAction, secondaryAction,
+                displayDuration, log);
+            toast.AttachToOwner(owner);
+            toast.Show();
+            return true;
+        }
+
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
-            AttachToOwner();
             PositionWindow();
             BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, FadeInDuration));
             dismissTimer.Start();
@@ -90,19 +120,17 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
             ownerWindow = null;
         }
 
-        private void AttachToOwner()
+        private void AttachToOwner(Window owner)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
-            var hwnd = GetVsMainWindowHandle();
-            if (hwnd == IntPtr.Zero)
+            var hwnd = new WindowInteropHelper(owner).Handle;
+            if (!NativeMethods.IsWindow(hwnd))
                 return;
 
             new WindowInteropHelper(this).Owner = hwnd;
 
-            ownerWindow = HwndSource.FromHwnd(hwnd)?.RootVisual as Window;
-            if (ownerWindow == null)
-                return;
+            ownerWindow = owner;
 
             locationChangeDebounce = new DispatcherTimer(
                 TimeSpan.FromMilliseconds(500),
@@ -112,46 +140,145 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
             locationChangeDebounce.Stop();
 
             ownerLocationChangedHandler = OnOwnerLocationChanged;
-            ownerSizeChangedHandler = (_, _) => PositionWindow();
+            ownerSizeChangedHandler = OnOwnerSizeChanged;
             ownerWindow.LocationChanged += ownerLocationChangedHandler;
             ownerWindow.SizeChanged += ownerSizeChangedHandler;
         }
 
+        private void OnOwnerSizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            PositionWindow();
+        }
+
         private void OnOwnerLocationChanged(object? sender, EventArgs e)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             locationChangeDebounce?.Start();
             PositionWindow();
         }
 
         private void OnLocationChangeThrottleTick(object? sender, EventArgs e)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             locationChangeDebounce?.Stop();
             PositionWindow();
         }
 
-        private static IntPtr GetVsMainWindowHandle()
+        private static Window? GetVisibleVsMainWindow()
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            if (Package.GetGlobalService(typeof(SVsUIShell)) is not IVsUIShell uiShell)
-                return IntPtr.Zero;
-            uiShell.GetDialogOwnerHwnd(out var hwnd);
-            return hwnd;
+
+            var mainWindow = Application.Current?.MainWindow;
+            if (mainWindow == null || !IsVsMainWindow(mainWindow))
+                return null;
+
+            var hwnd = new WindowInteropHelper(mainWindow).Handle;
+            if (!NativeMethods.IsWindow(hwnd) || !NativeMethods.IsWindowVisible(hwnd))
+                return null;
+
+            return mainWindow;
+        }
+
+        private static bool IsVsMainWindow(Window? mainWindow)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            return mainWindow is { IsVisible: true }
+                && IsDteMainWindow(mainWindow)
+                && VisualTreeHelper.GetChildrenCount(mainWindow) >= 1;
+        }
+
+        private static bool IsDteMainWindow(Window mainWindow)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            try {
+                if (Package.GetGlobalService(typeof(EnvDTE.DTE)) is not EnvDTE.DTE dte)
+                    return false;
+                if (dte.MainWindow?.Visible != true)
+                    return false;
+                return new WindowInteropHelper(mainWindow).Handle == dte.MainWindow.HWnd;
+            } catch (Exception) {
+                return false;
+            }
+        }
+
+        private static async Task WaitForMainWindowVisibleAsync(CancellationToken ct)
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(ct);
+
+            if (HasReadyMainWindow())
+                return;
+
+            if (Package.GetGlobalService(typeof(SVsShell)) is not IVsShell vsShell)
+                return;
+
+            if (IsShellReady(vsShell))
+                return;
+
+            var wait = new TaskCompletionSource<object?>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var sink = new MainWindowVisibilityEvents(vsShell, wait);
+            uint cookie = 0;
+
+            try {
+                ErrorHandler.ThrowOnFailure(vsShell.AdviseShellPropertyChanges(sink, out cookie));
+                using (ct.Register(() => wait.TrySetCanceled(ct)))
+                    await wait.Task;
+            } finally {
+                if (cookie != 0)
+                    vsShell.UnadviseShellPropertyChanges(cookie);
+            }
+        }
+
+        private static bool IsShellReady(IVsShell vsShell)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            return HasReadyMainWindow() && !IsShellModal(vsShell);
+        }
+
+        private static bool HasReadyMainWindow()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            return GetVisibleVsMainWindow() != null;
+        }
+
+        private static bool IsShellModal(IVsShell vsShell)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            return TryGetShellBoolProperty(vsShell, (int)__VSSPROPID4.VSSPROPID_IsModal);
+        }
+
+        private static bool TryGetShellBoolProperty(IVsShell vsShell, int propertyId)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            if (ErrorHandler.Failed(vsShell.GetProperty(propertyId, out var value)))
+                return false;
+
+            return value switch
+            {
+                bool boolValue => boolValue,
+                int intValue => intValue != 0,
+                _ => false
+            };
         }
 
         private void PositionWindow()
         {
-            if (ownerWindow == null)
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            var owner = ownerWindow;
+            if (owner == null || !IsVsMainWindow(owner))
                 return;
 
-            var left = (int)ownerWindow.Left;
-            var top = (int)ownerWindow.Top;
+            var left = (int)owner.Left;
+            var top = (int)owner.Top;
 
-            var ownerWidth = (int)(ownerWindow.ActualWidth > 0
-                ? ownerWindow.ActualWidth
-                : ownerWindow.Width);
-            var ownerHeight = (int)(ownerWindow.ActualHeight > 0
-                ? ownerWindow.ActualHeight
-                : ownerWindow.Height);
+            var ownerWidth = (int)(owner.ActualWidth > 0 ? owner.ActualWidth : owner.Width);
+            var ownerHeight = (int)(owner.ActualHeight > 0 ? owner.ActualHeight : owner.Height);
 
             if (SpansDpiBoundary(left, top, ownerWidth, ownerHeight)) {
                 if (IsVisible)
@@ -256,10 +383,38 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
         private static class NativeMethods
         {
             [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public static extern bool IsWindow(IntPtr hWnd);
+
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public static extern bool IsWindowVisible(IntPtr hWnd);
+
+            [DllImport("user32.dll")]
             public static extern IntPtr MonitorFromPoint(NativePoint pt, uint dwFlags);
 
             [DllImport("shcore.dll")]
             public static extern int GetDpiForMonitor(IntPtr mon, int type, out uint x, out uint y);
+        }
+
+        private sealed class MainWindowVisibilityEvents(
+            IVsShell vsShell,
+            TaskCompletionSource<object?> wait)
+            : IVsShellPropertyEvents
+        {
+            public int OnShellPropertyChange(int propid, object var)
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+
+                var isModalOrMainWindowProperty  = propid
+                    is (int)__VSSPROPID4.VSSPROPID_IsModal
+                    or (int)__VSSPROPID2.VSSPROPID_MainWindowVisibility;
+
+                if (isModalOrMainWindowProperty  && IsShellReady(vsShell))
+                    wait.TrySetResult(null);
+
+                return VSConstants.S_OK;
+            }
         }
     }
 }
