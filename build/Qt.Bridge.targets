@@ -376,6 +376,21 @@ namespace Qt.Qml
 
   <!--
   //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtBridgeInvalidateQmlBuildMetadata
+  -->
+  <Target Name="QtBridgeInvalidateQmlBuildMetadata"
+    BeforeTargets="QtBridgeValidateQt;QtBridgeBuild"
+    Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_QtBuildReadyMarker
+        >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(QtNativeBuildDir)/.qt/qtbridge-build.ready'))</_QtBuildReadyMarker>
+    </PropertyGroup>
+    <Delete Files="$(_QtBuildReadyMarker)" />
+  </Target>
+  <!-- END QtBridgeInvalidateQmlBuildMetadata -->
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
   // QtBridgeBuild
   -->
   <Target Name="QtBridgeBuild"
@@ -494,6 +509,8 @@ namespace Qt.Qml
         <TypeName>%(TypeName)</TypeName>
       </_QtQmllsQml>
       <_QtQmllsImportPath Include="$(_QtQmllsBuildDir)/$(QtQmlRootModuleName)" />
+      <_QtQmllsGeneratedImportPath
+        Include="$(_QtQmllsBuildDir)/$(QtQmlRootModuleName)" />
       <_QtQmllsImportPath Include="$(_QtQmllsSourceDir)/qml" />
       <_QtQmllsImportPath Include="$(QtDir)/qml" Condition="'$(QtDir)' != ''" />
       <_QtQmllsResourceFile Include="$(_QtQmllsBuildDir)/**/*.qrc" />
@@ -508,7 +525,8 @@ namespace Qt.Qml
       ProjectSourceDirectory="$(MSBuildProjectDirectory)"
       QmlFiles="@(_QtQmllsQml)"
       ImportPaths="@(_QtQmllsImportPath)"
-      ResourceFiles="@(_QtQmllsResourceFile)">
+      ResourceFiles="@(_QtQmllsResourceFile)"
+      GeneratedImportPaths="@(_QtQmllsGeneratedImportPath)">
       <Output TaskParameter="BuildIniPath" PropertyName="QtQmllsBuildIniPath" />
       <Output
         TaskParameter="ProjectSourcesQrcPath"
@@ -517,6 +535,7 @@ namespace Qt.Qml
       <Output
         TaskParameter="ProjectSourcesQrcChanged"
         PropertyName="_QtQmllsProjectSourcesQrcChanged" />
+      <Output TaskParameter="ReadyMarkerPath" PropertyName="QtBuildReadyMarkerPath" />
     </PrepareQmlBuildMetadata>
 
   </Target>

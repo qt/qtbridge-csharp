@@ -22,6 +22,8 @@ namespace Qt.Bridge.CSharp.Build.Tasks
 
         public ITaskItem[] ResourceFiles { get; set; } = [];
 
+        public ITaskItem[] GeneratedImportPaths { get; set; } = [];
+
         [Output]
         public string BuildIniPath { get; set; } = "";
 
@@ -34,12 +36,16 @@ namespace Qt.Bridge.CSharp.Build.Tasks
         [Output]
         public bool ProjectSourcesQrcChanged { get; set; }
 
+        [Output]
+        public string ReadyMarkerPath { get; set; } = "";
+
         public override bool Execute()
         {
             try {
                 if (!ValidateInputs())
                     return false;
 
+                BuildReadyMarker.Invalidate(BuildDirectory);
                 BuildIniPath = Path.Combine(BuildDirectory, ".qt", QmllsBuildIniPatcher.FileName);
                 if (!File.Exists(BuildIniPath)) {
                     Log.LogWarning("Qt Bridge could not prepare QML Language Server metadata "
@@ -77,13 +83,19 @@ namespace Qt.Bridge.CSharp.Build.Tasks
                     resourceFiles,
                     ProjectSourcesQrcPath);
                 BuildIniChanged = patchResult.Changed;
-                if (patchResult.IsReady)
-                    return true;
+                if (!patchResult.IsReady) {
+                    Log.LogWarning("Qt Bridge could not prepare QML Language Server metadata "
+                        + $"because the generated workspace '{GeneratedSourceDirectory}' was "
+                        + $"not found in '{BuildIniPath}'.");
+                    return false;
+                }
 
-                Log.LogWarning("Qt Bridge could not prepare QML Language Server metadata because"
-                    + $" the generated workspace '{GeneratedSourceDirectory}' was not found"
-                    + $" in '{BuildIniPath}'.");
-                return false;
+                var markerPath = Path.Combine(BuildDirectory, ".qt", BuildReadyMarker.FileName);
+                Log.LogMessage(MessageImportance.High, $"Populating {markerPath} marker");
+
+                ReadyMarkerPath = BuildReadyMarker.Publish(BuildDirectory,
+                    GeneratedImportPaths.Select(item => item.ItemSpec).ToArray());
+                return true;
             } catch (Exception exception) {
                 Log.LogWarningFromException(exception, showStackTrace: false);
                 return false;

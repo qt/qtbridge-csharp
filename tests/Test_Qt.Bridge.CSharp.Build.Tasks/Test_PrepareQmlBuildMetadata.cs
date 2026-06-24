@@ -31,6 +31,8 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             Assert.AreEqual(paths.IniPath, task.BuildIniPath);
             Assert.IsNotNull(task.ProjectSourcesQrcPath);
             Assert.IsTrue(File.Exists(task.ProjectSourcesQrcPath));
+            Assert.IsTrue(File.Exists(task.ReadyMarkerPath));
+            Assert.AreEqual("{\"version\":1}", File.ReadAllText(task.ReadyMarkerPath));
             var ini = File.ReadAllText(paths.IniPath);
             Assert.Contains(
                 $"2\\sourcePath=\"{Normalize(paths.ProjectSourceDirectory)}\"",
@@ -102,7 +104,7 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
         }
 
         [TestMethod]
-        public void Execute_ReportsMissingQmlMetadataAsBuildError()
+        public void Execute_ReportsMissingQmlMetadataAsBuildWarning()
         {
             var paths = CreatePaths();
             WriteIni(paths, WorkspaceIni(paths.GeneratedSourceDirectory));
@@ -114,19 +116,24 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
 
             Assert.IsFalse(result);
             Assert.HasCount(2, buildEngine.Warnings);
-            Assert.IsTrue(buildEngine.Warnings.Any(error =>
-                error.Message!.Contains("ModulePath", StringComparison.Ordinal)
-                && error.Message.Contains("SourceDir", StringComparison.Ordinal)));
-            Assert.IsTrue(buildEngine.Warnings.Any(error =>
-                error.Message!.Contains("TypeName", StringComparison.Ordinal)));
+            Assert.IsTrue(buildEngine.Warnings.Any(warning =>
+                warning.Message!.Contains("ModulePath", StringComparison.Ordinal)
+                && warning.Message.Contains("SourceDir", StringComparison.Ordinal)));
+            Assert.IsTrue(buildEngine.Warnings.Any(warning =>
+                warning.Message!.Contains("TypeName", StringComparison.Ordinal)));
             Assert.IsNull(task.ProjectSourcesQrcPath);
         }
 
         [TestMethod]
-        public void Execute_ReportsUnreadyIniAsBuildError()
+        public void Execute_ReportsUnreadyIniAsBuildWarning()
         {
             var paths = CreatePaths();
             WriteIni(paths, WorkspaceIni(Path.Combine(TempDirectory, "other")));
+            var markerPath = Path.Combine(
+                paths.BuildDirectory,
+                ".qt",
+                BuildReadyMarker.FileName);
+            File.WriteAllText(markerPath, "stale");
             var buildEngine = new TestBuildEngine();
             var task = CreateTask(paths, buildEngine);
 
@@ -136,10 +143,57 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             Assert.HasCount(1, buildEngine.Warnings);
             Assert.Contains(paths.GeneratedSourceDirectory, buildEngine.Warnings[0].Message!);
             Assert.IsFalse(task.BuildIniChanged);
+            Assert.IsFalse(File.Exists(markerPath));
         }
 
         [TestMethod]
-        public void Execute_ReportsMissingIniBeforeWritingQrc()
+        public void Execute_ReportsMissingGeneratedQmlTypesAsBuildWarning()
+        {
+            var paths = CreatePaths();
+            WriteIni(paths, WorkspaceIni(paths.GeneratedSourceDirectory));
+            var generatedImportPath = Path.Combine(paths.BuildDirectory, "Application");
+            Directory.CreateDirectory(generatedImportPath);
+            var buildEngine = new TestBuildEngine();
+            var task = CreateTask(paths, buildEngine);
+            task.GeneratedImportPaths = [new TaskItem(generatedImportPath)];
+
+            var result = task.Execute();
+
+            Assert.IsFalse(result);
+            Assert.HasCount(1, buildEngine.Warnings);
+            Assert.Contains("contains no .qmltypes files", buildEngine.Warnings[0].Message!);
+            Assert.IsFalse(File.Exists(Path.Combine(
+                paths.BuildDirectory,
+                ".qt",
+                BuildReadyMarker.FileName)));
+        }
+
+        [TestMethod]
+        public void Execute_PublishesReadyMarkerWhenQmlTypesFileIsLocked()
+        {
+            var paths = CreatePaths();
+            WriteIni(paths, WorkspaceIni(paths.GeneratedSourceDirectory));
+            var generatedImportPath = Path.Combine(paths.BuildDirectory, "Application");
+            Directory.CreateDirectory(generatedImportPath);
+            var qmlTypesPath = Path.Combine(generatedImportPath, "Application.qmltypes");
+            File.WriteAllText(qmlTypesPath, "module Application");
+            var task = CreateTask(paths);
+            task.GeneratedImportPaths = [new TaskItem(generatedImportPath)];
+
+            using var locked = new FileStream(
+                qmlTypesPath,
+                FileMode.Open,
+                FileAccess.ReadWrite,
+                FileShare.None);
+
+            var result = task.Execute();
+
+            Assert.IsTrue(result);
+            Assert.IsTrue(File.Exists(task.ReadyMarkerPath));
+        }
+
+        [TestMethod]
+        public void Execute_ReportsMissingIniBeforeWritingQrcAsBuildWarning()
         {
             var paths = CreatePaths();
             var buildEngine = new TestBuildEngine();
@@ -162,20 +216,22 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
         }
 
         [TestMethod]
-        public void Execute_ReportsResourceIdentityCollisionAsBuildError()
+        public void Execute_WarnsAndFiltersResourceIdentityCollision()
         {
             var paths = CreatePaths();
             WriteIni(paths, WorkspaceIni(paths.GeneratedSourceDirectory));
             var buildEngine = new TestBuildEngine();
             var task = CreateTask(paths, buildEngine);
+            var firstSourcePath = Path.Combine(paths.ProjectSourceDirectory, "First", "View.qml");
+            var secondSourcePath = Path.Combine(paths.ProjectSourceDirectory, "Second", "View.qml");
             task.QmlFiles =
             [
                 CreateQmlItem(
-                    Path.Combine(paths.ProjectSourceDirectory, "First", "View.qml"),
+                    firstSourcePath,
                     "Views",
                     "FirstView"),
                 CreateQmlItem(
-                    Path.Combine(paths.ProjectSourceDirectory, "Second", "View.qml"),
+                    secondSourcePath,
                     "Views",
                     "SecondView")
             ];
@@ -185,6 +241,10 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             Assert.IsTrue(result);
             Assert.HasCount(1, buildEngine.Warnings);
             Assert.Contains("/qt/qml/Views/View.qml", buildEngine.Warnings[0].Message!);
+            Assert.Contains(firstSourcePath.Replace('\\', '/'), buildEngine.Warnings[0].Message!);
+            Assert.Contains(secondSourcePath.Replace('\\', '/'), buildEngine.Warnings[0].Message!);
+            Assert.IsTrue(File.Exists(task.ProjectSourcesQrcPath));
+            Assert.IsTrue(File.Exists(task.ReadyMarkerPath));
         }
 
         [TestMethod]
