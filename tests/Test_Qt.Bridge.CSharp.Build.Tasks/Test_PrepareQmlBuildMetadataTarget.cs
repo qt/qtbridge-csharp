@@ -209,6 +209,71 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
                 NormalizeHostPath(qmlls.GetProperty("projectSourcesQrc").GetString()!));
         }
 
+        [TestMethod]
+        public void QtBridgeProps_DeclaresQmlBuildMetadataUpToDateArtifactsForQmlProjects()
+        {
+            var projectPath = WriteUpToDateProject(includeQml: true);
+
+            var result = RunMsBuild(projectPath, "DumpUpToDateCheckItems");
+
+            Assert.AreEqual(0, result.ExitCode, result.Output);
+            var inputs = ReadUpToDateItems("uptodate-inputs.txt");
+            var outputs = ReadUpToDateItems("uptodate-outputs.txt");
+            var metadataDir = NormalizeHostPath(Path.Combine(
+                TempDirectory,
+                "obj",
+                "qt",
+                "native",
+                "build",
+                ".qt"));
+            CollectionAssert.Contains(
+                inputs["QtBridgeQmlBuildMetadata"].ToArray(),
+                NormalizeHostPath(Path.Combine(TempDirectory, "Main.qml")));
+            CollectionAssert.Contains(
+                inputs["QtBridgeQmlBuildMetadata"].ToArray(),
+                NormalizeHostPath(projectPath));
+            CollectionAssert.AreEquivalent(
+                new[]
+                {
+                    NormalizeHostPath(Path.Combine(metadataDir, QmllsBuildIniPatcher.FileName)),
+                    NormalizeHostPath(Path.Combine(metadataDir, BuildReadyMarker.FileName)),
+                    NormalizeHostPath(Path.Combine(metadataDir, ProjectSourcesQrcWriter.FileName))
+                },
+                outputs["QtBridgeQmlBuildMetadata"].ToArray());
+        }
+
+        [TestMethod]
+        public void QtBridgeProps_OmitsProjectSourcesQrcUpToDateOutputWithoutQmlFiles()
+        {
+            var projectPath = WriteUpToDateProject(includeQml: false);
+
+            var result = RunMsBuild(projectPath, "DumpUpToDateCheckItems");
+
+            Assert.AreEqual(0, result.ExitCode, result.Output);
+            var inputs = ReadUpToDateItems("uptodate-inputs.txt");
+            var outputs = ReadUpToDateItems("uptodate-outputs.txt");
+            var metadataDir = NormalizeHostPath(Path.Combine(
+                TempDirectory,
+                "obj",
+                "qt",
+                "native",
+                "build",
+                ".qt"));
+            CollectionAssert.AreEquivalent(
+                new[] { NormalizeHostPath(projectPath) },
+                inputs["QtBridgeQmlBuildMetadata"].ToArray());
+            CollectionAssert.AreEquivalent(
+                new[]
+                {
+                    NormalizeHostPath(Path.Combine(metadataDir, QmllsBuildIniPatcher.FileName)),
+                    NormalizeHostPath(Path.Combine(metadataDir, BuildReadyMarker.FileName))
+                },
+                outputs["QtBridgeQmlBuildMetadata"].ToArray());
+            CollectionAssert.DoesNotContain(
+                outputs["QtBridgeQmlBuildMetadata"].ToArray(),
+                NormalizeHostPath(Path.Combine(metadataDir, ProjectSourcesQrcWriter.FileName)));
+        }
+
         protected override string TempDirectoryName => "qtbridge-qmlls-target-tests";
 
         private static void AssertMetadataPath(string path) => Assert.DoesNotContain('\\', path);
@@ -294,6 +359,39 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             return projectPath;
         }
 
+        private string WriteUpToDateProject(bool includeQml)
+        {
+            Directory.CreateDirectory(TempDirectory);
+            if (includeQml)
+                File.WriteAllText(Path.Combine(TempDirectory, "Main.qml"), "");
+
+            var repositoryRoot = FindRepositoryRoot();
+            var propsPath = Path.Combine(repositoryRoot, "build", "Qt.Bridge.props");
+            var projectPath = Path.Combine(TempDirectory, "UpToDate.proj");
+            File.WriteAllText(projectPath,
+                $"""
+                <Project>
+                  <PropertyGroup>
+                    <BaseOutputPath>bin/</BaseOutputPath>
+                    <BaseIntermediateOutputPath>obj/</BaseIntermediateOutputPath>
+                    <IntermediateOutputPath>obj/</IntermediateOutputPath>
+                  </PropertyGroup>
+                  <Import Project="{XmlEscape(propsPath)}" />
+                  <Target Name="DumpUpToDateCheckItems">
+                    <WriteLinesToFile
+                      File="$(MSBuildProjectDirectory)\uptodate-inputs.txt"
+                      Overwrite="true"
+                      Lines="@(UpToDateCheckInput->'%(Set)|%(Identity)', '&#x0A;')" />
+                    <WriteLinesToFile
+                      File="$(MSBuildProjectDirectory)\uptodate-outputs.txt"
+                      Overwrite="true"
+                      Lines="@(UpToDateCheckOutput->'%(Set)|%(Identity)', '&#x0A;')" />
+                  </Target>
+                </Project>
+                """);
+            return projectPath;
+        }
+
         private static BuildResult RunMsBuild(
             string projectPath,
             string target = "QtBridgeBuild")
@@ -333,6 +431,28 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
 
         private static string NormalizeHostPath(string path) =>
             Path.GetFullPath(PathUtilities.ToHostSeparators(path));
+
+        private Dictionary<string, List<string>> ReadUpToDateItems(string fileName)
+        {
+            var result = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var line in File.ReadAllLines(Path.Combine(TempDirectory, fileName))) {
+                var separator = line.IndexOf('|');
+                if (separator <= 0 || separator == line.Length - 1)
+                    continue;
+
+                var set = line[..separator];
+                var rawPath = line[(separator + 1)..];
+                var path = Path.IsPathRooted(rawPath)
+                    ? NormalizeHostPath(rawPath)
+                    : NormalizeHostPath(Path.Combine(TempDirectory, rawPath));
+                if (!result.TryGetValue(set, out var paths)) {
+                    paths = [];
+                    result[set] = paths;
+                }
+                paths.Add(path);
+            }
+            return result;
+        }
 
         private sealed record BuildResult(int ExitCode, string Output);
     }

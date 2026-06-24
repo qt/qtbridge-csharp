@@ -85,6 +85,20 @@
     <!-- Add QML files to up-to-date check of VS -->
     <UpToDateCheckInput Set="Qml" Include="@(Qml)" />
     <UpToDateCheckOutput Set="Qml" Include="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlFilesCs)" />
+    <!-- Add QML build-metadata to up-to-date check of VS -->
+    <UpToDateCheckInput Set="QtBridgeQmlBuildMetadata" Include="@(Qml);$(MSBuildProjectFullPath)" />
+    <UpToDateCheckOutput Set="QtBridgeQmlBuildMetadata"
+      Condition="'$(QtNativeBuildDir)' != ''"
+      Include="$(QtNativeBuildDir)/.qt/.qmlls.build.ini;$(QtNativeBuildDir)/.qt/qtbridge-build.ready" />
+    <UpToDateCheckOutput Set="QtBridgeQmlBuildMetadata"
+      Condition="'$(QtNativeBuildDir)' == ''"
+      Include="$(IntermediateOutputPath)qt/native/build/.qt/.qmlls.build.ini;$(IntermediateOutputPath)qt/native/build/.qt/qtbridge-build.ready" />
+    <UpToDateCheckOutput Set="QtBridgeQmlBuildMetadata"
+      Condition="'@(Qml)' != '' and '$(QtNativeBuildDir)' != ''"
+      Include="$(QtNativeBuildDir)/.qt/qtbridge_project_sources.qrc" />
+    <UpToDateCheckOutput Set="QtBridgeQmlBuildMetadata"
+      Condition="'@(Qml)' != '' and '$(QtNativeBuildDir)' == ''"
+      Include="$(IntermediateOutputPath)qt/native/build/.qt/qtbridge_project_sources.qrc" />
     <UpToDateCheckInput Set="QtResource" Include="@(QtResource);@(QtResx)" />
     <UpToDateCheckOutput Set="QtResource"
       Include="$(ProjectDir)$(IntermediateOutputPath)$(QtResourceFilesCs)" />
