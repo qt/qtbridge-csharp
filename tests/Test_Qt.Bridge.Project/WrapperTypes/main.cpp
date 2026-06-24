@@ -79,5 +79,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(Test_WrapperTypes)
+QTEST_MAIN_WITH_DOTNET_SETUP(Test_WrapperTypes)
 #include "main.moc"

@@ -65,6 +65,7 @@ namespace Qt.Bridge.CodeGeneration.Rules.Models
             if (type.GetPlaceholder(PrivateMemberDeclarations) is not { } privateMembers)
                 return Error();
             privateMembers += "QModelIndex setOwnIndex(const QModelIndex &idx);";
+            privateMembers += "QVariant toVariant(QDotNetObject &&obj);";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -76,6 +77,11 @@ QModelIndex {type.MFn(Ns | Name | Private)}::setOwnIndex(const QModelIndex &idx)
     if (idx.model() != nullptr && idx.model() != reinterpret_cast<void *>(-1))
         return QModelIndex(idx);
     return q->createIndex(idx.row(), idx.column(), idx.internalId());
+}}
+
+QVariant {type.MFn(Ns | Name | Private)}::toVariant(QDotNetObject &&obj)
+{{
+    return QDotNetConvert::toVariant(obj, q);
 }}
 {Blank}";
             ////////////////////////////////////////////////////////////////////////////////////////
@@ -321,13 +327,13 @@ QHash<int, QByteArray> {context.Type.MFn(Ns | Name)}::roleNames() const
     if (!roles.empty())
         return roles;
 
-    auto a = Convert::toArray(method(""RoleNames"", d->{func.MFn(Func)}).invoke(*this));
+    auto a = QDotNetConvert::toArray(method(""RoleNames"", d->{func.MFn(Func)}).invoke(*this));
     for (int i = 0; i + 1 < a.length(); i += 2) {{
         auto key = a[i];
-        if (!Convert::isInt32(key))
+        if (!QDotNetConvert::isInt32(key))
             continue;
         auto value = a[i + 1];
-        roles.insert(Convert::toInt32(key), Convert::toString(value).toUtf8());
+        roles.insert(QDotNetConvert::toInt32(key), QDotNetConvert::toString(value).toUtf8());
     }}
 
     return roles;
@@ -459,7 +465,7 @@ QHash<int, QByteArray> {context.Type.MFn(Ns | Name)}::roleNames() const
             return GenOverride(context, func,
                 "QVariant", ["const QModelIndex &index", "int role"],
                 ["QDotNetObject", "QModelIndex", "int"], ["index", "role"],
-                "Convert::toVariant", isConst: true);
+                "d->toVariant", isConst: true);
         }
 
         private Result Gen_headerData(OverrideContext context, MethodInfo func)
@@ -469,7 +475,7 @@ QHash<int, QByteArray> {context.Type.MFn(Ns | Name)}::roleNames() const
             return GenOverride(context, func,
                 "QVariant", ["int section", "Qt::Orientation orientation", "int role"],
                 ["QDotNetObject", "int", "int", "int"], ["section", "orientation", "role"],
-                convert: "Convert::toVariant", isConst: true);
+                convert: "d->toVariant", isConst: true);
         }
 
         private Result Gen_itemData(OverrideContext context, MethodInfo func)
@@ -597,7 +603,7 @@ QHash<int, QByteArray> {context.Type.MFn(Ns | Name)}::roleNames() const
             return GenOverride(context, func,
                 "bool", ["const QModelIndex &index", "const QVariant &value", "int role"],
                 ["bool", "QModelIndex", "QDotNetObject", "int"],
-                ["index", "Convert::fromVariant(value)", "role"],
+                ["index", "QDotNetConvert::fromVariant(value)", "role"],
                 isConst: false);
         }
 
@@ -609,7 +615,7 @@ QHash<int, QByteArray> {context.Type.MFn(Ns | Name)}::roleNames() const
                 "bool", ["int section", "Qt::Orientation orientation",
                     "const QVariant &value", "int role"],
                 ["bool", "int", "int", "QDotNetObject", "int"],
-                ["section", "orientation", "Convert::fromVariant(value)", "role"],
+                ["section", "orientation", "QDotNetConvert::fromVariant(value)", "role"],
                 isConst: false);
         }
 

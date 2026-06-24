@@ -25,5 +25,5 @@ class Setup : public QtQuickTestSetup
     Q_OBJECT
 };
 
-QUICK_TEST_MAIN_WITH_SETUP(Test_TableModel, Setup)
+QUICK_TEST_MAIN_WITH_DOTNET_SETUP(Test_TableModel, Setup)
 #include "main.moc"

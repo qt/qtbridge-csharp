@@ -8,6 +8,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QScopedPointer>
+#include <QTest>
 #include <QThread>
 #include <QString>
 #include <QDebug>
@@ -15,6 +16,21 @@
 #include <QDotNetHost>
 #include <QDotNetAdapter>
 #include <QDotNetStatic>
+#include <QDotNetConvert>
+
+#include "object_dispatch.h"
+
+#define QTEST_MAIN_WITH_DOTNET_SETUP(TestObject)                           \
+    int main(int argc, char *argv[])                                       \
+    {                                                                      \
+        TESTLIB_SELFCOVERAGE_START(#TestObject)                            \
+        QT_PREPEND_NAMESPACE(QTest::Internal::callInitMain)<TestObject>(); \
+        QDotNetConvert::setDispatch(QtDotNet::objectDispatch);             \
+        QTEST_MAIN_SETUP()                                                 \
+        TestObject tc;                                                     \
+        QTEST_SET_MAIN_SOURCE_PATH                                         \
+        return QTest::qExec(&tc, argc, argv);                              \
+    }
 
 QT_DOTNET_HOST(appName);
 

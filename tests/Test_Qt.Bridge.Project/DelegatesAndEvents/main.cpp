@@ -16,7 +16,6 @@
 
 #include <delegatesandevents/coord3deventargs.h>
 
-#include "object_dispatch.h"
 #include "QtTestSetupBase.h"
 
 class PingObserver final : public QObject, public QDotNetEventHandler
@@ -295,5 +294,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(Test_DelegatesAndEvents)
+QTEST_MAIN_WITH_DOTNET_SETUP(Test_DelegatesAndEvents)
 #include "main.moc"

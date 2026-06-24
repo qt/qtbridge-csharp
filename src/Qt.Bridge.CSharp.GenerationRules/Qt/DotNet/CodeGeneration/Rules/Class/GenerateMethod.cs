@@ -69,8 +69,8 @@ mutable QDotNetFunction<{returnType.MFn(Ns | Name)}{args switch
         }});
 {(returnType.Is(typeof(void)) ? Wrap
     : !returnType.IsObject() ? $"{Tab}return result;"
-    : returnType.Is<object>() ? $"{Tab}return Convert::toVariant(result);"
-    : $"{Tab}return Convert::moveToHeap(result, this);")}
+    : returnType.Is<object>() ? $"{Tab}return QDotNetConvert::toVariant(result, this);"
+    : $"{Tab}return QDotNetConvert::moveToHeap(result, this);")}
 }}
 {Blank}";
 

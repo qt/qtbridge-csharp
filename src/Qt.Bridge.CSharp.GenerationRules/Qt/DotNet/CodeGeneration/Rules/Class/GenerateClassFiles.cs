@@ -54,7 +54,6 @@ namespace Qt.Bridge.CodeGeneration.Rules.Class
                     hppFile += $@"
 #pragma once
 #include <builtin_types.h>
-#include <convert.h>
 
 namespace {baseType.MFn(Ns)}
 {{

@@ -80,8 +80,8 @@ Q_INVOKABLE void {prop.MFn(Set)}({string.Join(", ", args
                 _ => string.Empty
             }});
     {(!propType.IsObject() ? "return result;"
-    : propType.Is<object>() ? $"return Convert::toVariant(result);"
-    : $"return Convert::moveToHeap(result, this);")}
+    : propType.Is<object>() ? $"return QDotNetConvert::toVariant(result, this);"
+    : $"return QDotNetConvert::moveToHeap(result, this);")}
 }}" : string.Empty)}
 {(prop.CanWrite ? $@"
 void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({string.Join(", ", args
@@ -93,7 +93,7 @@ void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({string.Join(", ", args
         { Length: > 0 } => ", " + string.Join(", ", args
             .Select(arg => $@"{arg.ParameterType.MFn(Star)}{arg.MFn(Name)}")),
         _ => string.Empty
-    }}, {(propType.Is<object>() ? $"Convert::fromVariant(value)" : $"{propType.MFn(Star)}value")});
+    }}, {(propType.Is<object>() ? $"QDotNetConvert::fromVariant(value)" : $"{propType.MFn(Star)}value")});
 }}" : string.Empty)}{Blank}";
 
             return Ok;

@@ -31,6 +31,7 @@ namespace Qt.Bridge.CodeGeneration.Rules
 #include <QDotNetObject>
 #include <QDotNetType>
 #include <QDotNetArray>
+#include <QDotNetConvert>
 #include <QUrl>
 ";
             return Ok;

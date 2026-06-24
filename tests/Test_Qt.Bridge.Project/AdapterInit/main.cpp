@@ -70,5 +70,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(Test_AdapterInit)
+QTEST_MAIN_WITH_DOTNET_SETUP(Test_AdapterInit)
 #include "main.moc"

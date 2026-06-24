@@ -103,7 +103,7 @@ void {type.MFn(Ns | Name)}::componentComplete()
     for (QObject *qObj : d->nestedQmlElements) {{
         if (!qObj)
             continue;
-        const QDotNetObject *dnObj = Convert::asDotNetObject(qObj);
+        const QDotNetObject *dnObj = QDotNetConvert::asDotNetObject(qObj);
         if (!dnObj || !dnObj->isValid())
             continue;
         dotNetObjs << dnObj;

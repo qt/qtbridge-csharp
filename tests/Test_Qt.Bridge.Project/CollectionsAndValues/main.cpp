@@ -177,5 +177,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(Test_CollectionsAndValues)
+QTEST_MAIN_WITH_DOTNET_SETUP(Test_CollectionsAndValues)
 #include "main.moc"

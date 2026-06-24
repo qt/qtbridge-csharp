@@ -87,7 +87,7 @@ mutable QDotNetFunction<{propType.MFn(Ns | Name)}> {prop.MFn(Get | Func)} = null
 mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} = nullptr;")}
 {(!prop.CanRead || !propType.IsObject() || isDelegateProp ? Wrap
 : $@"mutable {cacheType.MFn(Ns | Name | Arg)} cached{prop.MFn(Src)} {Wrap}
-    = Convert::Object<{cacheType.MFn(Ns | Name)}>::null();")}";
+    = QDotNetConvert::Object<{cacheType.MFn(Ns | Name)}>::null();")}";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -104,16 +104,16 @@ mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} 
 {propType.MFn(Ns | Name | Arg)} {type.MFn(Ns | Name)}::{prop.MFn(Get)}(bool cached) const
 {{
     {(!propType.IsObject() ? Wrap : $@"{Wrap}
-    if (cached && Convert::Object<{cacheType.MFn(Ns | Name)}>::isValid(d->cached{prop.MFn(Src)}))
-        return Convert::Object<{cacheType.MFn(Ns | Name)}>{Wrap}
+    if (cached && QDotNetConvert::Object<{cacheType.MFn(Ns | Name)}>::isValid(d->cached{prop.MFn(Src)}))
+        return QDotNetConvert::Object<{cacheType.MFn(Ns | Name)}>{Wrap}
             ::toValue<{propType.MFn(Ns | Name | Arg)}>(d->cached{prop.MFn(Src)});")}
     auto result = method(""{prop.MFn(Src | Get)}"", d->{prop.MFn(Get | Func)}).invoke(*this);
     return {(!propType.IsObject() ? Wrap : $@"{Wrap}
-        Convert::Object<{cacheType.MFn(Ns | Name)}>{Wrap}::{Wrap}
+        QDotNetConvert::Object<{cacheType.MFn(Ns | Name)}>{Wrap}::{Wrap}
         toValue<{propType.MFn(Ns | Name | Arg)}>(d->cached{prop.MFn(Src)} = ")}{(
             !propType.IsObject() ? "result"
-            : propType.Is<object>() ? "Convert::toVariant(result)"
-            : "Convert::moveToHeap(result, this)")}{(!propType.IsObject() ? "" : ")")};
+            : propType.Is<object>() ? "QDotNetConvert::toVariant(result, this)"
+            : "QDotNetConvert::moveToHeap(result, this)")}{(!propType.IsObject() ? "" : ")")};
 }}
 {Blank}")}
 {(!prop.CanRead || !isDelegateProp ? Wrap : $@"{Wrap}
@@ -138,7 +138,7 @@ void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({(isDelegateProp ? "QJSValue" : prop
     method(""{prop.MFn(Src | Set)}"", d->{prop.MFn(Set | Func)}).invoke(*this, {Wrap}
         {(isDelegateProp
             ? $"{propType.MFn(Ns | Name)}::fromScriptValue(value, this)"
-            : propType.Is<object>() ? $"Convert::fromVariant(value)" : $"{propType.MFn(Star)}value")});
+            : propType.Is<object>() ? $"QDotNetConvert::fromVariant(value)" : $"{propType.MFn(Star)}value")});
 }}
 {Blank}")}";
 
@@ -163,7 +163,7 @@ if (signalTag == ""PROPERTY_{prop.MFn(Src)}"") {{
             notifiers += $@"
 if (propertyName == ""{prop.MFn(Src)}"") {{
     {(!prop.CanRead || !propType.IsObject() || isDelegateProp ? Wrap : $@"{Wrap}
-    cached{prop.MFn(Src)} = Convert::Object<{cacheType.MFn(Ns | Name)}>::null();")}
+    cached{prop.MFn(Src)} = QDotNetConvert::Object<{cacheType.MFn(Ns | Name)}>::null();")}
     QMetaMethod::fromSignal(&{type.MFn(Ns | Name)}::{prop.MFn(Signal)})
         .invoke(q, Qt::DirectConnection);
     return;
@@ -174,7 +174,7 @@ if (propertyName == ""{prop.MFn(Src)}"") {{
             static string DelegateInvokeArg(Type argType, string argName)
             {
                 if (argType.Is<object>())
-                    return $"Convert::fromVariant({argName})";
+                    return $"QDotNetConvert::fromVariant({argName})";
                 return $"{argType.MFn(Star)}{argName}";
             }
 
@@ -194,8 +194,8 @@ if (propertyName == ""{prop.MFn(Src)}"") {{
                 if (!returnType.IsObject())
                     return $"{Tab}return result;";
                 if (returnType.Is<object>())
-                    return $"{Tab}return Convert::toVariant(result);";
-                return $"{Tab}return Convert::moveToHeap(result, this);";
+                    return $"{Tab}return QDotNetConvert::toVariant(result, this);";
+                return $"{Tab}return QDotNetConvert::moveToHeap(result, this);";
             }
         }
     }

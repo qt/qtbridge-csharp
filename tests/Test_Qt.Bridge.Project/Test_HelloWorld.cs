@@ -65,7 +65,6 @@ namespace HelloWorld
 
             Assert.IsTrue(temp.Log.TryFindTarget("QtBridgeBuild", out var qtDotNetBuild));
             string[] cppFiles = [
-                "convert.cpp",
                 "main.cpp",
                 "object_dispatch.cpp",
                 "typecast.cpp"

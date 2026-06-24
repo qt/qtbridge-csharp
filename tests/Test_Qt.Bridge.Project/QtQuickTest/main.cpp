@@ -31,5 +31,5 @@ protected:
     }
 };
 
-QUICK_TEST_MAIN_WITH_SETUP(Test_QtQuickTest, Setup_QtQuickTest)
+QUICK_TEST_MAIN_WITH_DOTNET_SETUP(Test_QtQuickTest, Setup_QtQuickTest)
 #include "main.moc"

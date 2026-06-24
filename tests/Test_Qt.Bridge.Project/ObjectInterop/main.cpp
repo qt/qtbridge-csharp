@@ -72,5 +72,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(Test_ObjectInterop)
+QTEST_MAIN_WITH_DOTNET_SETUP(Test_ObjectInterop)
 #include "main.moc"

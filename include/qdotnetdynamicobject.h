@@ -172,7 +172,14 @@ public:
 
     const QMetaObject *metaObject() const override { return type->metaObject; }
 
-    void *qt_metacast(const char *_clname) override { return QObject::qt_metacast(_clname); }
+    void *qt_metacast(const char *_clname) override
+    {
+        if (!_clname)
+            return nullptr;
+        if (_clname == QDotNetObject::ClassName || !strcmp(_clname, QDotNetObject::ClassName))
+            return static_cast<QDotNetObject *>(this);
+        return QObject::qt_metacast(_clname);
+    }
 
     int qt_metacall(QMetaObject::Call _c, int _id, void **_a) override
     {

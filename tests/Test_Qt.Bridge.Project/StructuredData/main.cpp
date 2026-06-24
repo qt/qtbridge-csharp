@@ -25,5 +25,5 @@ class Setup : public QtQuickTestSetup
     Q_OBJECT
 };
 
-QUICK_TEST_MAIN_WITH_SETUP(Test_StructuredData, Setup)
+QUICK_TEST_MAIN_WITH_DOTNET_SETUP(Test_StructuredData, Setup)
 #include "main.moc"

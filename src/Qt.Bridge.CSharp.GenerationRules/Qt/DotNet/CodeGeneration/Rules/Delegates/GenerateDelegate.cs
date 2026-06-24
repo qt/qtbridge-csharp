@@ -73,7 +73,7 @@ struct {type.MFn(Ns | Name)} : public {baseClass}
 #ifdef QT_QUICK_LIB
     static {type.MFn(Name)} fromScriptValue(const QJSValue &value, const QObject *context = nullptr)
     {{
-        return Convert::fromScriptDelegate<{type.MFn(Name)}, {string.Join(", ",
+        return QDotNetConvert::fromScriptDelegate<{type.MFn(Name)}, {string.Join(", ",
             sigTypes.Select(x => x.MFn(Ns | Name)))}>(AssemblyQualifiedName, value, context);
     }}
 #endif

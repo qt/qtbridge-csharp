@@ -60,15 +60,15 @@ mutable QDotNetFunction<void, QDotNetRef, {fieldType.MFn(Ns | Name)}> {Wrap}
         .invoke(nullptr, *this);
     return {(
         !fieldType.IsObject() ? "result"
-        : fieldType.Is<object>() ? "Convert::toVariant(result)"
-        : "Convert::moveToHeap(result, this)")};
+        : fieldType.Is<object>() ? "QDotNetConvert::toVariant(result, this)"
+        : "QDotNetConvert::moveToHeap(result, this)")};
 }}
 {(field.IsLiteral || field.IsInitOnly ? Wrap : $@"
 void {type.MFn(Ns | Name)}::{field.MFn(Set)}({fieldType.MFn(Ns | Name | Arg)} value)
 {{
     fieldSet<{fieldType.MFn(Ns | Name)}>(""{field.MFn(Src)}"", d->{field.MFn(Set | Func)})
         .invoke(nullptr, *this, {Wrap}
-{(fieldType.Is<object>() ? $"Convert::fromVariant(value)" : $"{fieldType.MFn(Star)}value")});
+{(fieldType.Is<object>() ? $"QDotNetConvert::fromVariant(value)" : $"{fieldType.MFn(Star)}value")});
 }}")}
 {Blank}";
 

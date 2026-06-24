@@ -125,6 +125,7 @@ private:
 #define Q_DOTNET_OBJECT_INIT(...) , __VA_ARGS__
 
 public:
+    static inline const char *ClassName = "QDotNetObject";
     static inline const QString &AssemblyQualifiedName = QStringLiteral("System.Object");
 
     QDotNetObject(const void *objectRef = nullptr)

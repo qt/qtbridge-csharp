@@ -37,7 +37,6 @@ ApplicationWindow {{
         {
             None = 0,
             Cast = 1 << 0,
-            Convert = 1 << 1,
             Dispatch = 1 << 2,
             Main = 1 << 3,
             MyClassA = 1 << 4,
@@ -46,7 +45,7 @@ ApplicationWindow {{
 
         [TestMethod
             , DataRow("CleanBuild", null
-                , Cpp.Cast | Cpp.Convert | Cpp.Dispatch | Cpp.Main | Cpp.MyClassA)
+                , Cpp.Cast | Cpp.Dispatch | Cpp.Main | Cpp.MyClassA)
             , DataRow("NoChanges", "", Cpp.None)
             , DataRow("QmlChanged", "QML", Cpp.None)
             , DataRow("PrivateFunc", "PRIVATE_FUNC", Cpp.None)
@@ -88,9 +87,6 @@ ApplicationWindow {{
 
             Action<bool> check = cppFiles.HasFlag(Cpp.Main) ? Assert.IsTrue : Assert.IsFalse;
             check(target.HasMessage(new(@"\bmain.cpp\b")));
-
-            check = cppFiles.HasFlag(Cpp.Convert) ? Assert.IsTrue : Assert.IsFalse;
-            check(target.HasMessage(new(@"\bconvert.cpp\b")));
 
             check = cppFiles.HasFlag(Cpp.Dispatch) ? Assert.IsTrue : Assert.IsFalse;
             check(target.HasMessage(new(@"\bobject_dispatch.cpp\b")));

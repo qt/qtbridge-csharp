@@ -145,5 +145,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(Test_CustomMarshaling)
+QTEST_MAIN_WITH_DOTNET_SETUP(Test_CustomMarshaling)
 #include "main.moc"

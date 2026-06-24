@@ -23,5 +23,5 @@ class Setup_QmlToManagedDelegates : public QtQuickTestSetup
     Q_OBJECT
 };
 
-QUICK_TEST_MAIN_WITH_SETUP(Test_QmlToManagedDelegates, Setup_QmlToManagedDelegates)
+QUICK_TEST_MAIN_WITH_DOTNET_SETUP(Test_QmlToManagedDelegates, Setup_QmlToManagedDelegates)
 #include "main.moc"

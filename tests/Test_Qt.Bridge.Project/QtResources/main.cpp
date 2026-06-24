@@ -47,5 +47,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(Test_QtResources)
+QTEST_MAIN_WITH_DOTNET_SETUP(Test_QtResources)
 #include "main.moc"

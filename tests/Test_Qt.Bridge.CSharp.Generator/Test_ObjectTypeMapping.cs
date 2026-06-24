@@ -154,8 +154,8 @@ namespace Test_Qt.Bridge.CSharp.Generator
             using var result = await TestCodeGenerator.GenerateAsync([src], ct: CancellationToken);
             Assert.IsTrue(result.Sink.Files.TryGetValue("source/hpp/myapp/foo.h", out var hpp));
 
-            Assert.DoesNotMatchRegex(new Regex(@"\*\s*Convert::fromVariant\s*\(",
-                RegexOptions.Singleline), hpp, "Unexpected: *Convert::fromVariant(...)");
+            Assert.DoesNotMatchRegex(new Regex(@"\*\s*QDotNetConvert::fromVariant\s*\(",
+                RegexOptions.Singleline), hpp, "Unexpected: *QDotNetConvert::fromVariant(...)");
 
             Assert.MatchesRegex(new Regex(@"echo\s*\(\s*QVariant\s+x\s*\)\s*const;",
                 RegexOptions.Singleline), hpp, "object-Arg should become QVariant in Q_INVOKABLE.");

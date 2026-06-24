@@ -16,7 +16,7 @@ namespace Qt.Bridge.CodeGeneration.MetaFunctions
             string argName = string.IsNullOrWhiteSpace(arg.Name) ? $"arg{arg.Position}" : arg.Name;
             if (!arg.ParameterType.Is<object>() || traits.HasTraits(Src))
                 return argName;
-            return $"Convert::fromVariant({argName})";
+            return $"QDotNetConvert::fromVariant({argName})";
         }
     }
 }

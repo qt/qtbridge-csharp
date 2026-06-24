@@ -5,8 +5,25 @@
 
 #include <QObject>
 #include <QQmlEngine>
+#include <QtQuickTest>
 
 #include "QtTestSetupBase.h"
+
+#ifdef QUICK_TEST_SOURCE_DIR
+#  define QUICK_TEST_SOURCE_DIR_DOTNET QUICK_TEST_SOURCE_DIR
+#else
+#  define QUICK_TEST_SOURCE_DIR_DOTNET nullptr
+#endif
+
+#define QUICK_TEST_MAIN_WITH_DOTNET_SETUP(name, QuickTestSetupClass)                       \
+    int main(int argc, char **argv)                                                        \
+    {                                                                                      \
+        QDotNetConvert::setDispatch(QtDotNet::objectDispatch);                             \
+        QTEST_SET_MAIN_SOURCE_PATH                                                         \
+        QuickTestSetupClass setup;                                                         \
+        return quick_test_main_with_setup(argc, argv, #name, QUICK_TEST_SOURCE_DIR_DOTNET, \
+                                          &setup);                                         \
+    }
 
 class QtQuickTestSetup : public QObject, protected QtTestSetupBase
 {

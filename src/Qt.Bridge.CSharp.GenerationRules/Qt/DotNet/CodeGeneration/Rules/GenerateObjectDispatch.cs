@@ -41,7 +41,7 @@ namespace Qt.Bridge.CodeGeneration.Rules
 
 namespace QtDotNet
 {{
-    QObject *objectDispatch(QDotNetObject &args);
+    QObject *objectDispatch(QDotNetRef &args, const QObject *context = nullptr);
 }}
 ";
             ////////////////////////////////////////////////////////////////////////////////////////
@@ -55,7 +55,7 @@ namespace QtDotNet
 {dispatchCpp[new() { Distinct = true, Content = allTypes.Select(t => $@"
 #include <{t.MFn(Ns | Dir)}{t.MFn(File)}.h>") }]}
 
-using Factory = QObject *(*)(QDotNetObject &);
+using Factory = QObject *(*)(QDotNetRef &, const QObject *);
 
 static const QHash<QString, Factory>& registry()
 {{
@@ -63,20 +63,20 @@ static const QHash<QString, Factory>& registry()
         {string.Join(@",
         ", allTypes.Select(t => $@"{{
             QStringLiteral(""{t.MFn(Src | Fqn)}""),
-            [](QDotNetObject& obj) -> QObject *
+            [](QDotNetRef& obj, const QObject *context) -> QObject *
             {{
-                return Convert::as<{t.MFn(Ns | Name)}>(obj, false);
+                return QDotNetConvert::as<{t.MFn(Ns | Name)}>(obj, false, context);
             }}
         }}"))}
     }};
     return reg;
 }}
 
-QObject *QtDotNet::objectDispatch(QDotNetObject &args)
+QObject *QtDotNet::objectDispatch(QDotNetRef &args, const QObject *context)
 {{
-    const QString key = args.type().stableAssemblyQualifiedName();
+    const QString key = QDotNetType(args.type()).stableAssemblyQualifiedName();
     if (const auto it = registry().constFind(key); it != registry().cend())
-        return (*it)(args);
+        return (*it)(args, context);
     return nullptr;
 }}
 ";

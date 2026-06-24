@@ -47,7 +47,7 @@ Q_INVOKABLE {type.MFn(Ns | Name)} *{castName}(QObject *obj);
             implementation += $@"
 {type.MFn(Ns | Name)} *{typeCast.MFn(Ns | Name)}::{castName}(QObject *qObj)
 {{
-    return Convert::as<{type.MFn(Ns | Name)}>(qObj);
+    return QDotNetConvert::as<{type.MFn(Ns | Name)}>(qObj);
 }}
 {Blank}";
             return Ok;

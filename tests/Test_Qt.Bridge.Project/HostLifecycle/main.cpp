@@ -95,5 +95,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(Test_HostLifecycle)
+QTEST_MAIN_WITH_DOTNET_SETUP(Test_HostLifecycle)
 #include "main.moc"

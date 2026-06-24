@@ -40,7 +40,9 @@ namespace Qt.Bridge.CodeGeneration.Rules
 "#include <QDotNetHost>",
 "#include <QDotNetAdapter>",
 "#include <QDotNetRef>",
-"#include <QDotNetStatic>"
+"#include <QDotNetStatic>",
+"#include <QDotNetConvert>",
+"#include <object_dispatch.h>"
                 }
             }
 ]}
@@ -49,6 +51,7 @@ QT_DOTNET_HOST(appName);
 
 int main(int argc, char *argv[])
 {{
+    QDotNetConvert::setDispatch(QtDotNet::objectDispatch);
     auto appDirPath = QFileInfo(argv[0]).absoluteDir().path();
     {mainCpp[new(MainStartingUp) { Sorted = false }]}
 

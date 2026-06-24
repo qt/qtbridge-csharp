@@ -40,7 +40,8 @@ namespace Test_Qt.Bridge.CSharp.Generator
             var coreLib = typeof(int).Assembly.GetName().Name;
             Assert.Contains($"QStringLiteral(\"DispatchTypes.Payload`1[[System.Int32, {coreLib}]], "
                     + result.SourceAssembly.GetName().Name + "\")", dispatchCpp);
-            Assert.Contains("key = args.type().stableAssemblyQualifiedName()", dispatchCpp);
+            Assert.Contains("key = QDotNetType(args.type()).stableAssemblyQualifiedName()",
+                dispatchCpp);
 
             Assert.DoesNotContain("Version=", dispatchCpp);
             Assert.DoesNotContain("Culture=", dispatchCpp);

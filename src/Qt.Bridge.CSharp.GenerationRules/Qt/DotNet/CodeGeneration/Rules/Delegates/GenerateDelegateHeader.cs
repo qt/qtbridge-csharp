@@ -49,7 +49,6 @@ namespace Qt.Bridge.CodeGeneration.Rules.Delegates
 #pragma once
 #include <type_traits>
 #include <builtin_types.h>
-#include <convert.h>
 
 namespace {baseType.MFn(Ns)}
 {{
