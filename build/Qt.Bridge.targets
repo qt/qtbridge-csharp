@@ -613,7 +613,9 @@ namespace Qt.Qml
         >CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL</VcVarsCmd>
       <DeployCmd>"$(QtDir)\bin\windeployqt.exe"</DeployCmd>
       <DeployCmd>$(DeployCmd) --qmldir "$(ProjectDir.TrimEnd('\'))"</DeployCmd>
-      <DeployCmd>$(DeployCmd) --no-translations --release</DeployCmd>
+      <DeployCmd>$(DeployCmd) --no-translations</DeployCmd>
+      <DeployCmd Condition="'$(QtDeployConfig)' != 'debug'">$(DeployCmd) --release</DeployCmd>
+      <DeployCmd Condition="'$(QtDeployConfig)' == 'debug'">$(DeployCmd) --debug</DeployCmd>
       <DeployCmd>$(DeployCmd) --no-compiler-runtime</DeployCmd>
       <DeployCmd>$(DeployCmd) "$(RunCommand)"</DeployCmd>
       <DeployCmd>$(DeployCmd) &gt; NUL</DeployCmd>

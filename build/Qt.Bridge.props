@@ -54,6 +54,7 @@
 
     <QtBuildSystem Condition="'$(QtBuildSystem)' == ''">ninja</QtBuildSystem>
     <QtBuildConfig Condition="'$(QtBuildConfig)' == ''">Release</QtBuildConfig>
+    <QtDeployConfig Condition="'$(QtDeployConfig)' == ''">Release</QtDeployConfig>
 
     <_QtNativeBuildDirIsDefault Condition="'$(QtNativeBuildDir)' == ''">true</_QtNativeBuildDirIsDefault>
     <_QtNativeSourceDirIsDefault Condition="'$(QtNativeSourceDir)' == ''">true</_QtNativeSourceDirIsDefault>
