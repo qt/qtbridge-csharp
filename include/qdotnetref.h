@@ -82,7 +82,7 @@ public:
         return fnEquals(obj);
     }
 
-    QDotNetRef getType() const
+    QDotNetRef type() const
     {
         if (!fnGetType.isValid()) {
             const QList<QDotNetParameter> parameters{ QDotNetInbound<QDotNetRef>::Parameter };

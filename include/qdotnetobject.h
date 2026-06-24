@@ -131,23 +131,33 @@ public:
         : QDotNetRef(objectRef)
     {}
 
-    QDotNetObject(const QDotNetObject &cpySrc)
+    QDotNetObject(const QDotNetRef &cpySrc)
         : QDotNetRef(cpySrc)
+    {}
+
+    QDotNetObject(const QDotNetObject &cpySrc)
+        : QDotNetRef(cpySrc), objType(cpySrc.objType)
     {}
 
     QDotNetObject &operator =(const QDotNetObject &cpySrc)
     {
         QDotNetRef::operator=(cpySrc);
+        objType = cpySrc.objType;
         return *this;
     }
 
-    QDotNetObject(QDotNetObject &&movSrc) noexcept
+    QDotNetObject(QDotNetRef &&movSrc) noexcept
         : QDotNetRef(std::move(movSrc))
+    {}
+
+    QDotNetObject(QDotNetObject &&movSrc) noexcept
+        : QDotNetRef(std::move(movSrc)), objType(movSrc.objType)
     {}
 
     QDotNetObject &operator=(QDotNetObject &&movSrc) noexcept
     {
         QDotNetRef::operator=(std::move(movSrc));
+        objType = movSrc.objType;
         return *this;
     }
 
@@ -155,10 +165,8 @@ public:
 
     const QDotNetType &type() const
     {
-        if (!fnGetType.isValid()) {
-            method("GetType", fnGetType);
-            objType = fnGetType.invoke(*this);
-        }
+        if (!objType.isValid())
+            objType = QDotNetRef::type();
         return objType;
     }
 
@@ -328,10 +336,7 @@ private:
     static inline void QDOTNETFUNCTION_CALLTYPE eventCallback(void *context, void *eventNameChars,
         void *eventSourceRef, void *eventArgsRef);
 
-    mutable QDotNetFunction<QDotNetType> fnGetType;
     mutable QDotNetType objType = nullptr;
-    mutable QDotNetFunction<QString> fnToString;
-    mutable QDotNetFunction<bool, QDotNetRef> fnEquals;
 };
 
 struct QDotNetEventHandler
