@@ -31,7 +31,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem
         [
             "QtDotNetPropsImported",
             "QtQmlRootModule",
-            "QtQmlSourceDir",
             "QtDir",
             "QtInstallRoot",
             "QtDotNetGen"

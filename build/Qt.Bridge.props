@@ -47,7 +47,6 @@
 
     <QtQmlFilesCs>qt/csharp/QmlFiles.cs</QtQmlFilesCs>
     <QtResourceFilesCs>qt/csharp/QtResources.cs</QtResourceFilesCs>
-    <QtQmlSourceDir>qt/native/source/qml/</QtQmlSourceDir>
     <QtBridgeAssemblyResourceId Condition="'$(QtBridgeAssemblyResourceId)' == ''"
       >$(AssemblyName)</QtBridgeAssemblyResourceId>
     <QtBridgeExcludeQtResxFromManagedResources
@@ -55,6 +54,10 @@
 
     <QtBuildSystem Condition="'$(QtBuildSystem)' == ''">ninja</QtBuildSystem>
     <QtBuildConfig Condition="'$(QtBuildConfig)' == ''">Release</QtBuildConfig>
+
+    <_QtNativeBuildDirIsDefault Condition="'$(QtNativeBuildDir)' == ''">true</_QtNativeBuildDirIsDefault>
+    <_QtNativeSourceDirIsDefault Condition="'$(QtNativeSourceDir)' == ''">true</_QtNativeSourceDirIsDefault>
+    <_QtNativeBinDirIsDefault Condition="'$(QtNativeBinDir)' == ''">true</_QtNativeBinDirIsDefault>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -87,10 +90,20 @@
       Include="$(ProjectDir)$(IntermediateOutputPath)$(QtResourceFilesCs)" />
     <!-- Add reference to source files for incremental build -->
     <QtDotNetNativeSource
+      Condition="'$(QtNativeSourceDir)' != ''"
+      Include="$(QtNativeSourceDir)/CMakeLists.txt
+              ;$(QtNativeSourceDir)/**/*" />
+    <QtDotNetNativeSource
+      Condition="'$(QtNativeSourceDir)' == ''"
       Include="$(IntermediateOutputPath)qt/native/source/CMakeLists.txt
               ;$(IntermediateOutputPath)qt/native/source/**/*" />
     <!-- Add reference to build files for incremental build -->
     <QtDotNetNativeBuild
+      Condition="'$(QtNativeBuildDir)' != ''"
+      Include="$(QtNativeBuildDir)/CMakeCache.txt
+              ;$(QtNativeBuildDir)/**/*" />
+    <QtDotNetNativeBuild
+      Condition="'$(QtNativeBuildDir)' == ''"
       Include="$(IntermediateOutputPath)qt/native/build/CMakeCache.txt
               ;$(IntermediateOutputPath)qt/native/build/**/*" />
   </ItemGroup>

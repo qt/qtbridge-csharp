@@ -15,6 +15,13 @@
       '$(QtQmlRootModule)', '[^\w]', '_'))</QtQmlRootModuleName>
     <QtBridgeAssemblyResourceId Condition="'$(QtBridgeAssemblyResourceId)' == ''"
       >$(MSBuildProjectName)</QtBridgeAssemblyResourceId>
+    <QtNativeBuildDir Condition="'$(_QtNativeBuildDirIsDefault)' == 'true'"
+      >$([System.String]::Copy('$(IntermediateOutputPath)').Replace('\','/'))qt/native/build</QtNativeBuildDir>
+    <QtNativeSourceDir Condition="'$(_QtNativeSourceDirIsDefault)' == 'true'"
+      >$([System.String]::Copy('$(IntermediateOutputPath)').Replace('\','/'))qt/native/source</QtNativeSourceDir>
+    <QtNativeBinDir Condition="'$(_QtNativeBinDirIsDefault)' == 'true'"
+      >$([System.String]::Copy('$(IntermediateOutputPath)').Replace('\','/'))qt/native/bin</QtNativeBinDir>
+    <_QtQmlSourceDir>$(QtNativeSourceDir)/qml/</_QtQmlSourceDir>
   </PropertyGroup>
 
   <UsingTask TaskName="QtBridgeResolveResxFileRefs"
@@ -226,7 +233,7 @@
     <!-- Copy QML files to native source dir -->
     <Copy Condition="'@(Qml)' != ''"
       SourceFiles="$(ProjectDir)%(RelativeDir)%(Filename)%(Extension)"
-      DestinationFolder="$(IntermediateOutputPath)$(QtQmlSourceDir)%(SourceDir)" />
+      DestinationFolder="$(_QtQmlSourceDir)%(SourceDir)" />
     <MakeDir Condition="'@(Qml)' != '' OR '@(QmlModule)' != ''"
       Directories="$(IntermediateOutputPath)qt/csharp" />
     <!-- Add C# source with paths of QML files; this will be an input for code generation -->
@@ -318,10 +325,14 @@ namespace Qt.Qml
 
     <PropertyGroup>
       <ProjectIntermediateDir>$(ProjectDir)$(IntermediateOutputPath)</ProjectIntermediateDir>
+      <ProjectQtNativeSourceDir
+        >$([System.IO.Path]::GetFullPath('$(ProjectDir)$(QtNativeSourceDir)'))</ProjectQtNativeSourceDir>
+      <ProjectQtNativeRootDir
+        >$([System.IO.Path]::GetFullPath('$(ProjectQtNativeSourceDir)/..'))</ProjectQtNativeRootDir>
       <QtGenCmd
         >$(QtGenCmd) --source "$(ProjectIntermediateDir)$(TargetFileName)"</QtGenCmd>
       <QtGenCmd
-        >$(QtGenCmd) --target "$(ProjectIntermediateDir)qt/native"</QtGenCmd>
+        >$(QtGenCmd) --target "$(ProjectQtNativeRootDir)"</QtGenCmd>
       <QtGenCmd
         >$(QtGenCmd) @(_ResolvedProjectReferencePaths->'--ref &quot;%(Identity)&quot;', ' ')</QtGenCmd>
       <QtGenCmd
@@ -334,10 +345,10 @@ namespace Qt.Qml
     </Exec>
     <Error Condition="'$(QtGenResult)' != '0'" Text="Error generating native code!" />
     <WriteLinesToFile Overwrite="true" WriteOnlyWhenDifferent="true"
-      File="$(IntermediateOutputPath)qt/native/source/qtdotnet.cmake"
+      File="$(QtNativeSourceDir)/qtdotnet.cmake"
       Lines="include_directories(&quot;$(QtDotNetLib.Replace('\', '/'))&quot;)" />
     <ItemGroup>
-      <QtDotNetNativeSource Include="$(IntermediateOutputPath)qt/native/source/**/*" />
+      <QtDotNetNativeSource Include="$(QtNativeSourceDir)/**/*" />
     </ItemGroup>
   </Target>
   <!-- END QtBridgeGenerate-->
@@ -364,12 +375,6 @@ namespace Qt.Qml
     Condition="'$(DesignTimeBuild)' != 'true'">
 
     <Message Importance="high" Text="Qt Bridge: Building native code..." />
-
-    <PropertyGroup>
-      <QtNativeBuildDir>$(IntermediateOutputPath)qt/native/build</QtNativeBuildDir>
-      <QtNativeSourceDir>$(IntermediateOutputPath)qt/native/source</QtNativeSourceDir>
-      <QtNativeBinDir>$(IntermediateOutputPath)qt/native/bin</QtNativeBinDir>
-    </PropertyGroup>
 
     <PropertyGroup Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' == ''">
       <VsWhereCmd>"$(VsWhereExe)"</VsWhereCmd>
@@ -477,8 +482,8 @@ namespace Qt.Qml
 
     <PropertyGroup>
       <!-- Absolute paths to the Qt-native source and build directories. -->
-      <_QtIdeSrcDir>$(ProjectDir)$(IntermediateOutputPath)qt/native/source</_QtIdeSrcDir>
-      <_QtIdeBldDir>$(ProjectDir)$(IntermediateOutputPath)qt/native/build</_QtIdeBldDir>
+      <_QtIdeSrcDir>$(ProjectDir)$(QtNativeSourceDir)</_QtIdeSrcDir>
+      <_QtIdeBldDir>$(ProjectDir)$(QtNativeBuildDir)</_QtIdeBldDir>
 
       <!--
         Metadata file directory: obj/[Platform]/[Configuration]/.
@@ -592,10 +597,6 @@ namespace Qt.Qml
     Condition="'$(DesignTimeBuild)' != 'true'">
 
     <Message Importance="high" Text="Qt Bridge: Deploying Qt..." />
-    <PropertyGroup>
-      <QtNativeBuildDir>$(IntermediateOutputPath)qt/native/build</QtNativeBuildDir>
-    </PropertyGroup>
-
     <PropertyGroup Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' == ''">
       <VsWhereCmd>"$(VsWhereExe)"</VsWhereCmd>
       <VsWhereCmd>$(VsWhereCmd) -latest</VsWhereCmd>
@@ -644,7 +645,7 @@ namespace Qt.Qml
 
     <ItemGroup>
       <QmlDeploy Condition="'@(Qml)' != ''"
-        Include="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlSourceDir)%(Qml.SourceDir)*">
+        Include="$(ProjectDir)$(_QtQmlSourceDir)%(Qml.SourceDir)*">
         <SourceDir>%(Qml.SourceDir)</SourceDir>
       </QmlDeploy>
     </ItemGroup>
