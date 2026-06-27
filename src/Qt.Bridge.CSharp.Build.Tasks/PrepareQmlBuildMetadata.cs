@@ -90,6 +90,16 @@ namespace Qt.Bridge.CSharp.Build.Tasks
                     return false;
                 }
 
+                var validationError = QmlBuildMetadataValidator.Validate(
+                    BuildIniPath,
+                    ProjectSourceDirectory,
+                    ProjectSourcesQrcPath);
+                if (validationError != null) {
+                    Log.LogWarning("Qt Bridge could not publish QML Language Server metadata "
+                        + $"because {validationError}");
+                    return false;
+                }
+
                 var markerPath = Path.Combine(BuildDirectory, ".qt", BuildReadyMarker.FileName);
                 Log.LogMessage(MessageImportance.High, $"Populating {markerPath} marker");
 

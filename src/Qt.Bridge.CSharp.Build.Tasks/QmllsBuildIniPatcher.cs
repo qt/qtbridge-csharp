@@ -3,6 +3,8 @@
 
 using System.Text;
 
+using static Qt.Bridge.CSharp.Build.Tasks.QmlBuildMetadataIniUtilities;
+
 namespace Qt.Bridge.CSharp.Build.Tasks
 {
     using WorkspaceEntries = Dictionary<int, Dictionary<string, string>>;
@@ -82,7 +84,7 @@ namespace Qt.Bridge.CSharp.Build.Tasks
 
             var sectionEnd = FindSectionEnd(lines, sectionStart);
             var (entries, sizeIndex, sizeValue) =
-                ParseWorkspaceEntries(lines, sectionStart, sectionEnd);
+                ParseWorkspaceSection(lines, sectionStart, sectionEnd);
             var generatedIndex = FindWorkspaceByPath(entries, generatedSourceDir);
             if (generatedIndex == null)
                 return FormatPatchResult.NotReady(lines);
@@ -175,30 +177,21 @@ namespace Qt.Bridge.CSharp.Build.Tasks
             return FormatPatchResult.Ready(lines, updated);
         }
 
-        private static (WorkspaceEntries, int, int) ParseWorkspaceEntries(
+        private static (WorkspaceEntries, int, int) ParseWorkspaceSection(
             IReadOnlyList<string> lines,
             int sectionStart,
             int sectionEnd)
         {
-            var entries = new WorkspaceEntries();
+            var entries = ParseWorkspaceEntries(lines, sectionStart, sectionEnd);
+
             var sizeIndex = -1;
             var sizeValue = 0;
-
             for (var i = sectionStart + 1; i < sectionEnd; ++i) {
                 var line = lines[i].Trim();
-                if (line.StartsWith("size=", StringComparison.OrdinalIgnoreCase)) {
-                    sizeIndex = i;
-                    _ = int.TryParse(line.Substring("size=".Length), out sizeValue);
+                if (!line.StartsWith("size=", StringComparison.OrdinalIgnoreCase))
                     continue;
-                }
-
-                if (!TryParseWorkspaceKey(line, out var index, out var key, out var value))
-                    continue;
-                if (!entries.TryGetValue(index, out var values)) {
-                    values = [];
-                    entries[index] = values;
-                }
-                values[key] = value;
+                sizeIndex = i;
+                _ = int.TryParse(line.Substring("size=".Length), out sizeValue);
             }
 
             return (entries, sizeIndex, sizeValue);
@@ -234,34 +227,6 @@ namespace Qt.Bridge.CSharp.Build.Tasks
             }
 
             lines.Insert(Math.Min(sectionEnd, lines.Count), $"{index}\\{key}=\"{value}\"");
-        }
-
-        private static bool TryParseWorkspaceKey(
-            string line,
-            out int index,
-            out string key,
-            out string value)
-        {
-            index = 0;
-            key = "";
-            value = "";
-
-            var equals = line.IndexOf('=');
-            if (equals <= 0)
-                return false;
-
-            var separator = line.LastIndexOf('\\', equals - 1, equals);
-            if (separator < 0)
-                separator = line.LastIndexOf('/', equals - 1, equals);
-            if (separator <= 0)
-                return false;
-
-            if (!int.TryParse(line.Substring(0, separator), out index))
-                return false;
-
-            key = line.Substring(separator + 1, equals - separator - 1);
-            value = Unquote(line.Substring(equals + 1));
-            return key.Length > 0;
         }
 
         private static IEnumerable<string> MergeLegacySectionValues(
@@ -327,50 +292,11 @@ namespace Qt.Bridge.CSharp.Build.Tasks
                 : paths + ";" + PathUtilities.ToForwardSlashes(path!);
         }
 
-        private static bool ContainsPath(string paths, string path) =>
-            paths.Split(';').Any(candidate => SameIniPath(candidate, path));
-
-        private static bool SameIniPath(string left, string right) =>
-            PathUtilities.AreEquivalent(Unquote(left), Unquote(right));
-
-        private static string BuildSectionKey(string path)
-        {
-            var normalized = PathUtilities.ToForwardSlashes(path).TrimEnd('/');
-            if (normalized.Length >= 2 && normalized[1] == ':')
-                normalized = char.ToUpperInvariant(normalized[0]) + normalized.Substring(1);
-            return "[" + normalized.Replace("/", "<SLASH>") + "]";
-        }
-
-        private static bool SameSectionKey(string line, string key, string path)
-        {
-            var comparison = PathUtilities.IsCaseInsensitive(path)
-                ? StringComparison.OrdinalIgnoreCase
-                : StringComparison.Ordinal;
-            return string.Equals(line.Trim(), key, comparison);
-        }
-
-        private static int FindSectionEnd(IReadOnlyList<string> lines, int sectionStart)
-        {
-            for (var i = sectionStart + 1; i < lines.Count; ++i) {
-                var trimmed = lines[i].Trim();
-                if (trimmed.StartsWith("[", StringComparison.Ordinal)
-                    && trimmed.EndsWith("]", StringComparison.Ordinal)) {
-                    return i;
-                }
-            }
-            return lines.Count;
-        }
+        private static bool SameSectionKey(string line, string key, string path) =>
+            string.Equals(line.Trim(), key, SectionComparison(path));
 
         private static string JoinPaths(IEnumerable<string> paths) =>
             string.Join(";", paths.Select(PathUtilities.ToForwardSlashes));
-
-        private static string Unquote(string value)
-        {
-            value = value.Trim();
-            return value.Length >= 2 && value[0] == '"' && value[value.Length - 1] == '"'
-                ? value.Substring(1, value.Length - 2)
-                : value;
-        }
 
         private static void WriteIfChanged(string iniPath, IEnumerable<string> updated, bool changed)
         {
