@@ -19,7 +19,7 @@
 
   <UsingTask TaskName="QtBridgeResolveResxFileRefs"
              TaskFactory="RoslynCodeTaskFactory"
-             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
       <ResxFiles ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
       <ProjectDir ParameterType="System.String" Required="true" />
@@ -196,15 +196,15 @@
         <IsRoot Condition="'%(RelativeDir)' != ''">false</IsRoot>
       </Qml>
       <Qml>
-        <SourceDir Condition="%(IsRoot)">$(QtQmlRootModuleName)\</SourceDir>
+        <SourceDir Condition="%(IsRoot)">$(QtQmlRootModuleName)/</SourceDir>
         <SourceDir Condition="!%(IsRoot)">%(RelativeDir)</SourceDir>
       </Qml>
       <Qml>
         <Uri>$([System.String]::Copy(%(SourceDir))
                 .Replace('\','/').Replace('/','.').Trim('.'))</Uri>
         <TypeName>%(FileName)</TypeName>
-        <JsonSourcePath>$([System.String]::Copy('$(ProjectDir)%(RelativeDir)%(Filename)%(Extension)').Replace('\', '\\'))</JsonSourcePath>
-        <JsonModulePath>$([System.String]::Copy('%(SourceDir)').Replace('\', '\\'))</JsonModulePath>
+        <JsonSourcePath>$([System.String]::Copy('$(ProjectDir)%(RelativeDir)%(Filename)%(Extension)').Replace('\', '/'))</JsonSourcePath>
+        <JsonModulePath>$([System.String]::Copy('%(SourceDir)').Replace('\', '/'))</JsonModulePath>
       </Qml>
     </ItemGroup>
     <ItemGroup>
@@ -212,7 +212,7 @@
       <QmlModule Remove="$(QtQmlRootModuleName)" />
       <QmlModule Include="$(QtQmlRootModuleName)">
         <IsRoot>true</IsRoot>
-        <SourceDir>$(QtQmlRootModuleName)\</SourceDir>
+        <SourceDir>$(QtQmlRootModuleName)/</SourceDir>
       </QmlModule>
     </ItemGroup>
   </Target>
@@ -321,7 +321,7 @@ namespace Qt.Qml
       <QtGenCmd
         >$(QtGenCmd) --source "$(ProjectIntermediateDir)$(TargetFileName)"</QtGenCmd>
       <QtGenCmd
-        >$(QtGenCmd) --target "$(ProjectIntermediateDir)qt\native"</QtGenCmd>
+        >$(QtGenCmd) --target "$(ProjectIntermediateDir)qt/native"</QtGenCmd>
       <QtGenCmd
         >$(QtGenCmd) @(_ResolvedProjectReferencePaths->'--ref &quot;%(Identity)&quot;', ' ')</QtGenCmd>
       <QtGenCmd
@@ -334,10 +334,10 @@ namespace Qt.Qml
     </Exec>
     <Error Condition="'$(QtGenResult)' != '0'" Text="Error generating native code!" />
     <WriteLinesToFile Overwrite="true" WriteOnlyWhenDifferent="true"
-      File="$(IntermediateOutputPath)qt\native\source\qtdotnet.cmake"
+      File="$(IntermediateOutputPath)qt/native/source/qtdotnet.cmake"
       Lines="include_directories(&quot;$(QtDotNetLib.Replace('\', '/'))&quot;)" />
     <ItemGroup>
-      <QtDotNetNativeSource Include="$(IntermediateOutputPath)qt\native\source\**\*" />
+      <QtDotNetNativeSource Include="$(IntermediateOutputPath)qt/native/source/**/*" />
     </ItemGroup>
   </Target>
   <!-- END QtBridgeGenerate-->
@@ -462,7 +462,7 @@ namespace Qt.Qml
   //////////////////////////////////////////////////////////////////////////////////////////////////
   // QtBridgeWriteQmlMetadataFile
   //
-  // Writes qtbridge-qml.ide.json to obj\[Platform\]Configuration\ so that the
+  // Writes qtbridge-qml.ide.json to obj/[Platform]/[Configuration]/ so that the
   // Qt Bridge Visual Studio extension can configure and start the QML Language
   // Server without inspecting the full MSBuild graph.
   //
@@ -477,17 +477,17 @@ namespace Qt.Qml
 
     <PropertyGroup>
       <!-- Absolute paths to the Qt-native source and build directories. -->
-      <_QtIdeSrcDir>$(ProjectDir)$(IntermediateOutputPath)qt\native\source</_QtIdeSrcDir>
-      <_QtIdeBldDir>$(ProjectDir)$(IntermediateOutputPath)qt\native\build</_QtIdeBldDir>
+      <_QtIdeSrcDir>$(ProjectDir)$(IntermediateOutputPath)qt/native/source</_QtIdeSrcDir>
+      <_QtIdeBldDir>$(ProjectDir)$(IntermediateOutputPath)qt/native/build</_QtIdeBldDir>
 
       <!--
-        Metadata file directory: obj\[Platform\]Configuration\.
+        Metadata file directory: obj/[Platform]/[Configuration]/.
         For real platforms (x64, arm64 …), include the platform segment - this matches
         IntermediateOutputPath and what the VS extension resolves via SolutionConfiguration2.
-        For Any CPU / AnyCPU / unspecified, use the bare obj\Configuration\ path.
+        For Any CPU / AnyCPU / unspecified, use the bare obj/[Configuration]/ path.
         MSBuild uses 'AnyCPU' (no space) internally; Visual Studio passes 'Any CPU'
         (with space) as the platform name. Both must be treated as unqualified so the
-        metadata file is written to obj\Debug\ instead of obj\Any CPU\Debug\, matching the
+        metadata file is written to obj/Debug/ instead of obj/Any CPU/Debug/, matching the
         plain layout MSBuild produces for AnyCPU and the provider's exact-path lookup.
       -->
       <_QtMetadataFileDir
@@ -499,23 +499,23 @@ namespace Qt.Qml
         Condition="'$(Platform)' != ''
                AND '$(Platform)' != 'AnyCPU'
                AND '$(Platform)' != 'Any CPU'"
-        >$(ProjectDir)$(BaseIntermediateOutputPath)$(Platform)\$(Configuration)</_QtMetadataFileDir>
+        >$(ProjectDir)$(BaseIntermediateOutputPath)$(Platform)/$(Configuration)</_QtMetadataFileDir>
 
-      <!-- JSON-escaped path strings (backslash -> double-backslash). -->
+      <!-- JSON path strings normalized to forward slashes for cross-host consumers. -->
       <_QtIdeJProjFile>$([System.String]::Copy(
-        '$(MSBuildProjectFullPath)').Replace('\', '\\'))</_QtIdeJProjFile>
+        '$(MSBuildProjectFullPath)').Replace('\', '/'))</_QtIdeJProjFile>
       <_QtIdeJProjDir>$([System.String]::Copy(
-        '$(ProjectDir)').Replace('\', '\\'))</_QtIdeJProjDir>
+        '$(ProjectDir)').Replace('\', '/'))</_QtIdeJProjDir>
       <_QtIdeJSrcDir>$([System.String]::Copy(
-        '$(_QtIdeSrcDir)').Replace('\', '\\'))</_QtIdeJSrcDir>
+        '$(_QtIdeSrcDir)').Replace('\', '/'))</_QtIdeJSrcDir>
       <_QtIdeJBldDir>$([System.String]::Copy(
-        '$(_QtIdeBldDir)').Replace('\', '\\'))</_QtIdeJBldDir>
+        '$(_QtIdeBldDir)').Replace('\', '/'))</_QtIdeJBldDir>
       <_QtIdeJModDir>$([System.String]::Copy(
-        '$(_QtIdeBldDir)\$(QtQmlRootModuleName)').Replace('\', '\\'))</_QtIdeJModDir>
+        '$(_QtIdeBldDir)/$(QtQmlRootModuleName)').Replace('\', '/'))</_QtIdeJModDir>
       <_QtIdeJSourceQmlDir>$([System.String]::Copy(
-        '$(_QtIdeSrcDir)\qml').Replace('\', '\\'))</_QtIdeJSourceQmlDir>
+        '$(_QtIdeSrcDir)/qml').Replace('\', '/'))</_QtIdeJSourceQmlDir>
       <_QtIdeJQtQmlDir Condition="'$(QtDir)' != ''">$([System.String]::Copy(
-        $([System.IO.Path]::GetFullPath('$(QtDir)/qml'))).Replace('\', '\\'))</_QtIdeJQtQmlDir>
+        $([System.IO.Path]::GetFullPath('$(QtDir)/qml'))).Replace('\', '/'))</_QtIdeJQtQmlDir>
 
       <!--
         importPaths JSON array content (no surrounding brackets).
@@ -540,7 +540,7 @@ namespace Qt.Qml
       starts unless the user manually reopens the QML file after the build completes.
       Empty directories are sufficient - qmlls starts without requiring their contents.
     -->
-    <MakeDir Directories="$(_QtMetadataFileDir);$(_QtIdeSrcDir);$(_QtIdeSrcDir)\qml;$(_QtIdeBldDir)" />
+    <MakeDir Directories="$(_QtMetadataFileDir);$(_QtIdeSrcDir);$(_QtIdeSrcDir)/qml;$(_QtIdeBldDir)" />
 
     <!--
       Keep the metadata JSON as readable multiline text and let MSBuild expand the
@@ -577,7 +577,7 @@ namespace Qt.Qml
 }]]></_QtMetadataJson>
     </PropertyGroup>
     <WriteLinesToFile Overwrite="true" WriteOnlyWhenDifferent="true"
-      File="$(_QtMetadataFileDir)\qtbridge-qml.ide.json"
+      File="$(_QtMetadataFileDir)/qtbridge-qml.ide.json"
       Lines="$(_QtMetadataJson)" />
 
   </Target>

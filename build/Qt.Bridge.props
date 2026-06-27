@@ -19,23 +19,23 @@
 
     <QtDotNetSolutionDir Condition="'$(SolutionDir)' != '' AND Exists('$(SolutionDir)qtbridge-csharp.sln')"
       >$(SolutionDir)</QtDotNetSolutionDir>
-    <QtDotNetSolutionDir Condition="'$(QtDotNetSolutionDir)' == '' AND Exists('$(MSBuildThisFileDirectory)..\..\qtbridge-csharp.sln')"
-      >$(MSBuildThisFileDirectory)..\..\</QtDotNetSolutionDir>
+    <QtDotNetSolutionDir Condition="'$(QtDotNetSolutionDir)' == '' AND Exists('$(MSBuildThisFileDirectory)../../qtbridge-csharp.sln')"
+      >$(MSBuildThisFileDirectory)../../</QtDotNetSolutionDir>
 
     <QtDotNetGen Condition="'$(QtHostIsWindows)' == 'true'">$(MSBuildThisFileDirectory)qbgen.exe</QtDotNetGen>
     <QtDotNetGen Condition="'$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true'">$(MSBuildThisFileDirectory)qbgen</QtDotNetGen>
     <QtDotNetGen Condition="!Exists('$(QtDotNetGen)') AND '$(QtDotNetSolutionDir)' != '' AND '$(QtHostIsWindows)' == 'true'"
-      >$(QtDotNetSolutionDir)src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen.exe</QtDotNetGen>
+      >$(QtDotNetSolutionDir)src/Qt.Bridge.CSharp.Generator/bin/$(Configuration)/$(TargetFramework)/qbgen.exe</QtDotNetGen>
     <QtDotNetGen Condition="!Exists('$(QtDotNetGen)') AND '$(QtDotNetSolutionDir)' != '' AND ('$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true')"
-      >$(QtDotNetSolutionDir)src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen</QtDotNetGen>
+      >$(QtDotNetSolutionDir)src/Qt.Bridge.CSharp.Generator/bin/$(Configuration)/$(TargetFramework)/qbgen</QtDotNetGen>
 
     <QtDotNetGenRules>$(MSBuildThisFileDirectory)Qt.Bridge.CSharp.GenerationRules.dll</QtDotNetGenRules>
     <QtDotNetGenRules Condition="!Exists('$(QtDotNetGenRules)') AND '$(QtDotNetSolutionDir)' != ''"
-      >$(QtDotNetSolutionDir)src\Qt.Bridge.CSharp.GenerationRules\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.CSharp.GenerationRules.dll</QtDotNetGenRules>
+      >$(QtDotNetSolutionDir)src/Qt.Bridge.CSharp.GenerationRules/bin/$(Configuration)/$(TargetFramework)/Qt.Bridge.CSharp.GenerationRules.dll</QtDotNetGenRules>
 
     <QtDotNetAdapter>$(MSBuildThisFileDirectory)Qt.DotNet.Adapter.dll</QtDotNetAdapter>
     <QtDotNetAdapter Condition="!Exists('$(QtDotNetAdapter)') AND '$(QtDotNetSolutionDir)' != ''"
-      >$(QtDotNetSolutionDir)src\Qt.DotNet.Adapter\bin\$(Configuration)\$(TargetFramework)\Qt.DotNet.Adapter.dll</QtDotNetAdapter>
+      >$(QtDotNetSolutionDir)src/Qt.DotNet.Adapter/bin/$(Configuration)/$(TargetFramework)/Qt.DotNet.Adapter.dll</QtDotNetAdapter>
 
     <QtDotNetLib>$(MSBuildThisFileDirectory)../../include</QtDotNetLib>
     <QtDotNetLib Condition="!Exists('$(QtDotNetLib)/qdotnethost.h') AND '$(QtDotNetSolutionDir)' != ''"
@@ -72,13 +72,13 @@
 
   <ItemGroup>
     <!-- Add QML files to the build -->
-    <Qml Include="**\*.qml" />
-    <QtResx Include="**\*.resx" Condition="'$(QtBridgeResourceLibrary)' == 'true'" />
+    <Qml Include="**/*.qml" />
+    <QtResx Include="**/*.resx" Condition="'$(QtBridgeResourceLibrary)' == 'true'" />
     <!-- Remove copies in output dirs -->
-    <Qml Remove="$(BaseOutputPath)**\*.qml" />
-    <Qml Remove="$(BaseIntermediateOutputPath)**\*.qml" />
-    <QtResx Remove="$(BaseOutputPath)**\*.resx" />
-    <QtResx Remove="$(BaseIntermediateOutputPath)**\*.resx" />
+    <Qml Remove="$(BaseOutputPath)**/*.qml" />
+    <Qml Remove="$(BaseIntermediateOutputPath)**/*.qml" />
+    <QtResx Remove="$(BaseOutputPath)**/*.resx" />
+    <QtResx Remove="$(BaseIntermediateOutputPath)**/*.resx" />
     <!-- Add QML files to up-to-date check of VS -->
     <UpToDateCheckInput Set="Qml" Include="@(Qml)" />
     <UpToDateCheckOutput Set="Qml" Include="$(ProjectDir)$(IntermediateOutputPath)$(QtQmlFilesCs)" />
@@ -87,12 +87,12 @@
       Include="$(ProjectDir)$(IntermediateOutputPath)$(QtResourceFilesCs)" />
     <!-- Add reference to source files for incremental build -->
     <QtDotNetNativeSource
-      Include="$(IntermediateOutputPath)qt\native\source\CMakeLists.txt
-              ;$(IntermediateOutputPath)qt\native\source\**\*" />
+      Include="$(IntermediateOutputPath)qt/native/source/CMakeLists.txt
+              ;$(IntermediateOutputPath)qt/native/source/**/*" />
     <!-- Add reference to build files for incremental build -->
     <QtDotNetNativeBuild
-      Include="$(IntermediateOutputPath)qt\native\build\CMakeCache.txt
-              ;$(IntermediateOutputPath)qt\native\build\**\*" />
+      Include="$(IntermediateOutputPath)qt/native/build/CMakeCache.txt
+              ;$(IntermediateOutputPath)qt/native/build/**/*" />
   </ItemGroup>
 
 </Project>
