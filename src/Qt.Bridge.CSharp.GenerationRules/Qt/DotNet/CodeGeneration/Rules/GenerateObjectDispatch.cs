@@ -51,6 +51,7 @@ namespace QtDotNet
             dispatchCpp += $@"
 #include <object_dispatch.h>
 #include <QHash>
+#include <QDotNetDynamicObject>
 
 {dispatchCpp[new() { Distinct = true, Content = allTypes.Select(t => $@"
 #include <{t.MFn(Ns | Dir)}{t.MFn(File)}.h>") }]}
@@ -77,7 +78,7 @@ QObject *QtDotNet::objectDispatch(QDotNetRef &args, const QObject *context)
     const QString key = QDotNetType(args.type()).stableAssemblyQualifiedName();
     if (const auto it = registry().constFind(key); it != registry().cend())
         return (*it)(args, context);
-    return nullptr;
+    return QDotNetDynamicObject::dispatch(args, key, context);
 }}
 ";
             return Ok;

@@ -53,10 +53,11 @@ public:
         }
 
         auto *typeDef = new QMetaObjectBuilder();
-        auto *type = dynamicTypes[typeDef] = new DynamicType();
+        auto *type = dynamicTypesByDef[typeDef] = new DynamicType();
         type->name = typeName;
         type->assemblyPath = assemblyPath;
         type->assemblyQualifiedName = qualifiedTypeName;
+        dynamicTypesByName[type->assemblyQualifiedName] = type;
         typeDef->setClassName(type->assemblyQualifiedName.toUtf8());
         typeDef->setStaticMetacallFunction(staticMetacall);
         return typeDef;
@@ -73,8 +74,8 @@ public:
             return false;
         }
 
-        const auto &itDynamicType = dynamicTypes.find(typeDef);
-        if (itDynamicType == dynamicTypes.end()) {
+        const auto &itDynamicType = dynamicTypesByDef.find(typeDef);
+        if (itDynamicType == dynamicTypesByDef.end()) {
             qWarning() << "QDotNetDynamicObject: Unrecognized type definition:" << typeDef;
             return false;
         }
@@ -96,8 +97,8 @@ public:
         if (!QCoreApplication::startingUp())
             return false;
 
-        const auto &itDynamicType = dynamicTypes.find(typeDef);
-        if (itDynamicType == dynamicTypes.end()) {
+        const auto &itDynamicType = dynamicTypesByDef.find(typeDef);
+        if (itDynamicType == dynamicTypesByDef.end()) {
             qWarning() << "QDotNetDynamicObject: Unrecognized type definition:" << typeDef;
             return false;
         }
@@ -129,8 +130,8 @@ public:
         if (!QCoreApplication::startingUp())
             return nullptr;
 
-        const auto &itDynamicType = dynamicTypes.find(typeDef);
-        if (itDynamicType == dynamicTypes.end()) {
+        const auto &itDynamicType = dynamicTypesByDef.find(typeDef);
+        if (itDynamicType == dynamicTypesByDef.end()) {
             qWarning() << "QDotNetDynamicObject: Unrecognized type definition:" << typeDef;
             return nullptr;
         }
@@ -181,6 +182,20 @@ public:
         return metaObject;
     }
 
+    static QObject *dispatch(QDotNetRef &dotNetObj, const QString &qualifiedTypeName,
+                             const QObject *context = nullptr)
+    {
+        const auto &itDynamicType = dynamicTypesByName.find(qualifiedTypeName);
+        if (itDynamicType == dynamicTypesByName.end()) {
+            qWarning() << "QDotNetDynamicObject: Unrecognized type:" << qualifiedTypeName;
+            return nullptr;
+        }
+        auto *type = *itDynamicType;
+
+        QDotNetDynamicObject obj(type, dotNetObj);
+        return QDotNetConvert::moveToHeap(obj, context);
+    }
+
     const QMetaObject *metaObject() const override { return type->metaObject; }
 
     void *qt_metacast(const char *_clname) override
@@ -225,6 +240,8 @@ public:
         return _id;
     }
 
+    static void *operator new(std::size_t count) { return ::operator new(count); }
+
     static void *operator new(std::size_t, void *ptr)
     {
         assert(ptr);
@@ -253,22 +270,13 @@ public:
 
     ~QDotNetDynamicObject() noexcept override { }
 
+    QDotNetDynamicObject(const QDotNetDynamicObject &obj) : type(obj.type) { copyFrom(obj); }
+
+    QDotNetDynamicObject(QDotNetDynamicObject &&obj) : type(obj.type) { moveFrom(obj); }
+
 private:
-    static void createObject(void *memory, void *args)
+    static void init(DynamicType *type)
     {
-        if (!createInstance.isValid()) {
-            createInstance =
-                    adapter().resolveStaticMethod("System.Activator", "CreateInstance",
-                                                  { { QDotNetInbound<QDotNetRef>::Parameter,
-                                                      QDotNetOutbound<QDotNetType>::Parameter } });
-            if (!createInstance.isValid()) {
-                qFatal() << "QDotNetDynamicObject: ERROR resolving Activator.CreateInstance method";
-                return;
-            }
-        }
-
-        auto *type = static_cast<DynamicType *>(args);
-
         if (!type->assembly.isValid()) {
             QDotNetAssembly assembly = QtDotNet::call<QDotNetRef, QString>(
                     "System.Reflection.Assembly", "LoadFrom", type->assemblyPath);
@@ -293,6 +301,28 @@ private:
             type->module = module;
             type->typeInfo = typeInfo;
         }
+    }
+
+    void init()
+    {
+        init(type);
+    }
+
+    static void createObject(void *memory, void *args)
+    {
+        if (!createInstance.isValid()) {
+            createInstance =
+                    adapter().resolveStaticMethod("System.Activator", "CreateInstance",
+                                                  { { QDotNetInbound<QDotNetRef>::Parameter,
+                                                      QDotNetOutbound<QDotNetType>::Parameter } });
+            if (!createInstance.isValid()) {
+                qFatal() << "QDotNetDynamicObject: ERROR resolving Activator.CreateInstance method";
+                return;
+            }
+        }
+
+        auto *type = static_cast<DynamicType *>(args);
+        init(type);
 
         QDotNetRef obj = createInstance(type->typeInfo);
         if (!obj.isValid()) {
@@ -303,7 +333,17 @@ private:
         new (memory) QDotNetDynamicObject(type, std::move(obj));
     }
 
-    QDotNetDynamicObject(DynamicType *type, QDotNetRef &&obj) : type(type) { moveFrom(obj); }
+    QDotNetDynamicObject(DynamicType *type, QDotNetRef &&obj) : type(type)
+    {
+        moveFrom(obj);
+        init();
+    }
+
+    QDotNetDynamicObject(DynamicType *type, const QDotNetRef &obj) : type(type)
+    {
+        copyFrom(obj);
+        init();
+    }
 
     static void staticMetacall(QObject *obj, QMetaObject::Call call, int id, void **args)
     {
@@ -312,8 +352,8 @@ private:
             return;
         const auto *typeDef = *itTypeDef;
 
-        const auto &itDynamicType = dynamicTypes.find(typeDef);
-        if (itDynamicType == dynamicTypes.end())
+        const auto &itDynamicType = dynamicTypesByDef.find(typeDef);
+        if (itDynamicType == dynamicTypesByDef.end())
             return;
         const auto *type = *itDynamicType;
 
@@ -549,7 +589,8 @@ private:
 
     static inline QDotNetFunction<QDotNetRef, QDotNetType> createInstance = nullptr;
 
-    static inline QMap<const QMetaObjectBuilder *, DynamicType *> dynamicTypes{};
+    static inline QMap<QString, DynamicType *> dynamicTypesByName{};
+    static inline QMap<const QMetaObjectBuilder *, DynamicType *> dynamicTypesByDef{};
     static inline QMap<const QMetaObject *, const QMetaObjectBuilder *> typeDefs{};
     static inline QSet<void *> objectPlacementAddrs{};
 

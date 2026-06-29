@@ -44,7 +44,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 {cmake[new(IncludeDirs) { Distinct = true, Content = [$"include_directories({Hpp})"] }]}
 
 find_package(Qt6 6.6 REQUIRED COMPONENTS
-    Core
+    Core CorePrivate
     Gui
     Qml
     Quick
@@ -68,7 +68,7 @@ qt_add_qml_module({Root.MFn(Target)}
 {resourceSpec}
 
 target_link_libraries({Root.MFn(Target)} PRIVATE
-    Qt6::Core
+    Qt6::Core Qt::CorePrivate
     Qt6::Gui
     Qt6::Qml
     Qt6::Quick
