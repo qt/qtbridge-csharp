@@ -105,6 +105,7 @@ public:
         type->properties[propertyDef.index()] = property;
         property->declaringType = type;
         property->name = propertyName;
+        type->propertiesByName[property->name] = property;
         property->params = { getReturnType, setValueType };
         property->isReadable = propertyDef.isReadable();
         property->isWriteable = propertyDef.isWritable();
@@ -504,6 +505,7 @@ private:
         QDotNetType typeInfo;
         QMap<int, DynamicMethod *> methods = {};
         QMap<int, DynamicProperty *> properties = {};
+        QMap<QString, DynamicProperty *> propertiesByName = {};
         const QMetaObject *metaObject = nullptr;
     };
 
