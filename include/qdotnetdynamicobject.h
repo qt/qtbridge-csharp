@@ -406,7 +406,8 @@ private:
         for (int i = 1; i < method->params.count(); ++i)
             argValues.set(i - 1, readArg(method->params[i], args[i]));
 
-        writeResult(method->params[0], args[0], method->methodInfo.invoke(*obj, argValues));
+        auto result = method->methodInfo.invoke(*obj, argValues);
+        obj->writeResult(method->params[0], args[0], result);
     }
 
     static void readProperty(QDotNetDynamicObject *obj, DynamicProperty *prop, void **args)
@@ -425,7 +426,8 @@ private:
             qWarning() << "QDotNetDynamicObject: property is write-only:" << prop->name;
             return;
         }
-        writeResult(prop->params[0], args[0], prop->propertyInfo.getValue(*obj));
+        auto result = prop->propertyInfo.getValue(*obj);
+        obj->writeResult(prop->params[0], args[0], result);
     }
 
     static void writeProperty(QDotNetDynamicObject *obj, DynamicProperty *prop, void **args)
@@ -482,11 +484,13 @@ private:
                 return QDotNetConvert::fromDateTime(*reinterpret_cast<QDateTime *>(arg));
             else if (param.typeName == QDotNetTypeOf<QUrl>::TypeName)
                 return QDotNetConvert::fromUri(*reinterpret_cast<QUrl *>(arg));
+            else
+                return QDotNetConvert::fromVariant(*reinterpret_cast<QVariant *>(arg));
         }
         return nullptr;
     }
 
-    static void writeResult(const Parameter &param, void *arg, const QDotNetRef &obj)
+    void writeResult(const Parameter &param, void *arg, QDotNetRef &obj)
     {
         switch (param.unmanagedType) {
         case UnmanagedType::Bool:
@@ -533,6 +537,8 @@ private:
                 *reinterpret_cast<QDateTime *>(arg) = QDotNetConvert::toDateTime(obj);
             else if (param.typeName == QDotNetTypeOf<QUrl>::TypeName)
                 *reinterpret_cast<QUrl *>(arg) = QDotNetConvert::toUri(obj);
+            else
+                *reinterpret_cast<QVariant *>(arg) = QDotNetConvert::toVariant(obj, this);
             break;
         }
     }
