@@ -5,6 +5,7 @@
 
 #include "qdotnetarray.h"
 #include "qdotnetconvert.h"
+#include "qdotnetevent.h"
 #include "qdotnetobject.h"
 #include "qdotnetparameter.h"
 #include "qdotnetreflection.h"
@@ -38,6 +39,7 @@ private:
     struct DynamicType;
     struct DynamicMethod;
     struct DynamicProperty;
+    struct DynamicEvent;
 
 public:
     static QMetaObjectBuilder *defineType(const QString &typeName, const QString &qualifiedTypeName,
@@ -112,6 +114,33 @@ public:
         property->params = { getReturnType, setValueType };
         property->isReadable = propertyDef.isReadable();
         property->isWriteable = propertyDef.isWritable();
+
+        return true;
+    }
+
+    static bool addEvent(QMetaObjectBuilder *typeDef, const QString &eventName,
+                         const QMetaMethodBuilder &signalDef)
+    {
+        if (!QCoreApplication::startingUp())
+            return false;
+
+        const auto &itDynamicType = dynamicTypesByDef.find(typeDef);
+        if (itDynamicType == dynamicTypesByDef.end()) {
+            qWarning() << "QDotNetDynamicObject: Unrecognized type definition:" << typeDef;
+            return false;
+        }
+
+        if (signalDef.parameterTypes().count() != 1) {
+            qWarning() << "QDotNetDynamicObject: Incompatible signal:" << signalDef.signature();
+            return false;
+        }
+
+        auto *type = *itDynamicType;
+        auto *event = new DynamicEvent();
+        type->events.append(event);
+        event->declaringType = type;
+        event->name = eventName;
+        event->idxEventSignal = signalDef.index();
 
         return true;
     }
@@ -273,11 +302,23 @@ public:
     QDotNetDynamicObject() = delete;
     QDotNetDynamicObject(QObject *) = delete;
 
-    ~QDotNetDynamicObject() noexcept override { }
+    ~QDotNetDynamicObject() noexcept override
+    {
+        for (auto *eventHandler : eventHandlers)
+            delete eventHandler;
+        eventHandlers.clear();
+    }
 
-    QDotNetDynamicObject(const QDotNetDynamicObject &obj) : type(obj.type) { copyFrom(obj); }
+    QDotNetDynamicObject(const QDotNetDynamicObject &obj) = delete;
 
-    QDotNetDynamicObject(QDotNetDynamicObject &&obj) : type(obj.type) { moveFrom(obj); }
+    QDotNetDynamicObject(QDotNetDynamicObject &&obj) : type(obj.type)
+    {
+        moveFrom(obj);
+        eventHandlers = obj.eventHandlers;
+        for (auto *eventHandler : eventHandlers)
+            static_cast<DynamicEventHandler *>(eventHandler)->receiver = this;
+        obj.eventHandlers.clear();
+    }
 
 private:
     static void init(DynamicType *type)
@@ -311,6 +352,8 @@ private:
     void init()
     {
         init(type);
+        for (auto *event : type->events)
+            eventHandlers.append(new DynamicEventHandler(this, event));
     }
 
     static void createObject(void *memory, void *args)
@@ -374,9 +417,10 @@ private:
             }
 
             const auto &itMethod = type->methods.find(id);
-            if (itMethod == type->methods.end())
-                return;
-            return invokeMetaMethod(objProxy, *itMethod, args);
+            if (itMethod != type->methods.end())
+                return invokeMetaMethod(objProxy, *itMethod, args);
+
+            return QMetaObject::activate(objProxy, type->metaObject->methodOffset() + id, args);
         }
 
         if (call == QMetaObject::ReadProperty) {
@@ -573,6 +617,7 @@ private:
         QMap<int, DynamicMethod *> methods = {};
         QMap<int, DynamicProperty *> properties = {};
         QMap<QString, DynamicProperty *> propertiesByName = {};
+        QList<DynamicEvent *> events = {};
         const QMetaObject *metaObject = nullptr;
         int idxAsDotNetObject = -1;
     };
@@ -598,6 +643,11 @@ private:
         bool isWriteable = true;
     };
 
+    struct DynamicEvent : public DynamicMember
+    {
+        int idxEventSignal = -1;
+    };
+
     static inline QDotNetFunction<QDotNetRef, QDotNetType> createInstance = nullptr;
 
     static inline QMap<QString, DynamicType *> dynamicTypesByName{};
@@ -606,4 +656,39 @@ private:
     static inline QSet<void *> objectPlacementAddrs{};
 
     DynamicType *type = nullptr;
+    QList<QDotNetEventHandler *> eventHandlers{};
+
+    void onEvent(DynamicEvent *event, QObject *args)
+    {
+        if (event->idxEventSignal < 0)
+            return;
+        auto idxSignal = type->metaObject->methodOffset() + event->idxEventSignal;
+        auto eventSignal = type->metaObject->method(idxSignal);
+        eventSignal.invoke(this, args);
+    }
+
+    struct DynamicEventHandler : public QDotNetEventHandlerHelper<DynamicEvent>
+    {
+        DynamicEventHandler(QDotNetDynamicObject *receiver, DynamicEvent *d)
+            : QDotNetEventHandlerHelper<DynamicEvent>(d->name, receiver, d)
+        {
+        }
+
+        void handleEvent(const QString &name, QDotNetObject &sender, QDotNetObject &args) override
+        {
+            if (!args.isValid())
+                return;
+
+            auto *qDynObj = static_cast<QDotNetDynamicObject *>(receiver);
+
+            // NOTE: Do not change invokeMethod using Qt::AutoConnection
+            //   * Event-to-signal mapping and notifications need to run on qDynObj's thread.
+            QMetaObject::invokeMethod(qDynObj, [=]() mutable {
+                QObject *qEvArgs = QDotNetConvert::objectDispatch(args);
+                if (qEvArgs)
+                    qDynObj->onEvent(d, qEvArgs);
+                delete qEvArgs;
+            });
+        }
+    };
 };
