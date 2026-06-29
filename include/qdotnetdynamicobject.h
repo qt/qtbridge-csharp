@@ -38,7 +38,7 @@ private:
     struct DynamicProperty;
 
 public:
-    static QMetaObjectBuilder *defineType(const QString &typeName, const QString &assemblyName,
+    static QMetaObjectBuilder *defineType(const QString &typeName, const QString &qualifiedTypeName,
                                           const QString &assemblyFile, const QString &appDirPath)
     {
         if (!QCoreApplication::startingUp())
@@ -54,7 +54,7 @@ public:
         auto *type = dynamicTypes[typeDef] = new DynamicType();
         type->name = typeName;
         type->assemblyPath = assemblyPath;
-        type->assemblyQualifiedName = QString("%1, %2").arg(typeName).arg(assemblyName);
+        type->assemblyQualifiedName = qualifiedTypeName;
         typeDef->setClassName(type->assemblyQualifiedName.toUtf8());
         typeDef->setStaticMetacallFunction(staticMetacall);
         return typeDef;
