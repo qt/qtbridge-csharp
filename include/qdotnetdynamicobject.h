@@ -136,6 +136,11 @@ public:
             return nullptr;
         }
         auto *type = *itDynamicType;
+
+        addMethod(typeDef, "ToString", 0, typeDef->addMethod("toString()", "QString"),
+                  { { QDotNetInbound<QString>::Parameter } });
+        addMethod(typeDef, "Equals", 0, typeDef->addMethod("equals(QVariant)", "bool"),
+                  { { QDotNetInbound<bool>::Parameter, QDotNetOutbound<QDotNetRef>::Parameter } });
         auto asDotNetObject = typeDef->addMethod("asDotNetObject()", "const QDotNetObject *");
         type->idxAsDotNetObject = asDotNetObject.index();
 
