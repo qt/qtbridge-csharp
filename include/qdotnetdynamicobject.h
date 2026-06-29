@@ -114,6 +114,8 @@ public:
         property->params = { getReturnType, setValueType };
         property->isReadable = propertyDef.isReadable();
         property->isWriteable = propertyDef.isWritable();
+        if (propertyDef.hasNotifySignal())
+            property->idxNotifySignal = propertyDef.notifySignal().index();
 
         return true;
     }
@@ -641,6 +643,7 @@ private:
         QDotNetPropertyInfo propertyInfo;
         bool isReadable = true;
         bool isWriteable = true;
+        int idxNotifySignal = -1;
     };
 
     struct DynamicEvent : public DynamicMember
@@ -667,6 +670,20 @@ private:
         eventSignal.invoke(this, args);
     }
 
+    void onPropertyChanged(const QString &propertyName)
+    {
+        const auto &itProperty = type->propertiesByName.find(propertyName);
+        if (itProperty == type->propertiesByName.end())
+            return;
+        auto *property = *itProperty;
+        if (property->idxNotifySignal < 0)
+            return;
+
+        auto idxSignal = type->metaObject->methodOffset() + property->idxNotifySignal;
+        auto notifySignal = type->metaObject->method(idxSignal);
+        notifySignal.invoke(this);
+    }
+
     struct DynamicEventHandler : public QDotNetEventHandlerHelper<DynamicEvent>
     {
         DynamicEventHandler(QDotNetDynamicObject *receiver, DynamicEvent *d)
@@ -684,6 +701,13 @@ private:
             // NOTE: Do not change invokeMethod using Qt::AutoConnection
             //   * Event-to-signal mapping and notifications need to run on qDynObj's thread.
             QMetaObject::invokeMethod(qDynObj, [=]() mutable {
+
+                if (name == "PropertyChanged" && args.type().is<QDotNetPropertyEvent>()) {
+                    auto propChanged = args.cast<QDotNetPropertyEvent>();
+                    qDynObj->onPropertyChanged(propChanged.propertyName());
+                    args = propChanged.cast<QDotNetObject>();
+                }
+
                 QObject *qEvArgs = QDotNetConvert::objectDispatch(args);
                 if (qEvArgs)
                     qDynObj->onEvent(d, qEvArgs);
