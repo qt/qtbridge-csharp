@@ -33,7 +33,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             base.InitializeServices(serviceCollection);
 
             serviceCollection.AddSingleton<IExtensionLog, ExtensionLog>();
-            serviceCollection.AddSingleton<INotificationService, NotificationService>();
+            serviceCollection.AddSingleton<IInfoBarNotificationService, InfoBarNotificationService>();
             serviceCollection.AddSingleton<IToastNotificationService, ToastNotificationService>();
             serviceCollection.AddSingleton(_ => new SettingsStore(ShellSrvProvider.GlobalProvider));
             serviceCollection.AddSingleton<IQmlBuildNotificationSettings,

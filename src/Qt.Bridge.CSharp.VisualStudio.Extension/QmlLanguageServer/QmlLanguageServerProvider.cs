@@ -28,7 +28,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
     internal sealed partial class QmlLanguageServerProvider : LanguageServerProvider
     {
         private readonly IExtensionLog log;
-        private readonly INotificationService notifications;
+        private readonly IInfoBarNotificationService infoBarService;
         private readonly IQtBridgeProjectService projectService;
         private readonly IProjectContextService contextService;
         private readonly IQmlMetadataReader metadataReader;
@@ -45,7 +45,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             ExtensionCore container,
             VisualStudioExtensibility extensibilityObject,
             IExtensionLog extensionLog,
-            INotificationService notificationsSvc,
+            IInfoBarNotificationService infoBarSvc,
             IQtBridgeProjectService projectSvc,
             IProjectContextService contextSvc,
             IQmlMetadataReader metadataReader,
@@ -57,8 +57,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         {
             log = extensionLog
                 ?? throw new ArgumentNullException(nameof(extensionLog));
-            notifications = notificationsSvc
-                ?? throw new ArgumentNullException(nameof(notificationsSvc));
+            infoBarService = infoBarSvc ?? throw new ArgumentNullException(nameof(infoBarSvc));
             projectService = projectSvc ?? throw new ArgumentNullException(nameof(projectSvc));
             contextService = contextSvc ?? throw new ArgumentNullException(nameof(contextSvc));
             this.metadataReader = metadataReader
@@ -94,7 +93,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             } catch (QmlLanguageServerInstallException ex) {
                 log.Error($"QML Language Server: install failed ({ex.Error}).", ex);
                 var userMessage = InstallErrorMessage(ex.Error);
-                await notifications.ShowErrorAsync($"qmls-install-{ex.Error}", userMessage, ct);
+                await infoBarService.ShowErrorAsync($"qmls-install-{ex.Error}", userMessage, ct);
                 return null;
             } catch (Exception ex) when (ex is not OperationCanceledException) {
                 log.Error("QML Language Server: unexpected error acquiring executable.", ex);
@@ -122,7 +121,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     disableCMakeCalls, loggingConfig);
             } catch (QmlLanguageServerLaunchException ex) {
                 log.Error($"QML Language Server: failed to launch '{ex.ExecutablePath}'.", ex);
-                await notifications.ShowErrorAsync("qmls-launch-failed",
+                await infoBarService.ShowErrorAsync("qmls-launch-failed",
                     "Qt Bridge: The QML Language Server failed to start."
                     + " See the Qt Bridge output pane for details.", ct);
                 return null;
@@ -553,7 +552,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 return;
 
             var projectName = Path.GetFileNameWithoutExtension(projectFilePath);
-            await notifications.ShowInfoAsync(
+            await infoBarService.ShowInfoAsync(
                 BuildOutputNotificationKey(projectFilePath),
                 $"Qt Bridge: Build project '{projectName}' for full QML language support.",
                 [
@@ -677,8 +676,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     + $" '{Path.GetFileName(projectFilePath)}' - will retry on new session.");
                 return;
             }
-
-            await notifications.DismissAsync(BuildOutputNotificationKey(projectFilePath), ct);
+            await infoBarService.DismissAsync(BuildOutputNotificationKey(projectFilePath), ct);
 
             var projectFileName = Path.GetFileName(projectFilePath);
             log.Info($"QML Language Server: injected build dirs for '{projectFileName}'.");
@@ -886,7 +884,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             }
 
             foreach (var project in removedProjects)
-                notifications.DismissAndReset(BuildOutputNotificationKey(project.ProjectFilePath));
+                infoBarService.DismissAndReset(BuildOutputNotificationKey(project.ProjectFilePath));
         }
 
         /// <summary>

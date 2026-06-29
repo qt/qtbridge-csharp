@@ -3,7 +3,7 @@
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
 {
-    internal interface INotificationService
+    internal interface IInfoBarNotificationService
     {
         Task ShowInfoAsync(string key, string message, CancellationToken ct);
         Task ShowInfoAsync(

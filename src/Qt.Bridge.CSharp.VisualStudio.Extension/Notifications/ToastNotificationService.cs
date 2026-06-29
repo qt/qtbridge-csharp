@@ -7,13 +7,13 @@ using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
 {
     internal sealed class ToastNotificationService(
-        INotificationService notifications,
+        IInfoBarNotificationService infoBarService,
         IExtensionLog log)
         : IToastNotificationService
     {
         private static readonly TimeSpan ToastDuration = TimeSpan.FromSeconds(5);
-        private readonly INotificationService notifications = notifications
-            ?? throw new ArgumentNullException(nameof(notifications));
+        private readonly IInfoBarNotificationService infoBarNotificationService = infoBarService
+            ?? throw new ArgumentNullException(nameof(infoBarService));
         private readonly IExtensionLog log = log ?? throw new ArgumentNullException(nameof(log));
 
         public async Task ShowAsync(
@@ -28,7 +28,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
 
             var message = string.IsNullOrEmpty(detail) ? title : $"{title}  {detail}";
             var actions = new[] { primary, secondary }.OfType<NotificationAction>().ToArray();
-            await notifications.ShowInfoAsync(title, message, actions, ct);
+            await infoBarNotificationService.ShowInfoAsync(title, message, actions, ct);
         }
 
         private async Task<bool> TryShowToastAsync(

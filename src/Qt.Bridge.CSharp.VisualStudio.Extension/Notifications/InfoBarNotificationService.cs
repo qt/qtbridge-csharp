@@ -11,7 +11,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
     /// <summary>
     /// Shows rate-limited, non-modal Visual Studio InfoBar notifications for user-facing failures.
     /// </summary>
-    internal sealed class NotificationService(IExtensionLog log) : INotificationService
+    internal sealed class InfoBarNotificationService(IExtensionLog log)
+        : IInfoBarNotificationService
     {
         private readonly IExtensionLog log = log ?? throw new ArgumentNullException(nameof(log));
         private readonly Dictionary<string, NotificationState> notifications = [];

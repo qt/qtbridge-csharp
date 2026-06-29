@@ -80,7 +80,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             var log = new TraceExtensionLog();
             var lifecycle = new WhatsNewLifecycleService(
                 new SettingsStore(this),
-                new ToastNotificationService(new NotificationService(log), log),
+                new ToastNotificationService(new InfoBarNotificationService(log), log),
                 log);
 
             await lifecycle.InitializeAsync(cancellationToken);
