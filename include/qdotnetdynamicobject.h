@@ -10,6 +10,8 @@
 #include "qdotnetreflection.h"
 #include "qdotnettype.h"
 
+#include <functional>
+
 #ifdef __GNUC__
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wconversion"
@@ -115,11 +117,12 @@ public:
 
     static const QMetaObject *buildType(QMetaObjectBuilder *typeDef)
     {
-        return buildType(typeDef, "", "", 0, 0);
+        return buildType(typeDef, "", "", 0, 0, nullptr);
     }
 
     static const QMetaObject *buildType(QMetaObjectBuilder *typeDef, const QString &qmlName,
-                                        const QString &qmlUri, int major, int minor)
+                                        const QString &qmlUri, int major, int minor,
+                                        std::function<void()> qml_register_types = nullptr)
     {
         using namespace QQmlPrivate;
 
@@ -170,6 +173,10 @@ public:
         t.attachedPropertiesMetaObject = metaObject;
 
         qmlregister(RegistrationType::TypeRegistration, &t);
+        if (qml_register_types)
+            qml_register_types();
+        else
+            qmlRegisterModule(qmlUriUtf8, major, minor);
 
         return metaObject;
     }
