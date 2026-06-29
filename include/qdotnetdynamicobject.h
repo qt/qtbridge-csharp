@@ -5,8 +5,8 @@
 
 #include "qdotnetarray.h"
 #include "qdotnetconvert.h"
+#include "qdotnetobject.h"
 #include "qdotnetparameter.h"
-#include "qdotnetref.h"
 #include "qdotnetreflection.h"
 #include "qdotnettype.h"
 
@@ -29,7 +29,7 @@
 #  pragma GCC diagnostic pop
 #endif
 
-class QDotNetDynamicObject : public QObject, public QDotNetRef
+class QDotNetDynamicObject : public QObject, public QDotNetObject
 {
 private:
     struct Parameter;
@@ -113,12 +113,12 @@ public:
         return true;
     }
 
-    static const QMetaObject *buildType(const QMetaObjectBuilder *typeDef)
+    static const QMetaObject *buildType(QMetaObjectBuilder *typeDef)
     {
         return buildType(typeDef, "", "", 0, 0);
     }
 
-    static const QMetaObject *buildType(const QMetaObjectBuilder *typeDef, const QString &qmlName,
+    static const QMetaObject *buildType(QMetaObjectBuilder *typeDef, const QString &qmlName,
                                         const QString &qmlUri, int major, int minor)
     {
         using namespace QQmlPrivate;
@@ -132,6 +132,9 @@ public:
             return nullptr;
         }
         auto *type = *itDynamicType;
+        auto asDotNetObject = typeDef->addMethod("asDotNetObject()", "const QDotNetObject *");
+        type->idxAsDotNetObject = asDotNetObject.index();
+
         const auto *metaObject = typeDef->toMetaObject();
         type->metaObject = metaObject;
         typeDefs[metaObject] = typeDef;
@@ -312,6 +315,12 @@ private:
             return;
 
         if (call == QMetaObject::InvokeMetaMethod) {
+
+            if (id == type->idxAsDotNetObject) {
+                *reinterpret_cast<const QDotNetObject **>(args[0]) = objProxy;
+                return;
+            }
+
             const auto &itMethod = type->methods.find(id);
             if (itMethod == type->methods.end())
                 return;
@@ -507,6 +516,7 @@ private:
         QMap<int, DynamicProperty *> properties = {};
         QMap<QString, DynamicProperty *> propertiesByName = {};
         const QMetaObject *metaObject = nullptr;
+        int idxAsDotNetObject = -1;
     };
 
     struct DynamicMember
