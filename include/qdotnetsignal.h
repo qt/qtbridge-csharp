@@ -21,7 +21,7 @@ class QDotNetSignal : public QDotNetObject
 public:
     Q_DOTNET_OBJECT_INLINE(QDotNetSignal, "Qt.MetaObject.Signal, Qt.Bridge.CSharp.Api");
 
-    static QList<QDotNetSignal> fromEvent(const QString& name, QDotNetRef sender)
+    static QList<QDotNetSignal> fromEvent(const QString& name, const QDotNetRef &sender)
     {
         if (!typeSignal.isValid())
             typeSignal = QDotNetType::typeOf(AssemblyQualifiedName);
@@ -42,7 +42,8 @@ public:
         return signalList;
     }
 
-    static bool convert(QDotNetSignal signalObj, QDotNetRef sender, QDotNetEventArgs args)
+    static bool convert(const QDotNetSignal &signalObj, const QDotNetRef &sender,
+                        const QDotNetEventArgs &args)
     {
         if (!typeSignal.isValid())
             typeSignal = QDotNetType::typeOf(AssemblyQualifiedName);

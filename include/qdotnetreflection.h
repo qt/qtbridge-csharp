@@ -121,7 +121,7 @@ public:
         return *this;
     }
 
-    QDotNetRef invoke(QDotNetRef obj, QDotNetArray<QDotNetRef> parameters) const
+    QDotNetRef invoke(const QDotNetRef &obj, const QDotNetArray<QDotNetRef> &parameters) const
     {
         if (!isValid())
             return nullptr;
@@ -163,7 +163,8 @@ public:
         return *this;
     }
 
-    QDotNetRef getValue(QDotNetRef obj, QDotNetArray<QDotNetRef> parameters = nullptr) const
+    QDotNetRef getValue(const QDotNetRef &obj,
+                        const QDotNetArray<QDotNetRef> &parameters = nullptr) const
     {
         if (!isValid())
             return nullptr;
@@ -177,8 +178,8 @@ public:
         return fnGet(obj, parameters);
     }
 
-    QDotNetRef setValue(QDotNetRef obj, QDotNetRef value,
-                        QDotNetArray<QDotNetRef> parameters = nullptr) const
+    QDotNetRef setValue(const QDotNetRef &obj, const QDotNetRef &value,
+                        const QDotNetArray<QDotNetRef> parameters = nullptr) const
     {
         if (!isValid())
             return nullptr;

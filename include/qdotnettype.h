@@ -300,7 +300,7 @@ public:
         freeTypeRef(T::AssemblyQualifiedName);
     }
 
-    bool isAssignableFrom(QDotNetType c) const
+    bool isAssignableFrom(const QDotNetType &c) const
     {
         if (!c.isValid())
             return false;
@@ -319,7 +319,7 @@ public:
         return isAssignableFrom(typeOf<T>());
     }
 
-    bool isAssignableTo(QDotNetType c) const
+    bool isAssignableTo(const QDotNetType &c) const
     {
         if (!c.isValid())
             return false;
