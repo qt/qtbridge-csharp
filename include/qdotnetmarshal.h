@@ -498,3 +498,41 @@ struct QDotNetInbound<QUrl>
         return url;
     }
 };
+
+#define Q_DOTNET_ENUM(Enum, Name, BaseType)                                                      \
+    enum Enum : BaseType;                                                                        \
+                                                                                                 \
+    template <>                                                                                  \
+    struct QDotNetTypeOf<Enum>                                                                   \
+    {                                                                                            \
+        static inline const QString TypeName = QString(Name);                                    \
+        static inline UnmanagedType MarshalAs = QDotNetTypeOf<BaseType>::MarshalAs;              \
+    };                                                                                           \
+                                                                                                 \
+    template <>                                                                                  \
+    struct QDotNetOutbound<Enum>                                                                 \
+    {                                                                                            \
+        using SourceType = Enum;                                                                 \
+        using OutboundType = BaseType;                                                           \
+        static inline const QDotNetParameter Parameter =                                         \
+                QDotNetParameter(QDotNetTypeOf<Enum>::TypeName, QDotNetTypeOf<Enum>::MarshalAs); \
+        static OutboundType convert(SourceType srvValue)                                         \
+        {                                                                                        \
+            return static_cast<OutboundType>(srvValue);                                          \
+        }                                                                                        \
+    };                                                                                           \
+                                                                                                 \
+    template <>                                                                                  \
+    struct QDotNetInbound<Enum>                                                                  \
+    {                                                                                            \
+        using InboundType = BaseType;                                                            \
+        using TargetType = Enum;                                                                 \
+        static inline const QDotNetParameter Parameter =                                         \
+                QDotNetParameter(QDotNetTypeOf<Enum>::TypeName, QDotNetTypeOf<Enum>::MarshalAs); \
+        static TargetType convert(InboundType inboundValue)                                      \
+        {                                                                                        \
+            return static_cast<TargetType>(inboundValue);                                        \
+        }                                                                                        \
+    };                                                                                           \
+                                                                                                 \
+    enum Enum : BaseType /* list of enum values follows */
