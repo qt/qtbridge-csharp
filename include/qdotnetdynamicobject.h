@@ -17,6 +17,7 @@
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wconversion"
 #endif
+#include <QAbstractItemModel>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
@@ -32,12 +33,13 @@
 #  pragma GCC diagnostic pop
 #endif
 
-class QDotNetDynamicObject : public QObject, public QDotNetObject
+class QDotNetDynamicObject : public QAbstractItemModel, public QDotNetObject
 {
     struct DynamicType;
     struct DynamicMethod;
     struct DynamicProperty;
     struct DynamicEvent;
+    struct DynamicModel;
     struct Parameter;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -47,8 +49,40 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////////
     //// BEGIN Dynamic meta-type authoring
 
+    enum BaseClass { Object, Model, ListModel, TableModel };
+
+    enum ModelOverride {
+        None = 0,
+        RowCount = 1 << 0,
+        ColumnCount = 1 << 1,
+        RoleNames = 1 << 2,
+        CanFetchMore = 1 << 3,
+        Flags = 1 << 4,
+        HasChildren = 1 << 5,
+        Index = 1 << 6,
+        Parent = 1 << 7,
+        Sibling = 1 << 8,
+        Buddy = 1 << 9,
+        Data = 1 << 10,
+        HeaderData = 1 << 11,
+        InsertRows = 1 << 12,
+        InsertColumns = 1 << 13,
+        MoveRows = 1 << 14,
+        MoveColumns = 1 << 15,
+        RemoveRows = 1 << 16,
+        RemoveColumns = 1 << 17,
+        Sort = 1 << 18,
+        FetchMore = 1 << 19,
+        SetData = 1 << 20,
+        SetHeaderData = 1 << 21
+    };
+
+    Q_DECLARE_FLAGS(ModelOverrides, ModelOverride)
+
     static QMetaObjectBuilder *defineType(const QString &typeName, const QString &qualifiedTypeName,
-                                          const QString &assemblyFile, const QString &appDirPath)
+                                          const QString &assemblyFile, const QString &appDirPath,
+                                          BaseClass baseClass = BaseClass::Object,
+                                          ModelOverrides modelOverrides = ModelOverride::None)
     {
         if (!QCoreApplication::startingUp())
             return nullptr;
@@ -65,7 +99,18 @@ public:
         type->assemblyPath = assemblyPath;
         type->assemblyQualifiedName = qualifiedTypeName;
         dynamicTypesByName[type->assemblyQualifiedName] = type;
-        typeDef->setSuperClass(&QObject::staticMetaObject);
+        type->baseClass = baseClass;
+        type->modelOverrides = modelOverrides;
+        switch (baseClass) {
+        case BaseClass::Model:
+        case BaseClass::ListModel:
+        case BaseClass::TableModel:
+            typeDef->setSuperClass(&QAbstractItemModel::staticMetaObject);
+            break;
+        default:
+            typeDef->setSuperClass(&QObject::staticMetaObject);
+            break;
+        }
         typeDef->setClassName(type->assemblyQualifiedName.toUtf8());
         typeDef->setStaticMetacallFunction(staticMetacall);
         return typeDef;
@@ -230,6 +275,8 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////////
     //// BEGIN Dynamic object life-cycle
 
+#define RESOLVE_FUNC(Context, Name) method(#Name, Context->fn##Name)
+
     QDotNetDynamicObject() = delete;
 
     QDotNetDynamicObject(QObject *) = delete;
@@ -241,10 +288,14 @@ public:
     QDotNetDynamicObject(QDotNetDynamicObject &&obj) : type(obj.type)
     {
         moveFrom(obj);
+
         eventHandlers = obj.eventHandlers;
         for (auto *eventHandler : eventHandlers)
             static_cast<DynamicEventHandler *>(eventHandler)->receiver = this;
         obj.eventHandlers.clear();
+
+        model = obj.model;
+        obj.model = nullptr;
     }
 
     static void *operator new(std::size_t count) { return ::operator new(count); }
@@ -309,6 +360,7 @@ private:
     {
         init(type);
         initEvents();
+        initModel();
     }
 
     static void init(DynamicType *type)
@@ -342,6 +394,7 @@ private:
     void cleanUp()
     {
         cleanUpEvents();
+        cleanUpModel();
     }
 
     void initEvents()
@@ -355,6 +408,75 @@ private:
         for (auto *eventHandler : eventHandlers)
             delete eventHandler;
         eventHandlers.clear();
+    }
+
+    void initModel()
+    {
+        if (model)
+            return;
+
+        switch (type->baseClass) {
+        case Model:
+        case ListModel:
+        case TableModel:
+            break;
+        default:
+            return;
+        }
+
+        model = new DynamicModel;
+        if (type->modelOverrides.testFlag(RowCount))
+            RESOLVE_FUNC(model, RowCount);
+        if (type->modelOverrides.testFlag(ColumnCount))
+            RESOLVE_FUNC(model, ColumnCount);
+        if (type->modelOverrides.testFlag(RoleNames))
+            RESOLVE_FUNC(model, RoleNames);
+        if (type->modelOverrides.testFlag(CanFetchMore))
+            RESOLVE_FUNC(model, CanFetchMore);
+        if (type->modelOverrides.testFlag(Flags))
+            RESOLVE_FUNC(model, Flags);
+        if (type->modelOverrides.testFlag(HasChildren))
+            RESOLVE_FUNC(model, HasChildren);
+        if (type->modelOverrides.testFlag(Index))
+            RESOLVE_FUNC(model, Index);
+        if (type->modelOverrides.testFlag(Parent))
+            RESOLVE_FUNC(model, Parent);
+        if (type->modelOverrides.testFlag(Sibling))
+            RESOLVE_FUNC(model, Sibling);
+        if (type->modelOverrides.testFlag(Buddy))
+            RESOLVE_FUNC(model, Buddy);
+        if (type->modelOverrides.testFlag(Data))
+            RESOLVE_FUNC(model, Data);
+        if (type->modelOverrides.testFlag(HeaderData))
+            RESOLVE_FUNC(model, HeaderData);
+        if (type->modelOverrides.testFlag(InsertRows))
+            RESOLVE_FUNC(model, InsertRows);
+        if (type->modelOverrides.testFlag(InsertColumns))
+            RESOLVE_FUNC(model, InsertColumns);
+        if (type->modelOverrides.testFlag(MoveRows))
+            RESOLVE_FUNC(model, MoveRows);
+        if (type->modelOverrides.testFlag(MoveColumns))
+            RESOLVE_FUNC(model, MoveColumns);
+        if (type->modelOverrides.testFlag(RemoveRows))
+            RESOLVE_FUNC(model, RemoveRows);
+        if (type->modelOverrides.testFlag(RemoveColumns))
+            RESOLVE_FUNC(model, RemoveColumns);
+        if (type->modelOverrides.testFlag(Sort))
+            RESOLVE_FUNC(model, Sort);
+        if (type->modelOverrides.testFlag(FetchMore))
+            RESOLVE_FUNC(model, FetchMore);
+        if (type->modelOverrides.testFlag(SetData))
+            RESOLVE_FUNC(model, SetData);
+        if (type->modelOverrides.testFlag(SetHeaderData))
+            RESOLVE_FUNC(model, SetHeaderData);
+    }
+
+    void cleanUpModel()
+    {
+        if (!model)
+            return;
+        delete model;
+        model = nullptr;
     }
 
     static void createObject(void *memory, void *args)
@@ -382,6 +504,8 @@ private:
         new (memory) QDotNetDynamicObject(type, std::move(obj));
     }
 
+#undef RESOLVE_FUNC
+
     //// END Dynamic object life-cycle
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -396,12 +520,12 @@ private:
             return nullptr;
         if (_clname == QDotNetObject::ClassName || !strcmp(_clname, QDotNetObject::ClassName))
             return static_cast<QDotNetObject *>(this);
-        return QObject::qt_metacast(_clname);
+        return QAbstractItemModel::qt_metacast(_clname);
     }
 
     int qt_metacall(QMetaObject::Call _c, int _id, void **_a) override
     {
-        _id = QObject::qt_metacall(_c, _id, _a);
+        _id = QAbstractItemModel::qt_metacall(_c, _id, _a);
         if (_id < 0)
             return _id;
 
@@ -659,6 +783,10 @@ private:
                     auto propChanged = args.cast<QDotNetPropertyEvent>();
                     qDynObj->onPropertyChanged(propChanged.propertyName());
                     args = propChanged.cast<QDotNetObject>();
+                } else if (name == "ModelChanged" && args.type().is<QDotNetModelEvent>()) {
+                    auto modelChanged = args.cast<QDotNetModelEvent>();
+                    qDynObj->onModelDataChanged(modelChanged);
+                    args = modelChanged.cast<QDotNetObject>();
                 }
 
                 QObject *qEvArgs = QDotNetConvert::objectDispatch(args);
@@ -696,6 +824,319 @@ private:
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
+    //// BEGIN QAbstractItemModel overrides
+
+    QModelIndex setOwnIndex(const QModelIndex &idx) const
+    {
+        if (idx.model() != nullptr && idx.model() != reinterpret_cast<void *>(-1))
+            return QModelIndex(idx);
+        return createIndex(idx.row(), idx.column(), idx.internalId());
+    }
+
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override
+    {
+        if (!model || !model->fnRowCount.isValid())
+            return {};
+        return model->fnRowCount(parent);
+    }
+
+    int columnCount(const QModelIndex &parent) const override
+    {
+        if (!model)
+            return {};
+        if (!model->fnColumnCount.isValid()) {
+            switch (type->baseClass) {
+            case BaseClass::ListModel:
+                return parent.isValid() ? 0 : 1;
+            default:
+                return {};
+            }
+        }
+        return model->fnColumnCount(parent);
+    }
+
+    QHash<int, QByteArray> roleNames() const override
+    {
+        if (!model || !model->fnRoleNames.isValid())
+            return QAbstractItemModel::roleNames();
+
+        if (!model->roleNamesByIndex.isEmpty())
+            return model->roleNamesByIndex;
+
+        auto a = QDotNetConvert::toArray(method("RoleNames", model->fnRoleNames).invoke(*this));
+        for (int i = 0; i + 1 < a.length(); i += 2) {
+            auto key = a[i];
+            if (!QDotNetConvert::isInt32(key))
+                continue;
+            auto value = a[i + 1];
+            model->roleNamesByIndex.insert(QDotNetConvert::toInt32(key),
+                                           QDotNetConvert::toString(value).toUtf8());
+        }
+
+        return model->roleNamesByIndex;
+    }
+
+    bool canFetchMore(const QModelIndex &parent) const override
+    {
+        if (!model || !model->fnCanFetchMore.isValid())
+            return QAbstractItemModel::canFetchMore(parent);
+        return model->fnCanFetchMore(parent);
+    }
+
+    Qt::ItemFlags flags(const QModelIndex &idx) const override
+    {
+        if (!model)
+            return QAbstractItemModel::flags(idx);
+        if (!model->fnFlags.isValid()) {
+            switch (type->baseClass) {
+            case BaseClass::ListModel:
+            case BaseClass::TableModel: {
+                Qt::ItemFlags f = QAbstractItemModel::flags(idx);
+                if (idx.isValid())
+                    f |= Qt::ItemNeverHasChildren;
+                return f;
+            }
+            default:
+                return QAbstractItemModel::flags(idx);
+            }
+        }
+        return static_cast<Qt::ItemFlags>(model->fnFlags(idx));
+    }
+
+    bool hasChildren(const QModelIndex &parent) const override
+    {
+        if (!model)
+            return QAbstractItemModel::hasChildren(parent);
+        if (!model->fnHasChildren.isValid()) {
+            switch (type->baseClass) {
+            case BaseClass::ListModel:
+                return parent.isValid() ? false : (rowCount() > 0);
+            case BaseClass::TableModel:
+                if (!parent.isValid())
+                    return rowCount(parent) > 0 && columnCount(parent) > 0;
+                return false;
+            default:
+                return QAbstractItemModel::hasChildren(parent);
+            }
+        }
+        return model->fnHasChildren(parent);
+    }
+
+    QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override
+    {
+        if (!model)
+            return {};
+        if (!model->fnIndex.isValid()) {
+            switch (type->baseClass) {
+            case BaseClass::ListModel:
+            case BaseClass::TableModel:
+                return hasIndex(row, column, parent) ? createIndex(row, column) : QModelIndex();
+            default:
+                return {};
+            }
+        }
+        return setOwnIndex(model->fnIndex(row, column, parent));
+    }
+
+    QModelIndex parent(const QModelIndex &idx) const override
+    {
+        if (!model)
+            return {};
+        if (!model->fnParent.isValid()) {
+            switch (type->baseClass) {
+            case BaseClass::ListModel:
+            case BaseClass::TableModel:
+                return QModelIndex();
+            default:
+                return {};
+            }
+        }
+        return setOwnIndex(model->fnParent(idx));
+    }
+
+    QModelIndex sibling(int row, int column, const QModelIndex &idx) const override
+    {
+        if (!model)
+            return QAbstractItemModel::sibling(row, column, idx);
+        if (!model->fnSibling.isValid()) {
+            switch (type->baseClass) {
+            case BaseClass::ListModel:
+            case BaseClass::TableModel:
+                return index(row, column);
+            default:
+                return QAbstractItemModel::sibling(row, column, idx);
+            }
+        }
+
+        return setOwnIndex(model->fnSibling(row, column, idx));
+    }
+
+    QModelIndex buddy(const QModelIndex &idx) const override
+    {
+        if (!model || !model->fnBuddy.isValid())
+            return QAbstractItemModel::buddy(idx);
+        return setOwnIndex(model->fnBuddy(idx));
+    }
+
+    QVariant data(const QModelIndex &idx, int role) const override
+    {
+        if (!model || !model->fnData.isValid())
+            return {};
+        auto result = model->fnData(idx, role);
+        return QDotNetConvert::toVariant(result, this);
+    }
+
+    QVariant headerData(int section, Qt::Orientation ori, int role) const override
+    {
+        if (!model || !model->fnHeaderData.isValid())
+            return QAbstractItemModel::headerData(section, ori, role);
+        auto result = model->fnHeaderData(section, ori, role);
+        return QDotNetConvert::toVariant(result, this);
+    }
+
+    bool insertRows(int row, int count, const QModelIndex &parent) override
+    {
+        if (!model || !model->fnInsertRows.isValid())
+            return QAbstractItemModel::insertRows(row, count, parent);
+        return model->fnInsertRows(row, count, parent);
+    }
+
+    bool insertColumns(int column, int count, const QModelIndex &parent) override
+    {
+        if (!model || !model->fnInsertColumns.isValid())
+            return QAbstractItemModel::insertColumns(column, count, parent);
+        return model->fnInsertColumns(column, count, parent);
+    }
+
+    bool moveRows(const QModelIndex &srcParent, int srcRow, int count,
+                  const QModelIndex &destParent, int destChild) override
+    {
+        if (!model || !model->fnMoveRows.isValid())
+            return QAbstractItemModel::moveRows(srcParent, srcRow, count, destParent, destChild);
+        return model->fnMoveRows(srcParent, srcRow, count, destParent, destChild);
+    }
+
+    bool moveColumns(const QModelIndex &srcParent, int srcCol, int count,
+                     const QModelIndex &destParent, int destChild) override
+    {
+        if (!model || !model->fnMoveColumns.isValid())
+            return QAbstractItemModel::moveColumns(srcParent, srcCol, count, destParent, destChild);
+        return model->fnMoveColumns(srcParent, srcCol, count, destParent, destChild);
+    }
+
+    bool removeRows(int row, int count, const QModelIndex &parent) override
+    {
+        if (!model || !model->fnRemoveRows.isValid())
+            return QAbstractItemModel::removeRows(row, count, parent);
+        return model->fnRemoveRows(row, count, parent);
+    }
+
+    bool removeColumns(int column, int count, const QModelIndex &parent) override
+    {
+        if (!model || !model->fnRemoveColumns.isValid())
+            return QAbstractItemModel::removeColumns(column, count, parent);
+        return model->fnRemoveColumns(column, count, parent);
+    }
+
+    void sort(int column, Qt::SortOrder order) override
+    {
+        if (!model || !model->fnSort.isValid())
+            return QAbstractItemModel::sort(column, order);
+        model->fnSort(column, order);
+    }
+
+    void fetchMore(const QModelIndex &parent) override
+    {
+        if (!model || !model->fnFetchMore.isValid())
+            return QAbstractItemModel::fetchMore(parent);
+        model->fnFetchMore(parent);
+    }
+
+    bool setData(const QModelIndex &idx, const QVariant &value, int role) override
+    {
+        if (!model || !model->fnSetData.isValid())
+            return QAbstractItemModel::setData(idx, value, role);
+        return model->fnSetData(idx, QDotNetConvert::fromVariant(value), role);
+    }
+
+    bool setHeaderData(int section, Qt::Orientation ori, const QVariant &value, int role) override
+    {
+        if (!model || !model->fnSetHeaderData.isValid())
+            return QAbstractItemModel::setHeaderData(section, ori, value, role);
+        return model->fnSetHeaderData(section, ori, QDotNetConvert::fromVariant(value), role);
+    }
+
+    void onModelDataChanged(QDotNetModelEvent &args)
+    {
+        // NOTE: Do not change invokeMethod using Qt::AutoConnection
+        //   * Emit must run on the object's thread.
+        QMetaObject::invokeMethod(this, [=]() mutable {
+            Q_ASSERT_X(thread() == QThread::currentThread(), "Model Changed",
+                       "Emit must run on the object's thread");
+            auto parent = setOwnIndex(args.parent());
+            auto dest = setOwnIndex(args.destinationParent());
+            auto topLeft = setOwnIndex(args.topLeft());
+            auto bottomRight = setOwnIndex(args.bottomRight());
+            switch (args.action()) {
+            case QDotNetModelAction::BeginResetModel:
+                beginResetModel();
+                break;
+            case QDotNetModelAction::EndResetModel:
+                endResetModel();
+                break;
+            case QDotNetModelAction::BeginInsertRows:
+                beginInsertRows(parent, args.first(), args.last());
+                break;
+            case QDotNetModelAction::EndInsertRows:
+                endInsertRows();
+                break;
+            case QDotNetModelAction::BeginMoveRows:
+                beginMoveRows(parent, args.first(), args.last(), dest, args.destinationChild());
+                break;
+            case QDotNetModelAction::EndMoveRows:
+                endMoveRows();
+                break;
+            case QDotNetModelAction::BeginRemoveRows:
+                beginRemoveRows(parent, args.first(), args.last());
+                break;
+            case QDotNetModelAction::EndRemoveRows:
+                endRemoveRows();
+                break;
+            case QDotNetModelAction::BeginInsertColumns:
+                beginInsertColumns(parent, args.first(), args.last());
+                break;
+            case QDotNetModelAction::EndInsertColumns:
+                endInsertColumns();
+                break;
+            case QDotNetModelAction::BeginMoveColumns:
+                beginMoveColumns(parent, args.first(), args.last(), dest, args.destinationChild());
+                break;
+            case QDotNetModelAction::EndMoveColumns:
+                endMoveColumns();
+                break;
+            case QDotNetModelAction::BeginRemoveColumns:
+                beginRemoveColumns(parent, args.first(), args.last());
+                break;
+            case QDotNetModelAction::EndRemoveColumns:
+                endRemoveColumns();
+                break;
+            case QDotNetModelAction::DataChanged:
+                emit dataChanged(topLeft, bottomRight, args.roles());
+                break;
+            case QDotNetModelAction::HeaderDataChanged:
+                emit headerDataChanged(args.orientation(), args.first(), args.last());
+                break;
+            case QDotNetModelAction::NoAction:
+                break;
+            }
+            args.setSynchronized(true);
+        });
+    }
+
+    //// END QAbstractItemModel overrides
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     //// BEGIN Dynamic meta-type definitions
 
     struct DynamicType
@@ -706,6 +1147,8 @@ private:
         QDotNetAssembly assembly;
         QDotNetModule module;
         QDotNetType typeInfo;
+        BaseClass baseClass = BaseClass::Object;
+        ModelOverrides modelOverrides = ModelOverride::None;
         QMap<int, DynamicMethod *> methods = {};
         QMap<int, DynamicProperty *> properties = {};
         QMap<QString, DynamicProperty *> propertiesByName = {};
@@ -739,6 +1182,33 @@ private:
     struct DynamicEvent : public DynamicMember
     {
         int idxEventSignal = -1;
+    };
+
+    struct DynamicModel
+    {
+        QHash<int, QByteArray> roleNamesByIndex;
+        QDotNetFunction<int, QModelIndex> fnRowCount = nullptr;
+        QDotNetFunction<int, QModelIndex> fnColumnCount = nullptr;
+        QDotNetFunction<QDotNetObject> fnRoleNames = nullptr;
+        QDotNetFunction<bool, QModelIndex> fnCanFetchMore = nullptr;
+        QDotNetFunction<int, QModelIndex> fnFlags = nullptr;
+        QDotNetFunction<bool, QModelIndex> fnHasChildren = nullptr;
+        QDotNetFunction<QModelIndex, int, int, QModelIndex> fnIndex = nullptr;
+        QDotNetFunction<QModelIndex, QModelIndex> fnParent = nullptr;
+        QDotNetFunction<QModelIndex, int, int, QModelIndex> fnSibling = nullptr;
+        QDotNetFunction<QModelIndex, QModelIndex> fnBuddy = nullptr;
+        QDotNetFunction<QDotNetObject, QModelIndex, int> fnData = nullptr;
+        QDotNetFunction<QDotNetObject, int, int, int> fnHeaderData = nullptr;
+        QDotNetFunction<bool, int, int, QModelIndex> fnInsertRows = nullptr;
+        QDotNetFunction<bool, int, int, QModelIndex> fnInsertColumns = nullptr;
+        QDotNetFunction<bool, QModelIndex, int, int, QModelIndex, int> fnMoveRows = nullptr;
+        QDotNetFunction<bool, QModelIndex, int, int, QModelIndex, int> fnMoveColumns = nullptr;
+        QDotNetFunction<bool, int, int, QModelIndex> fnRemoveRows = nullptr;
+        QDotNetFunction<bool, int, int, QModelIndex> fnRemoveColumns = nullptr;
+        QDotNetFunction<void, int, int> fnSort = nullptr;
+        QDotNetFunction<void, QModelIndex> fnFetchMore = nullptr;
+        QDotNetFunction<bool, QModelIndex, QDotNetObject, int> fnSetData = nullptr;
+        QDotNetFunction<bool, int, int, QDotNetObject, int> fnSetHeaderData = nullptr;
     };
 
     //// END Dynamic meta-type definitions
@@ -776,7 +1246,10 @@ private:
 
     DynamicType *type = nullptr;
     QList<QDotNetEventHandler *> eventHandlers{};
+    DynamicModel *model = nullptr;
 
     //// END Data
     ////////////////////////////////////////////////////////////////////////////////////////////////
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(QDotNetDynamicObject::ModelOverrides)
