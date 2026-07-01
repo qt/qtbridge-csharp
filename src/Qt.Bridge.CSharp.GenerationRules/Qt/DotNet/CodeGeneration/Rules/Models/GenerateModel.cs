@@ -228,10 +228,11 @@ QObject::connect(q, &{type.MFn(Ns | Name)}::modelChanged, [q](QObject *evObj)
         case {typeof(Model.EventAction).MFn(Ns | Name)}::DataChanged:
             {{
                 QList<int> roles;
-                auto *a = args->roles();
-                int n = a->count();
-                for (int i = 0; i < n; i++)
-                    roles << a->item(i);
+                if (auto *a = args->roles()) {{
+                    int n = a->length();
+                    for (int i = 0; i < n; i++)
+                        roles << a->get(i);
+                }}
                 emit q->dataChanged(idxTopLeft, idxBottomRight, roles);
             }}
             break;

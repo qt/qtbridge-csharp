@@ -42,7 +42,7 @@ namespace Qt.Bridge.Models
         [Enable]
         public ModelIndex BottomRight { get; init; }
         [Enable]
-        public List<int> Roles { get; init; }
+        public int[] Roles { get; init; }
         [Enable]
         public int Orientation { get; init; }
         [Enable]
@@ -725,7 +725,7 @@ namespace Qt.Bridge.Models
                 Action = EventAction.DataChanged,
                 TopLeft = topLeft,
                 BottomRight = bottomRight,
-                Roles = roles?.ToList() ?? []
+                Roles = roles ?? []
             });
         }
 
