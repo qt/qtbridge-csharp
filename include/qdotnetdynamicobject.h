@@ -34,14 +34,19 @@
 
 class QDotNetDynamicObject : public QObject, public QDotNetObject
 {
-private:
-    struct Parameter;
     struct DynamicType;
     struct DynamicMethod;
     struct DynamicProperty;
     struct DynamicEvent;
+    struct Parameter;
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    //// BEGIN Public definitions
 public:
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    //// BEGIN Dynamic meta-type authoring
+
     static QMetaObjectBuilder *defineType(const QString &typeName, const QString &qualifiedTypeName,
                                           const QString &assemblyFile, const QString &appDirPath)
     {
@@ -60,6 +65,7 @@ public:
         type->assemblyPath = assemblyPath;
         type->assemblyQualifiedName = qualifiedTypeName;
         dynamicTypesByName[type->assemblyQualifiedName] = type;
+        typeDef->setSuperClass(&QObject::staticMetaObject);
         typeDef->setClassName(type->assemblyQualifiedName.toUtf8());
         typeDef->setStaticMetacallFunction(staticMetacall);
         return typeDef;
@@ -218,6 +224,54 @@ public:
         return metaObject;
     }
 
+    //// END Dynamic meta-type authoring
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    //// BEGIN Dynamic object life-cycle
+
+    QDotNetDynamicObject() = delete;
+
+    QDotNetDynamicObject(QObject *) = delete;
+
+    ~QDotNetDynamicObject() noexcept override { cleanUp(); }
+
+    QDotNetDynamicObject(const QDotNetDynamicObject &obj) = delete;
+
+    QDotNetDynamicObject(QDotNetDynamicObject &&obj) : type(obj.type)
+    {
+        moveFrom(obj);
+        eventHandlers = obj.eventHandlers;
+        for (auto *eventHandler : eventHandlers)
+            static_cast<DynamicEventHandler *>(eventHandler)->receiver = this;
+        obj.eventHandlers.clear();
+    }
+
+    static void *operator new(std::size_t count) { return ::operator new(count); }
+
+    static void *operator new(std::size_t, void *ptr)
+    {
+        assert(ptr);
+        objectPlacementAddrs.insert(ptr);
+        return ptr;
+    }
+
+    static void operator delete(void *ptr)
+    {
+        if (objectPlacementAddrs.contains(ptr))
+            objectPlacementAddrs.remove(ptr);
+        else
+            ::operator delete(ptr);
+    }
+
+#ifdef Q_CC_MSVC
+    static void operator delete(void *, void *)
+    {
+        // Deliberately empty placement delete operator.
+        // Silences MSVC warning C4291: no matching operator delete found
+    }
+#endif
+
     static QObject *dispatch(QDotNetRef &dotNetObj, const QString &qualifiedTypeName,
                              const QObject *context = nullptr)
     {
@@ -231,6 +285,108 @@ public:
         QDotNetDynamicObject obj(type, dotNetObj);
         return QDotNetConvert::moveToHeap(obj, context);
     }
+
+    //// END Public definitions
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    //// BEGIN Private definitions
+private:
+
+    QDotNetDynamicObject(DynamicType *type, QDotNetRef &&obj) : type(type)
+    {
+        moveFrom(obj);
+        init();
+    }
+
+    QDotNetDynamicObject(DynamicType *type, const QDotNetRef &obj) : type(type)
+    {
+        copyFrom(obj);
+        init();
+    }
+
+    void init()
+    {
+        init(type);
+        initEvents();
+    }
+
+    static void init(DynamicType *type)
+    {
+        if (!type->assembly.isValid()) {
+            QDotNetAssembly assembly = QtDotNet::call<QDotNetRef, QString>(
+                    "System.Reflection.Assembly", "LoadFrom", type->assemblyPath);
+            if (!assembly.isValid()) {
+                qFatal() << "QDotNetDynamicObject: ERROR loading assembly:" << type->assemblyPath;
+                return;
+            }
+
+            QDotNetType typeInfo = assembly.getType(type->name);
+            if (!typeInfo.isValid()) {
+                qFatal() << "QDotNetDynamicObject: ERROR getting type:" << type->name;
+                return;
+            }
+
+            QDotNetModule module = typeInfo.module();
+            if (!module.isValid()) {
+                qFatal() << "QDotNetDynamicObject: ERROR accessing type module:" << type->name;
+                return;
+            }
+
+            type->assembly = assembly;
+            type->module = module;
+            type->typeInfo = typeInfo;
+        }
+    }
+
+    void cleanUp()
+    {
+        cleanUpEvents();
+    }
+
+    void initEvents()
+    {
+        for (auto *event : type->events)
+            eventHandlers.append(new DynamicEventHandler(this, event));
+    }
+
+    void cleanUpEvents()
+    {
+        for (auto *eventHandler : eventHandlers)
+            delete eventHandler;
+        eventHandlers.clear();
+    }
+
+    static void createObject(void *memory, void *args)
+    {
+        if (!createInstance.isValid()) {
+            createInstance =
+                    adapter().resolveStaticMethod("System.Activator", "CreateInstance",
+                                                  { { QDotNetInbound<QDotNetRef>::Parameter,
+                                                      QDotNetOutbound<QDotNetType>::Parameter } });
+            if (!createInstance.isValid()) {
+                qFatal() << "QDotNetDynamicObject: ERROR resolving Activator.CreateInstance method";
+                return;
+            }
+        }
+
+        auto *type = static_cast<DynamicType *>(args);
+        init(type);
+
+        QDotNetRef obj = createInstance(type->typeInfo);
+        if (!obj.isValid()) {
+            qFatal() << "QDotNetDynamicObject: ERROR creating instance:" << type->name;
+            return;
+        }
+
+        new (memory) QDotNetDynamicObject(type, std::move(obj));
+    }
+
+    //// END Dynamic object life-cycle
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    //// BEGIN Dynamic object interface
 
     const QMetaObject *metaObject() const override { return type->metaObject; }
 
@@ -276,125 +432,6 @@ public:
         return _id;
     }
 
-    static void *operator new(std::size_t count) { return ::operator new(count); }
-
-    static void *operator new(std::size_t, void *ptr)
-    {
-        assert(ptr);
-        objectPlacementAddrs.insert(ptr);
-        return ptr;
-    }
-
-    static void operator delete(void *ptr)
-    {
-        if (objectPlacementAddrs.contains(ptr))
-            objectPlacementAddrs.remove(ptr);
-        else
-            ::operator delete(ptr);
-    }
-
-#ifdef Q_CC_MSVC
-    static void operator delete(void *, void *)
-    {
-        // Deliberately empty placement delete operator.
-        // Silences MSVC warning C4291: no matching operator delete found
-    }
-#endif
-
-    QDotNetDynamicObject() = delete;
-    QDotNetDynamicObject(QObject *) = delete;
-
-    ~QDotNetDynamicObject() noexcept override
-    {
-        for (auto *eventHandler : eventHandlers)
-            delete eventHandler;
-        eventHandlers.clear();
-    }
-
-    QDotNetDynamicObject(const QDotNetDynamicObject &obj) = delete;
-
-    QDotNetDynamicObject(QDotNetDynamicObject &&obj) : type(obj.type)
-    {
-        moveFrom(obj);
-        eventHandlers = obj.eventHandlers;
-        for (auto *eventHandler : eventHandlers)
-            static_cast<DynamicEventHandler *>(eventHandler)->receiver = this;
-        obj.eventHandlers.clear();
-    }
-
-private:
-    static void init(DynamicType *type)
-    {
-        if (!type->assembly.isValid()) {
-            QDotNetAssembly assembly = QtDotNet::call<QDotNetRef, QString>(
-                    "System.Reflection.Assembly", "LoadFrom", type->assemblyPath);
-            if (!assembly.isValid()) {
-                qFatal() << "QDotNetDynamicObject: ERROR loading assembly:" << type->assemblyPath;
-                return;
-            }
-
-            QDotNetType typeInfo = assembly.getType(type->name);
-            if (!typeInfo.isValid()) {
-                qFatal() << "QDotNetDynamicObject: ERROR getting type:" << type->name;
-                return;
-            }
-
-            QDotNetModule module = typeInfo.module();
-            if (!module.isValid()) {
-                qFatal() << "QDotNetDynamicObject: ERROR accessing type module:" << type->name;
-                return;
-            }
-
-            type->assembly = assembly;
-            type->module = module;
-            type->typeInfo = typeInfo;
-        }
-    }
-
-    void init()
-    {
-        init(type);
-        for (auto *event : type->events)
-            eventHandlers.append(new DynamicEventHandler(this, event));
-    }
-
-    static void createObject(void *memory, void *args)
-    {
-        if (!createInstance.isValid()) {
-            createInstance =
-                    adapter().resolveStaticMethod("System.Activator", "CreateInstance",
-                                                  { { QDotNetInbound<QDotNetRef>::Parameter,
-                                                      QDotNetOutbound<QDotNetType>::Parameter } });
-            if (!createInstance.isValid()) {
-                qFatal() << "QDotNetDynamicObject: ERROR resolving Activator.CreateInstance method";
-                return;
-            }
-        }
-
-        auto *type = static_cast<DynamicType *>(args);
-        init(type);
-
-        QDotNetRef obj = createInstance(type->typeInfo);
-        if (!obj.isValid()) {
-            qFatal() << "QDotNetDynamicObject: ERROR creating instance:" << type->name;
-            return;
-        }
-
-        new (memory) QDotNetDynamicObject(type, std::move(obj));
-    }
-
-    QDotNetDynamicObject(DynamicType *type, QDotNetRef &&obj) : type(type)
-    {
-        moveFrom(obj);
-        init();
-    }
-
-    QDotNetDynamicObject(DynamicType *type, const QDotNetRef &obj) : type(type)
-    {
-        copyFrom(obj);
-        init();
-    }
-
     static void staticMetacall(QObject *obj, QMetaObject::Call call, int id, void **args)
     {
         const auto &itTypeDef = typeDefs.find(obj->metaObject());
@@ -407,36 +444,36 @@ private:
             return;
         const auto *type = *itDynamicType;
 
-        auto *objProxy = qobject_cast<QDotNetDynamicObject *>(obj);
-        if (!objProxy)
+        auto *dynObj = static_cast<QDotNetDynamicObject *>(obj);
+        if (!dynObj)
             return;
 
         if (call == QMetaObject::InvokeMetaMethod) {
 
             if (id == type->idxAsDotNetObject) {
-                *reinterpret_cast<const QDotNetObject **>(args[0]) = objProxy;
+                *reinterpret_cast<const QDotNetObject **>(args[0]) = dynObj;
                 return;
             }
 
             const auto &itMethod = type->methods.find(id);
             if (itMethod != type->methods.end())
-                return invokeMetaMethod(objProxy, *itMethod, args);
+                return invokeMetaMethod(dynObj, *itMethod, args);
 
-            return QMetaObject::activate(objProxy, type->metaObject->methodOffset() + id, args);
+            return QMetaObject::activate(dynObj, type->metaObject->methodOffset() + id, args);
         }
 
         if (call == QMetaObject::ReadProperty) {
             const auto &itProp = type->properties.find(id);
             if (itProp == type->properties.end())
                 return;
-            return readProperty(objProxy, *itProp, args);
+            return readProperty(dynObj, *itProp, args);
         }
 
         if (call == QMetaObject::WriteProperty) {
             const auto &itProp = type->properties.find(id);
             if (itProp == type->properties.end())
                 return;
-            return writeProperty(objProxy, *itProp, args);
+            return writeProperty(dynObj, *itProp, args);
         }
     }
 
@@ -594,19 +631,72 @@ private:
         }
     }
 
-    template <typename T>
-    using StaticCastSelector = QQmlPrivate::StaticCastSelector<QDotNetDynamicObject, T>;
+    //// END Dynamic object interface
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    struct Parameter
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    //// BEGIN Event handling
+
+    struct DynamicEventHandler : public QDotNetEventHandlerHelper<DynamicEvent>
     {
-        QString typeName;
-        UnmanagedType unmanagedType;
-
-        Parameter(const QDotNetParameter &p)
-            : typeName(p.typeName), unmanagedType(p.unmanagedType())
+        DynamicEventHandler(QDotNetDynamicObject *receiver, DynamicEvent *d)
+            : QDotNetEventHandlerHelper<DynamicEvent>(d->name, receiver, d)
         {
         }
+
+        void handleEvent(const QString &name, QDotNetObject &sender, QDotNetObject &args) override
+        {
+            if (!args.isValid())
+                return;
+
+            auto *qDynObj = static_cast<QDotNetDynamicObject *>(receiver);
+
+            // NOTE: Do not change invokeMethod using Qt::AutoConnection
+            //   * Event-to-signal mapping and notifications need to run on qDynObj's thread.
+            QMetaObject::invokeMethod(qDynObj, [=]() mutable {
+
+                if (name == "PropertyChanged" && args.type().is<QDotNetPropertyEvent>()) {
+                    auto propChanged = args.cast<QDotNetPropertyEvent>();
+                    qDynObj->onPropertyChanged(propChanged.propertyName());
+                    args = propChanged.cast<QDotNetObject>();
+                }
+
+                QObject *qEvArgs = QDotNetConvert::objectDispatch(args);
+                if (qEvArgs)
+                    qDynObj->onEvent(d, qEvArgs);
+                delete qEvArgs;
+            });
+        }
     };
+
+    void onEvent(DynamicEvent *event, QObject *args)
+    {
+        if (event->idxEventSignal < 0)
+            return;
+        auto idxSignal = type->metaObject->methodOffset() + event->idxEventSignal;
+        auto eventSignal = type->metaObject->method(idxSignal);
+        eventSignal.invoke(this, args);
+    }
+
+    void onPropertyChanged(const QString &propertyName)
+    {
+        const auto &itProperty = type->propertiesByName.find(propertyName);
+        if (itProperty == type->propertiesByName.end())
+            return;
+        auto *property = *itProperty;
+        if (property->idxNotifySignal < 0)
+            return;
+
+        auto idxSignal = type->metaObject->methodOffset() + property->idxNotifySignal;
+        auto notifySignal = type->metaObject->method(idxSignal);
+        notifySignal.invoke(this);
+    }
+
+    //// END Event handling
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    //// BEGIN Dynamic meta-type definitions
 
     struct DynamicType
     {
@@ -651,6 +741,32 @@ private:
         int idxEventSignal = -1;
     };
 
+    //// END Dynamic meta-type definitions
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    //// BEGIN Aux. definitions
+
+    template <typename T>
+    using StaticCastSelector = QQmlPrivate::StaticCastSelector<QDotNetDynamicObject, T>;
+
+    struct Parameter
+    {
+        QString typeName;
+        UnmanagedType unmanagedType;
+
+        Parameter(const QDotNetParameter &p)
+            : typeName(p.typeName), unmanagedType(p.unmanagedType())
+        {
+        }
+    };
+
+    //// END Aux. definitions
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    //// BEGIN Data
+
     static inline QDotNetFunction<QDotNetRef, QDotNetType> createInstance = nullptr;
 
     static inline QMap<QString, DynamicType *> dynamicTypesByName{};
@@ -661,58 +777,6 @@ private:
     DynamicType *type = nullptr;
     QList<QDotNetEventHandler *> eventHandlers{};
 
-    void onEvent(DynamicEvent *event, QObject *args)
-    {
-        if (event->idxEventSignal < 0)
-            return;
-        auto idxSignal = type->metaObject->methodOffset() + event->idxEventSignal;
-        auto eventSignal = type->metaObject->method(idxSignal);
-        eventSignal.invoke(this, args);
-    }
-
-    void onPropertyChanged(const QString &propertyName)
-    {
-        const auto &itProperty = type->propertiesByName.find(propertyName);
-        if (itProperty == type->propertiesByName.end())
-            return;
-        auto *property = *itProperty;
-        if (property->idxNotifySignal < 0)
-            return;
-
-        auto idxSignal = type->metaObject->methodOffset() + property->idxNotifySignal;
-        auto notifySignal = type->metaObject->method(idxSignal);
-        notifySignal.invoke(this);
-    }
-
-    struct DynamicEventHandler : public QDotNetEventHandlerHelper<DynamicEvent>
-    {
-        DynamicEventHandler(QDotNetDynamicObject *receiver, DynamicEvent *d)
-            : QDotNetEventHandlerHelper<DynamicEvent>(d->name, receiver, d)
-        {
-        }
-
-        void handleEvent(const QString &name, QDotNetObject &sender, QDotNetObject &args) override
-        {
-            if (!args.isValid())
-                return;
-
-            auto *qDynObj = static_cast<QDotNetDynamicObject *>(receiver);
-
-            // NOTE: Do not change invokeMethod using Qt::AutoConnection
-            //   * Event-to-signal mapping and notifications need to run on qDynObj's thread.
-            QMetaObject::invokeMethod(qDynObj, [=]() mutable {
-
-                if (name == "PropertyChanged" && args.type().is<QDotNetPropertyEvent>()) {
-                    auto propChanged = args.cast<QDotNetPropertyEvent>();
-                    qDynObj->onPropertyChanged(propChanged.propertyName());
-                    args = propChanged.cast<QDotNetObject>();
-                }
-
-                QObject *qEvArgs = QDotNetConvert::objectDispatch(args);
-                if (qEvArgs)
-                    qDynObj->onEvent(d, qEvArgs);
-                delete qEvArgs;
-            });
-        }
-    };
+    //// END Data
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 };
