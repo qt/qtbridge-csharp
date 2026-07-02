@@ -24,7 +24,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
 
         private readonly DispatcherTimer dismissTimer;
         private readonly IExtensionLog extensionLog;
+        private readonly Func<ToastCloseReason, CancellationToken, Task>? onClosed;
         private bool closing;
+        private ToastCloseReason closeReason = ToastCloseReason.Dismissed;
 
         // Stored so they can be unsubscribed when the toast closes.
         private Window? ownerWindow;
@@ -37,10 +39,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
             string detail,
             NotificationAction? primaryAction,
             NotificationAction? secondaryAction,
+            Func<ToastCloseReason, CancellationToken, Task>? onClosedFunc,
             TimeSpan displayDuration,
             IExtensionLog log)
         {
             extensionLog = log ?? throw new ArgumentNullException(nameof(log));
+            onClosed = onClosedFunc;
 
             InitializeComponent();
 
@@ -53,7 +57,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
             BuildActionButtons(primaryAction, secondaryAction);
 
             dismissTimer = new DispatcherTimer { Interval = displayDuration };
-            dismissTimer.Tick += (_, _) => BeginCloseAnimation();
+            dismissTimer.Tick += (_, _) =>
+            {
+                closeReason = ToastCloseReason.TimedOut;
+                BeginCloseAnimation();
+            };
 
             Loaded += OnLoaded;
             Closed += OnClosed;
@@ -70,6 +78,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
             string detail,
             NotificationAction? primaryAction,
             NotificationAction? secondaryAction,
+            Func<ToastCloseReason, CancellationToken, Task>? onClosed,
             TimeSpan displayDuration,
             IExtensionLog log,
             CancellationToken ct)
@@ -88,7 +97,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
                 return false;
             }
 
-            var toast = new ToastWindow(title, detail, primaryAction, secondaryAction,
+            var toast = new ToastWindow(title, detail, primaryAction, secondaryAction, onClosed,
                 displayDuration, log);
             toast.AttachToOwner(owner);
             toast.Show();
@@ -119,6 +128,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
             if (ownerSizeChangedHandler != null)
                 ownerWindow.SizeChanged -= ownerSizeChangedHandler;
             ownerWindow = null;
+
+            if (onClosed != null)
+                _ = NotifyClosedAsync(closeReason);
         }
 
         private void AttachToOwner(Window owner)
@@ -337,6 +349,15 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
             sb.Begin();
         }
 
+        private async Task NotifyClosedAsync(ToastCloseReason reason)
+        {
+            try {
+                await onClosed!(reason, CancellationToken.None);
+            } catch (Exception ex) {
+                extensionLog.Warning($"Toast close handler failed: {ex.Message}");
+            }
+        }
+
         private void BuildActionButtons(NotificationAction? primary, NotificationAction? secondary)
         {
             if (primary == null && secondary == null) {
@@ -358,6 +379,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
         {
             if (sender is not Button { Tag: NotificationAction action })
                 return;
+            closeReason = ToastCloseReason.ActionInvoked;
             BeginCloseAnimation();
             _ = ExecuteActionAsync(action);
         }

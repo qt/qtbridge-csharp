@@ -52,6 +52,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
         private uint toolWindowNotificationCommandTargetCookie;
         internal IToolWindowNotificationService? ToolWindowNotifications => toolWindowNotificationSvc;
 #endif
+        internal WhatsNewLifecycleService? WhatsNewLifecycle { get; private set; }
 
         protected override async Task InitializeAsync(
             CancellationToken cancellationToken,
@@ -98,13 +99,22 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
         private async Task InitializeWhatsNewLifecycleAsync(CancellationToken cancellationToken)
         {
+#if WINDOWS_DESKTOP
             var log = new TraceExtensionLog();
-            var lifecycle = new WhatsNewLifecycleService(
+            var toastNotifications = new ToastNotificationService(
+                new InfoBarNotificationService(log),
+                log);
+            EnsureToolWindowNotifications(log);
+            WhatsNewLifecycle = new WhatsNewLifecycleService(
                 new SettingsStore(this),
-                new ToastNotificationService(new InfoBarNotificationService(log), log),
+                toastNotifications,
+                ToolWindowNotifications,
                 log);
 
-            await lifecycle.InitializeAsync(cancellationToken);
+            await WhatsNewLifecycle.InitializeAsync(cancellationToken);
+#else
+            await Task.CompletedTask;
+#endif
         }
 
 #if WINDOWS_DESKTOP

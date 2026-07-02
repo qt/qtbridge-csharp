@@ -21,9 +21,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
             string detail,
             CancellationToken ct,
             NotificationAction? primary = null,
-            NotificationAction? secondary = null)
+            NotificationAction? secondary = null,
+            Func<ToastCloseReason, CancellationToken, Task>? onClosed = null)
         {
-            if (await TryShowToastAsync(title, detail, ct, primary, secondary))
+            if (await TryShowToastAsync(title, detail, ct, primary, secondary, onClosed))
                 return;
 
             var message = string.IsNullOrEmpty(detail) ? title : $"{title}  {detail}";
@@ -36,12 +37,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
             string detail,
             CancellationToken ct,
             NotificationAction? primary,
-            NotificationAction? secondary)
+            NotificationAction? secondary,
+            Func<ToastCloseReason, CancellationToken, Task>? onClosed)
         {
 #if WINDOWS_DESKTOP
             try {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(ct);
-                return await ToastWindow.TryShowAsync(title, detail, primary, secondary,
+                return await ToastWindow.TryShowAsync(title, detail, primary, secondary, onClosed,
                     ToastDuration, log, ct);
             } catch (Exception ex) {
                 log.Warning($"Toast notification failed: {ex.Message}");

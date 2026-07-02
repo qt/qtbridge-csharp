@@ -42,6 +42,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
                     OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
             } else {
                 OpenBrowserWithFile(GetThemePath(lightPath, darkPath));
+                if (ExtensionPackage.Instance?.WhatsNewLifecycle is { } lifecycle)
+                    await lifecycle.AcknowledgeCurrentVersionAsync(ct);
             }
         }
 

@@ -11,6 +11,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings
         private const string RootCollectionPath = "QtBridge";
         private const string WhatsNewCollectionPath = RootCollectionPath + "\\WhatsNew";
         private const string LastSeenVersionProperty = "LastSeenVersion";
+        private const string LastOpenedVersionProperty = "LastOpenedVersion";
 
         private readonly WritableSettingsStore store;
 
@@ -33,6 +34,22 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings
             {
                 EnsureWhatsNewCollection();
                 store.SetString(WhatsNewCollectionPath, LastSeenVersionProperty, value ?? "");
+            }
+        }
+
+        public string? LastOpenedVersion
+        {
+            get
+            {
+                EnsureWhatsNewCollection();
+                return store.PropertyExists(WhatsNewCollectionPath, LastOpenedVersionProperty)
+                    ? store.GetString(WhatsNewCollectionPath, LastOpenedVersionProperty)
+                    : null;
+            }
+            set
+            {
+                EnsureWhatsNewCollection();
+                store.SetString(WhatsNewCollectionPath, LastOpenedVersionProperty, value ?? "");
             }
         }
 

@@ -10,6 +10,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
             string detail,
             CancellationToken ct,
             NotificationAction? primary = null,
-            NotificationAction? secondary = null);
+            NotificationAction? secondary = null,
+            Func<ToastCloseReason, CancellationToken, Task>? onClosed = null);
     }
 }
