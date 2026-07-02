@@ -30,6 +30,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
                 MenuChild.Command<ResetSettingsStore>(),
                 MenuChild.Command<ShowToast>(),
                 MenuChild.Command<ShowStatus>(),
+                MenuChild.Command<ShowNotification>(),
 #endif
                 MenuChild.Separator,
                 MenuChild.Command<Version>()
