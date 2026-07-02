@@ -6,7 +6,7 @@ using Microsoft;
 using Microsoft.VisualStudio.Extensibility;
 using Microsoft.VisualStudio.Extensibility.Commands;
 using Microsoft.VisualStudio.Extensibility.Shell;
-using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Notifications;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.Commands
 {

@@ -4,8 +4,9 @@
 using Microsoft.VisualStudio.Imaging;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 
-namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
+namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
 {
     /// <summary>
     /// Shows rate-limited, non-modal Visual Studio InfoBar notifications for user-facing failures.

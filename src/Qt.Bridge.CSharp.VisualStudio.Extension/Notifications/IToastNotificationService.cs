@@ -1,7 +1,7 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
-namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
+namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
 {
     internal interface IToastNotificationService
     {

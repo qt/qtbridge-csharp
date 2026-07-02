@@ -6,6 +6,7 @@ using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.PlatformUI;
 using Microsoft.VisualStudio.Shell;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Notifications;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings;
 #if WINDOWS_DESKTOP
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.Notifications;

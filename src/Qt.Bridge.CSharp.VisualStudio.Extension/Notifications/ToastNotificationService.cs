@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using Microsoft.VisualStudio.Shell;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 
-namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
+namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
 {
     internal sealed class ToastNotificationService(
         INotificationService notifications,

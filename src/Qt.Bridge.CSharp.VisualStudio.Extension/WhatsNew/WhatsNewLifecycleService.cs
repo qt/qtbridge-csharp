@@ -3,6 +3,7 @@
 
 using Microsoft.VisualStudio.Shell;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Notifications;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.WhatsNew

@@ -12,6 +12,7 @@ using Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem;
 using Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer;
 using Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Notifications;
 using Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer.Contracts;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.Notifications;
 using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;

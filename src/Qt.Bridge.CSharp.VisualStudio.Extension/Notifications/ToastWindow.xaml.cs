@@ -11,8 +11,9 @@ using System.Windows.Threading;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+using Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics;
 
-namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
+namespace Qt.Bridge.CSharp.VisualStudio.Extension.Notifications
 {
     internal sealed partial class ToastWindow
     {
