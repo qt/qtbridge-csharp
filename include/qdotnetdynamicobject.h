@@ -26,6 +26,8 @@
 #include <QMap>
 #include <QMetaObject>
 #include <QObject>
+#include <QQmlListProperty>
+#include <QQmlParserStatus>
 #include <QSet>
 #include <QtCore/private/qmetaobjectbuilder_p.h>
 #include <QtQml/qqmlprivate.h>
@@ -33,13 +35,16 @@
 #  pragma GCC diagnostic pop
 #endif
 
-class QDotNetDynamicObject : public QAbstractItemModel, public QDotNetObject
+class QDotNetDynamicObject : public QAbstractItemModel,
+                             public QQmlParserStatus,
+                             public QDotNetObject
 {
     struct DynamicType;
     struct DynamicMethod;
     struct DynamicProperty;
     struct DynamicEvent;
     struct DynamicModel;
+    struct DynamicQmlElement;
     struct Parameter;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -81,6 +86,7 @@ public:
 
     static QMetaObjectBuilder *defineType(const QString &typeName, const QString &qualifiedTypeName,
                                           const QString &assemblyFile, const QString &appDirPath,
+                                          bool isQmlElement,
                                           BaseClass baseClass = BaseClass::Object,
                                           ModelOverrides modelOverrides = ModelOverride::None)
     {
@@ -99,6 +105,7 @@ public:
         type->assemblyPath = assemblyPath;
         type->assemblyQualifiedName = qualifiedTypeName;
         dynamicTypesByName[type->assemblyQualifiedName] = type;
+        type->isQmlElement = isQmlElement;
         type->baseClass = baseClass;
         type->modelOverrides = modelOverrides;
         switch (baseClass) {
@@ -113,6 +120,16 @@ public:
         }
         typeDef->setClassName(type->assemblyQualifiedName.toUtf8());
         typeDef->setStaticMetacallFunction(staticMetacall);
+
+        if (isQmlElement) {
+            typeDef->addClassInfo("DefaultProperty", "nestedQmlElements");
+            auto propDef = typeDef->addProperty("nestedQmlElements", "QQmlListProperty<QObject>",
+                                                QMetaType::fromType<QQmlListProperty<QObject>>());
+            propDef.setWritable(false);
+            propDef.setConstant(true);
+            type->idxNestedQmlElements = propDef.index();
+        }
+
         return typeDef;
     }
 
@@ -296,6 +313,9 @@ public:
 
         model = obj.model;
         obj.model = nullptr;
+
+        qmlElement = obj.qmlElement;
+        obj.qmlElement = nullptr;
     }
 
     static void *operator new(std::size_t count) { return ::operator new(count); }
@@ -361,6 +381,7 @@ private:
         init(type);
         initEvents();
         initModel();
+        initQmlElement();
     }
 
     static void init(DynamicType *type)
@@ -395,6 +416,7 @@ private:
     {
         cleanUpEvents();
         cleanUpModel();
+        cleanUpQmlElement();
     }
 
     void initEvents()
@@ -479,6 +501,27 @@ private:
         model = nullptr;
     }
 
+    void initQmlElement()
+    {
+        if (!QDotNetObject::type().isAssignableTo<IQmlElement>()) {
+            qWarning() << "QDotNetDynamicObject: missing IQmlElement implementation:" << type->name;
+            return;
+        }
+        if (qmlElement || !type->isQmlElement)
+            return;
+        qmlElement = new DynamicQmlElement;
+        RESOLVE_FUNC(qmlElement, QmlClassBegin);
+        RESOLVE_FUNC(qmlElement, QmlComponentComplete);
+    }
+
+    void cleanUpQmlElement()
+    {
+        if (!qmlElement)
+            return;
+        delete qmlElement;
+        qmlElement = nullptr;
+    }
+
     static void createObject(void *memory, void *args)
     {
         if (!createInstance.isValid()) {
@@ -504,6 +547,34 @@ private:
         new (memory) QDotNetDynamicObject(type, std::move(obj));
     }
 
+    void classBegin() override
+    {
+        if (!qmlElement || !qmlElement->fnQmlClassBegin.isValid())
+            return;
+        qmlElement->fnQmlClassBegin();
+    }
+
+    void componentComplete() override
+    {
+        if (!qmlElement || !qmlElement->fnQmlComponentComplete.isValid())
+            return;
+
+        QList<const QDotNetObject *> dotNetObjs;
+        for (QObject *qObj : qmlElement->nestedQmlElements) {
+            if (!qObj)
+                continue;
+            const QDotNetObject *dnObj = QDotNetConvert::asDotNetObject(qObj);
+            if (!dnObj || !dnObj->isValid())
+                continue;
+            dotNetObjs << dnObj;
+        }
+        QDotNetArray<QDotNetRef> nestedObjs(dotNetObjs.size());
+        for (int i = 0; i < dotNetObjs.size(); ++i)
+            nestedObjs[i] = *dotNetObjs[i];
+
+        qmlElement->fnQmlComponentComplete(nestedObjs);
+    }
+
 #undef RESOLVE_FUNC
 
     //// END Dynamic object life-cycle
@@ -520,6 +591,10 @@ private:
             return nullptr;
         if (_clname == QDotNetObject::ClassName || !strcmp(_clname, QDotNetObject::ClassName))
             return static_cast<QDotNetObject *>(this);
+        if (!strcmp(_clname, "QQmlParserStatus"))
+            return static_cast<QQmlParserStatus *>(this);
+        if (!strcmp(_clname, "org.qt-project.Qt.QQmlParserStatus"))
+            return static_cast<QQmlParserStatus *>(this);
         return QAbstractItemModel::qt_metacast(_clname);
     }
 
@@ -587,6 +662,19 @@ private:
         }
 
         if (call == QMetaObject::ReadProperty) {
+
+            if (id == type->idxNestedQmlElements) {
+                if (!dynObj->qmlElement) {
+                    qFatal() << "QDotNetDynamicObject: ERROR reading nested elements for "
+                                "non-element type: " << type->name;
+                    return;
+                }
+                auto *nestedQmlElements = &dynObj->qmlElement->nestedQmlElements;
+                *reinterpret_cast<QQmlListProperty<QObject> *>(args[0]) =
+                        QQmlListProperty<QObject>(dynObj, nestedQmlElements);
+                return;
+            }
+
             const auto &itProp = type->properties.find(id);
             if (itProp == type->properties.end())
                 return;
@@ -1149,12 +1237,14 @@ private:
         QDotNetType typeInfo;
         BaseClass baseClass = BaseClass::Object;
         ModelOverrides modelOverrides = ModelOverride::None;
+        bool isQmlElement = false;
         QMap<int, DynamicMethod *> methods = {};
         QMap<int, DynamicProperty *> properties = {};
         QMap<QString, DynamicProperty *> propertiesByName = {};
         QList<DynamicEvent *> events = {};
         const QMetaObject *metaObject = nullptr;
         int idxAsDotNetObject = -1;
+        int idxNestedQmlElements = -1;
     };
 
     struct DynamicMember
@@ -1211,6 +1301,13 @@ private:
         QDotNetFunction<bool, int, int, QDotNetObject, int> fnSetHeaderData = nullptr;
     };
 
+    struct DynamicQmlElement
+    {
+        QDotNetFunction<void> fnQmlClassBegin = nullptr;
+        QDotNetFunction<void, QDotNetArray<QDotNetRef>> fnQmlComponentComplete = nullptr;
+        QList<QObject *> nestedQmlElements;
+    };
+
     //// END Dynamic meta-type definitions
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1231,6 +1328,11 @@ private:
         }
     };
 
+    struct IQmlElement
+    {
+        Q_DOTNET_OBJECT_TYPE(IQmlElement, "Qt.Quick.IQmlElement, Qt.Bridge.CSharp.Api");
+    };
+
     //// END Aux. definitions
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1247,6 +1349,7 @@ private:
     DynamicType *type = nullptr;
     QList<QDotNetEventHandler *> eventHandlers{};
     DynamicModel *model = nullptr;
+    DynamicQmlElement *qmlElement = nullptr;
 
     //// END Data
     ////////////////////////////////////////////////////////////////////////////////////////////////
