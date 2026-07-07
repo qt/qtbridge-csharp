@@ -1,0 +1,407 @@
+{ "title": "Qt Bridge for C# Dynamic Types | Copyright (C) 2026 The Qt Company Ltd.", "description":
+"// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause",
+
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "type": "object",
+  "properties": {
+    "types": {
+      "type": "array",
+      "description": "Types",
+      "items": {
+        "type": "object",
+        "description": "Type",
+        "properties": {
+          "dotNet": {
+            "type": "object",
+            "description": "Type",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Fully qualified type name, including namespace",
+                "pattern": "^([a-zA-Z_]\\w*\\.)*[a-zA-Z_]\\w*$"
+              },
+              "assemblyQualifiedName": {
+                "type": "string",
+                "description": "Assembly qualified type name, including namespace and assembly",
+                "pattern":
+"((?:^|\\.)[a-zA-Z_]\\w*)+\\s*,\\s*[^\\/\\\\\\s\\|\\,\\:\\<\\>\\?\\*\\~\\@\\$\"\"]+$"
+              },
+              "assemblyFile": {
+                "type": "string",
+                "description": "Assembly file name",
+                "pattern": "[^\\/\\\\\\s\\|\\,\\:\\<\\>\\?\\*\\~\\@\\$\"\"]+$"
+              },
+              "assemblyFileHash": {
+                "type": "string",
+                "description": "SHA-512 hash of the assembly file",
+                "pattern": "^[a-fA-F0-9]{128}$"
+              },
+              "moduleMetadataToken": {
+                "type": "number",
+                "description": "Metadata token of the containing module"
+              },
+              "metadataToken": {
+                "type": "number",
+                "description": "Metadata token of the exported type"
+              }
+            },
+            "required": [
+              "name",
+              "assemblyQualifiedName",
+              "assemblyFile"
+            ]
+          },
+          "qt": {
+            "type": "object",
+            "description": "Exported type",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Exported type name, defaults to the unqualified dotnet name",
+                "pattern": "^[A-Z]\\w+$"
+              },
+              "model": {
+                "type": "object",
+                "description": "Export type as QAIM-based model",
+                "properties": {
+                  "baseClass": {
+                    "type": "string",
+                    "description": "Base class of model type, defaults to 'model'",
+                    "enum": [
+                      "model",
+                      "listModel",
+                      "tableModel"
+                    ]
+                  },
+                  "overrides": {
+                    "type": "array",
+                    "description": "QAIM interface overrides",
+                    "items": {
+                      "type": "string",
+                      "description": "Override",
+                      "enum": [
+                        "rowCount",
+                        "columnCount",
+                        "roleNames",
+                        "canFetchMore",
+                        "flags",
+                        "hasChildren",
+                        "index",
+                        "parent",
+                        "sibling",
+                        "buddy",
+                        "data",
+                        "headerData",
+                        "insertRows",
+                        "insertColumns",
+                        "moveRows",
+                        "moveColumns",
+                        "removeRows",
+                        "removeColumns",
+                        "sort",
+                        "fetchMore",
+                        "setData",
+                        "setHeaderData"
+                      ]
+                    },
+                    "minItems": 1
+                  }
+                }
+              },
+              "isQmlElement": {
+                "type": "boolean",
+                "description": "Is the type instantiable as an element in QML?"
+              },
+              "qml": {
+                "type": "object",
+                "description": "Expose type to QML",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "QML type name, defaults to the unqualified dotnet name",
+                    "pattern": "^[A-Z]\\w+$"
+                  },
+                  "module": {
+                    "type": "string",
+                    "description": "QML module name",
+                    "pattern": "^([a-zA-Z_]\\w*)(\\.([a-zA-Z_]\\w*))*$"
+                  },
+                  "moduleRevisionMajor": {
+                    "type": "integer",
+                    "description": "QML module revision major number"
+                  },
+                  "moduleRevisionMinor": {
+                    "type": "integer",
+                    "description": "QML module revision minor number"
+                  }
+                },
+                "required": [
+                  "name",
+                  "module",
+                  "moduleRevisionMajor",
+                  "moduleRevisionMinor"
+                ]
+              }
+            }
+          },
+          "properties": {
+            "type": "array",
+            "description": "List of exported properties",
+            "items": {
+              "type": "object",
+              "description": "Exported property",
+              "properties": {
+                "dotNet": {
+                  "type": "object",
+                  "description": "Property",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "Property name"
+                    },
+                    "hasGet": {
+                      "type": "boolean",
+                      "description": "Can the property value be read?"
+                    },
+                    "hasSet": {
+                      "type": "boolean",
+                      "description": "Can the property value be written?"
+                    },
+                    "isNotifiable": {
+                      "type": "boolean",
+                      "description": "Changes notified via INotifyPropertyChanged protocol?"
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ]
+                },
+                "qt": {
+                  "type": "object",
+                  "description": "Exported property",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "Exported name, defaults to camel-case version of dotnet name",
+                      "pattern": "^[a-z]\\\\w+$"
+                    },
+                    "type": {
+                      "type": "string",
+                      "description": "Exported property type",
+                      "enum": [
+                        "bool",
+                        "qint8",
+                        "quint8",
+                        "qint16",
+                        "quint16",
+                        "qint32",
+                        "quint32",
+                        "qint64",
+                        "quint64",
+                        "float",
+                        "double",
+                        "QChar",
+                        "QString",
+                        "QDateTime",
+                        "QUrl",
+                        "QVariant"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              },
+              "required": [
+                "dotNet",
+                "qt"
+              ]
+            },
+            "minItems": 1
+          },
+          "events": {
+            "type": "array",
+            "description": "List of exported events",
+            "items": {
+              "type": "object",
+              "description": "Exported event",
+              "properties": {
+                "dotNet": {
+                  "type": "object",
+                  "description": "Event",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "Event name"
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ]
+                },
+                "qt": {
+                  "type": "object",
+                  "description": "Event export settings",
+                  "properties": {
+                    "signal": {
+                      "type": "string",
+                      "description": "Signal name, defaults to camel-case version of dotnet name",
+                      "pattern": "^[a-z]\\\\w+$"
+                    }
+                  }
+                }
+              },
+              "required": [
+                "dotNet"
+              ]
+            },
+            "minItems": 1
+          },
+          "methods": {
+            "type": "array",
+            "description": "List of exported methods",
+            "items": {
+              "type": "object",
+              "description": "Exported method",
+              "properties": {
+                "dotNet": {
+                  "type": "object",
+                  "description": "Method",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "Method name"
+                    },
+                    "metadataToken": {
+                      "type": "number",
+                      "description": "Metadata token of the method"
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ]
+                },
+                "qt": {
+                  "type": "object",
+                  "description": "Method export settings",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "Exported name, defaults to camel-case version of dotnet name",
+                      "pattern": "^[a-z]\\\\w+$"
+                    },
+                    "returnType": {
+                      "type": "string",
+                      "description": "Return type",
+                      "enum": [
+                        "void",
+                        "bool",
+                        "qint8",
+                        "quint8",
+                        "qint16",
+                        "quint16",
+                        "qint32",
+                        "quint32",
+                        "qint64",
+                        "quint64",
+                        "float",
+                        "double",
+                        "QChar",
+                        "QString",
+                        "QDateTime",
+                        "QUrl",
+                        "QVariant"
+                      ]
+                    },
+                    "parameters": {
+                      "type": "array",
+                      "description": "Method parameters",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "description": "Parameter type",
+                            "enum": [
+                              "bool",
+                              "qint8",
+                              "quint8",
+                              "qint16",
+                              "quint16",
+                              "qint32",
+                              "quint32",
+                              "qint64",
+                              "quint64",
+                              "float",
+                              "double",
+                              "QChar",
+                              "QString",
+                              "QDateTime",
+                              "QUrl",
+                              "QVariant"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "description": "Parameter name and type",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "Parameter name",
+                                "pattern": "^[a-z]\\\\w+$"
+                              },
+                              "type": {
+                                "type": "string",
+                                "description": "Parameter type",
+                                "enum": [
+                                  "bool",
+                                  "qint8",
+                                  "quint8",
+                                  "qint16",
+                                  "quint16",
+                                  "qint32",
+                                  "quint32",
+                                  "qint64",
+                                  "quint64",
+                                  "float",
+                                  "double",
+                                  "QChar",
+                                  "QString",
+                                  "QDateTime",
+                                  "QUrl",
+                                  "QVariant"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "type"
+                            ]
+                          }
+                        ]
+                      },
+                      "minItems": 1
+                    }
+                  },
+                  "required": [
+                    "returnType"
+                  ]
+                }
+              },
+              "required": [
+                "dotNet",
+                "qt"
+              ]
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "dotNet"
+        ]
+      },
+      "minItems": 1
+    }
+  },
+  "required": ["types"]
+}

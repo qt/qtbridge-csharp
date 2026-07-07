@@ -1,0 +1,110 @@
+{
+  "$schema": "../../../qt_bridge_metadata_schema.json",
+  "types": [
+    {
+      "dotNet": {
+        "name": "MTest_DynamicObject.LoadTimeType",
+        "assemblyQualifiedName": "MTest_DynamicObject.LoadTimeType, MTest_DynamicObject",
+        "assemblyFile": "MTest_DynamicObject.dll"
+      },
+      "qt": {
+        "model": {
+          "baseClass": "model",
+          "overrides": [
+            "parent",
+            "hasChildren",
+            "index",
+            "rowCount",
+            "columnCount",
+            "roleNames",
+            "flags",
+            "data",
+            "headerData",
+            "setData",
+            "insertRows",
+            "removeRows"
+          ]
+        },
+        "isQmlElement": true,
+        "qml": {
+          "name": "LoadTimeType",
+          "module": "Application",
+          "moduleRevisionMajor": 1,
+          "moduleRevisionMinor": 0
+        }
+      },
+      "properties": [
+        {
+          "dotNet": {
+            "name": "BuildTimeTypeObj",
+            "hasSet": false
+          },
+          "qt": { "type": "QVariant" }
+        },
+        {
+          "dotNet": {
+            "name": "LoadTimeTypeObj",
+            "hasSet": false
+          },
+          "qt": { "type": "QVariant" }
+        },
+        {
+          "dotNet": {
+            "name": "IntProperty"
+          },
+          "qt": { "type": "qint32" }
+        },
+        {
+          "dotNet": {
+            "name": "IntReadOnlyProperty",
+            "hasSet": false
+          },
+          "qt": { "type": "qint32" }
+        },
+        {
+          "dotNet": {
+            "name": "IntWriteOnlyProperty",
+            "hasGet": false
+          },
+          "qt": { "type": "qint32" }
+        },
+        {
+          "dotNet": {
+            "name": "StringProperty"
+          },
+          "qt": { "type": "QString" }
+        },
+        {
+          "dotNet": {
+            "name": "DateTimeProperty"
+          },
+          "qt": { "type": "QDateTime" }
+        },
+        {
+          "dotNet": {
+            "name": "UriProperty"
+          },
+          "qt": { "type": "QUrl" }
+        }
+      ],
+      "events": [
+        {
+          "dotNet": {
+            "name": "PropertyChanged"
+          }
+        }
+      ],
+      "methods": [
+        {
+          "dotNet": {
+            "name": "UInt64FuncInt"
+          },
+          "qt": {
+            "returnType": "quint64",
+            "parameters": [ "qint32" ]
+          }
+        }
+      ]
+    }
+  ]
+}
