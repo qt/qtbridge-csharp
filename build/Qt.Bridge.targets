@@ -482,6 +482,16 @@ namespace Qt.Qml
         '$(MSBuildProjectFullPath)').Replace('\', '/'))</_QtIdeJProjFile>
       <_QtIdeJProjDir>$([System.String]::Copy(
         '$(ProjectDir)').Replace('\', '/'))</_QtIdeJProjDir>
+      <_QtIdeExecutableName Condition="'$(QtHostIsWindows)' == 'true'">$(AssemblyName).exe</_QtIdeExecutableName>
+      <_QtIdeExecutableName Condition="'$(QtHostIsWindows)' != 'true'">$(AssemblyName)</_QtIdeExecutableName>
+      <_QtIdeJExecutableName>$([System.String]::Copy(
+        '$(_QtIdeExecutableName)').Replace('\', '/'))</_QtIdeJExecutableName>
+      <_QtIdeJManagedOutputDir>$([System.String]::Copy(
+        '$(TargetDir)').Replace('\', '/'))</_QtIdeJManagedOutputDir>
+      <_QtIdeJManagedHostPath>$([System.String]::Copy(
+        '$(TargetDir)$(_QtIdeExecutableName)').Replace('\', '/'))</_QtIdeJManagedHostPath>
+      <_QtIdeJNativeHostPath>$([System.String]::Copy(
+        '$(ProjectDir)$(QtNativeBinDir)/$(_QtIdeExecutableName)').Replace('\', '/'))</_QtIdeJNativeHostPath>
       <_QtIdeJSrcDir>$([System.String]::Copy(
         '$(_QtIdeSrcDir)').Replace('\', '/'))</_QtIdeJSrcDir>
       <_QtIdeJBldDir>$([System.String]::Copy(
@@ -536,6 +546,13 @@ namespace Qt.Qml
   "projectFile": "$(_QtIdeJProjFile)",
   "configuration": "$(Configuration)",
   "targetFramework": "$(TargetFramework)",
+  "application": {
+    "assemblyName": "$(AssemblyName)",
+    "executableName": "$(_QtIdeJExecutableName)",
+    "managedOutputDir": "$(_QtIdeJManagedOutputDir)",
+    "managedHostPath": "$(_QtIdeJManagedHostPath)",
+    "nativeHostPath": "$(_QtIdeJNativeHostPath)"
+  },
   "qml": {
     "sourceDir": "$(_QtIdeJSrcDir)",
     "projectSourceDir": "$(_QtIdeJProjDir)",

@@ -178,6 +178,10 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
                 .Single();
             using var document = JsonDocument.Parse(File.ReadAllText(metadataPath));
             AssertMetadataPath(document.RootElement.GetProperty("projectFile").GetString()!);
+            var application = document.RootElement.GetProperty("application");
+            AssertMetadataPath(application.GetProperty("managedOutputDir").GetString()!);
+            AssertMetadataPath(application.GetProperty("managedHostPath").GetString()!);
+            AssertMetadataPath(application.GetProperty("nativeHostPath").GetString()!);
             var qml = document.RootElement.GetProperty("qml");
             AssertMetadataPath(qml.GetProperty("sourceDir").GetString()!);
             AssertMetadataPath(qml.GetProperty("projectSourceDir").GetString()!);
@@ -189,6 +193,33 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             AssertMetadataPath(qmlls.GetProperty("buildIni").GetString()!);
             AssertMetadataPath(qmlls.GetProperty("projectSourcesQrc").GetString()!);
             var buildDirectory = Path.Combine(TempDirectory, "native", "build");
+            var executableName = OperatingSystem.IsWindows()
+                ? "TargetTestApp.exe"
+                : "TargetTestApp";
+            Assert.AreEqual(
+                "TargetTestApp",
+                application.GetProperty("assemblyName").GetString());
+            Assert.AreEqual(
+                executableName,
+                application.GetProperty("executableName").GetString());
+            Assert.AreEqual(
+                NormalizeHostPath(Path.Combine(
+                    TempDirectory,
+                    "bin",
+                    "Debug",
+                    "net8.0") + Path.DirectorySeparatorChar),
+                NormalizeHostPath(application.GetProperty("managedOutputDir").GetString()!));
+            Assert.AreEqual(
+                NormalizeHostPath(Path.Combine(
+                    TempDirectory,
+                    "bin",
+                    "Debug",
+                    "net8.0",
+                    executableName)),
+                NormalizeHostPath(application.GetProperty("managedHostPath").GetString()!));
+            Assert.AreEqual(
+                NormalizeHostPath(Path.Combine(TempDirectory, "native", "bin", executableName)),
+                NormalizeHostPath(application.GetProperty("nativeHostPath").GetString()!));
             Assert.AreEqual(
                 NormalizeHostPath(Path.Combine(
                     buildDirectory,
@@ -311,12 +342,16 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
                   <PropertyGroup>
                     <Configuration>Debug</Configuration>
                     <DesignTimeBuild>false</DesignTimeBuild>
+                    <AssemblyName>TargetTestApp</AssemblyName>
+                    <TargetFramework>net8.0</TargetFramework>
                     <BaseOutputPath>bin/</BaseOutputPath>
                     <BaseIntermediateOutputPath>obj/</BaseIntermediateOutputPath>
                     <IntermediateOutputPath>obj/Debug/</IntermediateOutputPath>
+                    <TargetDir>$(MSBuildProjectDirectory)/bin/Debug/net8.0/</TargetDir>
                     <ProjectDir>{XmlEscape(TempDirectory + Path.DirectorySeparatorChar)}</ProjectDir>
                     <QtNativeBuildDir>native/build</QtNativeBuildDir>
                     <QtNativeSourceDir>native/source</QtNativeSourceDir>
+                    <QtNativeBinDir>native/bin</QtNativeBinDir>
                     <QtDir>{XmlEscape(qtPath)}</QtDir>
                     <QtBridgeBuildTasks>{XmlEscape(taskAssembly)}</QtBridgeBuildTasks>
                   </PropertyGroup>
