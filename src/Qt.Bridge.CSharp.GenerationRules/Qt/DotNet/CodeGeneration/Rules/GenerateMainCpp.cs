@@ -34,6 +34,7 @@ namespace Qt.Bridge.CodeGeneration.Rules
 "#include <QFileInfo>",
 "#include <QGuiApplication>",
 "#include <QQmlApplicationEngine>",
+"#include <QQmlDebuggingEnabler>",
 "#include <QThread>",
 "#include <QTimer>",
 "#include <QDotNetHost>",
@@ -50,6 +51,13 @@ int main(int argc, char *argv[])
 {{
     auto appDirPath = QFileInfo(argv[0]).absoluteDir().path();
     {mainCpp[new(MainStartingUp) { Sorted = false }]}
+
+    for (int i = 1; i < argc; ++i) {{
+        if (QString::fromLocal8Bit(argv[i]).startsWith(""-qmljsdebugger="")) {{
+            QQmlDebuggingEnabler::enableDebugging(true);
+            break;
+        }}
+    }}
 
     QGuiApplication app(argc, argv);
     auto assemblyPath = QDir(appDirPath).filePath(appName);
