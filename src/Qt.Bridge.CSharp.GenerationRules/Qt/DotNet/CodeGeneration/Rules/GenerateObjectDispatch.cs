@@ -15,12 +15,10 @@ namespace Qt.Bridge.CodeGeneration.Rules
         public override int Priority => base.Priority + 1;
         public override Result Execute(MemberInfo _)
         {
-            var dispatchHppPath = "hpp/object_dispatch.h";
             var dispatchCppPath = "cpp/object_dispatch.cpp";
 
             if (Root.GetPlaceholder(SourceFiles) is not { } sourceFiles)
                 return Error();
-            sourceFiles += dispatchHppPath;
             sourceFiles += dispatchCppPath;
 
             var allTypes = SourceGraph.NodeSet<Type>()
@@ -31,19 +29,6 @@ namespace Qt.Bridge.CodeGeneration.Rules
                 .OrderBy(t => t.AssemblyQualifiedName, StringComparer.Ordinal)
                 .ToList();
 
-            ////////////////////////////////////////////////////////////////////////////////////////
-            //
-            var dispatchHpp = new FilePlaceholder(
-                ObjectDispatchHeader, Root, $"{Root.MFn(Dir)}{dispatchHppPath}");
-            dispatchHpp += $@"
-#pragma once
-#include <builtin_types.h>
-
-namespace QtDotNet
-{{
-    QObject *objectDispatch(QDotNetRef &args, const QObject *context = nullptr);
-}}
-";
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             var dispatchCpp = new FilePlaceholder(

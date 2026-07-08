@@ -11,6 +11,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
+    <RootNamespace>Qt.Bridge.CodeGeneration.Rules</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
