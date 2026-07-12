@@ -22,6 +22,8 @@
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <Description>Qt Bridge for C# ($(QtRid))</Description>
     <QtBridgePackBundledQt Condition="'$(QtBridgePackBundledQt)' == '' AND '$(QtRid)' == 'linux-x64'">false</QtBridgePackBundledQt>
+    <QtBridgePackBundledQt Condition="'$(QtBridgePackBundledQt)' == '' AND '$(QtRid)' == 'osx-x64'">false</QtBridgePackBundledQt>
+    <QtBridgePackBundledQt Condition="'$(QtBridgePackBundledQt)' == '' AND '$(QtRid)' == 'osx-arm64'">false</QtBridgePackBundledQt>
     <QtBridgePackBundledQt Condition="'$(QtBridgePackBundledQt)' == ''">true</QtBridgePackBundledQt>
   </PropertyGroup>
 
