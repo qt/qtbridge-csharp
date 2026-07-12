@@ -55,23 +55,33 @@ namespace Test_Qt.Bridge.Project
 
     public class RunOptions
     {
+        // Native integration tests launch a built executable and wait for it to exit; a hang in
+        // the process under test must not hang the test run. Pass Timeout = -1 to opt out for a
+        // run that is genuinely expected to take longer or run unbounded.
+        public const int DefaultTimeout = 30000;
+
         public string ExePath { get; init; }
         public string WorkingDir { get; init; }
         public IEnumerable<string> Args { get; init; } = [];
         public IEnumerable<(string Name, string Value)> EnvVars { get; init; } = [];
         public Redirect StdOut { get; init; } = Redirect.StdOut;
         public Redirect StdErr { get; init; } = Redirect.StdErr;
-        public int Timeout { get; init; } = -1;
+        public int Timeout { get; init; } = DefaultTimeout;
     }
 
     public class TempProject : IDisposable
     {
+        private const int MaxCapturedStreamChars = 1_000_000;
+        private const string CapturedStreamTruncationMessage =
+            "... [output truncated by test harness] ...";
+
         private const string TestRootEnvVar = "QTBRIDGE_TEST_ROOT";
         private const string TestRootDirName = "qtbridge-csharp-tests";
+        private static readonly string TestSessionDirName = $"proc-{Environment.ProcessId}";
 
         // Resolve the temp project root from QTBRIDGE_TEST_ROOT or the system temp directory,
         // falling back to the project drive on Windows if needed, and fail fast on spaces.
-        private static string ResolveProjectRootDir()
+        private static string ResolveSharedTestRootDir()
         {
             var rootDir = Environment.GetEnvironmentVariable(TestRootEnvVar);
             if (string.IsNullOrWhiteSpace(rootDir)) {
@@ -91,6 +101,9 @@ namespace Test_Qt.Bridge.Project
 
             return Combine(rootDir, TestRootDirName);
         }
+
+        private static string ResolveProjectRootDir() =>
+            Combine(ResolveSharedTestRootDir(), TestSessionDirName);
 
         private static string ExecutingAssemblyDirectory =>
             GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
@@ -139,7 +152,16 @@ namespace Test_Qt.Bridge.Project
                    <packageSources>
                      <clear />
                      <add key="qtbridge-local" value="{localFeed}" />
+                     <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
                    </packageSources>
+                   <packageSourceMapping>
+                     <packageSource key="qtbridge-local">
+                       <package pattern="QtGroup.Qt.Bridge.CSharp.*" />
+                     </packageSource>
+                     <packageSource key="nuget.org">
+                       <package pattern="*" />
+                     </packageSource>
+                   </packageSourceMapping>
                  </configuration>
                  """);
         }
@@ -420,8 +442,9 @@ namespace Test_Qt.Bridge.Project
             if (!File.Exists(BinLogPath))
                 return;
             CreateDirectory(BinLogDir);
-            var sep = string.IsNullOrEmpty(context) ? "" : "_";
-            Copy(BinLogPath, Combine(BinLogDir, $"{name}{sep}{context}.binlog"), true);
+            var logFileParts = new[] { name, context, ProjectFilename }
+                .Where(part => !string.IsNullOrWhiteSpace(part));
+            Copy(BinLogPath, Combine(BinLogDir, $"{string.Join("_", logFileParts)}.binlog"), true);
         }
 
         public async Task<string> GetPropertyAsync(string name, BuildOptions options = null)
@@ -438,13 +461,41 @@ namespace Test_Qt.Bridge.Project
             return msbuild.ExitCode != 0 ? null : stdOut.ToString().Trim(' ', '\n', '\r', '\t');
         }
 
+        private static void AppendCapturedLine(StringBuilder output, string data)
+        {
+            if (output == null || data == null)
+                return;
+
+            if (output.Length >= MaxCapturedStreamChars)
+                return;
+
+            var remaining = MaxCapturedStreamChars - output.Length;
+            if (remaining <= 0)
+                return;
+
+            var lineLength = data.Length + Environment.NewLine.Length;
+            if (lineLength <= remaining) {
+                output.AppendLine(data);
+                return;
+            }
+
+            var reservedForNotice = Environment.NewLine.Length + CapturedStreamTruncationMessage.Length;
+            var charsToCopy = Math.Max(0, remaining - reservedForNotice);
+            if (charsToCopy > 0)
+                output.Append(data, 0, Math.Min(charsToCopy, data.Length));
+            if (output.Length < MaxCapturedStreamChars)
+                output.AppendLine();
+            if (output.Length < MaxCapturedStreamChars)
+                output.Append(CapturedStreamTruncationMessage);
+        }
+
         private static Action<string> GetStreamHandler(Redirect stream, StringBuilder stdOut,
             StringBuilder stdErr)
         {
             return stream switch
             {
-                Redirect.StdOut => data => stdOut.AppendLine(data),
-                Redirect.StdErr => data => stdErr.AppendLine(data),
+                Redirect.StdOut => data => AppendCapturedLine(stdOut, data),
+                Redirect.StdErr => data => AppendCapturedLine(stdErr, data),
                 _ => null
             };
         }
@@ -466,7 +517,28 @@ namespace Test_Qt.Bridge.Project
                 GetStreamHandler(options.StdOut, stdOut, stdErr),
                 GetStreamHandler(options.StdErr, stdOut, stdErr));
             CancellationTokenSource cancel = options.Timeout > 0 ? new(options.Timeout) : new();
-            await run.WaitForExitAsync(cancel.Token);
+            try {
+                await run.WaitForExitAsync(cancel.Token);
+            } catch (TaskCanceledException exception) {
+                try {
+                    if (!run.HasExited)
+                        run.Kill(true);
+                } catch {
+                    // Ignore; try making the original timeout details below visible.
+                }
+
+                throw new TimeoutException(
+                    $"Timed out waiting for process to exit after {options.Timeout} ms."
+                    + $"{Environment.NewLine}ExePath: {exePath}"
+                    + $"{Environment.NewLine}WorkingDir: {workDir}"
+                    + $"{Environment.NewLine}Args: {string.Join(" ", args)}"
+                    + $"{Environment.NewLine}EnvVars: {
+                        string.Join("; ", envVars.Select(x => $"{x.Name}={x.Value}"))
+                    }"
+                    + $"{Environment.NewLine}StdOut:{Environment.NewLine}{stdOut}"
+                    + $"{Environment.NewLine}StdErr:{Environment.NewLine}{stdErr}",
+                    exception);
+            }
             return (run.ExitCode, stdOut.ToString(), stdErr.ToString());
         }
     }

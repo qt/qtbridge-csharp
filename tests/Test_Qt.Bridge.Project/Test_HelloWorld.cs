@@ -61,7 +61,7 @@ namespace HelloWorld
                 Properties = [("QtBuildSystem", buildSystem)]
             });
             temp.SaveLog(buildSystem);
-            Assert.IsTrue(build.Ok);
+            Assert.IsTrue(build.Ok, build.Output);
 
             Assert.IsTrue(temp.Log.TryFindTarget("QtBridgeBuild", out var qtDotNetBuild));
             string[] cppFiles = [
@@ -82,7 +82,10 @@ namespace HelloWorld
             }
 
             var run = await temp.RunAsync();
-            Assert.IsTrue(run.ExitCode == 0);
+            Assert.IsTrue(run.ExitCode == 0,
+                $"buildSystem={buildSystem}{Environment.NewLine}"
+                + $"stdout:{Environment.NewLine}{run.StdOut}{Environment.NewLine}"
+                + $"stderr:{Environment.NewLine}{run.StdErr}");
             Assert.Contains("Hello World!", run.StdOut);
         }
     }
