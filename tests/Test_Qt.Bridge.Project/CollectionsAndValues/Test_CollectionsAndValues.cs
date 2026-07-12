@@ -1,6 +1,7 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
+using System;
 using System.IO;
 using Test_Qt.Bridge.Project.Shared;
 
@@ -41,7 +42,11 @@ namespace Test_Qt.Bridge.Project.CollectionsAndValues
             });
 
             Assert.IsLessThanOrEqualTo((int)ExitCode.QTestFailure, run.ExitCode,
-                ExitCodeHelper.ToString(run.ExitCode));
+                $"""
+                {ExitCodeHelper.ToString(run.ExitCode)}
+                {run.StdOut}
+                {run.StdErr}
+                """);
 
             Assert.Contains("PASS   : Test_CollectionsAndValues::initTestCase()", run.StdOut);
             Assert.Contains("PASS   : Test_CollectionsAndValues::arrayOfInts()", run.StdOut);
@@ -51,6 +56,14 @@ namespace Test_Qt.Bridge.Project.CollectionsAndValues
             Assert.Contains("PASS   : Test_CollectionsAndValues::modelIndexMarshal()", run.StdOut);
             Assert.Contains("PASS   : Test_CollectionsAndValues::dateTimeMarshal()", run.StdOut);
             Assert.Contains("PASS   : Test_CollectionsAndValues::uriMarshal()", run.StdOut);
+            Assert.Contains(
+                "PASS   : Test_CollectionsAndValues::qcharWidthDiffersFromWcharOnThisPlatform()",
+                run.StdOut);
+            Assert.Contains(
+                OperatingSystem.IsWindows()
+                    ? "SKIP   : Test_CollectionsAndValues::utf16TerminatedCopyPreservesTail()"
+                    : "PASS   : Test_CollectionsAndValues::utf16TerminatedCopyPreservesTail()",
+                run.StdOut);
             Assert.Contains("PASS   : Test_CollectionsAndValues::cleanupTestCase()", run.StdOut);
         }
     }

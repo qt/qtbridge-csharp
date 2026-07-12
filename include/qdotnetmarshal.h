@@ -466,6 +466,16 @@ struct QDotNetTypeOf<QUrl>
     static inline UnmanagedType MarshalAs = UnmanagedType::CustomMarshaler;
 };
 
+inline qsizetype qDotNetUtf16TerminatedByteCount(qsizetype length)
+{
+    return (length + 1) * static_cast<qsizetype>(sizeof(QChar));
+}
+
+inline void qDotNetCopyUtf16TerminatedBuffer(void *destination, const QChar *source, qsizetype length)
+{
+    memcpy(destination, source, static_cast<size_t>(qDotNetUtf16TerminatedByteCount(length)));
+}
+
 template<>
 struct QDotNetOutbound<QUrl>
 {
@@ -476,8 +486,9 @@ struct QDotNetOutbound<QUrl>
     static OutboundType convert(SourceType sourceValue)
     {
         QString url = sourceValue.toDisplayString();
-        void *ptr = QDotNetMarshal::allocHGlobal((url.length() + 1) * sizeof(wchar_t));
-        memcpy(ptr, url.constData(), url.length() * sizeof(wchar_t));
+        const auto byteCount = qDotNetUtf16TerminatedByteCount(url.length());
+        void *ptr = QDotNetMarshal::allocHGlobal(static_cast<size_t>(byteCount));
+        qDotNetCopyUtf16TerminatedBuffer(ptr, url.constData(), url.length());
         return ptr;
     }
 };

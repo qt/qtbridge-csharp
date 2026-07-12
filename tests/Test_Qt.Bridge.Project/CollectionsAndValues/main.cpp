@@ -171,6 +171,45 @@ private slots:
         QCOMPARE(printedUri, "https://www.qt.io/developers#wiki");
     }
 
+    void qcharWidthDiffersFromWcharOnThisPlatform()
+    {
+        QCOMPARE(sizeof(QChar), size_t(2));
+#ifdef Q_OS_WIN
+        QCOMPARE(sizeof(wchar_t), sizeof(QChar));
+#else
+        QCOMPARE(sizeof(wchar_t), size_t(4));
+        QVERIFY(sizeof(wchar_t) != sizeof(QChar));
+#endif
+    }
+
+    void utf16TerminatedCopyPreservesTail()
+    {
+#ifdef Q_OS_WIN
+        QSKIP("This regression test is only meaningful where wchar_t and QChar differ.");
+#else
+        const QChar source[] = {
+            QChar(u'A'),
+            QChar(u'B'),
+            QChar(u'C'),
+            QChar(u'\0'),
+            QChar(u'Y'),
+            QChar(u'Z')
+        };
+        constexpr qsizetype logicalLength = 3;
+        const qsizetype expectedUtf16Bytes = qDotNetUtf16TerminatedByteCount(logicalLength);
+        const qsizetype allocatedBytes = expectedUtf16Bytes + 8;
+
+        QByteArray destination(static_cast<qsizetype>(allocatedBytes), char(0x5A));
+
+        qDotNetCopyUtf16TerminatedBuffer(destination.data(), source, logicalLength);
+
+        QCOMPARE(destination.first(expectedUtf16Bytes),
+            QByteArray(reinterpret_cast<const char *>(source), expectedUtf16Bytes));
+        QCOMPARE(destination.sliced(expectedUtf16Bytes),
+            QByteArray(static_cast<qsizetype>(allocatedBytes - expectedUtf16Bytes), char(0x5A)));
+#endif
+    }
+
     void cleanupTestCase()
     {
         unloadHost();
