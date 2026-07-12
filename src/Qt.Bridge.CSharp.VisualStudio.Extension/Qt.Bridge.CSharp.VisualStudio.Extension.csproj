@@ -5,23 +5,26 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_version.props))" />
   <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_template.targets))" />
+
   <PropertyGroup>
-    <TargetFramework>net472</TargetFramework>
+    <IsWindowsBuild>$([MSBuild]::IsOsPlatform('Windows'))</IsWindowsBuild>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>12</LangVersion>
     <VssdkCompatibleExtension>true</VssdkCompatibleExtension>
     <NoWarn>$(NoWarn);VSEXTPREVIEW_LSP;VSEXTPREVIEW_SETTINGS</NoWarn>
+    <GeneratePkgDefFile>false</GeneratePkgDefFile>
+    <RegisterWithCodebase>false</RegisterWithCodebase>
     <!--
       The new extensibility Build SDK disables pkgdef generation by default; re-enable it so
       [PackageRegistration]/[ProvideOptionPage] attributes produce a .pkgdef in the VSIX.
     -->
-    <GeneratePkgDefFile>true</GeneratePkgDefFile>
+    <GeneratePkgDefFile Condition="'$(IsWindowsBuild)' == 'true'">true</GeneratePkgDefFile>
     <!--
       RegisterWithCodebase emits a CodeBase entry so VS can locate the assembly when loading
       ExtensionPackage.
     -->
-    <RegisterWithCodebase>true</RegisterWithCodebase>
+    <RegisterWithCodebase Condition="'$(IsWindowsBuild)' == 'true'">true</RegisterWithCodebase>
 
     <QtBridgeTemplatesPackageId>QtGroup.Qt.Bridge.CSharp.Templates</QtBridgeTemplatesPackageId>
     <QtBridgeTemplatesPackageFileName
@@ -36,20 +39,36 @@
     <VsixIdentityVersion>$(Qt_MajorNum).$(Qt_MinorNum).$(Qt_PatchNum).$(VsixBuildNumber)</VsixIdentityVersion>
   </PropertyGroup>
 
-  <PropertyGroup Condition="$([MSBuild]::IsOsPlatform('Windows'))">
-    <UseWPF>true</UseWPF>
-    <VsixDeployOnDebug>true</VsixDeployOnDebug>
-    <TargetVsixContainerName>Qt.Bridge.CSharp.vsix</TargetVsixContainerName>
-    <DefineConstants>$(DefineConstants);WINDOWS_DESKTOP</DefineConstants>
-  </PropertyGroup>
+  <Choose>
+    <When Condition="'$(IsWindowsBuild)' == 'true'">
+      <PropertyGroup>
+        <TargetFramework>net472</TargetFramework>
+        <GeneratePkgDefFile>true</GeneratePkgDefFile>
+        <RegisterWithCodebase>true</RegisterWithCodebase>
+        <UseWPF>true</UseWPF>
+        <VsixDeployOnDebug>true</VsixDeployOnDebug>
+        <TargetVsixContainerName>Qt.Bridge.CSharp.vsix</TargetVsixContainerName>
+        <DefineConstants>$(DefineConstants);WINDOWS_DESKTOP</DefineConstants>
+      </PropertyGroup>
 
-  <ItemGroup Condition="!$([MSBuild]::IsOsPlatform('Windows'))">
-    <Compile Remove="Diagnostics\ToastWindow.xaml.cs" />
-    <Compile Remove="Settings\Notifications\NotificationOptionsControl.xaml.cs" />
-    <Compile Remove="Settings\Notifications\NotificationOptionsPage.cs" />
-    <None Include="Diagnostics\ToastWindow.xaml" />
-    <None Include="Settings\Notifications\NotificationOptionsControl.xaml" />
-  </ItemGroup>
+      <ItemGroup>
+        <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="17.14.40608" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40608" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" />
+        <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2142" PrivateAssets="all" />
+        <PackageReference Include="System.Threading.Channels" Version="8.0.0" />
+        <Reference Include="Microsoft.VisualStudio.Utilities" />
+      </ItemGroup>
+    </When>
+
+    <Otherwise>
+      <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+
   <ItemGroup>
     <None Remove="GPL-3.0-only.txt" />
     <None Remove=".vsextension\string-resources.json" />
@@ -90,19 +109,6 @@
     </AssemblyAttribute>
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="17.14.40608" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40608" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" />
-    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2142" PrivateAssets="all" />
-    <PackageReference Include="System.Threading.Channels" Version="8.0.0" />
-    <Reference Include="Microsoft.VisualStudio.Utilities" />
-  </ItemGroup>
-
-  <Target Name="Build" Condition="!$([MSBuild]::IsOsPlatform('Windows'))">
-    <Message Importance="High" Text="$(MSBuildProjectName): skipped (Windows only)" />
-  </Target>
-
   <Target Name="GenerateStringResources" BeforeTargets="BeforeBuild">
     <ItemGroup>
       <QtTemplateToken Remove="@(QtTemplateToken)" />
@@ -117,13 +123,17 @@
 
   </Target>
 
-  <Target Name="EnsureQtBridgeTemplatesPackage" BeforeTargets="PreCreateVsixContainer">
+  <Target Name="EnsureQtBridgeTemplatesPackage"
+          BeforeTargets="PreCreateVsixContainer"
+          Condition="'$(IsWindowsBuild)' == 'true'">
     <MSBuild Projects="$(QtBridgeTemplatesProjectPath)"
       Targets="Pack"
       Properties="Configuration=$(Configuration)" />
   </Target>
 
-  <Target Name="PreCreateVsixContainer" BeforeTargets="GetVsixSourceItems">
+  <Target Name="PreCreateVsixContainer"
+          BeforeTargets="GetVsixSourceItems"
+          Condition="'$(IsWindowsBuild)' == 'true'">
     <Error Text="No template package found at '$(QtBridgeTemplatesPackagePath)'."
       Condition="!Exists('$(QtBridgeTemplatesPackagePath)')" />
     <ItemGroup>
@@ -133,7 +143,9 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="UpdateVsixManifestVersion" AfterTargets="DetokenizeVsixManifestFile">
+  <Target Name="UpdateVsixManifestVersion"
+          AfterTargets="DetokenizeVsixManifestFile"
+          Condition="'$(IsWindowsBuild)' == 'true'">
     <XmlPoke XmlInputPath="$(IntermediateVsixManifest)"
              Query="/vs:PackageManifest/vs:Metadata/vs:Identity/@Version"
              Namespaces="&lt;Namespace Prefix='vs' Uri='http://schemas.microsoft.com/developer/vsx-schema/2011' /&gt;"
@@ -160,5 +172,12 @@
   </ItemGroup>
 
   <Import Project="build\PatchSettingsRegistration.targets" />
+
+  <Target Name="ReportNonWindowsStubBuild"
+          BeforeTargets="CoreCompile"
+          Condition="'$(IsWindowsBuild)' != 'true'">
+    <Message Importance="High"
+             Text="$(MSBuildProjectName): building placeholder assembly on non-Windows host; VSIX packaging is disabled." />
+  </Target>
 
 </Project>
