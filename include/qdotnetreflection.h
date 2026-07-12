@@ -19,7 +19,7 @@
 class QDotNetAssembly : public QDotNetRef
 {
 public:
-    static inline const QString &AssemblyQualifiedName =
+    static inline const QString AssemblyQualifiedName =
             QStringLiteral("System.Reflection.Assembly");
 
     QDotNetAssembly(const void *objRef = nullptr) : QDotNetRef(objRef) { }
@@ -60,7 +60,7 @@ private:
 class QDotNetModule : public QDotNetRef
 {
 public:
-    static inline const QString &AssemblyQualifiedName = QStringLiteral("System.Reflection.Module");
+    static inline const QString AssemblyQualifiedName = QStringLiteral("System.Reflection.Module");
 
     QDotNetModule(const void *objRef = nullptr) : QDotNetRef(objRef) { }
 
@@ -100,7 +100,7 @@ private:
 class QDotNetMethodInfo : public QDotNetRef
 {
 public:
-    static inline const QString &AssemblyQualifiedName =
+    static inline const QString AssemblyQualifiedName =
             QStringLiteral("System.Reflection.MethodInfo");
 
     QDotNetMethodInfo(const void *objRef = nullptr) : QDotNetRef(objRef) { }
@@ -142,7 +142,7 @@ private:
 class QDotNetPropertyInfo : public QDotNetRef
 {
 public:
-    static inline const QString &AssemblyQualifiedName =
+    static inline const QString AssemblyQualifiedName =
             QStringLiteral("System.Reflection.PropertyInfo");
 
     QDotNetPropertyInfo(const void *objRef = nullptr) : QDotNetRef(objRef) { }

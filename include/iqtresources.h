@@ -10,7 +10,7 @@
 
 struct IQtResources : public QDotNetInterface
 {
-    static inline const QString &AssemblyQualifiedName =
+    static inline const QString AssemblyQualifiedName =
         QStringLiteral("Qt.IQtResources, Qt.DotNet.Adapter");
 
     IQtResources()

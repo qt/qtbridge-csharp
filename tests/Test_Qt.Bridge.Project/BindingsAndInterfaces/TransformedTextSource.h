@@ -18,7 +18,7 @@ struct TransformedTextSourcePrivate;
 class NativeTextTransformation : public QDotNetInterface
 {
 public:
-    static inline const QString &AssemblyQualifiedName =
+    static inline const QString AssemblyQualifiedName =
         BindingsAndInterfaces::ITextTransformation::AssemblyQualifiedName;
 
     virtual QString transform(const QString &text) const = 0;

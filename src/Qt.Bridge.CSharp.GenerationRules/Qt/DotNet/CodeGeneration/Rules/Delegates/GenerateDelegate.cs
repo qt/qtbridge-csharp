@@ -49,11 +49,11 @@ namespace Qt.Bridge.CodeGeneration.Rules.Delegates
 
 struct {type.MFn(Ns | Name)} : public {baseClass}
 {{
-    static inline const QString &AssemblyQualifiedName =
+    static inline const QString AssemblyQualifiedName =
         QStringLiteral(""{type.MFn(Src | Fqn)}"");
-    static inline const QList<QDotNetParameter> SignatureParameters
+    static QList<QDotNetParameter> SignatureParameters()
     {{
-        {string.Join($",{Wrap}\n        ", signatureParameters)}
+        return {{ {string.Join($",{Wrap}\n            ", signatureParameters)} }};
     }};
 
     {type.MFn(Name)}(nullptr_t) : {baseClass}(nullptr) {{ }}

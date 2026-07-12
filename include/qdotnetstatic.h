@@ -14,7 +14,7 @@
 class QDotNetStatic : public QDotNetInterface
 {
 public:
-    static inline const QString &AssemblyQualifiedName =
+    static inline const QString AssemblyQualifiedName =
         QStringLiteral("Qt.DotNet.Adapter+IStatic, Qt.DotNet.Adapter");
 
     QDotNetStatic(const void *objectRef) : QDotNetInterface(objectRef) {}

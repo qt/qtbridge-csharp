@@ -13,7 +13,7 @@
 
 struct IQtApplication : public QDotNetInterface
 {
-    static inline const QString &AssemblyQualifiedName =
+    static inline const QString AssemblyQualifiedName =
         QStringLiteral("Qt.IQtApplication, Qt.DotNet.Adapter");
 
     IQtApplication()

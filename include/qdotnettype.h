@@ -17,7 +17,7 @@
 class QDotNetType : public QDotNetRef
 {
 public:
-    static inline const QString &AssemblyQualifiedName = QStringLiteral("System.Type");
+    static inline const QString AssemblyQualifiedName = QStringLiteral("System.Type");
 
     QDotNetType(const void *typeRef = nullptr)
         : QDotNetRef(typeRef)

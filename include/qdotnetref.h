@@ -8,7 +8,7 @@
 class QDotNetRef
 {
 public:
-    static inline const QString &AssemblyQualifiedName = QStringLiteral("System.Object");
+    static inline const QString AssemblyQualifiedName = QStringLiteral("System.Object");
 
     const void *gcHandle() const { return objectRef; }
     bool isValid() const { return gcHandle() != nullptr; }

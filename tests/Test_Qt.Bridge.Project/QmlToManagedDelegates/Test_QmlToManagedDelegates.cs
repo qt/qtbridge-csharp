@@ -36,7 +36,11 @@ namespace Test_Qt.Bridge.Project.QmlToManagedDelegates
             });
 
             Assert.IsLessThanOrEqualTo((int)ExitCode.QTestFailure, run.ExitCode,
-                ExitCodeHelper.ToString(run.ExitCode));
+                $"""
+                {ExitCodeHelper.ToString(run.ExitCode)}
+                {run.StdOut}
+                {run.StdErr}
+                """);
 
             const string pass = "PASS   : Test_QmlToManagedDelegates::tst_qmltomanageddelegates::";
 

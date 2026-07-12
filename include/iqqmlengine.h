@@ -26,7 +26,7 @@ struct IQQmlEngine {};
 
 struct IQQmlEngine : public QDotNetNativeInterface<QQmlEngine>
 {
-    static inline const QString &AssemblyQualifiedName =
+    static inline const QString AssemblyQualifiedName =
         QStringLiteral("Qt.Quick.IQQmlEngine, Qt.DotNet.Adapter");
 
     bool exited = false;

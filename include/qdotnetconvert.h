@@ -871,7 +871,7 @@ public:
         auto *callback = new ScriptDelegateContext<TResult, TArg...>(delegateTypeName, value,
                                                                      engine, qContext);
         return TDelegate(QDotNetAdapter::instance().addDelegateProxy(
-                delegateTypeName, TDelegate::SignatureParameters, callback,
+                delegateTypeName, TDelegate::SignatureParameters(), callback,
                 asHandle(&ScriptDelegateContext<TResult, TArg...>::deleteSelf),
                 asHandle(ScriptDelegateContext<TResult, TArg...>::delegate()),
                 asHandle(ScriptDelegateContext<TResult, TArg...>::cleanUp()),

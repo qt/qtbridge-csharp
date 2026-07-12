@@ -37,7 +37,10 @@ private:
 
     // Fully qualified .NET class name
 #define Q_DOTNET_OBJECT_TYPE(T,type_name)\
-    static inline const QString &AssemblyQualifiedName = QString(type_name)
+    static inline const QString AssemblyQualifiedName = []()\
+    {\
+        return QString(type_name);\
+    }()
 
     // All required declarations
 #define Q_DOTNET_OBJECT(T,type_name)\
@@ -125,8 +128,8 @@ private:
 #define Q_DOTNET_OBJECT_INIT(...) , __VA_ARGS__
 
 public:
-    static inline const char *ClassName = "QDotNetObject";
-    static inline const QString &AssemblyQualifiedName = QStringLiteral("System.Object");
+    static constexpr char ClassName[] = "QDotNetObject";
+    static inline const QString AssemblyQualifiedName = QStringLiteral("System.Object");
 
     QDotNetObject(const void *objectRef = nullptr)
         : QDotNetRef(objectRef)
