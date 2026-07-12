@@ -249,6 +249,43 @@ private:
         return funcPtr;
     }
 
+    static bool isMajorRollForwardCandidate(const QVersionNumber &version,
+        const QVersionNumber &selectedVersion)
+    {
+        if (version < defaultFrameworkVersion)
+            return false;
+        if (selectedVersion.isNull())
+            return true;
+
+        const auto requestedMajor = defaultFrameworkVersion.majorVersion();
+        const auto requestedMinor = defaultFrameworkVersion.minorVersion();
+        const auto versionMajor = version.majorVersion();
+        const auto selectedMajor = selectedVersion.majorVersion();
+
+        const auto versionIsRequestedMajor = versionMajor == requestedMajor;
+        const auto selectedIsRequestedMajor = selectedMajor == requestedMajor;
+        if (versionIsRequestedMajor != selectedIsRequestedMajor)
+            return versionIsRequestedMajor;
+
+        if (versionIsRequestedMajor) {
+            const auto versionMinor = version.minorVersion();
+            const auto selectedMinor = selectedVersion.minorVersion();
+            const auto versionIsRequestedMinor = versionMinor == requestedMinor;
+            const auto selectedIsRequestedMinor = selectedMinor == requestedMinor;
+            if (versionIsRequestedMinor != selectedIsRequestedMinor)
+                return versionIsRequestedMinor;
+            if (versionMinor != selectedMinor)
+                return versionMinor < selectedMinor;
+            return version > selectedVersion;
+        }
+
+        if (versionMajor != selectedMajor)
+            return versionMajor < selectedMajor;
+        if (version.minorVersion() != selectedVersion.minorVersion())
+            return version.minorVersion() < selectedVersion.minorVersion();
+        return version > selectedVersion;
+    }
+
     QString findRuntimePath() const
     {
         QProcess procDotNetInfo;
@@ -261,13 +298,26 @@ private:
 
         QVersionNumber selectedVersion = {};
         QString selectedRuntimePath = {};
+        auto foundStableRuntime = false;
+        auto foundCompatibleStableRuntime = false;
+        auto foundPrereleaseRuntime = false;
         const QRegularExpression dotNetInfoParser(regexParseDotNetInfo,
             QRegularExpression::MultilineOption | QRegularExpression::DotMatchesEverythingOption);
         for (const auto &match : dotNetInfoParser.globalMatch(dotNetInfo)) {
 
             const auto hostVersion = match.captured("version");
+            if (hostVersion.contains('-')) {
+                foundPrereleaseRuntime = true;
+                continue;
+            }
+            foundStableRuntime = true;
+
             const auto version = QVersionNumber::fromString(hostVersion);
-            if (version <= selectedVersion)
+            if (version < defaultFrameworkVersion)
+                continue;
+            foundCompatibleStableRuntime = true;
+
+            if (!isMajorRollForwardCandidate(version, selectedVersion))
                 continue;
 
             const auto runtimeDirPath = match.captured("path");
@@ -281,6 +331,8 @@ private:
                 continue;
 #ifdef Q_OS_WINDOWS
             const auto runtimePath = runtimeDir.absoluteFilePath("hostfxr.dll");
+#elif defined(Q_OS_MACOS)
+            const auto runtimePath = runtimeDir.absoluteFilePath("libhostfxr.dylib");
 #else
             const auto runtimePath = runtimeDir.absoluteFilePath("libhostfxr.so");
 #endif
@@ -292,7 +344,18 @@ private:
         }
 
         if (selectedVersion.isNull()) {
-            qCritical() << "Error locating runtime host library.";
+            if (foundCompatibleStableRuntime) {
+                qCritical() << "A compatible stable .NET runtime was found, but its host library"
+                            << "(hostfxr) could not be located.";
+            } else if (foundStableRuntime) {
+                qCritical() << "No stable .NET runtime compatible with"
+                            << defaultFrameworkVersion.toString() << "or later was found.";
+            } else if (foundPrereleaseRuntime) {
+                qCritical() << "Only prerelease .NET runtimes were found;"
+                            << "prerelease runtimes are not supported.";
+            } else {
+                qCritical() << "No .NET runtime was found.";
+            }
             return {};
         }
 
@@ -464,11 +527,12 @@ private:
     }
 
     static inline const QString runtimeConfigFileName = QStringLiteral("runtimeconfig.XXXXXX.json");
+    static inline const QVersionNumber defaultFrameworkVersion = QVersionNumber(8, 0, 0);
     static inline const QString defaultRuntimeConfig = QStringLiteral(R"[json](
 {
   "runtimeOptions": {
     "tfm": "net8.0",
-    "rollForward": "LatestMinor",
+    "rollForward": "Major",
     "framework": {
       "name": "Microsoft.NETCore.App",
       "version": "8.0.0"
@@ -478,7 +542,7 @@ private:
 )[json]");
 
     static inline const QString regexParseDotNetInfo = QStringLiteral(R"[regex](
-\bMicrosoft\.NETCore\.App[^0-9]*(?<version>[0-9\.]+)[^\[]*\[(?<path>[^\]]+)\]
+\bMicrosoft\.NETCore\.App[^0-9]*(?<version>[0-9]+(?:\.[0-9]+)*(?:-[0-9A-Za-z.-]+)?)[^\[]*\[(?<path>[^\]]+)\]
 )[regex]").remove('\r').remove('\n');
 
     static inline const QString regexParseDotNetRoot = QStringLiteral(R"[regex](

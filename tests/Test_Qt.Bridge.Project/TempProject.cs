@@ -188,6 +188,7 @@ namespace Test_Qt.Bridge.Project
             if (OutputTypeXml(options.OutputType) is { Length: > 0 } outputType)
                 lines.Add(outputType);
             lines.Add($"    <TargetFramework>{targetFramework}</TargetFramework>");
+            lines.Add("    <RollForward>Major</RollForward>");
             lines.Add($"    <ImplicitUsings>{(options.ImplicitUsings ? "enable" : "disable")}"
                 + "</ImplicitUsings>");
             lines.Add($"    <Nullable>{(options.Nullable ? "enable" : "disable")}</Nullable>");

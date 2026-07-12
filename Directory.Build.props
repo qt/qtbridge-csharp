@@ -1,0 +1,13 @@
+<!--
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
+-->
+<Project>
+  <PropertyGroup>
+    <!--
+      Allow net8.0 executables and test hosts to run on newer installed .NET runtimes,
+      such as .NET 10 instead of requiring an exact .NET 8 runtime on the machine.
+    -->
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+</Project>
