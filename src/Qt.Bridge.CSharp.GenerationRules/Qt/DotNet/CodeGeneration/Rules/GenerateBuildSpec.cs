@@ -41,6 +41,12 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if (APPLE)
+    # Keep external framework search paths when installing a non-bundle executable. This
+    # also makes repeated installs safe instead of trying to delete the build rpath twice.
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+endif()
+
 {cmake[new(IncludeDirs) { Distinct = true, Content = [$"include_directories({Hpp})"] }]}
 
 find_package(Qt6 6.6 REQUIRED COMPONENTS
