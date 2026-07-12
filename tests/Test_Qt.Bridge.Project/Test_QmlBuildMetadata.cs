@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Test_Qt.Bridge.Project
 {
@@ -61,8 +63,8 @@ namespace Test_Qt.Bridge.Project
 
             var buildIni = await File.ReadAllTextAsync(artifacts.BuildIniPath,
                 TestContext.CancellationTokenSource.Token);
-            Assert.Contains(Normalize(artifacts.ProjectDirectory), buildIni);
-            Assert.Contains(Normalize(artifacts.ProjectSourcesQrcPath), buildIni);
+            AssertBuildIniContainsDirectory(buildIni, artifacts.ProjectDirectory);
+            AssertBuildIniContainsFile(buildIni, artifacts.ProjectSourcesQrcPath);
 
             var qrc = await File.ReadAllTextAsync(artifacts.ProjectSourcesQrcPath,
                 TestContext.CancellationTokenSource.Token);
@@ -75,21 +77,21 @@ namespace Test_Qt.Bridge.Project
             var qml = root.GetProperty("qml");
             var qmlls = root.GetProperty("qmlLanguageServer");
 
-            Assert.AreEqual(
-                Normalize(artifacts.ProjectDirectory),
-                Normalize(qml.GetProperty("projectSourceDir").GetString()!));
-            Assert.AreEqual(
-                Normalize(artifacts.BuildDirectory),
-                Normalize(qml.GetProperty("buildDirs")[0].GetString()!));
-            Assert.AreEqual(
-                Normalize(artifacts.ReadyMarkerPath),
-                Normalize(qmlls.GetProperty("readyFile").GetString()!));
-            Assert.AreEqual(
-                Normalize(artifacts.BuildIniPath),
-                Normalize(qmlls.GetProperty("buildIni").GetString()!));
-            Assert.AreEqual(
-                Normalize(artifacts.ProjectSourcesQrcPath),
-                Normalize(qmlls.GetProperty("projectSourcesQrc").GetString()!));
+            AssertSameDirectory(
+                artifacts.ProjectDirectory,
+                qml.GetProperty("projectSourceDir").GetString()!);
+            AssertSameDirectory(
+                artifacts.BuildDirectory,
+                qml.GetProperty("buildDirs")[0].GetString()!);
+            AssertSameFilePath(
+                artifacts.ReadyMarkerPath,
+                qmlls.GetProperty("readyFile").GetString()!);
+            AssertSameFilePath(
+                artifacts.BuildIniPath,
+                qmlls.GetProperty("buildIni").GetString()!);
+            AssertSameFilePath(
+                artifacts.ProjectSourcesQrcPath,
+                qmlls.GetProperty("projectSourcesQrc").GetString()!);
         }
 
         [TestMethod]
@@ -205,7 +207,83 @@ namespace Test_Qt.Bridge.Project
                 Path.Combine(buildDirectory, ".qt", "qtbridge-build.ready"));
         }
 
-        private static string Normalize(string path) => path.Replace('\\', '/').TrimEnd('/');
+        private static void AssertSameFilePath(string expected, string actual)
+        {
+            Assert.AreEqual(Path.GetFileName(expected), Path.GetFileName(actual));
+            AssertSameDirectory(Path.GetDirectoryName(expected)!, Path.GetDirectoryName(actual)!);
+        }
+
+        private static void AssertSameDirectory(string expected, string actual)
+        {
+            Assert.IsTrue(Directory.Exists(expected), expected);
+            Assert.IsTrue(Directory.Exists(actual), actual);
+            Assert.IsTrue(SameDirectory(expected, actual),
+                $"'{expected}' and '{actual}' do not identify the same directory.");
+        }
+
+        // macOS can expose the same directory through more than one path (e.g. '/var' and
+        // '/private/var'), so identity is verified by writing a marker file and checking that it
+        // is visible through both paths, rather than by comparing path text.
+        private static bool SameDirectory(string expected, string actual)
+        {
+            var expectedPath = Path.GetFullPath(expected);
+            var actualPath = Path.GetFullPath(actual);
+            if (OperatingSystem.IsWindows()
+                && string.Equals(expectedPath, actualPath, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            if (!Directory.Exists(expectedPath) || !Directory.Exists(actualPath))
+                return false;
+
+            var markerName = $".qtbridge-path-{Guid.NewGuid():N}";
+            var expectedMarker = Path.Combine(expectedPath, markerName);
+            var actualMarker = Path.Combine(actualPath, markerName);
+            try {
+                File.WriteAllText(expectedMarker, string.Empty);
+                return File.Exists(actualMarker);
+            } finally {
+                File.Delete(expectedMarker);
+            }
+        }
+
+        private static string DecodeIniPath(string path) =>
+            path.Replace("<SLASH>", "/").Trim();
+
+        // Qt has used both encoded directory section names and quoted workspace values. Decode both
+        // formats so callers can match by filesystem identity instead of literal path text.
+        private static IEnumerable<string> ExtractIniPathCandidates(string ini)
+        {
+            var sectionPaths = Regex.Matches(ini, @"(?m)^\[([^\]\r\n]+)\]\s*$")
+                .Select(match => DecodeIniPath(match.Groups[1].Value))
+                .Where(Path.IsPathRooted);
+            var quotedValues = Regex.Matches(ini, "=\"([^\"]*)\"").SelectMany(match =>
+                match.Groups[1].Value
+                    .Split(';', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(DecodeIniPath));
+            return sectionPaths.Concat(quotedValues);
+        }
+
+        private static void AssertBuildIniContainsDirectory(string buildIni, string expectedDirectory)
+        {
+            Assert.IsTrue(
+                ExtractIniPathCandidates(buildIni).Any(candidate =>
+                    SameDirectory(expectedDirectory, candidate)),
+                $"Directory '{expectedDirectory}' was not found among the paths in the build ini:"
+                + $"{Environment.NewLine}{buildIni}");
+        }
+
+        private static void AssertBuildIniContainsFile(string buildIni, string expectedFilePath)
+        {
+            var expectedName = Path.GetFileName(expectedFilePath);
+            var expectedDir = Path.GetDirectoryName(expectedFilePath)!;
+            Assert.IsTrue(
+                ExtractIniPathCandidates(buildIni).Any(candidate =>
+                    string.Equals(Path.GetFileName(candidate), expectedName, StringComparison.Ordinal)
+                    && SameDirectory(expectedDir, Path.GetDirectoryName(candidate) ?? "")),
+                $"'{expectedFilePath}' was not found among the paths in the build ini:"
+                + $"{Environment.NewLine}{buildIni}");
+        }
 
         private sealed record BuildArtifacts(
             string ProjectDirectory,
