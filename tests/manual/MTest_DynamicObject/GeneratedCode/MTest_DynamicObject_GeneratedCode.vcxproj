@@ -16,11 +16,12 @@
   <PropertyGroup>
     <ReadOnlyProject>true</ReadOnlyProject>
     <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <QtDir Condition="'$(QtDir)' == ''">$(QtInstallRoot)</QtDir>
     <IncludePath
->$(QtInstallRoot)\include;
-;$([System.String]::Join('%3B',$([System.IO.Directory]::GetDirectories($(QtInstallRoot)\include))));
-;$([System.IO.Directory]::GetDirectories($(QtInstallRoot)\include\QtCore,'6.*')[0]);
-;$([System.IO.Directory]::GetDirectories($(QtInstallRoot)\include\QtCore,'6.*')[0])\QtCore;
+>$(QtDir)\include;
+;$([System.String]::Join('%3B',$([System.IO.Directory]::GetDirectories($(QtDir)\include))));
+;$([System.IO.Directory]::GetDirectories($(QtDir)\include\QtCore,'6.*')[0]);
+;$([System.IO.Directory]::GetDirectories($(QtDir)\include\QtCore,'6.*')[0])\QtCore;
 ;..\..\..\..\include;
 ;..\obj\Debug\net8.0\qt\native\source\hpp;
 ;$(IncludePath)</IncludePath>
@@ -34,13 +35,29 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="..\obj\**\*.h" />
-    <None Include="..\obj\**\*.cpp" />
+    <ClCompile Include="..\obj\**\*.h;..\obj\**\*.cpp;..\obj\**\CMakeLists.txt" />
   </ItemGroup>
   <Import
     Condition="Exists('$(VCTargetsPath)\Microsoft.Cpp.targets')"
     Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="Build" />
+  <Target Name="ClCompile">
+    <ItemGroup>
+      <FilesToCopy Include="$(SelectedFiles)" />
+      <FilesToCopy>
+        <TargetFile>$([System.Text.RegularExpressions.Regex]::Replace(
+          "%(Identity)", "^.*qt\\native\\source",
+          "..\..\..\..\src\Qt.Bridge.CSharp.GenerationRules\Static"))</TargetFile>
+      </FilesToCopy>
+    </ItemGroup>
+    <Copy Condition="Exists('%(FilesToCopy.TargetFile)')"
+          SourceFiles="%(Identity)" DestinationFiles="%(TargetFile)" />
+    <Touch Files="..\..\..\..\src\Qt.Bridge.CSharp.GenerationRules\Static\StaticFiles.resx" />
+    <Touch Files="..\Main.cs" />
+    <MSBuild Projects="..\..\..\..\src\Qt.Bridge.CSharp.GenerationRules\Qt.Bridge.CSharp.GenerationRules.csproj;..\MTest_DynamicObject.csproj"
+             BuildInParallel="false"
+             Properties="Platform=AnyCPU" />
+  </Target>
   <Target Name="Clean" />
   <Target Name="_IsProjectRestoreSupported"
           Returns="@(_ValidProjectsForRestore)">
@@ -49,4 +66,17 @@
     </ItemGroup>
   </Target>
   <Target Name="_CheckForInvalidConfigurationAndPlatform" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\MTest_DynamicObject.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LocalDebuggerDebuggerType>NativeOnly</LocalDebuggerDebuggerType>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>$([System.IO.Path]::GetFullPath("$(MSBuildThisFileDirectory)..\bin\Debug\net8.0"))</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommand>$([System.IO.Path]::GetFullPath("$(MSBuildThisFileDirectory)..\bin\Debug\net8.0\MTest_DynamicObject.exe"))</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments/>
+    <LocalDebuggerEnvironment>$(LocalDebuggerEnvironment)</LocalDebuggerEnvironment>
+  </PropertyGroup>
 </Project>

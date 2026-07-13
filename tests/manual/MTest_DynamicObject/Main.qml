@@ -11,52 +11,103 @@ ApplicationWindow {
     visible: true
     title: "Dynamic Object"
 
-    Foo { id: foo }
+    Window {
+        id: viewWindow
+        flags: Qt.Tool
+        width: 320
+        height: 480
+        visible: true
+        title: "View"
+        TreeView {
+            id: view
+            anchors.fill: parent
+            delegate: TreeViewDelegate {
+                implicitWidth: 70
+                implicitHeight: 40
+            }
+        }
+        Component.onCompleted: Qt.callLater(() => {
+            x = mainWindow.x + mainWindow.width + 10
+            y = mainWindow.y
+        })
+    }
 
-    TextArea {
-        id: log
+    LoadTimeType {
+        id: lt
+        onPropertyChanged:
+            (args) => log.text += "lt: PropertyChanged: " + args.propertyName + "\n"
+        onIntPropertyChanged: log.text += "lt: intPropertyChanged\n"
+        onIntReadOnlyPropertyChanged: log.text += "lt: intReadOnlyPropertyChanged\n"
+
+        BuildTimeType {
+            id: bt
+            onPropertyChanged:
+                (args) => log.text += "bt: PropertyChanged: " + args.propertyName + "\n"
+            onIntPropertyChanged: log.text += "bt: intPropertyChanged\n"
+            onIntReadOnlyPropertyChanged: log.text += "bt: intReadOnlyPropertyChanged\n"
+        }
+    }
+
+
+    function evaluate(expr) {
+        try {
+            let result = eval(expr)
+            if (result)
+                log.text += "\u2714 " + expr + " \u279C " + result + "\n"
+            else
+                log.text += "\u2718 " + expr + " \u279C " + result + "\n"
+        } catch (error) {
+            log.text += "\u26A0 " + expr + "\n"
+            log.text += "\u26A0 " + error + "\n"
+        }
+    }
+
+    ScrollView {
+        id: scroll
         anchors.fill: parent
-        readOnly: true
-        font.pointSize: 12
+        TextArea {
+            id: log
+            readOnly: true
+            font.pointSize: 12
+            onTextChanged: Qt.callLater(() => scroll.contentItem.contentY = height - scroll.height)
+        }
     }
 
     menuBar: MenuBar {
-        Menu {
-            title: "Foo"
-            TestMenu {
-                object: "foo"; member: "intProperty"
-                Test { expr: " === 42" }
-                Test { expr: " = 42" }
-            }
-            TestMenu {
-                object: "foo"; member: "intReadOnlyProperty"
-                Test { expr: " === 42" }
-                Test { expr: " = 42" }
-            }
-            TestMenu {
-                object: "foo"; member: "intWriteOnlyProperty"
-                Test { expr: " === 42" }
-                Test { expr: " = 42" }
-            }
-            TestMenu {
-                object: "foo"; member: "stringProperty"
-                Test { expr: " === 'foobar'" }
-                Test { expr: " = 'foobar'" }
-            }
-            TestMenu {
-                object: "foo"; member: "dateTimeProperty"
-                Test { }
-                Test { expr: " = new Date()" }
-            }
-            TestMenu {
-                object: "foo"; member: "uriProperty"
-                Test { }
-                Test { expr: " = 'https://qt.io'" }
-            }
-            TestMenu {
-                object: "foo"; member: "uInt64FuncInt"
-                Test { expr: "(83) === 99194853094755497" }
-            }
+        TestObject {
+            title: "BuildTimeType { id: bt }"
+            object: "bt"
         }
+        TestObject {
+            title: "LoadTimeType { id: lt }"
+            object: "lt"
+        }
+    }
+
+    header: Row {
+        leftPadding: mainWindow.width - btProp.width - ltProp.width
+        TextField {
+            id: btProp
+            topPadding: 6
+            leftPadding: 10
+            readOnly: true
+            text: "bt.intProperty: " + bt.intProperty
+        }
+        TextField {
+            id: ltProp
+            topPadding: 6
+            leftPadding: 10
+            readOnly: true
+            text: "lt.intProperty: " + lt.intProperty
+        }
+    }
+
+    footer: TextField {
+        focus: true
+        placeholderText: "Enter expression..."
+        implicitHeight: 30
+        topPadding: 6
+        leftPadding: 10
+        onAccepted: evaluate(text)
     }
 }

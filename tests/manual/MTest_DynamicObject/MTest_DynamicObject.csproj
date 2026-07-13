@@ -29,12 +29,24 @@
     <ProjectReference Include="..\..\..\src\Qt.Bridge.CSharp.Generator\Qt.Bridge.CSharp.Generator.csproj" />
     <ProjectReference Include="..\..\..\src\Qt.Bridge.CSharp.GenerationRules\Qt.Bridge.CSharp.GenerationRules.csproj" />
   </ItemGroup>
-  <Import Condition="'$(SolutionName)' == 'qtbridge-csharp'" Project="..\..\..\build\Qt.Bridge.targets" />
+
+  <PropertyGroup>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <AppendPlatformToOutputPath>false</AppendPlatformToOutputPath>
+  </PropertyGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <Import Condition="'$(SolutionName)' == 'qtbridge-csharp'" Project="..\..\..\build\Qt.Bridge.targets" />
 
   <ItemGroup>
     <None Remove="GeneratedCode\**\*" />
+    <UpToDateCheckInput Include="..\..\..\include\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="qt_dotnet_types.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

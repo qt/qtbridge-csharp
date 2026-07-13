@@ -5,19 +5,9 @@ import QtQuick
 import QtQuick.Controls
 
 MenuItem {
-    property string expr: ""
-    readonly property string testExpr: menu.title + expr
-    text: expr ? expr : menu.title
-    onTriggered: {
-        try {
-            let result = eval(testExpr)
-            if (result)
-                log.text += "\u2714 " + testExpr + " \u279C " + result + "\n"
-            else
-                log.text += "\u2718 " + testExpr + " \u279C " + result + "\n"
-        } catch (error) {
-            log.text += "\u26A0 " + testExpr + "\n"
-            log.text += "\u26A0 " + error + "\n"
-        }
-    }
+    icon.source: menu.icon.source
+    icon.width: menu.icon.width
+    icon.height: menu.icon.height
+    readonly property string expr: menu.title + text
+    onTriggered: evaluate(expr)
 }
