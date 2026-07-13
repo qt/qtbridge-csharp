@@ -23,8 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference
-      Include="..\..\src\Qt.Bridge.CSharp.Build.Tasks\Qt.Bridge.CSharp.Build.Tasks.csproj" />
+    <ProjectReference Include="..\..\src\Qt.Bridge.CSharp.Build.Tasks\Qt.Bridge.CSharp.Build.Tasks.csproj" />
+    <ProjectReference Include="..\..\src\Qt.Bridge.CSharp.VisualStudio.Core\Qt.Bridge.CSharp.VisualStudio.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

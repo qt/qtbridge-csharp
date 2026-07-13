@@ -21,7 +21,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
     /// </summary>
     internal sealed class QmllsBuildIniPatcher(IExtensionLog log)
     {
-        private const string BuildIni = ".qmlls.build.ini";
+        internal const string BuildIni = ".qmlls.build.ini";
 
         private enum FormatPatchResult
         {

@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Qt.Bridge.CSharp.Build.Tasks;
+using Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata;
 
 namespace Test_Qt.Bridge.Project
 {
@@ -195,16 +197,17 @@ namespace Test_Qt.Bridge.Project
             var buildDirectory = Path.GetFullPath(Path.Combine(temp.ProjectDir, buildDirProperty!));
 
             var metadataPath = Directory
-                .EnumerateFiles(temp.ProjectDir, "qtbridge-qml.ide.json", SearchOption.AllDirectories)
+                .EnumerateFiles(temp.ProjectDir,
+                    QmlMetadataReader.MetadataFileName, SearchOption.AllDirectories)
                 .Single();
 
             return new BuildArtifacts(
                 temp.ProjectDir,
                 buildDirectory,
                 metadataPath,
-                Path.Combine(buildDirectory, ".qt", ".qmlls.build.ini"),
-                Path.Combine(buildDirectory, ".qt", "qtbridge_project_sources.qrc"),
-                Path.Combine(buildDirectory, ".qt", "qtbridge-build.ready"));
+                Path.Combine(buildDirectory, ".qt", QmllsBuildIniPatcher.FileName),
+                Path.Combine(buildDirectory, ".qt", ProjectSourcesQrcWriter.FileName),
+                Path.Combine(buildDirectory, ".qt", BuildReadyMarker.FileName));
         }
 
         private static void AssertSameFilePath(string expected, string actual)

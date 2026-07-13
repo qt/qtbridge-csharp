@@ -25,6 +25,9 @@
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>Test_Qt.Bridge.CSharp.VisualStudio.Core</_Parameter1>
     </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Test_Qt.Bridge.Project</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 
 </Project>

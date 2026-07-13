@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Security;
 using System.Text.Json;
 using Qt.Bridge.CSharp.Build.Tasks;
+using Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata;
 
 namespace Test_Qt.Bridge.CSharp.Build.Tasks
 {
@@ -173,7 +174,7 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             var metadataPath = Directory
                 .EnumerateFiles(
                     Path.Combine(TempDirectory, "obj"),
-                    "qtbridge-qml.ide.json",
+                    QmlMetadataReader.MetadataFileName,
                     SearchOption.AllDirectories)
                 .Single();
             using var document = JsonDocument.Parse(File.ReadAllText(metadataPath));

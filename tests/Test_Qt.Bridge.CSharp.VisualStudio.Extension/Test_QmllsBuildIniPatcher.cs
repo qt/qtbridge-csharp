@@ -185,7 +185,7 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Extension
         }
 
         private static string IniPath(string buildDir) =>
-            Path.Combine(buildDir, ".qt", ".qmlls.build.ini");
+            Path.Combine(buildDir, ".qt", QmllsBuildIniPatcher.BuildIni);
 
         private static void WriteIniFile(string buildDir, string content)
         {
