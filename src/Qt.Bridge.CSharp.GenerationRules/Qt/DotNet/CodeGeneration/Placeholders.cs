@@ -21,10 +21,15 @@ namespace Qt.Bridge.CodeGeneration
         ObjectDispatchHeader,
         ObjectDispatchSource
             ,
+        QmlRegisterTypesHeader
+            ,
         MainCpp
             , MainIncludes
             , MainStartingUp
             , MainBeforeAppExec
+            ,
+        MetadataLoaderHeader,
+        MetadataLoaderSource
             ,
         HppFile
             , ForwardDecl

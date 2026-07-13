@@ -42,7 +42,9 @@ namespace Qt.Bridge.CodeGeneration.Rules
 "#include <QDotNetRef>",
 "#include <QDotNetStatic>",
 "#include <QDotNetConvert>",
-"#include <object_dispatch.h>"
+"#include <object_dispatch.h>",
+"#include <metadata_loader.h>",
+"#include <qml_register_types.h>"
                 }
             }
 ]}
@@ -53,6 +55,8 @@ int main(int argc, char *argv[])
 {{
     QDotNetConvert::setDispatch(QtDotNet::objectDispatch);
     auto appDirPath = QFileInfo(argv[0]).absoluteDir().path();
+    QtDotNet::loadTypeMetadata(appDirPath, qml_register_types);
+
     {mainCpp[new(MainStartingUp) { Sorted = false }]}
 
     for (int i = 1; i < argc; ++i) {{

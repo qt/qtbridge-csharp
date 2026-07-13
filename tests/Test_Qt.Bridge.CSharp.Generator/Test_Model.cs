@@ -180,6 +180,8 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 sourceRefs: [ApiAssembly, AdapterAssembly],
                 ct: TestContext.CancellationTokenSource.Token);
 
+            result.SelectedFiles = result.Sink.Files.Keys
+                .Where(file => !file.Contains("metadata_loader")).ToList();
             var combined = result.CombinedText;
 
             Assert.Contains("roleNames", combined,

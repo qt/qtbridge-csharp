@@ -18,4 +18,10 @@
   <data name="ObjectDispatchHeader,hpp/object_dispatch.h,SourceFiles" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>hpp\object_dispatch.h;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="MetadataLoaderHeader,hpp/metadata_loader.h,SourceFiles" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>hpp\metadata_loader.h;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="MetadataLoaderSource,cpp/metadata_loader.cpp,SourceFiles" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>cpp\metadata_loader.cpp;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
 </root>
