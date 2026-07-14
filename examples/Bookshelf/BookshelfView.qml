@@ -211,7 +211,9 @@ Item {
                         border.color: "#252538"
                         border.width: 1
                     }
+
                     ScrollBar.vertical.contentItem: Rectangle {
+                        property int transitionDuration: 100
                         implicitWidth: 6
                         radius: 3
                         color: "#6666aa"
@@ -227,6 +229,7 @@ Item {
                         border.width: 1
                     }
                     ScrollBar.horizontal.contentItem: Rectangle {
+                        property int transitionDuration: 100
                         implicitHeight: 6
                         radius: 3
                         color: "#6666aa"
