@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test_Qt.Bridge.CSharp.Generator.Support
 {
@@ -38,8 +39,21 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
         {
             private int disposed;
 
+            /// <summary>
+            /// List of files to include in the combined text. Implicitly asserts that all files in
+            /// the list will be present in the sink. This assertion is verified during calculation
+            /// of the combined text.
+            /// </summary>
+            public List<string> SelectedFiles { get; set; } = null;
+
             /// <summary>Combines all generated files into a single string.</summary>
-            public string CombinedText => string.Join(NewLine + NewLine, Sink.Files.Values);
+            public string CombinedText => SelectedFiles switch {
+                null => string.Join(NewLine + NewLine, Sink.Files.Values),
+                _ => string.Join(NewLine + NewLine, SelectedFiles
+                    .Select(file => Sink.Files.TryGetValue(file, out var text) ? text
+                        : throw new AssertFailedException($"Selected file not found: {file}"))
+                    .Where(text => text != null))
+            };
 
             public void Dispose()
             {
