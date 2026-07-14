@@ -3,6 +3,7 @@
 
 # User-specific files
 *.user
+.DS_Store
 
 # Build results
 debug/
