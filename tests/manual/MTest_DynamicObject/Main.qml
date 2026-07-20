@@ -11,9 +11,13 @@ ApplicationWindow {
     visible: true
     title: "Dynamic Object"
 
+    function positionViewWindow() {
+        viewWindow.x = mainWindow.x + mainWindow.width + 10
+        viewWindow.y = mainWindow.y
+    }
+
     Window {
         id: viewWindow
-        flags: Qt.Tool
         width: 320
         height: 480
         visible: true
@@ -26,11 +30,12 @@ ApplicationWindow {
                 implicitHeight: 40
             }
         }
-        Component.onCompleted: Qt.callLater(() => {
-            x = mainWindow.x + mainWindow.width + 10
-            y = mainWindow.y
-        })
+        Component.onCompleted: Qt.callLater(mainWindow.positionViewWindow)
     }
+
+    onXChanged: positionViewWindow()
+    onYChanged: positionViewWindow()
+    onWidthChanged: positionViewWindow()
 
     LoadTimeType {
         id: lt
