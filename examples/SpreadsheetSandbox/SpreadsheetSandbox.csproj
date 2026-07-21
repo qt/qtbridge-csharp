@@ -32,8 +32,8 @@
   <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.105.0" />
   </ItemGroup>
-  <Import Condition="'$(SolutionName)' == 'qtbridge-csharp'" Project="..\..\build\Qt.Bridge.targets" />
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <Import Condition="'$(SolutionName)' == 'qtbridge-csharp'" Project="..\..\build\Qt.Bridge.targets" />
 
 </Project>

@@ -3,11 +3,13 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 -->
-<Project Sdk="Microsoft.NET.Sdk">
+<Project>
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_version.props))" />
   <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_rid.props))" />
   <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_bridge_package.props))" />
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -29,6 +31,8 @@
     <ProjectReference Include="..\..\src\Qt.Bridge.CSharp.Generator\Qt.Bridge.CSharp.Generator.csproj" />
     <ProjectReference Include="..\..\src\Qt.Bridge.CSharp.GenerationRules\Qt.Bridge.CSharp.GenerationRules.csproj" />
   </ItemGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
   <Import Condition="'$(SolutionName)' == 'qtbridge-csharp'" Project="..\..\build\Qt.Bridge.targets" />
 
 </Project>
