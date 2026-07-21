@@ -18,7 +18,7 @@ namespace Qt.Bridge.CodeGeneration.Rules.Class
         {
             if (src is not ConstructorInfo ctor)
                 return Error();
-            var type = src.DeclaringType;
+            var type = src.ReflectedType;
 
             if (ctor.GetParameters() is not { } args)
                 return Error();
