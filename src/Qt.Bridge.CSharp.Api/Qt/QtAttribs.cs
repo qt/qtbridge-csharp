@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using System;
-using Qt.MetaObject;
 
 namespace Qt
 {

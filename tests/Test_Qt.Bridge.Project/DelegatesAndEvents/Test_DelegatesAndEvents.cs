@@ -31,9 +31,7 @@ namespace Test_Qt.Bridge.Project.DelegatesAndEvents
             Assert.Contains("PASS   : Test_DelegatesAndEvents::initTestCase()", run.StdOut);
             Assert.Contains("PASS   : Test_DelegatesAndEvents::delegates()", run.StdOut);
             Assert.Contains("PASS   : Test_DelegatesAndEvents::emitSignalFromEvent()", run.StdOut);
-            Assert.Contains("PASS   : Test_DelegatesAndEvents::signalConverters()", run.StdOut);
-            Assert.Contains("PASS   : Test_DelegatesAndEvents::legacySignalConverters()",
-                run.StdOut);
+            Assert.Contains("PASS   : Test_DelegatesAndEvents::signalEventArgs()", run.StdOut);
             Assert.Contains("PASS   : Test_DelegatesAndEvents::cleanupTestCase()", run.StdOut);
         }
     }

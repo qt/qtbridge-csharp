@@ -3,7 +3,6 @@
 
 using System.ComponentModel;
 using System.Reflection;
-using Qt.MetaObject;
 
 namespace Qt.Bridge.CodeGeneration.Rules.Class
 {

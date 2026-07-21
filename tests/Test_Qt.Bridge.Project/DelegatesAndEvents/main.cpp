@@ -206,7 +206,7 @@ private slots:
         QCOMPARE(signalCount, 4);
     }
 
-    void signalConverters()
+    void signalEventArgs()
     {
         // Current behavior after 4bcc01ec6c4b15cd429874f6f54a66f8817061d2:
         // One Qt signal carrying a QObject* wrapper for the managed EventArgs.
@@ -229,63 +229,6 @@ private slots:
         QCOMPARE(coords->x(), 23.433333);
         QCOMPARE(coords->y(), 0.6875);
         QCOMPARE(coords->z(), 30.0);
-    }
-
-    void legacySignalConverters()
-    {
-        const auto localize = [](const QVariant &value) -> double {
-            bool ok = false;
-            const QString text = value.toString();
-            double parsed = QLocale::c().toDouble(text, &ok);
-            if (!ok)
-                parsed = QLocale().toDouble(text, &ok);
-            if (!ok)
-                return std::numeric_limits<double>::quiet_NaN();
-            return parsed;
-        };
-
-        LegacyMissionControl houston;
-        ApolloXI eagle;
-        eagle.subscribe("EagleLanded", &houston);
-
-        const QSignalSpy spyEagleLanded(&houston, &LegacyMissionControl::eagleLanded);
-        const QSignalSpy spyTheEagleHasLanded(&houston,
-            &LegacyMissionControl::theEagleHasLanded);
-        const QSignalSpy spyWrongParams(&houston,
-            &LegacyMissionControl::theEagleHasLanded_WRONG_PARAMS);
-        const QSignalSpy spyWrongOrder(&houston,
-            &LegacyMissionControl::theEagleHasLanded_WRONG_ORDER);
-        const QSignalSpy spyOk(&houston, &LegacyMissionControl::theEagleHasLanded_OK);
-
-        eagle.land(23.433333, 0.6875, 30.0);
-        eagle.unsubscribe("EagleLanded", &houston);
-
-        QVERIFY(!spyEagleLanded.isEmpty());
-        QVERIFY(spyEagleLanded.first().isEmpty());
-
-        QVERIFY(!spyTheEagleHasLanded.isEmpty());
-        QVERIFY(spyTheEagleHasLanded.first().isEmpty());
-
-        QVERIFY(!spyWrongParams.isEmpty());
-        QCOMPARE(spyWrongParams.first().count(), 2);
-        QCOMPARE(spyWrongParams.first().at(0).toString(), "30");
-        const double wrongParamsValue = localize(spyWrongParams.first().at(1));
-        QVERIFY(!std::isnan(wrongParamsValue));
-        QCOMPARE(wrongParamsValue, 23.433333);
-
-        QVERIFY(!spyWrongOrder.isEmpty());
-        QCOMPARE(spyWrongOrder.first().count(), 2);
-        const double wrongOrderX = localize(spyWrongOrder.first().at(0));
-        const double wrongOrderY = localize(spyWrongOrder.first().at(1));
-        QVERIFY(!std::isnan(wrongOrderX));
-        QVERIFY(!std::isnan(wrongOrderY));
-        QCOMPARE(wrongOrderX, 23.433333);
-        QCOMPARE(wrongOrderY, 0.6875);
-
-        QVERIFY(!spyOk.isEmpty());
-        QCOMPARE(spyOk.first().count(), 2);
-        QCOMPARE(spyOk.first().at(0).toString(), QString::fromUtf8("0° 41' 15'' N"));
-        QCOMPARE(spyOk.first().at(1).toString(), QString::fromUtf8("23° 25' 59'' E"));
     }
 
     void cleanupTestCase()
