@@ -49,5 +49,71 @@ namespace Qt.Bridge.Extensions
             }
             return false;
         }
+
+        public static bool IsInteger(this Type type)
+        {
+            return Type.GetTypeCode(type)
+                is TypeCode.SByte or TypeCode.Byte
+                or TypeCode.Int16 or TypeCode.UInt16
+                or TypeCode.Int32 or TypeCode.UInt32
+                or TypeCode.Int64 or TypeCode.UInt64;
+        }
+
+        private const Options DefaultExportOptions = ExportAs.SourceCode;
+        private const string OptionsPropertyName = nameof(ExportAttribute.Options);
+
+
+        /// <summary>
+        /// Type export options
+        /// </summary>
+        /// <returns>Bitmask of <see cref="Options"/> flags</returns>
+        public static Options ExportOptions(this Type type)
+        {
+
+            var options = type.QtAttributeData<ExportAttribute>()
+                .Concat(type.Assembly.QtAttributeData<ExportAttribute>())
+                .Where(opt => opt.HasProperty(OptionsPropertyName))
+                .Select(opt => opt.TryProperty(OptionsPropertyName, out Options x) ? x : default)
+                .FirstOrDefault();
+            return options == default ? DefaultExportOptions : options;
+        }
+
+        /// <summary>
+        /// Check if type should be exported as metadata
+        /// </summary>
+        /// <remarks>
+        /// This function only checks the export options attribute, if any. It does not take into
+        /// consideration any type selection attributes.
+        /// </remarks>
+        /// <returns>
+        /// <list type="bullet">
+        /// <item><see cref="bool">true</see> if the type should be exported as metadata;</item>
+        /// <item><see cref="bool">false</see> otherwise.</item>
+        /// </list>
+        /// </returns>
+        public static bool ExportAsMetadata(this Type type)
+        {
+            var options = ExportOptions(type);
+            return options.HasFlag(Options.Export) && !options.HasFlag(Options.ExportAsSourceCode);
+        }
+
+        /// <summary>
+        /// Check if type should be exported as source code
+        /// </summary>
+        /// <remarks>
+        /// This function only checks the export options attribute, if any. It does not take into
+        /// consideration any type selection attributes.
+        /// </remarks>
+        /// <returns>
+        /// <list type="bullet">
+        /// <item><see cref="bool">true</see> if the type should be exported as source code;</item>
+        /// <item><see cref="bool">false</see> otherwise.</item>
+        /// </list>
+        /// </returns>
+        public static bool ExportAsSourceCode(this Type type)
+        {
+            var options = ExportOptions(type);
+            return options.HasFlag(Options.Export) && options.HasFlag(Options.ExportAsSourceCode);
+        }
     }
 }

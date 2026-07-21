@@ -67,9 +67,7 @@ namespace Qt.Bridge.Extensions
             if (!self.HasProperty(name))
                 throw new ArgumentException($"Property '{name}' not found.", nameof(name));
             var arg = namedArguments.FirstOrDefault(arg => arg.MemberName == name).TypedValue;
-            if (arg.ArgumentType != TypeOf<T>() || arg.Value is not T argValue)
-                return default;
-            return argValue;
+            return Property<T>(arg);
         }
 
         public static T Property<T>(this CustomAttributeData self, string name, T defaultValue)
@@ -78,9 +76,16 @@ namespace Qt.Bridge.Extensions
             if (!self.HasProperty(name))
                 return defaultValue;
             var arg = namedArguments.FirstOrDefault(arg => arg.MemberName == name).TypedValue;
-            if (arg.ArgumentType != TypeOf<T>() || arg.Value is not T argValue)
-                return default;
-            return argValue;
+            return Property(arg, defaultValue);
+        }
+
+        private static T Property<T>(CustomAttributeTypedArgument arg, T defaultValue = default)
+        {
+            if (arg.ArgumentType == TypeOf<T>() && arg.Value is T argValue)
+                return argValue;
+            if (TypeOf<T>().IsEnum && arg.Value is { } value && value.GetType().IsInteger())
+                return (T)Enum.ToObject(typeof(T), arg.Value);
+            return defaultValue;
         }
 
         public static bool TryProperty<T>(this CustomAttributeData self, string name, out T value)

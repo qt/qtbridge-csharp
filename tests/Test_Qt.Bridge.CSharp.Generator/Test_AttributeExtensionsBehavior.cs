@@ -2,13 +2,16 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test_Qt.Bridge.CSharp.Generator
 {
+    using Qt;
     using Qt.Bridge.Extensions;
     using Qt.Quick;
     using Support;
@@ -221,6 +224,155 @@ namespace Test_Qt.Bridge.CSharp.Generator
             Assert.IsTrue(result.Sink.Files.TryGetValue("source/hpp/test/bar.h", out hpp));
             Assert.Contains("QML_NAMED_ELEMENT(Bar)", hpp);
             Assert.Contains("QML_SINGLETON", hpp);
+        }
+
+        private Regex LogParser { get; } = new(@"(?:^|\n)(\w+::\w+) --> ([^\r\n\s]*)(?:\r?\n|$)");
+
+        private Dictionary<string, string> LogExportAs(string logText)
+        {
+            var types = LogParser.Matches(logText)
+                .Where(m => m.Success && m.Groups.Count > 2)
+                .ToDictionary(m => m.Groups[1].Value, m => m.Groups[2].Value);
+            Assert.IsNotEmpty(types);
+            return types;
+        }
+
+        [TestMethod]
+        public async Task Export_Default_SameAs_NoConfig()
+        {
+            using var result = await TestCodeGenerator.GenerateAsync(
+                sourceRefs: [typeof(QmlElementAttribute).Assembly],
+                ct: TestContext.CancellationTokenSource.Token,
+                sources: [""""
+                using Qt;
+                namespace Test
+                {
+                    public class MyNoConfig { }
+
+                    [Export(Options = ExportAs.Default)]
+                    public class MyExportAsDefault { }
+                }
+                """"]);
+
+            result.SelectedFiles = ["rules_log.txt"];
+            var log = LogExportAs(result.CombinedText);
+            Assert.Contains("Test::MyNoConfig", log.Keys);
+            Assert.Contains("Test::MyExportAsDefault", log.Keys);
+            Assert.AreEqual(log["Test::MyNoConfig"], log["Test::MyExportAsDefault"]);
+
+            var typeNoConfig = result.SourceAssembly.GetType("Test.MyNoConfig");
+            Assert.IsNotNull(typeNoConfig);
+
+            var typeDefault = result.SourceAssembly.GetType("Test.MyExportAsDefault");
+            Assert.IsNotNull(typeDefault);
+
+            Assert.AreEqual(typeNoConfig.ExportAsMetadata(), typeDefault.ExportAsMetadata());
+            Assert.AreEqual(typeNoConfig.ExportAsSourceCode(), typeDefault.ExportAsSourceCode());
+        }
+
+        [TestMethod]
+        public async Task Export_Metadata_NotSameAs_SourceCode()
+        {
+            using var result = await TestCodeGenerator.GenerateAsync(
+                sourceRefs: [typeof(QmlElementAttribute).Assembly],
+                ct: TestContext.CancellationTokenSource.Token,
+                sources: [""""
+                using Qt;
+                namespace Test
+                {
+                    [Export(Options = ExportAs.Metadata)]
+                    public class MyExportAsMetadata { }
+
+                    [Export(Options = ExportAs.SourceCode)]
+                    public class MyExportAsSourceCode { }
+                }
+                """"]);
+
+            result.SelectedFiles = ["rules_log.txt"];
+            var types = LogParser.Matches(result.CombinedText)
+                .Where(m => m.Success && m.Groups.Count > 2)
+                .ToDictionary(m => m.Groups[1].Value, m => m.Groups[2].Value);
+            Assert.IsNotEmpty(types);
+            Assert.Contains("Test::MyExportAsMetadata", types.Keys);
+            Assert.Contains("Test::MyExportAsSourceCode", types.Keys);
+            Assert.AreNotEqual(
+                types["Test::MyExportAsMetadata"], types["Test::MyExportAsSourceCode"]);
+
+            var typeMetadata = result.SourceAssembly.GetType("Test.MyExportAsMetadata");
+            Assert.IsNotNull(typeMetadata);
+            Assert.IsTrue(typeMetadata.ExportAsMetadata());
+            Assert.IsFalse(typeMetadata.ExportAsSourceCode());
+
+            var typeSourceCode = result.SourceAssembly.GetType("Test.MyExportAsSourceCode");
+            Assert.IsNotNull(typeSourceCode);
+            Assert.IsTrue(typeSourceCode.ExportAsSourceCode());
+            Assert.IsFalse(typeSourceCode.ExportAsMetadata());
+        }
+
+        [TestMethod,
+            DataRow(nameof(ExportAs.Metadata)),
+            DataRow(nameof(ExportAs.SourceCode))
+        ]
+        public async Task Assembly_Export_Is_Default(string exportAs)
+        {
+            using var resultAux = await TestCodeGenerator.GenerateAsync(
+                sourceRefs: [typeof(QmlElementAttribute).Assembly],
+                ct: TestContext.CancellationTokenSource.Token,
+                sources: [$$""""
+                namespace Test
+                {
+                    public class MyHardDefault { }
+                }
+                """"]);
+            var typeHardDefault = resultAux.SourceAssembly.GetType("Test.MyHardDefault");
+            var hardDefaultAsMetadata = typeHardDefault.ExportAsMetadata();
+            var hardDefaultAsSourceCode = typeHardDefault.ExportAsSourceCode();
+
+            using var result = await TestCodeGenerator.GenerateAsync(
+                sourceRefs: [typeof(QmlElementAttribute).Assembly],
+                ct: TestContext.CancellationTokenSource.Token,
+                sources: [$$""""
+                using Qt;
+
+                [assembly: Export(Options = ExportAs.{{exportAs}})]
+
+                namespace Test
+                {
+                    public class MyNoConfig { }
+
+                    [Export(Options = ExportAs.Default)]
+                    public class MyExportAsDefault { }
+
+                    [Export(Options = ExportAs.Metadata)]
+                    public class MyExportAsMetadata { }
+
+                    [Export(Options = ExportAs.SourceCode)]
+                    public class MyExportAsSourceCode { }
+                }
+                """"]);
+
+            bool assemblyAsMetadata = exportAs == nameof(ExportAs.Metadata);
+            bool assemblyAsSourceCode = exportAs == nameof(ExportAs.SourceCode);
+
+            var typeNoConfig = result.SourceAssembly.GetType("Test.MyNoConfig");
+            Assert.IsNotNull(typeNoConfig);
+            Assert.AreEqual(assemblyAsMetadata, typeNoConfig.ExportAsMetadata());
+            Assert.AreEqual(assemblyAsSourceCode, typeNoConfig.ExportAsSourceCode());
+
+            var typeDefault = result.SourceAssembly.GetType("Test.MyExportAsDefault");
+            Assert.IsNotNull(typeDefault);
+            Assert.AreEqual(hardDefaultAsMetadata, typeDefault.ExportAsMetadata());
+            Assert.AreEqual(hardDefaultAsSourceCode, typeDefault.ExportAsSourceCode());
+
+            var typeMetadata = result.SourceAssembly.GetType("Test.MyExportAsMetadata");
+            Assert.IsNotNull(typeMetadata);
+            Assert.IsTrue(typeMetadata.ExportAsMetadata());
+            Assert.IsFalse(typeMetadata.ExportAsSourceCode());
+
+            var typeSourceCode = result.SourceAssembly.GetType("Test.MyExportAsSourceCode");
+            Assert.IsNotNull(typeSourceCode);
+            Assert.IsTrue(typeSourceCode.ExportAsSourceCode());
+            Assert.IsFalse(typeSourceCode.ExportAsMetadata());
         }
     }
 }

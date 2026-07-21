@@ -5,6 +5,7 @@ using System.Reflection;
 
 namespace Qt.Bridge.CodeGeneration.Rules
 {
+    using Extensions;
     using static Traits;
 
     public class LogTypes : Rule
@@ -21,7 +22,8 @@ namespace Qt.Bridge.CodeGeneration.Rules
             LogFile += src switch
             {
                 _ when src.IsRootNode() => string.Empty,
-                Type type => type.MFn(Ns | Name),
+                Type type =>
+                    $"{type.MFn(Ns | Name)} --> {(type.ExportAsSourceCode() ? "C++" : "JSON")}",
                 _ => $"{src.ReflectedType.MFn(Ns | Name)}::{src.ToString()}"
             };
             return Ok;

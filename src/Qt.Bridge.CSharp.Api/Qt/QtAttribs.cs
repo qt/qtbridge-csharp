@@ -143,4 +143,132 @@ namespace Qt
         /// </summary>
         public string Libraries { get; set; }
     }
+
+    /// <summary>
+    /// Type export options bitmask indices
+    /// </summary>
+    internal enum Option
+    {
+        /// <summary>
+        /// Custom type export; next bit determines export kind
+        /// </summary>
+        Export,
+
+        /// <summary>
+        /// Custom export kind: 0=Metadata, 1=Source-code
+        /// </summary>
+        ExportAs
+    }
+
+    /// <summary>
+    /// Flags that describe how Qt Bridge exposes a managed type to QML
+    /// </summary>
+    [Flags]
+    public enum Options
+    {
+        /// <summary>
+        /// Use the built-in default export mode
+        /// </summary>
+        Default = 0,
+
+        /// <summary>
+        /// Indicates that export behavior is explicitly configured
+        /// </summary>
+        Export = 1 << Option.Export,
+
+        /// <summary>
+        /// Export by generating bridge wrapper code
+        /// </summary>
+        ExportAsSourceCode = 1 << Option.ExportAs,
+    }
+
+
+    /// <summary>
+    /// Export mode values for <see cref="ExportAttribute"/>
+    /// </summary>
+    /// <remarks>
+    /// Qt Bridge can expose a managed type to QML using different export modes. These
+    /// values are intended for use with <see cref="ExportAttribute.Options"/>:
+    /// <list type="bullet">
+    /// <item>
+    /// <see cref="Metadata"/> selects metadata-based export, where the type is described through
+    /// metadata consumed by the bridge at runtime.
+    /// </item>
+    /// <item>
+    /// <see cref="SourceCode"/> selects wrapper-based export, where the bridge prepares code for
+    /// that type.
+    /// </item>
+    /// <item>
+    /// <see cref="Default"/> resets a type-level export declaration to the built-in Qt Bridge
+    /// default instead of inheriting an assembly-level <see cref="ExportAttribute"/>.
+    /// </item>
+    /// </list>
+    /// </remarks>
+    public static class ExportAs
+    {
+        /// <summary>
+        /// Use the built-in default export mode
+        /// </summary>
+        /// <remarks>
+        /// When applied explicitly on a type, this resets export behavior to the built-in default
+        /// chosen by Qt Bridge. It does not inherit an assembly-level <see cref="ExportAttribute"/>
+        /// setting.
+        /// </remarks>
+        public const Options Default = Options.Default;
+
+        /// <summary>
+        /// Export the type as metadata
+        /// </summary>
+        public const Options Metadata = Options.Export;
+
+        /// <summary>
+        /// Export the type through generated bridge wrapper code
+        /// </summary>
+        public const Options SourceCode = Options.Export | Options.ExportAsSourceCode;
+    }
+
+    /// <summary>
+    /// Configures how Qt Bridge exposes a managed type to QML
+    /// </summary>
+    /// <remarks>
+    /// Qt Bridge can expose a managed type either through wrapper-based export or through
+    /// metadata-based export used during runtime registration.
+    ///
+    /// This attribute can be applied at assembly scope to define the default export mode for types
+    /// in that assembly, or at type scope to override that behavior for an individual type.
+    ///
+    /// Precedence is:
+    /// <list type="number">
+    /// <item>
+    /// If a type has no <see cref="ExportAttribute"/>, it inherits any assembly-level export
+    /// setting.
+    /// </item>
+    /// <item>
+    /// If a type explicitly sets <see cref="ExportAs.Metadata"/> or
+    /// <see cref="ExportAs.SourceCode"/>, that type-level choice overrides the assembly-level
+    /// setting.
+    /// </item>
+    /// <item>
+    /// If a type explicitly sets <see cref="ExportAs.Default"/>, it resets to the built-in Qt
+    /// Bridge default rather than inheriting the assembly-level setting.
+    /// </item>
+    /// </list>
+    /// </remarks>
+    [AttributeUsage(TypeAttributeTarget, AllowMultiple = false)]
+    public class ExportAttribute : Attribute
+    {
+        private const AttributeTargets TypeAttributeTarget
+            = AttributeTargets.Assembly
+            | AttributeTargets.Class
+            | AttributeTargets.Struct
+            | AttributeTargets.Interface
+            | AttributeTargets.Enum
+            | AttributeTargets.Delegate;
+
+        /// <summary>
+        /// Custom export options
+        /// </summary>
+        /// <value>Bitmask of <see cref="Options"/> flags</value>
+        public Options Options { get; set; }
+    }
 }
