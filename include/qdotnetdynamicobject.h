@@ -614,6 +614,11 @@ private:
                 staticMetacall(this, _c, _id, _a);
             _id -= ownMethodCount;
             break;
+        case QMetaObject::CreateInstance:
+        case QMetaObject::IndexOfMethod:
+        case QMetaObject::CustomCall:
+        case QMetaObject::ConstructInPlace:
+            break;
         case QMetaObject::RegisterMethodArgumentMetaType:
             if (_id < ownMethodCount)
                 *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
