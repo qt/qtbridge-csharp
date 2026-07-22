@@ -40,7 +40,11 @@
   <Import
     Condition="Exists('$(VCTargetsPath)\Microsoft.Cpp.targets')"
     Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <Target Name="Build" />
+  <Target Name="Build">
+    <MSBuild Projects="..\..\..\..\src\Qt.Bridge.CSharp.GenerationRules\Qt.Bridge.CSharp.GenerationRules.csproj;..\MTest_DynamicObject.csproj"
+            BuildInParallel="false"
+            Properties="Platform=AnyCPU" />
+  </Target>
   <Target Name="ClCompile">
     <ItemGroup>
       <FilesToCopy Include="$(SelectedFiles)" />
@@ -58,7 +62,9 @@
              BuildInParallel="false"
              Properties="Platform=AnyCPU" />
   </Target>
-  <Target Name="Clean" />
+  <Target Name="Clean">
+    <MSBuild Projects="..\MTest_DynamicObject.csproj" Targets="Clean" Properties="Platform=AnyCPU" />
+  </Target>
   <Target Name="_IsProjectRestoreSupported"
           Returns="@(_ValidProjectsForRestore)">
     <ItemGroup>
