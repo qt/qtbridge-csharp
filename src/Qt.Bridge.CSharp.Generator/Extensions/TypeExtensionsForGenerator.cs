@@ -3,6 +3,8 @@
 
 namespace Qt.Bridge.CodeGeneration.Extensions
 {
+    using CodeGeneration;
+
     public static class TypeExtensionsForGenerator
     {
         public static IEnumerable<Type> DelegateSignature(this Type type)
@@ -62,16 +64,16 @@ namespace Qt.Bridge.CodeGeneration.Extensions
         private const Options DefaultExportOptions = ExportAs.SourceCode;
         private const string OptionsPropertyName = nameof(ExportAttribute.Options);
 
-
         /// <summary>
         /// Type export options
         /// </summary>
         /// <returns>Bitmask of <see cref="Options"/> flags</returns>
         public static Options ExportOptions(this Type type)
         {
-
             var options = type.QtAttributeData<ExportAttribute>()
                 .Concat(type.Assembly.QtAttributeData<ExportAttribute>())
+                .Concat(Rules.SourceGraph?.Root?.Assembly?.QtAttributeData<ExportAttribute>()
+                    ?.Where(opt => opt.Property("Global", false)) ?? [])
                 .Where(opt => opt.HasProperty(OptionsPropertyName))
                 .Select(opt => opt.TryProperty(OptionsPropertyName, out Options x) ? x : default)
                 .FirstOrDefault();

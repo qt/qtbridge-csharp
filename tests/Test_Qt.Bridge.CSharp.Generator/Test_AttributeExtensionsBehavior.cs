@@ -237,6 +237,22 @@ namespace Test_Qt.Bridge.CSharp.Generator
             return types;
         }
 
+        private async Task<(bool Metadata, bool SourceCode)> DefaultExportAs()
+        {
+            using var result = await TestCodeGenerator.GenerateAsync(
+                sourceRefs: [typeof(QmlElementAttribute).Assembly],
+                ct: TestContext.CancellationTokenSource.Token,
+                sources: [$$""""
+                namespace Test
+                {
+                    public class MyDefault { }
+                }
+                """"]);
+            var typeDefault = result.SourceAssembly.GetType("Test.MyDefault");
+            Assert.IsNotNull(typeDefault);
+            return (typeDefault.ExportAsMetadata(), typeDefault.ExportAsSourceCode());
+        }
+
         [TestMethod]
         public async Task Export_Default_SameAs_NoConfig()
         {
@@ -315,18 +331,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         ]
         public async Task Assembly_Export_Is_Default(string exportAs)
         {
-            using var resultAux = await TestCodeGenerator.GenerateAsync(
-                sourceRefs: [typeof(QmlElementAttribute).Assembly],
-                ct: TestContext.CancellationTokenSource.Token,
-                sources: [$$""""
-                namespace Test
-                {
-                    public class MyHardDefault { }
-                }
-                """"]);
-            var typeHardDefault = resultAux.SourceAssembly.GetType("Test.MyHardDefault");
-            var hardDefaultAsMetadata = typeHardDefault.ExportAsMetadata();
-            var hardDefaultAsSourceCode = typeHardDefault.ExportAsSourceCode();
+            var defaultExportAs = await DefaultExportAs();
 
             using var result = await TestCodeGenerator.GenerateAsync(
                 sourceRefs: [typeof(QmlElementAttribute).Assembly],
@@ -361,8 +366,8 @@ namespace Test_Qt.Bridge.CSharp.Generator
 
             var typeDefault = result.SourceAssembly.GetType("Test.MyExportAsDefault");
             Assert.IsNotNull(typeDefault);
-            Assert.AreEqual(hardDefaultAsMetadata, typeDefault.ExportAsMetadata());
-            Assert.AreEqual(hardDefaultAsSourceCode, typeDefault.ExportAsSourceCode());
+            Assert.AreEqual(defaultExportAs.Metadata, typeDefault.ExportAsMetadata());
+            Assert.AreEqual(defaultExportAs.SourceCode, typeDefault.ExportAsSourceCode());
 
             var typeMetadata = result.SourceAssembly.GetType("Test.MyExportAsMetadata");
             Assert.IsNotNull(typeMetadata);
@@ -373,6 +378,48 @@ namespace Test_Qt.Bridge.CSharp.Generator
             Assert.IsNotNull(typeSourceCode);
             Assert.IsTrue(typeSourceCode.ExportAsSourceCode());
             Assert.IsFalse(typeSourceCode.ExportAsMetadata());
+        }
+
+        [TestMethod,
+            DataRow(""),
+            DataRow("Global = true, ")]
+        public async Task Assembly_GlobalExport_AppliesTo_AllTypes(string global)
+        {
+            var defaultExportAs = await DefaultExportAs();
+            var exportAs = defaultExportAs.SourceCode ? "Metadata" : "SourceCode";
+
+            using var result = await TestCodeGenerator.GenerateAsync(
+                sourceRefs: [typeof(QmlElementAttribute).Assembly],
+                ct: TestContext.CancellationTokenSource.Token,
+                sources: [$$""""
+                using Qt;
+
+                [assembly: Export({{global}}Options = ExportAs.{{exportAs}})]
+
+                namespace Test
+                {
+                    public class Foo
+                    {
+                        public int[] Bar { get; set; }
+                    }
+                }
+                """"]);
+
+            var typeFoo = result.SourceAssembly.GetType("Test.Foo");
+            Assert.IsNotNull(typeFoo);
+            Assert.AreNotEqual(defaultExportAs.Metadata, typeFoo.ExportAsMetadata());
+            Assert.AreNotEqual(defaultExportAs.SourceCode, typeFoo.ExportAsSourceCode());
+
+            var typeIntArray = result.Graph.TypeOf<int[]>();
+            Assert.IsNotNull(typeIntArray);
+            Assert.IsTrue(result.Graph.ContainsKey(typeIntArray));
+            if (string.IsNullOrEmpty(global)) {
+                Assert.AreEqual(defaultExportAs.Metadata, typeIntArray.ExportAsMetadata());
+                Assert.AreEqual(defaultExportAs.SourceCode, typeIntArray.ExportAsSourceCode());
+            } else {
+                Assert.AreNotEqual(defaultExportAs.Metadata, typeIntArray.ExportAsMetadata());
+                Assert.AreNotEqual(defaultExportAs.SourceCode, typeIntArray.ExportAsSourceCode());
+            }
         }
     }
 }

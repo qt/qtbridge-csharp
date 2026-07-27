@@ -236,6 +236,10 @@ namespace Qt
     /// This attribute can be applied at assembly scope to define the default export mode for types
     /// in that assembly, or at type scope to override that behavior for an individual type.
     ///
+    /// When defined at the scope of the root assembly, with <see cref="ExportAttribute.Global"/>
+    /// equal to <see cref="bool">true</see>, the attribute will apply to all types in all
+    /// assemblies brought in as static / load-time dependencies.
+    ///
     /// Precedence is:
     /// <list type="number">
     /// <item>
@@ -269,5 +273,19 @@ namespace Qt
         /// </summary>
         /// <value>Bitmask of <see cref="Options"/> flags</value>
         public Options Options { get; set; }
+
+        /// <summary>
+        /// Apply export options globally
+        /// </summary>
+        /// <remarks>
+        /// Only relevant if attribute is defined for the root assembly. Ignored otherwise.
+        /// </remarks>
+        /// <value>
+        /// <list type="bullet">
+        /// <item><see cref="bool">true</see> if the options apply to all assemblies;</item>
+        /// <item><see cref="bool">false</see> (default) if the options apply only locally.</item>
+        /// </list>
+        /// </value>
+        public bool Global { get; set; }
     }
 }
