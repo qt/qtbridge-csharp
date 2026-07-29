@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -62,6 +63,23 @@ namespace Test_Qt.Bridge.Project.Shared
     /// </summary>
     public abstract class ManagedTestBase
     {
+        /// <summary>
+        /// Check an assertion and transform a failure result into inconclusive.
+        /// </summary>
+        /// <remarks>
+        /// Wrap assertions with `Try` in tests that reproduce known issues, to confirm the issue is
+        /// reproducible without failing the test run. Once the issue is fixed, the assertion should
+        /// be called directly to ensure the test will fail in case of regression.
+        /// <para/>
+        /// Marked as <see cref="ObsoleteAttribute">Obsolete</see> to generate a build-time warning
+        /// with a reminder to remove the call once the issue is fixed.
+        /// </remarks>
+        [Obsolete("Don't forget to remove `Try` when relevant issue is fixed.")]
+        protected static void Try(string msg, Action assert)
+        {
+            try { assert(); } catch (AssertFailedException) { Assert.Inconclusive(msg); }
+        }
+
         /// <summary>
         /// Creates the temp project, applies the given options, runs a build, saves the log
         /// and asserts that the build succeeded.

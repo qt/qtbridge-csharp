@@ -27,13 +27,14 @@ namespace Test_Qt.Bridge.Project
         public string TargetFramework { get; init; }
         public bool ImplicitUsings { get; init; } = true;
         public bool Nullable { get; init; } = false;
-        public IEnumerable<(string Id, string Version)> PackageReferences { get; init; } = [];
+        public List<(string Id, string Version)> PackageReferences { get; init; } = [];
         public string BeforeSdkProps { get; init; } = string.Empty;
         public string AfterSdkProps { get; init; } = string.Empty;
         public string BeforeSdkTargets { get; init; } = string.Empty;
         public string AfterSdkTargets { get; init; } = string.Empty;
         public bool LocalPackages { get; init; } = false;
         public IEnumerable<(string Old, string New)> ReplaceGeneratedFiles { get; init; } = [];
+        public bool Reset { get; set; } = true;
     }
 
     public enum Config { Default, Debug, Release }
@@ -169,7 +170,7 @@ namespace Test_Qt.Bridge.Project
         public void Create(CreationOptions options = null)
         {
             options ??= new();
-            Create(CreateProjectXml(options), options.Filename, options.Extension);
+            Create(CreateProjectXml(options), options.Filename, options.Extension, options.Reset);
             WriteNuGetConfig();
         }
 
@@ -280,9 +281,11 @@ namespace Test_Qt.Bridge.Project
             return string.Join(Environment.NewLine, lines);
         }
 
-        public void Create(string xml, string filename = null, string extension = null)
+        public void Create(
+            string xml, string filename = null, string extension = null, bool reset = true)
         {
-            Reset();
+            if (reset)
+                Reset();
             if (!string.IsNullOrEmpty(filename))
                 ProjectFilename = filename;
             if (!string.IsNullOrEmpty(extension))

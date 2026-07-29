@@ -17,6 +17,7 @@
   <ItemGroup>
     <Compile Remove="AdapterInit\Program.cs" />
     <Compile Remove="BindingsAndInterfaces\Program.cs" />
+    <Compile Remove="BugFix\QTBRIDGES-330\Program.cs" />
     <Compile Remove="CollectionsAndValues\Program.cs" />
     <Compile Remove="CustomMarshaling\Program.cs" />
     <Compile Remove="DelegatesAndEvents\Program.cs" />
@@ -68,6 +69,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="BindingsAndInterfaces\TransformedTextSource.cpp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="BugFix\QTBRIDGES-330\main.cpp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="BugFix\QTBRIDGES-330\Program.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="CollectionsAndValues\main.cpp">
