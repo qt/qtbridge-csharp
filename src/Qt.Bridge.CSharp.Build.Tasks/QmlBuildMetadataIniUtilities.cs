@@ -38,7 +38,7 @@ namespace Qt.Bridge.CSharp.Build.Tasks
         }
 
         public static bool ContainsPath(string paths, string path) =>
-            paths.Split(';').Any(candidate => SameIniPath(candidate, path));
+            paths.Split(Path.PathSeparator).Any(candidate => SameIniPath(candidate, path));
 
         public static string BuildSectionKey(string path)
         {

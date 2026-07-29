@@ -277,7 +277,7 @@ namespace Qt.Bridge.CSharp.Build.Tasks
                 if (!ContainsPath(value, path)) {
                     value = string.IsNullOrEmpty(value)
                         ? PathUtilities.ToForwardSlashes(path)
-                        : value + ";" + PathUtilities.ToForwardSlashes(path);
+                        : value + Path.PathSeparator + PathUtilities.ToForwardSlashes(path);
                 }
             }
 
@@ -290,14 +290,14 @@ namespace Qt.Bridge.CSharp.Build.Tasks
                 return paths;
             return string.IsNullOrEmpty(paths)
                 ? PathUtilities.ToForwardSlashes(path!)
-                : paths + ";" + PathUtilities.ToForwardSlashes(path!);
+                : paths + Path.PathSeparator + PathUtilities.ToForwardSlashes(path!);
         }
 
         private static bool SameSectionKey(string line, string key, string path) =>
             string.Equals(line.Trim(), key, SectionComparison(path));
 
         private static string JoinPaths(IEnumerable<string> paths) =>
-            string.Join(";", paths.Select(PathUtilities.ToForwardSlashes));
+            string.Join(Path.PathSeparator.ToString(), paths.Select(PathUtilities.ToForwardSlashes));
 
         private static void WriteIfChanged(string iniPath, IEnumerable<string> updated, bool changed)
         {

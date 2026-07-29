@@ -19,7 +19,7 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
                 ProjectSourcesQrcWriter.FileName));
             WriteIni(paths.IniPath, WorkspaceIni(
                 paths.GeneratedSourceDirectory,
-                importPaths: "/qt/qml;/more/qml",
+                importPaths: $"/qt/qml{Path.PathSeparator}/more/qml",
                 resourceFiles: generatedQrc));
 
             var result = Patch(paths, projectSourcesQrcPath: projectQrc);
@@ -29,8 +29,11 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             Assert.AreEqual(QmllsBuildIniPatcher.IniFormat.Workspaces, result.Format);
             var content = File.ReadAllText(paths.IniPath);
             Assert.Contains($"2\\sourcePath=\"{Normalize(paths.ProjectDirectory)}\"", content);
-            Assert.Contains("2\\importPaths=\"/qt/qml;/more/qml\"", content);
-            Assert.Contains($"2\\resourceFiles=\"{generatedQrc};{projectQrc}\"", content);
+            Assert.Contains(
+                $"2\\importPaths=\"/qt/qml{Path.PathSeparator}/more/qml\"", content);
+            Assert.Contains(
+                $"2\\resourceFiles=\"{generatedQrc}{Path.PathSeparator}{projectQrc}\"",
+                content);
             Assert.Contains("size=2", content);
 
             var directoryName = Path.GetDirectoryName(paths.IniPath);
@@ -136,8 +139,10 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             Assert.AreEqual(QmllsBuildIniPatcher.IniFormat.LegacySections, result.Format);
             var alias = File.ReadAllText(paths.IniPath)[File.ReadAllText(paths.IniPath)
                 .IndexOf(SectionKey(paths.ProjectDirectory), StringComparison.Ordinal)..];
-            Assert.Contains($"importPaths=\"/generated/imports;{importPath}\"", alias);
-            Assert.Contains($"resourceFiles=\"/generated/resources.qrc;{resourcePath}\"",
+            Assert.Contains(
+                $"importPaths=\"/generated/imports{Path.PathSeparator}{importPath}\"", alias);
+            Assert.Contains(
+                $"resourceFiles=\"/generated/resources.qrc{Path.PathSeparator}{resourcePath}\"",
                 alias);
         }
 
