@@ -147,32 +147,30 @@ namespace Qt.DotNet
             // Compile-time signature check of delegate vs. method
             _ = new Delegates.ResolveSafeMethod(ResolveSafeMethod);
 #endif
-            var delegateHandle = DelegateRefs.Values
-                .Where(x => x.Ref.FuncPtr == funcPtr)
-                .Select(x => x.Ref.Handle)
-                .FirstOrDefault();
+            if (TryGetSafeMethod(funcPtr, out var safeDelegateRef))
+                return safeDelegateRef.FuncPtr;
 
+            if (!DelegateRefs.TryGetValue(funcPtr, out var delegateInfo))
+                throw new ArgumentException("Unknown function pointer", nameof(funcPtr));
+
+            var delegateHandle = delegateInfo.Ref.Handle;
             var funcDelegate = delegateHandle.Target as Delegate;
-
             Debug.Assert(funcDelegate != null, nameof(funcDelegate) + " is null");
 
-            if (SafeMethods.TryGetValue(funcDelegate.Method, out var delegateRef))
-                return delegateRef.FuncPtr;
+            var safeMethod = CodeGenerator.CreateSafeMethod(funcDelegate.Method);
 
-            var method = CodeGenerator.CreateSafeMethod(funcDelegate.Method);
-            var delegateType = CodeGenerator.CreateDelegateTypeForMethod(method, parameters);
-            var methodDelegate = Delegate.CreateDelegate(delegateType, method);
+            var delegateType = CodeGenerator.CreateDelegateTypeForMethod(safeMethod, parameters)
+                ?? throw new Exception("Error getting safe method delegate");
+
+            var methodDelegate = Delegate.CreateDelegate(delegateType, safeMethod)
+                ?? throw new Exception("Error getting safe method delegate");
+
             var methodHandle = GCHandle.Alloc(methodDelegate);
             var methodFuncPtr = Marshal.GetFunctionPointerForDelegate(methodDelegate);
 
-            delegateRef = new DelegateRef(methodHandle, methodFuncPtr);
-            SafeMethods.TryAdd(funcDelegate.Method, delegateRef);
+            var delegateRef = new DelegateRef(methodHandle, methodFuncPtr);
+            AddSafeMethodToCache(funcPtr, delegateRef);
             return methodFuncPtr;
         }
-
-        private static ConcurrentDictionary
-            <MethodBase, DelegateRef> SafeMethods
-        { get; } = new();
-
     }
 }

@@ -20,4 +20,10 @@
 
   <Import Project="includegen.targets" />
 
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Test_Qt.Bridge.CSharp.Api</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>

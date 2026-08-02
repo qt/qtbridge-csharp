@@ -48,26 +48,11 @@ public:
 
     T get(qint32 idx) const
     {
-        if constexpr (std::is_fundamental_v<T>)
-            return method("Get", fnGetValue).invoke(*this, idx);
-        if constexpr (std::is_same_v<T, QString>)
-            return method("Get", fnGetObject).invoke(*this, idx).toString();
-        if constexpr (QDotNetIsRef_v<T>)
-            return method("Get", fnGetObject).invoke(*this, idx).template cast<T>();
-        throw std::invalid_argument("T");
+        return method("Get", fnGet).invoke(*this, idx);
     }
 
     void set(qint32 idx, const T &value)
     {
-        if constexpr (std::is_same_v<T, QString>) {
-            if (!fnSetString.isValid()) {
-                QDotNetFunction<void, qint32, QDotNetObject> const func = adapter()
-                    .resolveInstanceMethod(*this, "Set",
-                        { UnmanagedType::Void, UnmanagedType::I4, QDotNetParameter::String });
-                fnSetString = func;
-            }
-            return method("Set", fnSet).invoke(*this, idx, value);
-        }
         return method("Set", fnSet).invoke(*this, idx, value);
     }
 
@@ -148,15 +133,13 @@ private:
             , idx(idx)
         {}
         QDotNetArray* a = nullptr;
-        qint32 idx;
-        mutable T cachedValue;
+        qint32 idx = 0;
+        mutable T cachedValue = QDotNetNull<T>::value();
     };
 
     mutable QDotNetSafeMethod<qint32> fnLength;
-    mutable QDotNetSafeMethod<T, qint32> fnGetValue;
-    mutable QDotNetSafeMethod<QDotNetObject, qint32> fnGetObject;
+    mutable QDotNetSafeMethod<T, qint32> fnGet;
     QDotNetSafeMethod<void, qint32, T> fnSet;
-    QDotNetSafeMethod<void, qint32, QDotNetObject> fnSetString;
 };
 
 template<typename T>

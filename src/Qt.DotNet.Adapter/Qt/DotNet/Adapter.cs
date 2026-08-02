@@ -195,6 +195,13 @@ namespace Qt.DotNet
             <(ObjectRef Source, string Name, IntPtr Context), EventRelay> Events
         { get; } = new();
 
+        private static ConcurrentDictionary
+            <nint, (DelegateRef Ref, nint UnsafeFuncPtr)> SafeMethodsBySafePtr
+        { get; } = new();
+
+        private static ConcurrentDictionary<nint, DelegateRef> SafeMethodsByUnsafePtr
+        { get; } = new();
+
         private static void AddDelegateToCache(
             IntPtr ptr, object obj, MemberInfo member, MemberAccess access, DelegateRef delegateRef)
         {
@@ -230,6 +237,17 @@ namespace Qt.DotNet
             object obj, ConstructorInfo ctor, out DelegateRef delegateRef)
         {
             return TryGetDelegate(obj, ctor, MemberAccess.Constructor, out delegateRef);
+        }
+
+        private static void AddSafeMethodToCache(nint ptr, DelegateRef delegateRef)
+        {
+            SafeMethodsByUnsafePtr.TryAdd(ptr, delegateRef);
+            SafeMethodsBySafePtr.TryAdd(delegateRef.FuncPtr, (delegateRef, ptr));
+        }
+
+        private static bool TryGetSafeMethod(nint ptr, out DelegateRef delegateRef)
+        {
+            return SafeMethodsByUnsafePtr.TryGetValue(ptr, out delegateRef);
         }
     }
 }
