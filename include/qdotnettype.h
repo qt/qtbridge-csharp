@@ -86,7 +86,7 @@ public:
             return QStringLiteral("");
         if (!fnAssemblyQualifiedName.isValid()) {
             fnAssemblyQualifiedName = adapter().resolveInstanceMethod(*this,
-                "get_AssemblyQualifiedName", { UnmanagedType::LPWStr });
+                "get_AssemblyQualifiedName", { QDotNetParameter::String });
             strAssemblyQualifiedName = fnAssemblyQualifiedName();
         }
         return strAssemblyQualifiedName;
@@ -109,7 +109,7 @@ public:
             return QStringLiteral("");
         if (!fnFullName.isValid()) {
             fnFullName = adapter().resolveInstanceMethod(*this,
-                "get_FullName", { UnmanagedType::LPWStr });
+                "get_FullName", { QDotNetParameter::String });
             strFullName = fnFullName();
         }
         return strFullName;

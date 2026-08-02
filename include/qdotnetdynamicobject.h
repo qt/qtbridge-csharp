@@ -782,12 +782,12 @@ private:
             return QDotNetConvert::fromSingle(*reinterpret_cast<float *>(arg));
         case UnmanagedType::R8:
             return QDotNetConvert::fromDouble(*reinterpret_cast<double *>(arg));
-        case UnmanagedType::LPWStr:
-            return QDotNetConvert::fromString(*reinterpret_cast<QString *>(arg));
         default:
             if (param.typeName == QDotNetTypeOf<QDateTime>::TypeName)
                 return QDotNetConvert::fromDateTime(*reinterpret_cast<QDateTime *>(arg));
-            else if (param.typeName == QDotNetTypeOf<QUrl>::TypeName)
+            else if (param.typeName == QDotNetTypeOf<QString>::MarshalName)
+                return QDotNetConvert::fromString(*reinterpret_cast<QString *>(arg));
+            else if (param.typeName == QDotNetTypeOf<QUrl>::MarshalName)
                 return QDotNetConvert::fromUri(*reinterpret_cast<QUrl *>(arg));
             else
                 return QDotNetConvert::fromVariant(*reinterpret_cast<QVariant *>(arg));
@@ -834,13 +834,12 @@ private:
         case UnmanagedType::R8:
             *reinterpret_cast<double *>(arg) = QDotNetConvert::toDouble(obj);
             break;
-        case UnmanagedType::LPWStr:
-            *reinterpret_cast<QString *>(arg) = QDotNetConvert::toString(obj);
-            break;
         default:
             if (param.typeName == QDotNetTypeOf<QDateTime>::TypeName)
                 *reinterpret_cast<QDateTime *>(arg) = QDotNetConvert::toDateTime(obj);
-            else if (param.typeName == QDotNetTypeOf<QUrl>::TypeName)
+            else if (param.typeName == QDotNetTypeOf<QString>::MarshalName)
+                *reinterpret_cast<QString *>(arg) = QDotNetConvert::toString(obj);
+            else if (param.typeName == QDotNetTypeOf<QUrl>::MarshalName)
                 *reinterpret_cast<QUrl *>(arg) = QDotNetConvert::toUri(obj);
             else
                 *reinterpret_cast<QVariant *>(arg) = QDotNetConvert::toVariant(obj, this);

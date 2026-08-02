@@ -105,5 +105,5 @@ struct QDotNetParameter
 };
 
 inline const QDotNetParameter &QDotNetParameter::String = QDotNetParameter(
-    QStringLiteral("Qt.DotNet.StringMarshaler, Qt.DotNet.Adapter, CleanUp=false"),
+    QStringLiteral("Qt.DotNet.StringMarshaler, Qt.DotNet.Adapter"),
     UnmanagedType::CustomMarshaler);

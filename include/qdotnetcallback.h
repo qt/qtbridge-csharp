@@ -23,13 +23,6 @@ struct QDotNetCallbackArg : public QDotNetInbound<T> {};
 template<typename T>
 struct QDotNetCallbackReturn : public QDotNetOutbound<T> {};
 
-template<>
-struct QDotNetCallbackReturn<QString> : public QDotNetOutbound<QString>
-{
-    using SourceType = QString;
-    static inline const QDotNetParameter Parameter = QDotNetParameter::String;
-};
-
 class QDotNetCallbackBase
 {
 protected:

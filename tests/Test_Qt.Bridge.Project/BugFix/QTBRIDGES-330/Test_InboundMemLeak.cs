@@ -77,8 +77,7 @@ namespace Test_Qt.Bridge.Project.BugFix
 
             Assert.Contains("PASS   : Test_InboundMemLeak::initTestCase()", run.StdOut);
             Assert.Contains("PASS   : Test_InboundMemLeak::loopInbound()", run.StdOut);
-            Try("Known issue: QTBRIDGES-330", () =>
-                Assert.Contains("PASS   : Test_InboundMemLeak::checkCorrelation()", run.StdOut));
+            Assert.Contains("PASS   : Test_InboundMemLeak::checkCorrelation()", run.StdOut);
             Assert.Contains("PASS   : Test_InboundMemLeak::cleanupTestCase()", run.StdOut);
 
             Console.WriteLine(run.StdOut);

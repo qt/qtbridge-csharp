@@ -263,36 +263,56 @@ struct QDotNetInbound<void>
         QDotNetParameter(QDotNetTypeOf<void>::TypeName, QDotNetTypeOf<void>::MarshalAs);
 };
 
+inline qsizetype qDotNetUtf16TerminatedByteCount(qsizetype length)
+{
+    return (length + 1) * static_cast<qsizetype>(sizeof(QChar));
+}
+
+inline void qDotNetCopyUtf16TerminatedBuffer(void *destination, const QChar *source,
+                                             qsizetype length)
+{
+    memcpy(destination, source, static_cast<size_t>(qDotNetUtf16TerminatedByteCount(length)));
+}
+
 template<>
 struct QDotNetTypeOf<QString>
 {
     static inline const QString TypeName = QStringLiteral("System.String");
-    static inline UnmanagedType MarshalAs = UnmanagedType::LPWStr;
+    static inline const QString MarshalName =
+        QStringLiteral("Qt.DotNet.StringMarshaler, Qt.DotNet.Adapter");
+    static inline UnmanagedType MarshalAs = UnmanagedType::CustomMarshaler;
 };
 
 template<>
 struct QDotNetOutbound<QString>
 {
-    using SourceType = const QString&;
-    using OutboundType = const QChar*;
-    static inline const QDotNetParameter Parameter =
-        QDotNetParameter(QDotNetTypeOf<QString>::TypeName, QDotNetTypeOf<QString>::MarshalAs);
+    using SourceType = const QString &;
+    using OutboundType = void *;
+    static inline const QDotNetParameter Parameter = QDotNetParameter(
+        QDotNetTypeOf<QString>::MarshalName, QDotNetTypeOf<QString>::MarshalAs);
     static OutboundType convert(SourceType sourceValue)
     {
-        return sourceValue.data();
+        const auto byteCount = qDotNetUtf16TerminatedByteCount(sourceValue.length());
+        void *ptr = QDotNetMarshal::allocHGlobal(static_cast<size_t>(byteCount));
+        qDotNetCopyUtf16TerminatedBuffer(ptr, sourceValue.constData(), sourceValue.length());
+        return ptr;
     }
 };
 
 template<>
 struct QDotNetInbound<QString>
 {
-    using InboundType = const QChar*;
+    using InboundType = QChar *;
     using TargetType = QString;
-    static inline const QDotNetParameter Parameter =
-        QDotNetParameter(QDotNetTypeOf<QString>::TypeName, QDotNetTypeOf<QString>::MarshalAs);
+    static inline const QDotNetParameter Parameter = QDotNetParameter(
+        QDotNetTypeOf<QString>::MarshalName, QDotNetTypeOf<QString>::MarshalAs);
     static TargetType convert(InboundType inboundValue)
     {
-        return QString(inboundValue);
+        if (!inboundValue)
+            return QString();
+        auto str = QString(inboundValue);
+        QDotNetMarshal::freeHGlobal(inboundValue);
+        return str;
     }
 };
 
@@ -385,6 +405,8 @@ template<>
 struct QDotNetTypeOf<QModelIndex>
 {
     static inline const QString TypeName =
+        QStringLiteral("Qt.DotNet.ModelIndex, Qt.DotNet.Adapter");
+    static inline const QString MarshalName =
         QStringLiteral("Qt.DotNet.ModelIndexMarshaler, Qt.DotNet.Adapter");
     static inline UnmanagedType MarshalAs = UnmanagedType::CustomMarshaler;
 };
@@ -395,7 +417,7 @@ struct QDotNetOutbound<QModelIndex>
     using SourceType = const QModelIndex &;
     using OutboundType = const void *;
     static inline const QDotNetParameter Parameter = QDotNetParameter(
-        QDotNetTypeOf<QModelIndex>::TypeName, QDotNetTypeOf<QModelIndex>::MarshalAs);
+        QDotNetTypeOf<QModelIndex>::MarshalName, QDotNetTypeOf<QModelIndex>::MarshalAs);
     static OutboundType convert(SourceType sourceValue)
     {
         return reinterpret_cast<OutboundType>(&sourceValue);
@@ -408,7 +430,7 @@ struct QDotNetInbound<QModelIndex>
     using InboundType = void *;
     using TargetType = QModelIndex;
     static inline const QDotNetParameter Parameter = QDotNetParameter(
-        QDotNetTypeOf<QModelIndex>::TypeName, QDotNetTypeOf<QModelIndex>::MarshalAs);
+        QDotNetTypeOf<QModelIndex>::MarshalName, QDotNetTypeOf<QModelIndex>::MarshalAs);
     static QModelIndex convert(void *inboundValue)
     {
         if (!inboundValue)
@@ -461,52 +483,35 @@ struct QDotNetInbound<QDateTime>
 template<>
 struct QDotNetTypeOf<QUrl>
 {
-    static inline const QString TypeName =
+    static inline const QString TypeName = QStringLiteral("System.Uri");
+    static inline const QString MarshalName =
         QStringLiteral("Qt.DotNet.UriMarshaler, Qt.DotNet.Adapter");
     static inline UnmanagedType MarshalAs = UnmanagedType::CustomMarshaler;
 };
-
-inline qsizetype qDotNetUtf16TerminatedByteCount(qsizetype length)
-{
-    return (length + 1) * static_cast<qsizetype>(sizeof(QChar));
-}
-
-inline void qDotNetCopyUtf16TerminatedBuffer(void *destination, const QChar *source, qsizetype length)
-{
-    memcpy(destination, source, static_cast<size_t>(qDotNetUtf16TerminatedByteCount(length)));
-}
 
 template<>
 struct QDotNetOutbound<QUrl>
 {
     using SourceType = const QUrl &;
-    using OutboundType = void *;
-    static inline const QDotNetParameter Parameter = QDotNetParameter(
-        QDotNetTypeOf<QUrl>::TypeName, QDotNetTypeOf<QUrl>::MarshalAs);
+    using OutboundType = QDotNetOutbound<QString>::OutboundType;
+    static inline const QDotNetParameter Parameter =
+        QDotNetParameter(QDotNetTypeOf<QUrl>::MarshalName, QDotNetTypeOf<QUrl>::MarshalAs);
     static OutboundType convert(SourceType sourceValue)
     {
-        QString url = sourceValue.toDisplayString();
-        const auto byteCount = qDotNetUtf16TerminatedByteCount(url.length());
-        void *ptr = QDotNetMarshal::allocHGlobal(static_cast<size_t>(byteCount));
-        qDotNetCopyUtf16TerminatedBuffer(ptr, url.constData(), url.length());
-        return ptr;
+        return QDotNetOutbound<QString>::convert(sourceValue.toDisplayString());
     }
 };
 
 template<>
 struct QDotNetInbound<QUrl>
 {
-    using InboundType = QChar *;
+    using InboundType = QDotNetInbound<QString>::InboundType;
     using TargetType = QUrl;
-    static inline const QDotNetParameter Parameter = QDotNetParameter(
-        QDotNetTypeOf<QUrl>::TypeName, QDotNetTypeOf<QUrl>::MarshalAs);
+    static inline const QDotNetParameter Parameter =
+        QDotNetParameter(QDotNetTypeOf<QUrl>::MarshalName, QDotNetTypeOf<QUrl>::MarshalAs);
     static TargetType convert(InboundType inboundValue)
     {
-        if (!inboundValue)
-            return QUrl();
-        auto url = QUrl(QString(inboundValue));
-        QDotNetMarshal::freeHGlobal(inboundValue);
-        return url;
+        return QUrl(QDotNetInbound<QString>::convert(inboundValue));
     }
 };
 
