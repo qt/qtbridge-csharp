@@ -12,7 +12,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Test_Qt.Bridge.CSharp.Generator
 {
     using Qt;
-    using Qt.Bridge.Extensions;
+    using Qt.Bridge.CodeGeneration.Extensions;
     using Qt.Quick;
     using Support;
 

@@ -23,7 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Qt.Bridge.CSharp.Generator\Qt.Bridge.CSharp.Generator.csproj" />
-    <ProjectReference Include="..\..\src\Qt.Bridge.CSharp.GenerationRules\Qt.Bridge.CSharp.GenerationRules.csproj" />
+    <ProjectReference Include="..\..\src\Qt.Bridge.CSharp.Generator.Rules.SourceCode\Qt.Bridge.CSharp.Generator.Rules.SourceCode.csproj" />
   </ItemGroup>
 
 </Project>

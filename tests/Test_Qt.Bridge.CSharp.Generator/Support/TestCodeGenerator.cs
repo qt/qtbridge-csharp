@@ -21,7 +21,7 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
 {
     using Qt.Bridge.CodeGeneration;
     using Qt.Bridge.CodeGeneration.MetaFunctions;
-    using Qt.Bridge.CodeGeneration.Rules.Class;
+    using Qt.Bridge.CodeGeneration.Rules.SourceCode.Class;
 
     /// <summary>
     /// Generates C# code from input sources by compiling them into a temporary

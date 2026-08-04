@@ -29,9 +29,9 @@
     <QtDotNetGen Condition="!Exists('$(QtDotNetGen)') AND '$(QtDotNetSolutionDir)' != '' AND ('$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true')"
       >$(QtDotNetSolutionDir)src/Qt.Bridge.CSharp.Generator/bin/$(Configuration)/$(TargetFramework)/qbgen</QtDotNetGen>
 
-    <QtDotNetGenRules>$(MSBuildThisFileDirectory)Qt.Bridge.CSharp.GenerationRules.dll</QtDotNetGenRules>
+    <QtDotNetGenRules>$(MSBuildThisFileDirectory)Qt.Bridge.CSharp.Generator.Rules.SourceCode.dll</QtDotNetGenRules>
     <QtDotNetGenRules Condition="!Exists('$(QtDotNetGenRules)') AND '$(QtDotNetSolutionDir)' != ''"
-      >$(QtDotNetSolutionDir)src/Qt.Bridge.CSharp.GenerationRules/bin/$(Configuration)/$(TargetFramework)/Qt.Bridge.CSharp.GenerationRules.dll</QtDotNetGenRules>
+      >$(QtDotNetSolutionDir)src/Qt.Bridge.CSharp.Generator.Rules.SourceCode/bin/$(Configuration)/$(TargetFramework)/Qt.Bridge.CSharp.Generator.Rules.SourceCode.dll</QtDotNetGenRules>
 
     <QtDotNetAdapter>$(MSBuildThisFileDirectory)Qt.DotNet.Adapter.dll</QtDotNetAdapter>
     <QtDotNetAdapter Condition="!Exists('$(QtDotNetAdapter)') AND '$(QtDotNetSolutionDir)' != ''"

@@ -28,7 +28,7 @@
     <ProjectReference Include="..\..\..\src\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
     <ProjectReference Include="..\..\..\src\Qt.Bridge.CSharp.Build.Tasks\Qt.Bridge.CSharp.Build.Tasks.csproj" />
     <ProjectReference Include="..\..\..\src\Qt.Bridge.CSharp.Generator\Qt.Bridge.CSharp.Generator.csproj" />
-    <ProjectReference Include="..\..\..\src\Qt.Bridge.CSharp.GenerationRules\Qt.Bridge.CSharp.GenerationRules.csproj" />
+    <ProjectReference Include="..\..\..\src\Qt.Bridge.CSharp.Generator.Rules.SourceCode\Qt.Bridge.CSharp.Generator.Rules.SourceCode.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -41,7 +41,7 @@
     Condition="Exists('$(VCTargetsPath)\Microsoft.Cpp.targets')"
     Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="Build">
-    <MSBuild Projects="..\..\..\..\src\Qt.Bridge.CSharp.GenerationRules\Qt.Bridge.CSharp.GenerationRules.csproj;..\MTest_DynamicObject.csproj"
+    <MSBuild Projects="..\..\..\..\src\Qt.Bridge.CSharp.Generator.Rules.SourceCode\Qt.Bridge.CSharp.Generator.Rules.SourceCode.csproj;..\MTest_DynamicObject.csproj"
             BuildInParallel="false"
             Properties="Platform=AnyCPU" />
   </Target>
@@ -51,14 +51,14 @@
       <FilesToCopy>
         <TargetFile>$([System.Text.RegularExpressions.Regex]::Replace(
           "%(Identity)", "^.*qt\\native\\source",
-          "..\..\..\..\src\Qt.Bridge.CSharp.GenerationRules\Static"))</TargetFile>
+          "..\..\..\..\src\Qt.Bridge.CSharp.Generator.Rules.SourceCode\Static"))</TargetFile>
       </FilesToCopy>
     </ItemGroup>
     <Copy Condition="Exists('%(FilesToCopy.TargetFile)')"
           SourceFiles="%(Identity)" DestinationFiles="%(TargetFile)" />
-    <Touch Files="..\..\..\..\src\Qt.Bridge.CSharp.GenerationRules\Static\StaticFiles.resx" />
+    <Touch Files="..\..\..\..\src\Qt.Bridge.CSharp.Generator.Rules.SourceCode\Static\StaticFiles.resx" />
     <Touch Files="..\Main.cs" />
-    <MSBuild Projects="..\..\..\..\src\Qt.Bridge.CSharp.GenerationRules\Qt.Bridge.CSharp.GenerationRules.csproj;..\MTest_DynamicObject.csproj"
+    <MSBuild Projects="..\..\..\..\src\Qt.Bridge.CSharp.Generator.Rules.SourceCode\Qt.Bridge.CSharp.Generator.Rules.SourceCode.csproj;..\MTest_DynamicObject.csproj"
              BuildInParallel="false"
              Properties="Platform=AnyCPU" />
   </Target>

@@ -13,6 +13,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <AssemblyName>qbgen</AssemblyName>
+    <RootNamespace>Qt.Bridge.CodeGeneration</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
