@@ -181,6 +181,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dynamic Object", "Dynamic Object", "{A84500DF-E315-44FC-B14E-EAC92618109D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_Qt.Bridge.CSharp.VisualStudio.Extension", "tests\Test_Qt.Bridge.CSharp.VisualStudio.Extension\Test_Qt.Bridge.CSharp.VisualStudio.Extension.csproj", "{0FA89422-DD55-4DF1-A22D-0A7DCD7F591C}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docfx", "docfx", "{09802621-E22A-4F5D-A98A-F44BF953B9E4}"
 	ProjectSection(SolutionItems) = preProject
 		docs\api-reference.md = docs\api-reference.md
