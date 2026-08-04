@@ -166,7 +166,9 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
                 // Register meta-functions and rules
                 MetaFunction.Register<BasicTypes>();
                 foreach (var t in typeof(GenerateIndexer).Assembly.ExportedTypes)
-                    _ = t.TryRegisterAsRule() || t.TryRegisterAsMetaFunction();
+                    _ = t.TryRegisterAsRule();
+                foreach (var t in typeof(CppMetaFunction).Assembly.ExportedTypes)
+                    _ = t.TryRegisterAsMetaFunction();
 
                 // Register additional none build-in rules
                 foreach (var t in extraRules ?? [])

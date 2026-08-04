@@ -15,19 +15,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.IO.Hashing" Version="10.0.0-rc.1.25451.107" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
     <ProjectReference Include="..\Qt.Bridge.CSharp.Generator\Qt.Bridge.CSharp.Generator.csproj" />
     <ProjectReference Include="..\..\utils\Text\Text.csproj" />
     <ProjectReference Include="..\Qt.Bridge.CSharp.Generator.Extensions\Qt.Bridge.CSharp.Generator.Extensions.csproj" />
-    <ProjectReference Include="..\Qt.Bridge.CSharp.Generator.MetaFunctions\Qt.Bridge.CSharp.Generator.MetaFunctions.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Using Include="Qt.Bridge.CodeGeneration.TraitFlags" Alias="Traits" />
   </ItemGroup>
 
 </Project>
