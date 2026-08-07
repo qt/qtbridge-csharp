@@ -41,7 +41,7 @@
     Condition="Exists('$(VCTargetsPath)\Microsoft.Cpp.targets')"
     Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="Build">
-    <MSBuild Projects="..\..\..\..\src\Qt.Bridge.CSharp.Generator.Rules.SourceCode\Qt.Bridge.CSharp.Generator.Rules.SourceCode.csproj;..\MTest_DynamicObject.csproj"
+    <MSBuild Projects="..\..\..\..\src\Qt.Bridge.CSharp.Generator.Rules.Metadata\Qt.Bridge.CSharp.Generator.Rules.Metadata.csproj;..\..\..\..\src\Qt.Bridge.CSharp.Generator.Rules.SourceCode\Qt.Bridge.CSharp.Generator.Rules.SourceCode.csproj;..\MTest_DynamicObject.csproj"
             BuildInParallel="false"
             Properties="Platform=AnyCPU" />
   </Target>
@@ -58,7 +58,7 @@
           SourceFiles="%(Identity)" DestinationFiles="%(TargetFile)" />
     <Touch Files="..\..\..\..\src\Qt.Bridge.CSharp.Generator.Rules.SourceCode\Static\StaticFiles.resx" />
     <Touch Files="..\Main.cs" />
-    <MSBuild Projects="..\..\..\..\src\Qt.Bridge.CSharp.Generator.Rules.SourceCode\Qt.Bridge.CSharp.Generator.Rules.SourceCode.csproj;..\MTest_DynamicObject.csproj"
+    <MSBuild Projects="..\..\..\..\src\Qt.Bridge.CSharp.Generator.Rules.Metadata\Qt.Bridge.CSharp.Generator.Rules.Metadata.csproj;..\..\..\..\src\Qt.Bridge.CSharp.Generator.Rules.SourceCode\Qt.Bridge.CSharp.Generator.Rules.SourceCode.csproj;..\MTest_DynamicObject.csproj"
              BuildInParallel="false"
              Properties="Platform=AnyCPU" />
   </Target>

@@ -65,6 +65,7 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
         public static string[] QtGenRules { get; set; } =
         [
             "Qt.Bridge.CSharp.Generator.MetaFunctions",
+            "Qt.Bridge.CSharp.Generator.Rules.Metadata",
             "Qt.Bridge.CSharp.Generator.Rules.SourceCode"
         ];
 

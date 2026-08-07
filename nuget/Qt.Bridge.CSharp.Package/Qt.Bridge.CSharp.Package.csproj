@@ -95,6 +95,9 @@
           Include="..\..\src\Qt.Bridge.CSharp.Generator.MetaFunctions\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.CSharp.Generator.MetaFunctions.dll"
           PackagePath="build\$(TargetFramework)\" Visible="false" />
     <None Pack="true"
+          Include="..\..\src\Qt.Bridge.CSharp.Generator.Rules.Metadata\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.CSharp.Generator.Rules.Metadata.dll"
+          PackagePath="build\$(TargetFramework)\" Visible="false" />
+    <None Pack="true"
           Include="..\..\src\Qt.Bridge.CSharp.Generator.Rules.SourceCode\bin\$(Configuration)\$(TargetFramework)\Qt.Bridge.CSharp.Generator.Rules.SourceCode.dll"
           PackagePath="build\$(TargetFramework)\" Visible="false" />
     <None Pack="true"

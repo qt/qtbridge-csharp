@@ -2,7 +2,7 @@
   "profiles": {
     "Qt.Bridge.CSharp.Generator": {
       "commandName": "Project",
-      "commandLineArgs": "--source \"$(SolutionDir)\\examples\\Tutorial\\obj\\Debug\\net8.0\\Tutorial.dll\" --rules \"$(ProjectDir)\\..\\Qt.Bridge.CSharp.Generator.Rules.SourceCode\\bin\\$(Configuration)\\$(TargetFramework)\\Qt.Bridge.CSharp.Generator.Rules.SourceCode.dll\" --target \"$(SolutionDir)\\examples\\Tutorial\\obj\\Debug\\net8.0\\qt\\native\""
+      "commandLineArgs": "--source \"$(SolutionDir)\\examples\\Tutorial\\obj\\Debug\\net8.0\\Tutorial.dll\" --rules \"$(ProjectDir)\\..\\Qt.Bridge.CSharp.Generator.Rules.Metadata\\bin\\$(Configuration)\\$(TargetFramework)\\Qt.Bridge.CSharp.Generator.Rules.Metadata.dll\" --rules \"$(ProjectDir)\\..\\Qt.Bridge.CSharp.Generator.Rules.SourceCode\\bin\\$(Configuration)\\$(TargetFramework)\\Qt.Bridge.CSharp.Generator.Rules.SourceCode.dll\" --target \"$(SolutionDir)\\examples\\Tutorial\\obj\\Debug\\net8.0\\qt\\native\""
     }
   }
 }

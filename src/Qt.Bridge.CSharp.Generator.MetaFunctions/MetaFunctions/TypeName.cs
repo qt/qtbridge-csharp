@@ -17,12 +17,6 @@ namespace Qt.Bridge.CodeGeneration.MetaFunctions
             if (src is not Type type || type.IsRootNode())
                 return null;
 
-            if (traits.HasTraits(Star) && !type.IsEnum)
-                return type.IsValue() ? "" : "*";
-
-            if (traits.HasTraits(Arg))
-                return $"{src.MFn((TraitFlags)traits & ~Arg)}{(type.IsEnum ? "" : $" *{Wrap}")}";
-
             if (traits.HasTraits(Src)) {
                 if (traits.HasTraits(Fqn))
                     return StableTypeNameBuilder.Build(type);
@@ -30,8 +24,25 @@ namespace Qt.Bridge.CodeGeneration.MetaFunctions
                     return type.FullName;
                 if (traits.HasTraits(Ns))
                     return type.Namespace;
+                if (traits.HasTraits(File))
+                    return type.Assembly.GetName().Name + ".dll";
                 return type.Name;
             }
+
+            if (!type.ExportAsSourceCode()) {
+                return type switch
+                {
+                    _ when traits.HasTraits(Star) => "",
+                    _ => traits.HasTraits(Arg) ? "QVariant" : "QDotNetObject",
+                };
+            }
+
+            if (traits.HasTraits(Star) && !type.IsEnum)
+                return type.IsValue() ? "" : "*";
+
+            if (traits.HasTraits(Arg))
+                return $"{src.MFn((TraitFlags)traits & ~Arg)}{(type.IsEnum ? "" : $" *{Wrap}")}";
+
 
             StringBuilder typeName = new();
             if (traits.HasTraits(Ns)) {

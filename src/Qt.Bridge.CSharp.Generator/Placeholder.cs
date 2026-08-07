@@ -19,6 +19,7 @@ namespace Qt.Bridge.CodeGeneration
         public int Indent { get; set; } = AutoIndent;
         public bool Sorted { get; set; } = true;
         public bool Distinct { get; set; } = false;
+        public string Separator { get; set; } = string.Empty;
 
         public string Id { get; private set; }
         public MemberInfo Source { get; set; }
@@ -222,7 +223,7 @@ namespace Qt.Bridge.CodeGeneration
                 if (Distinct)
                     blocks = blocks.Distinct(Comparer);
             }
-            text = string.Join(Environment.NewLine, blocks);
+            text = string.Join(Separator.Trim() + Environment.NewLine, blocks);
             var lines = text
                 .Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
             text = string.Join(Environment.NewLine, lines

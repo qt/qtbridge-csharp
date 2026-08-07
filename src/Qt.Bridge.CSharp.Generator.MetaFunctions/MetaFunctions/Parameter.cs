@@ -5,6 +5,7 @@ using System.Reflection;
 
 namespace Qt.Bridge.CodeGeneration.MetaFunctions
 {
+    using Extensions;
     using static Traits;
 
     public class Parameter : CppMetaFunction
@@ -14,9 +15,15 @@ namespace Qt.Bridge.CodeGeneration.MetaFunctions
             if (src is not ParameterInfo arg)
                 return null;
             string argName = string.IsNullOrWhiteSpace(arg.Name) ? $"arg{arg.Position}" : arg.Name;
-            if (!arg.ParameterType.Is<object>() || traits.HasTraits(Src))
+
+            if (traits.HasTraits(Src))
                 return argName;
-            return $"QDotNetConvert::fromVariant({argName})";
+
+            var argType = arg.ParameterType;
+            if (argType.Is<object>() || (!argType.IsValue() && !argType.ExportAsSourceCode()))
+                return $"QDotNetConvert::fromVariant({argName})";
+
+            return argName;
         }
     }
 }

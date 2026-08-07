@@ -226,7 +226,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
             Assert.Contains("QML_SINGLETON", hpp);
         }
 
-        private Regex LogParser { get; } = new(@"(?:^|\n)(\w+::\w+) --> ([^\r\n\s]*)(?:\r?\n|$)");
+        private Regex LogParser { get; } = new(@"(?:^|\n)(\w+\.\w+) --> ([^\r\n\s]*)(?:\r?\n|$)");
 
         private Dictionary<string, string> LogExportAs(string logText)
         {
@@ -272,9 +272,9 @@ namespace Test_Qt.Bridge.CSharp.Generator
 
             result.SelectedFiles = ["rules_log.txt"];
             var log = LogExportAs(result.CombinedText);
-            Assert.Contains("Test::MyNoConfig", log.Keys);
-            Assert.Contains("Test::MyExportAsDefault", log.Keys);
-            Assert.AreEqual(log["Test::MyNoConfig"], log["Test::MyExportAsDefault"]);
+            Assert.Contains("Test.MyNoConfig", log.Keys);
+            Assert.Contains("Test.MyExportAsDefault", log.Keys);
+            Assert.AreEqual(log["Test.MyNoConfig"], log["Test.MyExportAsDefault"]);
 
             var typeNoConfig = result.SourceAssembly.GetType("Test.MyNoConfig");
             Assert.IsNotNull(typeNoConfig);
@@ -309,10 +309,10 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 .Where(m => m.Success && m.Groups.Count > 2)
                 .ToDictionary(m => m.Groups[1].Value, m => m.Groups[2].Value);
             Assert.IsNotEmpty(types);
-            Assert.Contains("Test::MyExportAsMetadata", types.Keys);
-            Assert.Contains("Test::MyExportAsSourceCode", types.Keys);
+            Assert.Contains("Test.MyExportAsMetadata", types.Keys);
+            Assert.Contains("Test.MyExportAsSourceCode", types.Keys);
             Assert.AreNotEqual(
-                types["Test::MyExportAsMetadata"], types["Test::MyExportAsSourceCode"]);
+                types["Test.MyExportAsMetadata"], types["Test.MyExportAsSourceCode"]);
 
             var typeMetadata = result.SourceAssembly.GetType("Test.MyExportAsMetadata");
             Assert.IsNotNull(typeMetadata);

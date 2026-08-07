@@ -77,6 +77,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <QtGenRules Include="Qt.Bridge.CSharp.Generator.Rules.Metadata" />
     <QtGenRules Include="Qt.Bridge.CSharp.Generator.Rules.SourceCode" />
   </ItemGroup>
 

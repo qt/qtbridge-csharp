@@ -23,8 +23,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
             {
                 _ when src.IsRootNode() => string.Empty,
                 Type type =>
-                    $"{type.MFn(Ns | Name)} --> {(type.ExportAsSourceCode() ? "C++" : "JSON")}",
-                _ => $"{src.ReflectedType.MFn(Ns | Name)}::{src.ToString()}"
+                    $"{type.MFn(Src | Ns | Name)} --> {(type.ExportAsSourceCode() ? "C++" : "JSON")}",
+                _ => $"{src.ReflectedType.MFn(Src | Ns | Name)}: {src}"
             };
             return Ok;
         }

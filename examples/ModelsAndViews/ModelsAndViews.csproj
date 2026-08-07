@@ -31,6 +31,8 @@
     <ProjectReference
       Include="..\..\src\Qt.Bridge.CSharp.Generator\Qt.Bridge.CSharp.Generator.csproj" />
     <ProjectReference
+      Include="..\..\src\Qt.Bridge.CSharp.Generator.Rules.Metadata\Qt.Bridge.CSharp.Generator.Rules.Metadata.csproj"/>
+    <ProjectReference
       Include="..\..\src\Qt.Bridge.CSharp.Generator.Rules.SourceCode\Qt.Bridge.CSharp.Generator.Rules.SourceCode.csproj"/>
   </ItemGroup>
 
