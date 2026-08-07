@@ -7,6 +7,7 @@ using System.Reflection;
 namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Delegates
 {
     using MetaFunctions;
+    using Extensions;
     using static Placeholders;
     using static Traits;
 
@@ -16,7 +17,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Delegates
 
         public override int Priority => base.Priority + 1;
         public override bool Matches(MemberInfo src)
-            => src is Type type && type.IsAssignableTo(TypeOf<Delegate>());
+            => src is Type type && type.IsAssignableTo(TypeOf<Delegate>())
+            && type.ExportAsSourceCode();
         public override Result Execute(MemberInfo src)
         {
             if (src is not Type type)

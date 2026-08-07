@@ -18,7 +18,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Models
         public override int Priority => base.Priority + 2;
 
         public override bool Matches(MemberInfo src)
-            => src is Type t && t.IsObservableList(out _);
+            => src is Type t && t.IsObservableList(out _)
+            && t.ExportAsSourceCode();
 
         public override Result Execute(MemberInfo src)
         {

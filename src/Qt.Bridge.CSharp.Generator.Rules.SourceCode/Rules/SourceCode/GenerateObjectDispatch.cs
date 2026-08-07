@@ -24,7 +24,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
             var allTypes = SourceGraph.NodeSet<Type>()
                 .Where(type => !type.IsEnum && !type.IsRootNode()
                     && !type.IsStaticClass()
-                    && !type.IsAssignableTo(TypeOf<Delegate>()))
+                    && !type.IsAssignableTo(TypeOf<Delegate>())
+                    && type.ExportAsSourceCode())
                 .Distinct()
                 .OrderBy(t => t.AssemblyQualifiedName, StringComparer.Ordinal)
                 .ToList();

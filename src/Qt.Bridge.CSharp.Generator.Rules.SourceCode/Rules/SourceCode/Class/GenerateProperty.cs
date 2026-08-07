@@ -16,7 +16,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
         public override int Priority => base.Priority + 1;
         public override bool Matches(MemberInfo src)
             => src is PropertyInfo prop && !prop.IsStatic()
-            && prop.GetIndexParameters() is not { Length: > 0 };
+            && prop.GetIndexParameters() is not { Length: > 0 }
+            && prop.ReflectedType.ExportAsSourceCode();
         public override Result Execute(MemberInfo src)
         {
             if (src is not PropertyInfo prop)

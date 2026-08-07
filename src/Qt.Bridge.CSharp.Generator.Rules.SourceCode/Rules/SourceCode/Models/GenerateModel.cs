@@ -14,7 +14,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Models
     {
         public override int Priority => base.Priority + 1;
         public override bool Matches(MemberInfo src)
-            => src is Type type && type.IsAssignableTo(TypeOf<Model>());
+            => src is Type type && type.IsAssignableTo(TypeOf<Model>())
+            && type.ExportAsSourceCode();
         public override Result Execute(MemberInfo src)
         {
             if (src is not Type type)

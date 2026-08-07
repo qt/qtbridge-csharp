@@ -14,7 +14,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
     public class GenerateField : GenerateClass
     {
         public override int Priority => base.Priority + 1;
-        public override bool Matches(MemberInfo src) => src is FieldInfo { IsStatic: false };
+        public override bool Matches(MemberInfo src) => src is FieldInfo { IsStatic: false } field
+            && field.ReflectedType.ExportAsSourceCode();
         public override Result Execute(MemberInfo src)
         {
             if (src is not FieldInfo field)

@@ -14,7 +14,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
     {
         public override int Priority => base.Priority + 1;
         public override bool Matches(MemberInfo src) => src is EventInfo ev
-            && ev.AddMethod?.IsStatic == false;
+            && ev.AddMethod?.IsStatic == false
+            && ev.ReflectedType.ExportAsSourceCode();
         public override Result Execute(MemberInfo src)
         {
             if (src is not EventInfo ev)

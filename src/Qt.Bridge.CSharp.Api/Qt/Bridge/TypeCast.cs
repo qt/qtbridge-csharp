@@ -59,6 +59,7 @@ namespace Qt.Bridge
     /// </remarks>
     [Include]
     [QmlElement(Singleton = true)]
+    [Export(Options = ExportAs.SourceCode)]
     public class TypeCast
     {
         [Enable]

@@ -17,7 +17,7 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
         public override int Priority => base.Priority + 1;
         public override bool Matches(MemberInfo src)
             => src is Type { IsEnum: false } type && !src.IsRootNode()
-                && !type.IsStaticClass()
+                && type.ExportAsSourceCode() && !type.IsStaticClass()
                 && !type.IsAssignableTo(TypeOf<Delegate>());
         public override Result Execute(MemberInfo src)
         {
@@ -111,7 +111,8 @@ namespace {baseType.MFn(Ns)}
             ////////////////////////////////////////////////////////////////////////////////////////
             // Dependency includes
             //
-            foreach (var connectedType in SourceGraph.Connected(type))
+            var connectedTypes = SourceGraph.Connected(type).Where(t => t.ExportAsSourceCode());
+            foreach (var connectedType in connectedTypes)
                 includes += $"#include <{connectedType.MFn(Ns | Dir)}{connectedType.MFn(File)}.h>";
 
             ////////////////////////////////////////////////////////////////////////////////////////

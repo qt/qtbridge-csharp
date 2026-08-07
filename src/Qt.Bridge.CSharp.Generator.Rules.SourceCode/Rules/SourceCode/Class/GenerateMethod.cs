@@ -13,7 +13,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
     {
         public override int Priority => base.Priority + 1;
         public override bool Matches(MemberInfo src) => src is MethodInfo { IsStatic: false }
-            && !src.ReflectedType.IsStaticClass();
+            && !src.ReflectedType.IsStaticClass()
+            && src.ReflectedType.ExportAsSourceCode();
         public override Result Execute(MemberInfo src)
         {
             if (src is not MethodInfo func)

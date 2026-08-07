@@ -5,13 +5,15 @@ using System.Reflection;
 
 namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Enum
 {
+    using Extensions;
     using static Placeholders;
     using static Traits;
 
     public class GenerateEnumHeader : GenerateBuildSpec
     {
         public override int Priority => base.Priority + 1;
-        public override bool Matches(MemberInfo src) => src is Type { IsEnum: true };
+        public override bool Matches(MemberInfo src) => src is Type { IsEnum: true } type
+            && type.ExportAsSourceCode();
         public override Result Execute(MemberInfo src)
         {
             if (src is not Type { IsEnum: true } type)
