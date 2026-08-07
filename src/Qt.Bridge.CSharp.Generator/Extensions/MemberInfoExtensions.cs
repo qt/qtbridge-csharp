@@ -14,7 +14,7 @@ namespace Qt.Bridge.CodeGeneration.Extensions
 
         public static bool IsOverrideOf<T>(this MemberInfo i)
         {
-            return i.IsOverrideOf(typeof(T));
+            return i.IsOverrideOf(Rule.TypeOf<T>());
         }
 
         public static bool IsOverrideOf(this MemberInfo i, Type bt)
