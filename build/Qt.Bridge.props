@@ -37,10 +37,6 @@
     <QtDotNetGenMetaFunctions Condition="!Exists('$(QtDotNetGenMetaFunctions)') AND '$(QtDotNetSolutionDir)' != ''"
       >$(QtDotNetSolutionDir)src/Qt.Bridge.CSharp.Generator.MetaFunctions/bin/$(Configuration)/$(TargetFramework)/Qt.Bridge.CSharp.Generator.MetaFunctions.dll</QtDotNetGenMetaFunctions>
 
-    <QtDotNetGenRules>$(MSBuildThisFileDirectory)Qt.Bridge.CSharp.Generator.Rules.SourceCode.dll</QtDotNetGenRules>
-    <QtDotNetGenRules Condition="!Exists('$(QtDotNetGenRules)') AND '$(QtDotNetSolutionDir)' != ''"
-      >$(QtDotNetSolutionDir)src/Qt.Bridge.CSharp.Generator.Rules.SourceCode/bin/$(Configuration)/$(TargetFramework)/Qt.Bridge.CSharp.Generator.Rules.SourceCode.dll</QtDotNetGenRules>
-
     <QtDotNetAdapter>$(MSBuildThisFileDirectory)Qt.DotNet.Adapter.dll</QtDotNetAdapter>
     <QtDotNetAdapter Condition="!Exists('$(QtDotNetAdapter)') AND '$(QtDotNetSolutionDir)' != ''"
       >$(QtDotNetSolutionDir)src/Qt.DotNet.Adapter/bin/$(Configuration)/$(TargetFramework)/Qt.DotNet.Adapter.dll</QtDotNetAdapter>
@@ -53,7 +49,6 @@
     <QtGenCmd>$(QtGenCmd) --ref "$(QtDotNetAdapter)"</QtGenCmd>
     <QtGenCmd>$(QtGenCmd) --rules "$(QtDotNetGenExtensions)"</QtGenCmd>
     <QtGenCmd>$(QtGenCmd) --rules "$(QtDotNetGenMetaFunctions)"</QtGenCmd>
-    <QtGenCmd>$(QtGenCmd) --rules "$(QtDotNetGenRules)"</QtGenCmd>
 
     <QtQmlFilesCs>qt/csharp/QmlFiles.cs</QtQmlFilesCs>
     <QtResourceFilesCs>qt/csharp/QtResources.cs</QtResourceFilesCs>
@@ -83,6 +78,10 @@
     <VsWhereExe Condition="'$(QtHostIsWindows)' == 'true'">$(ProgramFilesX86)\Microsoft Visual Studio\Installer\vswhere.exe</VsWhereExe>
 
   </PropertyGroup>
+
+  <ItemGroup>
+    <QtGenRules Include="Qt.Bridge.CSharp.Generator.Rules.SourceCode" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Add QML files to the build -->

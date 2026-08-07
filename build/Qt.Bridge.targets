@@ -215,10 +215,19 @@ namespace Qt.Qml
 
     <Message Importance="high" Text="Qt Bridge: Generating native code..." />
 
+    <ItemGroup>
+      <QtGenRules>
+        <Dll>$(MSBuildThisFileDirectory)%(Identity).dll</Dll>
+      </QtGenRules>
+      <QtGenRules>
+        <Dll Condition="!Exists('%(Dll)') AND '$(QtDotNetSolutionDir)' != ''">$(QtDotNetSolutionDir)src/%(Identity)/bin/$(Configuration)/$(TargetFramework)/%(Identity).dll</Dll>
+      </QtGenRules>
+    </ItemGroup>
+
     <Error Condition="'$(QtDotNetGen)' == '' OR !Exists('$(QtDotNetGen)')"
       Text="Error: Qt Bridge code generator tool not found" />
-    <Error Condition="'$(QtDotNetGenRules)' == '' OR !Exists('$(QtDotNetGenRules)')"
-      Text="Error: Qt Bridge code generations rules not found" />
+    <Error Condition="!Exists('%(QtGenRules.Dll)')"
+      Text="Error: Qt Bridge code generation rules not found: %(QtGenRules.Identity)" />
     <Error Condition="'$(QtDotNetAdapter)' == '' OR !Exists('$(QtDotNetAdapter)')"
       Text="Error: Qt/.NET Adapter not found" />
     <Error Condition="'$(QtDotNetLib)' == '' OR !Exists('$(QtDotNetLib)/qdotnethost.h')"
@@ -238,6 +247,8 @@ namespace Qt.Qml
         >$(QtGenCmd) @(_ResolvedProjectReferencePaths->'--ref &quot;%(Identity)&quot;', ' ')</QtGenCmd>
       <QtGenCmd
         >$(QtGenCmd) @(RuntimeCopyLocalItems->'--ref &quot;%(Identity)&quot;', ' ')</QtGenCmd>
+      <QtGenCmd
+        >$(QtGenCmd) @(QtGenRules->'--rules "%(Dll)"', ' ')</QtGenCmd>
     </PropertyGroup>
 
     <Message Importance="high" Text="$(QtGenCmd)" />

@@ -62,6 +62,12 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
             }
         }
 
+        public static string[] QtGenRules { get; set; } =
+        [
+            "Qt.Bridge.CSharp.Generator.MetaFunctions",
+            "Qt.Bridge.CSharp.Generator.Rules.SourceCode"
+        ];
+
         /// <summary>
         /// Compiles the provided C# sources into a temporary assembly, runs the code generator,
         /// and captures the output in memory.
@@ -165,10 +171,12 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
 
                 // Register meta-functions and rules
                 MetaFunction.Register<BasicTypes>();
-                foreach (var t in typeof(GenerateIndexer).Assembly.ExportedTypes)
-                    _ = t.TryRegisterAsRule();
-                foreach (var t in typeof(CppMetaFunction).Assembly.ExportedTypes)
-                    _ = t.TryRegisterAsMetaFunction();
+                AppDomain.CurrentDomain
+                    .GetAssemblies()
+                    .Where(a => QtGenRules.Contains(a.GetName().Name))
+                    .SelectMany(a => a.ExportedTypes)
+                    .ToList()
+                    .ForEach(t => _ = t.TryRegisterAsRule() || t.TryRegisterAsMetaFunction());
 
                 // Register additional none build-in rules
                 foreach (var t in extraRules ?? [])

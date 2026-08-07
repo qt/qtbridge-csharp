@@ -231,6 +231,8 @@ namespace Qt.Bridge.CodeGeneration
     {
         public static bool TryRegisterAsRule(this Type ruleType)
         {
+            if (ruleType.IsAbstract || ruleType.IsInterface)
+                return false;
             if (!ruleType.IsAssignableTo(typeof(Rule)))
                 return false;
             if (Activator.CreateInstance(ruleType) is not Rule rule)
