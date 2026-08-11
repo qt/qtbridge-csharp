@@ -3,6 +3,7 @@
 
 using System.IO;
 using System.Reflection;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test_Qt.Bridge.CSharp.Generator
@@ -20,8 +21,10 @@ namespace Test_Qt.Bridge.CSharp.Generator
         }
 
         [TestMethod]
-        public void Parameter_Name_FallsBack_To_argPosition_When_Missing()
+        public async Task Parameter_Name_FallsBack_To_argPosition_When_Missing()
         {
+            using var result = await TestCodeGenerator.GenerateAsync([]);
+
             var memoryStream = new MemoryStream();
             InMemoryAssemblyBuilder.Build(
                 assemblyConfig: new AssemblyConfig
@@ -70,8 +73,10 @@ namespace Test_Qt.Bridge.CSharp.Generator
         }
 
         [TestMethod]
-        public void Parameter_Name_FallsBack_To_argPosition_Without_ParamTableEntries()
+        public async Task Parameter_Name_FallsBack_To_argPosition_Without_ParamTableEntries()
         {
+            using var result = await TestCodeGenerator.GenerateAsync([]);
+
             var memoryStream = new MemoryStream();
             InMemoryAssemblyBuilder.Build(
                 assemblyConfig: new AssemblyConfig
