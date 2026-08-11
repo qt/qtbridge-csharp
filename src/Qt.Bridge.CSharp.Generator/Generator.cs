@@ -7,10 +7,13 @@ using System.CommandLine.Parsing;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using System.Text;
+using Qt.Bridge.Utils;
 
 namespace Qt.Bridge.CodeGeneration
 {
     using Extensions;
+    using static SearchOption;
 
     internal static class Generator
     {
@@ -46,13 +49,33 @@ namespace Qt.Bridge.CodeGeneration
             OutputError
         }
 
+        private static void Info(string msg)
+        {
+            if (msg is not { Length: > 0 })
+                return;
+            var oldForeground = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine($"Qt Bridge: {msg}");
+            Console.ForegroundColor = oldForeground;
+        }
+
+        private static void Warning(string msg)
+        {
+            if (msg is not { Length: > 0 })
+                return;
+            var oldForeground = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Error.WriteLine($"Qt Bridge: Warning: {msg}");
+            Console.ForegroundColor = oldForeground;
+        }
+
         private static void Error(string msg)
         {
             if (msg is not { Length: > 0 })
                 return;
             var oldForeground = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.Error.WriteLine(msg);
+            Console.Error.WriteLine($"Qt Bridge: ERROR: {msg}");
             Console.ForegroundColor = oldForeground;
         }
 
@@ -65,7 +88,7 @@ namespace Qt.Bridge.CodeGeneration
 
         public enum Options
         {
-            Source, Ref, Exclude, Target, Rules
+            Source, Ref, Exclude, Target, Rules, Clean, CleanIgnores
         }
 
         private static RootCommand Command { get; }
@@ -76,27 +99,37 @@ namespace Qt.Bridge.CodeGeneration
             {
                 Options.Source, new Option<string>(
                     "--source", "Source assembly file path")
-                { Arity = ArgumentArity.ExactlyOne }
+                { Arity = ArgumentArity.ExactlyOne, ArgumentHelpName = "file-path" }
             },
             {
                 Options.Target, new Option<string>(
                     "--target", "Path to target dir")
-                { Arity = ArgumentArity.ZeroOrOne }
+                { Arity = ArgumentArity.ZeroOrOne, ArgumentHelpName = "dir-path" }
             },
             {
                 Options.Rules, new Option<string[]>(
                     "--rules", "Load generation rules assembly")
-                { Arity = ArgumentArity.ZeroOrMore }
+                { Arity = ArgumentArity.ZeroOrMore, ArgumentHelpName = "file-path" }
             },
             {
                 Options.Ref, new Option<string[]>(
                     "--ref", "Add file/folder to assembly loader list")
-                { Arity = ArgumentArity.ZeroOrMore }
+                { Arity = ArgumentArity.ZeroOrMore, ArgumentHelpName = "path" }
             },
             {
                 Options.Exclude, new Option<string[]>(
                     "--exclude", "Exclude type from dependency graph")
-                { Arity = ArgumentArity.ZeroOrMore }
+                { Arity = ArgumentArity.ZeroOrMore, ArgumentHelpName = "type-name" }
+            },
+            {
+                Options.Clean, new Option<bool>(
+                    "--clean", "Remove non-generated files from target dir tree")
+                { Arity = ArgumentArity.Zero }
+            },
+            {
+                Options.CleanIgnores, new Option<string[]>(
+                    "--clean-ignores", "When cleaning, ignore path in target dir tree")
+                { Arity = ArgumentArity.OneOrMore, ArgumentHelpName = "path" }
             }
         };
 
@@ -142,7 +175,8 @@ namespace Qt.Bridge.CodeGeneration
             foreach (var ruleFile in ruleFiles) {
                 Assembly assembly;
                 try {
-                    assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(ruleFile);
+                    assembly = AssemblyLoadContext.Default
+                        .LoadFromAssemblyPath(Path.GetFullPath(ruleFile));
                 } catch (Exception ex) {
                     return Error(ctx, ExitCode.GenerationError,
                         $"Error loading rules assembly '{ruleFile}': {ex.Message}");
@@ -171,12 +205,106 @@ namespace Qt.Bridge.CodeGeneration
                 return Error(ctx, ExitCode.OutputError, $@"Error writing generated files");
             result.Where(x => x.Updated == true).ToList()
                 .ForEach(x => Console.WriteLine($" {Path.GetRelativePath(targetPath, x.File.FullName)}"));
-            Console.Write($"Qt Bridge: generated {result.Count(x => x.Updated == true)} new files");
-            if (result.Count(x => x.Updated == false) is int n && n > 0)
-                Console.Write($" (skipped {n} up-to-date files)");
-            Console.WriteLine();
+
+            var infoMsg = new StringBuilder();
+            infoMsg.Append(result.Count(res => res.Updated == true) switch {
+                0 => "No new files generated",
+                1 => "Generated 1 new file",
+                var n => $"Generated {n} new files"
+            });
+            infoMsg.Append(result.Count(res => res.Updated == false) switch {
+                0 => "",
+                1 => " (skipped 1 up-to-date file)",
+                var n => $" (skipped {n} up-to-date files)"
+            });
+            Info(infoMsg.ToString());
+
+            if (ctx.TryGetValue(Options.Clean, out bool clean) && clean) {
+
+                if (!ctx.TryGetValue(Options.CleanIgnores, out string[] ignored))
+                    ignored = [];
+
+                (var files, var dirs) = Clean(targetPath, ignored, [.. result.Select(r => r.File)]);
+
+                Info(files switch
+                {
+                    0 => null,
+                    1 => "Cleaned up 1 file",
+                    var n => $"Cleaned up {n} files"
+                });
+
+                Info(dirs switch
+                {
+                    0 => null,
+                    1 => "Cleaned up 1 dir",
+                    var n => $"Cleaned up {n} dirs"
+                });
+            }
 
             return ExitCode.Ok;
+        }
+
+        internal static (int, int) Clean(string targetPath, string[] ignored, FileInfo[] generated)
+        {
+            (int FilesRemoved, int DirsRemoved) result = default;
+
+            var targetDir = new DirectoryInfo(targetPath);
+            var nonGenerated = targetDir.EnumerateFiles("*", AllDirectories)
+                .Where(file => (generated ?? []).All(genFile => !genFile.PathEquals(file)));
+
+            var ignoredPaths = (ignored ?? [])
+                .Select(path => Path.Combine(targetPath, path))
+                .ToList();
+            var ignoredFiles = ignoredPaths
+                .Where(File.Exists)
+                .Select(path => new FileInfo(path));
+            var ignoredDirs = ignoredPaths
+                .Where(Directory.Exists)
+                .Select(path => new DirectoryInfo(path))
+                .ToList();
+
+            // Delete non-generated files (except ignored)
+            var filesToDelete = nonGenerated
+                .Where(file => !ignoredFiles.Any(file.PathEquals)
+                    && !ignoredDirs.Any(file.IsSubPathOf))
+                .ToList();
+            foreach (var file in filesToDelete) {
+                try {
+                    file.Delete();
+                    result.FilesRemoved++;
+                }
+                catch (Exception) {
+                    Warning($"Could not delete file: {file.FullName}");
+                }
+            }
+
+            // Delete empty dirs (except ignored)
+            var checkDirs = new Queue<DirectoryInfo>(targetDir
+                .EnumerateDirectories("*", AllDirectories)
+                .Where(d => !d.EnumerateFileSystemInfos("*", AllDirectories).Any()));
+            while (checkDirs.TryDequeue(out var dir)) {
+                if (!dir.IsSubPathOf(targetDir))
+                    continue; // fail-safe: ensure no attempt to remove dirs above targetDir
+                if (ignoredDirs.Any(xDir => dir.PathEquals(xDir) || dir.IsSubPathOf(xDir)))
+                    continue; // Ignored dir
+                try {
+                    // Assertion: directory exists and is empty
+                    if (dir.EnumerateFileSystemInfos("*", AllDirectories).Any())
+                        continue; // Directory is not empty
+                } catch (DirectoryNotFoundException) {
+                    continue; // Directory does not exist
+                }
+                try {
+                    dir.Delete(true);
+                    result.DirsRemoved++;
+                    if (!dir.Parent.PathEquals(targetDir))
+                        checkDirs.Enqueue(dir.Parent);
+                } catch (Exception) {
+                    Warning($"Could not delete directory: {dir.FullName}");
+                }
+            }
+
+            return result;
         }
     }
 
@@ -202,4 +330,5 @@ namespace Qt.Bridge.CodeGeneration
             return true;
         }
     }
+
 }

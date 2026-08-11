@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\utils\Collections\Collections.csproj" />
     <ProjectReference Include="..\..\utils\Concurrent\Concurrent.csproj" />
     <ProjectReference Include="..\..\utils\LazyFactory\LazyFactory.csproj" />
+    <ProjectReference Include="..\..\utils\Paths\Paths.csproj" />
     <ProjectReference Include="..\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
     <ProjectReference Include="..\Qt.Bridge.CSharp.Api\Qt.Bridge.CSharp.Api.csproj" />
   </ItemGroup>
