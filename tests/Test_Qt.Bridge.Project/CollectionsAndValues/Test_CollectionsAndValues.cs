@@ -52,6 +52,7 @@ namespace Test_Qt.Bridge.Project.CollectionsAndValues
             Assert.Contains("PASS   : Test_CollectionsAndValues::arrayOfInts()", run.StdOut);
             Assert.Contains("PASS   : Test_CollectionsAndValues::arrayOfStrings()", run.StdOut);
             Assert.Contains("PASS   : Test_CollectionsAndValues::arrayOfObjects()", run.StdOut);
+            Assert.Contains("PASS   : Test_CollectionsAndValues::stringMarshal()", run.StdOut);
             Assert.Contains("PASS   : Test_CollectionsAndValues::fieldAccess()", run.StdOut);
             Assert.Contains("PASS   : Test_CollectionsAndValues::modelIndexMarshal()", run.StdOut);
             Assert.Contains("PASS   : Test_CollectionsAndValues::dateTimeMarshal()", run.StdOut);

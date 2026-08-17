@@ -75,6 +75,8 @@ private slots:
         a[6] = "adipiscing";
         a[7] = "elit.";
 
+        QCOMPARE(a[0].value(), "Lorem");
+
         const auto stringType = QDotNetType::typeOf("System.String");
         const auto join = stringType.staticMethod<QString, QString, QDotNetArray<QString>>("Join");
         const auto loremIpsum = join(" ", a);
@@ -96,6 +98,19 @@ private slots:
         a[6]->append(a[5]->toString()).append(" adipiscing");
         a[7]->append(a[6]->toString()).append(" elit.");
         QCOMPARE(a[7]->toString(), "Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
+    }
+
+    void stringMarshal()
+    {
+        const auto echoed = QtDotNet::call<QString, QString>(fixtureTypeName(), "Echo", "hello");
+        QCOMPARE(echoed, "hello");
+
+        const auto nullString = QtDotNet::call<QString>(fixtureTypeName(), "NullString");
+        QVERIFY(nullString.isNull());
+
+        const auto emptyString = QtDotNet::call<QString>(fixtureTypeName(), "EmptyString");
+        QVERIFY(emptyString.isEmpty());
+        QVERIFY(!emptyString.isNull());
     }
 
     void fieldAccess()

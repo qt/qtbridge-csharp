@@ -40,6 +40,12 @@ namespace CollectionsAndValues
             return $"{idx.Row}, {idx.Column}, 0x{idx.Id:X}";
         }
 
+        public static string Echo(string value) => value;
+
+        public static string NullString() => null;
+
+        public static string EmptyString() => string.Empty;
+
         public static DateTime GetDateTime()
         {
             return new DateTime(1912, 6, 23, 11, 22, 33, 444);
