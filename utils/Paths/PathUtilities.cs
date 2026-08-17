@@ -3,7 +3,7 @@
 
 using System.Runtime.InteropServices;
 
-namespace Qt.Bridge.CSharp.Build.Tasks
+namespace Qt.Bridge.Utils
 {
     internal static class PathUtilities
     {

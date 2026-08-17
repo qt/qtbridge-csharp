@@ -3,6 +3,7 @@
 
 using System.Security;
 using System.Text;
+using Qt.Bridge.Utils;
 
 namespace Qt.Bridge.CSharp.Build.Tasks
 {

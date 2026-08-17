@@ -1,6 +1,7 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
+using Qt.Bridge.Utils;
 using static Qt.Bridge.CSharp.Build.Tasks.QmlBuildMetadataIniUtilities;
 
 namespace Qt.Bridge.CSharp.Build.Tasks

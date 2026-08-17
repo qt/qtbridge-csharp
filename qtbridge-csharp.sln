@@ -1,4 +1,4 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
+Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 
 # Copyright (C) 2026 The Qt Company Ltd.
@@ -210,6 +210,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Qt.Bridge.CSharp.Generator.Extensions", "src\Qt.Bridge.CSharp.Generator.Extensions\Qt.Bridge.CSharp.Generator.Extensions.csproj", "{5E4B12AB-A316-4E7F-614E-F2F126B40522}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Qt.Bridge.CSharp.Generator.MetaFunctions", "src\Qt.Bridge.CSharp.Generator.MetaFunctions\Qt.Bridge.CSharp.Generator.MetaFunctions.csproj", "{4A2DAF1B-C273-A94A-6089-52912AB1B6D7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Qt.Bridge.CSharp.Generator.Rules.Metadata", "src\Qt.Bridge.CSharp.Generator.Rules.Metadata\Qt.Bridge.CSharp.Generator.Rules.Metadata.csproj", "{2DA9A41A-CBF5-8485-4718-3AE7F05FB40E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Paths", "utils\Paths\Paths.csproj", "{49D3E526-5440-4AD2-950F-4F6BF08B0B33}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -559,6 +563,30 @@ Global
 		{4A2DAF1B-C273-A94A-6089-52912AB1B6D7}.Release|x64.Build.0 = Release|Any CPU
 		{4A2DAF1B-C273-A94A-6089-52912AB1B6D7}.Release|x86.ActiveCfg = Release|Any CPU
 		{4A2DAF1B-C273-A94A-6089-52912AB1B6D7}.Release|x86.Build.0 = Release|Any CPU
+		{2DA9A41A-CBF5-8485-4718-3AE7F05FB40E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2DA9A41A-CBF5-8485-4718-3AE7F05FB40E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2DA9A41A-CBF5-8485-4718-3AE7F05FB40E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2DA9A41A-CBF5-8485-4718-3AE7F05FB40E}.Debug|x64.Build.0 = Debug|Any CPU
+		{2DA9A41A-CBF5-8485-4718-3AE7F05FB40E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2DA9A41A-CBF5-8485-4718-3AE7F05FB40E}.Debug|x86.Build.0 = Debug|Any CPU
+		{2DA9A41A-CBF5-8485-4718-3AE7F05FB40E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2DA9A41A-CBF5-8485-4718-3AE7F05FB40E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2DA9A41A-CBF5-8485-4718-3AE7F05FB40E}.Release|x64.ActiveCfg = Release|Any CPU
+		{2DA9A41A-CBF5-8485-4718-3AE7F05FB40E}.Release|x64.Build.0 = Release|Any CPU
+		{2DA9A41A-CBF5-8485-4718-3AE7F05FB40E}.Release|x86.ActiveCfg = Release|Any CPU
+		{2DA9A41A-CBF5-8485-4718-3AE7F05FB40E}.Release|x86.Build.0 = Release|Any CPU
+		{49D3E526-5440-4AD2-950F-4F6BF08B0B33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49D3E526-5440-4AD2-950F-4F6BF08B0B33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49D3E526-5440-4AD2-950F-4F6BF08B0B33}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{49D3E526-5440-4AD2-950F-4F6BF08B0B33}.Debug|x64.Build.0 = Debug|Any CPU
+		{49D3E526-5440-4AD2-950F-4F6BF08B0B33}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{49D3E526-5440-4AD2-950F-4F6BF08B0B33}.Debug|x86.Build.0 = Debug|Any CPU
+		{49D3E526-5440-4AD2-950F-4F6BF08B0B33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49D3E526-5440-4AD2-950F-4F6BF08B0B33}.Release|Any CPU.Build.0 = Release|Any CPU
+		{49D3E526-5440-4AD2-950F-4F6BF08B0B33}.Release|x64.ActiveCfg = Release|Any CPU
+		{49D3E526-5440-4AD2-950F-4F6BF08B0B33}.Release|x64.Build.0 = Release|Any CPU
+		{49D3E526-5440-4AD2-950F-4F6BF08B0B33}.Release|x86.ActiveCfg = Release|Any CPU
+		{49D3E526-5440-4AD2-950F-4F6BF08B0B33}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -612,6 +640,8 @@ Global
 		{26F75B13-F401-998B-4BC6-9BC5A5A08693} = {0828626A-BAD8-4E02-99DC-3AAA15073223}
 		{5E4B12AB-A316-4E7F-614E-F2F126B40522} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{4A2DAF1B-C273-A94A-6089-52912AB1B6D7} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{2DA9A41A-CBF5-8485-4718-3AE7F05FB40E} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{49D3E526-5440-4AD2-950F-4F6BF08B0B33} = {6C631C62-472F-4D89-A382-541CD62A6781}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E4CDB648-EF1A-4ADE-B6EA-D4E9D668E676}

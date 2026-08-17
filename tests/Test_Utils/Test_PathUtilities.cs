@@ -1,9 +1,9 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
-using Qt.Bridge.CSharp.Build.Tasks;
+using Qt.Bridge.Utils;
 
-namespace Test_Qt.Bridge.CSharp.Build.Tasks
+namespace Test_Utils
 {
     [TestClass]
     public sealed class Test_PathUtilities

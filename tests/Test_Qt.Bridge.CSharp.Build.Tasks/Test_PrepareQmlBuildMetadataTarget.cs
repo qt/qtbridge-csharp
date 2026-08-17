@@ -6,6 +6,7 @@ using System.Security;
 using System.Text.Json;
 using Qt.Bridge.CSharp.Build.Tasks;
 using Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata;
+using Qt.Bridge.Utils;
 
 namespace Test_Qt.Bridge.CSharp.Build.Tasks
 {

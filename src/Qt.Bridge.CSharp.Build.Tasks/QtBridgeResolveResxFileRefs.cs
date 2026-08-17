@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
+using Qt.Bridge.Utils;
 
 namespace Qt.Bridge.CSharp.Build.Tasks
 {

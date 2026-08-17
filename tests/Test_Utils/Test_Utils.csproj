@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\utils\Collections\Collections.csproj" />
     <ProjectReference Include="..\..\utils\LazyFactory\LazyFactory.csproj" />
+    <ProjectReference Include="..\..\utils\Paths\Paths.csproj" />
   </ItemGroup>
 
   <ItemGroup>

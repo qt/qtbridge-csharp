@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using System.Text;
+using Qt.Bridge.Utils;
 
 namespace Qt.Bridge.CSharp.Build.Tasks
 {
