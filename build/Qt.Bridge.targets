@@ -30,10 +30,12 @@
 
   <UsingTask
     TaskName="Qt.Bridge.CSharp.Build.Tasks.PrepareQmlBuildMetadata"
-    AssemblyFile="$(QtBridgeBuildTasks)" />
+    AssemblyFile="$(QtBridgeBuildTasks)"
+    TaskFactory="TaskHostFactory" />
 
   <UsingTask TaskName="QtBridgeResolveResxFileRefs"
-             AssemblyFile="$(QtBridgeBuildTasks)" />
+    AssemblyFile="$(QtBridgeBuildTasks)"
+    TaskFactory="TaskHostFactory" />
 
   <!--
   //////////////////////////////////////////////////////////////////////////////////////////////////
