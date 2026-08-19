@@ -1,6 +1,7 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -102,6 +103,71 @@ namespace Test_Qt.Bridge.CSharp.Generator
             }
         }
 
+        private sealed class TreeNode(string name)
+        {
+            public string Name { get; set; } = name;
+            public TreeNode Parent { get; private set; }
+            public List<TreeNode> Children { get; } = [];
+
+            public TreeNode Add(TreeNode child)
+            {
+                child.Parent = this;
+                Children.Add(child);
+                return this;
+            }
+        }
+
+        private sealed class NameTreeModel(params TreeNode[] roots)
+            : NodeTreeModel<TreeNode>
+        {
+            private readonly List<TreeNode> roots = [.. roots];
+
+            protected override int RootCount => roots.Count;
+            protected override TreeNode RootAt(int row) => roots[row];
+            protected override int ChildCount(TreeNode parent) => parent.Children.Count;
+            protected override TreeNode ChildAt(TreeNode parent, int row) => parent.Children[row];
+            protected override TreeNode ParentOf(TreeNode node) => node.Parent;
+            protected override int IndexOf(TreeNode node) =>
+                node.Parent is null ? roots.IndexOf(node) : node.Parent.Children.IndexOf(node);
+
+            public Dictionary<int, string> GetRoleNames() => RoleNames();
+            public object GetData(ModelIndex index, int role) => Data(index, role);
+            public bool SetByRole(ModelIndex index, object value, int role) =>
+                SetData(index, value, role);
+        }
+
+        private sealed class ReplaceableTreeModel(params TreeNode[] roots)
+            : NodeTreeModel<TreeNode>
+        {
+            private readonly List<TreeNode> roots = [.. roots];
+
+            protected override int RootCount => roots.Count;
+            protected override TreeNode RootAt(int row) => roots[row];
+            protected override int ChildCount(TreeNode parent) => parent.Children.Count;
+            protected override TreeNode ChildAt(TreeNode parent, int row) => parent.Children[row];
+            protected override TreeNode ParentOf(TreeNode node) => node.Parent;
+            protected override int IndexOf(TreeNode node) =>
+                node.Parent is null ? roots.IndexOf(node) : node.Parent.Children.IndexOf(node);
+
+            protected override bool SetNode(TreeNode parent, int row, TreeNode value)
+            {
+                if (parent is not null || row < 0 || row >= roots.Count)
+                    return false;
+                roots[row] = value;
+                return true;
+            }
+
+            public object GetData(ModelIndex index, int role) => Data(index, role);
+            public bool SetByRole(ModelIndex index, object value, int role) =>
+                SetData(index, value, role);
+        }
+
+        private sealed class FolderNode(string name)
+            : Qt.Bridge.Models.TreeNode<FolderNode>
+        {
+            public string Name { get; set; } = name;
+        }
+
         private const string SourceWithIgnoredModelOverride = """
             using System.Collections.Generic;
             using Qt;
@@ -169,6 +235,43 @@ namespace Test_Qt.Bridge.CSharp.Generator
                         set { }
                     }
                 }
+            }
+            """;
+
+        private const string SourceWithTreeModelSubclass = """
+            using Qt.Bridge.Models;
+
+            namespace Test
+            {
+                public class Node
+                {
+                    public Node Parent { get; set; }
+                }
+
+                public class NodeTreeModel : Qt.Bridge.Models.NodeTreeModel<Node>
+                {
+                    protected override int RootCount => 0;
+                    protected override Node RootAt(int row) => null;
+                    protected override int ChildCount(Node parent) => 0;
+                    protected override Node ChildAt(Node parent, int row) => null;
+                    protected override Node ParentOf(Node node) => node.Parent;
+                    protected override int IndexOf(Node node) => 0;
+                }
+            }
+            """;
+
+        private const string SourceWithDefaultTreeModelSubclass = """
+            using Qt.Bridge.Models;
+
+            namespace Test
+            {
+                public class Node : TreeNode<Node>
+                {
+                    public string Name { get; set; }
+                }
+
+                public class DefaultNodeTreeModel : TreeModel<Node>
+                { }
             }
             """;
 
@@ -246,6 +349,46 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 "TableModel base stub Sibling() must be skipped when marked [Qt.Ignore].");
             Assert.DoesNotContain("Test::NumberTableModel::hasChildren(", cpp,
                 "TableModel base stub HasChildren() must be skipped when marked [Qt.Ignore].");
+        }
+
+        [TestMethod]
+        public async Task TreeModelBase_Overrides_AreGeneratedFor_TreeModelSubclass()
+        {
+            using var result = await TestCodeGenerator.GenerateAsync(
+                [SourceWithTreeModelSubclass],
+                sourceRefs: [ApiAssembly, AdapterAssembly],
+                ct: TestContext.CancellationTokenSource.Token);
+
+            Assert.IsTrue(result.Sink.Files.TryGetValue("source/cpp/test/nodetreemodel.cpp",
+                out var cpp), "Expected generated cpp for Test::NodeTreeModel was not found.");
+
+            Assert.Contains("#include <QAbstractItemModel>", cpp,
+                "TreeModel subclasses must use QAbstractItemModel.");
+            Assert.Contains("Test::NodeTreeModel::index(", cpp,
+                "TreeModel subclass must generate index().");
+            Assert.Contains("Test::NodeTreeModel::parent(", cpp,
+                "TreeModel subclass must generate parent().");
+            Assert.Contains("Test::NodeTreeModel::rowCount", cpp,
+                "TreeModel subclass must generate rowCount().");
+        }
+
+        [TestMethod]
+        public async Task DefaultTreeModelBase_Overrides_AreGeneratedFor_TreeModelSubclass()
+        {
+            using var result = await TestCodeGenerator.GenerateAsync(
+                [SourceWithDefaultTreeModelSubclass],
+                sourceRefs: [ApiAssembly, AdapterAssembly],
+                ct: TestContext.CancellationTokenSource.Token);
+
+            Assert.IsTrue(result.Sink.Files.TryGetValue("source/cpp/test/defaultnodetreemodel.cpp",
+                out var cpp), "Expected generated cpp for Test::DefaultNodeTreeModel was not found.");
+
+            Assert.Contains("#include <QAbstractItemModel>", cpp,
+                "Default TreeModel subclasses must use QAbstractItemModel.");
+            Assert.Contains("Test::DefaultNodeTreeModel::index(", cpp,
+                "Default TreeModel subclasses must generate index().");
+            Assert.Contains("Test::DefaultNodeTreeModel::parent(", cpp,
+                "Default TreeModel subclasses must generate parent().");
         }
 
         [TestMethod]
@@ -327,6 +470,149 @@ namespace Test_Qt.Bridge.CSharp.Generator
             Assert.AreEqual(0, model.ColumnCount(new ModelIndex(0, 0)));
             Assert.IsTrue(model.HasChildren(ModelIndex.Empty));
             Assert.IsFalse(model.HasChildren(new ModelIndex(0, 0)));
+        }
+
+        [TestMethod]
+        public void TreeModel_NavigatesHierarchy_AndExposesNodeProperties()
+        {
+            var root = new TreeNode("Root");
+            var child = new TreeNode("Child");
+            root.Add(child);
+            var model = new NameTreeModel(root);
+
+            var rootIndex = model.Index(0, 0, ModelIndex.Empty);
+            var childIndex = model.Index(0, 0, rootIndex);
+            var roles = model.GetRoleNames();
+            var nameRole = roles.Single(x => x.Value == "name").Key;
+
+            Assert.IsTrue(rootIndex.IsValid);
+            Assert.IsTrue(childIndex.IsValid);
+            Assert.AreSame(ModelIndex.Empty, model.Parent(rootIndex));
+            Assert.AreEqual(rootIndex.Id, model.Parent(childIndex).Id);
+            Assert.AreEqual(1, model.RowCount(ModelIndex.Empty));
+            Assert.AreEqual(1, model.RowCount(rootIndex));
+            Assert.AreEqual(1, model.ColumnCount(rootIndex));
+            Assert.IsTrue(model.HasChildren(rootIndex));
+            Assert.AreEqual("Child", model.GetData(childIndex, nameRole));
+            Assert.AreEqual(child, model.GetData(childIndex, 0x0100));
+
+            Assert.IsTrue(model.SetByRole(childIndex, "Renamed", nameRole));
+            Assert.AreEqual("Renamed", child.Name);
+        }
+
+        [TestMethod]
+        public void NodeTreeModel_WholeNodeReplacement_UpdatesTheExistingIndex()
+        {
+            var original = new TreeNode("Original");
+            var replacement = new TreeNode("Replacement");
+            var model = new ReplaceableTreeModel(original);
+            var index = model.Index(0, 0, ModelIndex.Empty);
+
+            Assert.IsTrue(model.SetByRole(index, replacement, 0x0100));
+            Assert.AreSame(replacement, model.GetData(index, 0x0100));
+        }
+
+        [TestMethod]
+        public void DefaultTreeModel_ManagesTreeNodeHierarchy_AndHidesNavigationRoles()
+        {
+            var model = new TreeModel<FolderNode>();
+            var root = model.AddRoot(new FolderNode("Projects"));
+            var child = model.AddChild(root, new FolderNode("Qt"));
+            var rootIndex = model.Index(0, 0, ModelIndex.Empty);
+            var childIndex = model.Index(0, 0, rootIndex);
+            var roles = model.RoleNames();
+            var nameRole = roles.Single(x => x.Value == "name").Key;
+
+            Assert.AreSame(root, child.Parent);
+            Assert.HasCount(1, root.Children);
+            Assert.AreEqual("Qt", model.Data(childIndex, nameRole));
+            Assert.IsFalse(roles.ContainsValue("parent"));
+            Assert.IsFalse(roles.ContainsValue("children"));
+
+            Assert.IsTrue(model.Remove(child));
+            Assert.AreEqual(0, model.RowCount(rootIndex));
+            Assert.IsFalse(model.Remove(child));
+        }
+
+        [TestMethod]
+        public void DefaultTreeModel_SupportsDetachedTrees_PositionalInserts_AndExternalRoots()
+        {
+            var detachedRoot = new FolderNode("Detached");
+            var detachedChild = new FolderNode("Child");
+            Assert.AreSame(detachedRoot, detachedRoot.Add(detachedChild));
+            Assert.AreSame(detachedRoot, detachedChild.Parent);
+
+            List<FolderNode> roots = [];
+            var model = new TreeModel<FolderNode>(roots);
+            model.AddRoot(detachedRoot);
+            var last = model.AddRoot(new FolderNode("Last"));
+            var first = model.InsertRoot(0, new FolderNode("First"));
+            var beforeChild = model.InsertChild(detachedRoot, 0, new FolderNode("Before"));
+
+            Assert.AreSame(first, model.RootNodes[0]);
+            Assert.AreSame(detachedRoot, model.RootNodes[1]);
+            Assert.AreSame(last, model.RootNodes[2]);
+            Assert.AreSame(beforeChild, detachedRoot.Children[0]);
+            Assert.AreSame(detachedChild, detachedRoot.Children[1]);
+            Assert.AreSame(first, roots[0]);
+
+            Assert.ThrowsExactly<ArgumentException>(() => model.AddRoot(detachedChild));
+            Assert.ThrowsExactly<ArgumentException>(() =>
+                model.AddChild(detachedRoot, detachedChild));
+            Assert.ThrowsExactly<ArgumentException>(() =>
+                model.InsertChild(new FolderNode("Outside"), 0, new FolderNode("Child")));
+        }
+
+        [TestMethod]
+        public void DefaultTreeModel_ReportsStructuralChanges()
+        {
+            var model = new TreeModel<FolderNode>();
+            List<Model.EventAction> actions = [];
+            model.ModelChanged += (_, args) =>
+            {
+                actions.Add(args.Action);
+                args.Synchronized = true;
+            };
+
+            var root = model.AddRoot(new FolderNode("Root"));
+            var child = model.AddChild(root, new FolderNode("Child"));
+            Assert.IsTrue(model.Remove(child));
+
+            CollectionAssert.AreEqual(new Model.EventAction[]
+            {
+                Model.EventAction.BeginInsertRows,
+                Model.EventAction.EndInsertRows,
+                Model.EventAction.BeginInsertRows,
+                Model.EventAction.EndInsertRows,
+                Model.EventAction.BeginRemoveRows,
+                Model.EventAction.EndRemoveRows
+            }, actions);
+        }
+
+        [TestMethod]
+        public void DefaultTreeModel_RemovedIndexedSubtree_CanBeCollected()
+        {
+            var model = new TreeModel<FolderNode>();
+            var childReference = RemoveIndexedSubtree(model);
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            Assert.IsFalse(childReference.IsAlive,
+                "Removing a subtree must release the model's references to its indexed nodes.");
+        }
+
+        private static WeakReference RemoveIndexedSubtree(TreeModel<FolderNode> model)
+        {
+            var root = model.AddRoot(new FolderNode("Root"));
+            var child = model.AddChild(root, new FolderNode("Child"));
+            var rootIndex = model.Index(0, 0, ModelIndex.Empty);
+            _ = model.Index(0, 0, rootIndex);
+            var childReference = new WeakReference(child);
+
+            Assert.IsTrue(model.Remove(root));
+            return childReference;
         }
     }
 }
