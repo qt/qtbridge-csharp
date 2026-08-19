@@ -6,7 +6,7 @@ using Qt.DotNet;
 
 namespace ModelsAndViews
 {
-    public class TreeData : Model
+    public class TreeData : TreeModel
     {
         public List<string> Columns { get; } = ["First Name", "LastName"];
 

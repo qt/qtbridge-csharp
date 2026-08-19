@@ -12,6 +12,7 @@ namespace Tutorial
             Qml.LoadFromRootModule("ListViewApp");
             Qml.LoadFromRootModule("TableViewApp");
             Qml.LoadFromRootModule("TreeViewApp");
+            Qml.LoadFromRootModule("SimpleTreeViewApp");
             Qml.WaitForExit();
         }
     }
