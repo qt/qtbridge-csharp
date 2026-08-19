@@ -6,7 +6,7 @@ using Qt.Bridge.Utils;
 namespace Test_Utils
 {
     using static Test_FileSystemInfoExtensions.PathResult;
-    using static Test_FileSystemInfoExtensions.TestCondition;
+    using static Test_FileSystemInfoExtensions.PathCaseSensitivity;
     using static Test_FileSystemInfoExtensions.SubPathResult;
 
     [TestClass]
@@ -25,29 +25,16 @@ namespace Test_Utils
             SubPath = 1
         }
 
-        [Flags]
-        public enum TestCondition
+        public enum PathCaseSensitivity
         {
-            None = 0,
-            If_BackslashIsDirSeparator = 1 << 0,
-            If_PathsAreCaseInsensitive = 1 << 1
+            CaseIndependent,
+            RequiresCaseInsensitivePaths
         }
-
-        private static bool BackslashIsDirSeparator
-            => Path.DirectorySeparatorChar == '\\' || Path.AltDirectorySeparatorChar == '\\';
 
         private static bool PathsAreCaseInsensitive => Path.GetRelativePath("a", "A") == ".";
 
-        private static bool ExpectedResult(bool expected, TestCondition condition)
-        {
-            if (!expected)
-                return false;
-            if (condition.HasFlag(If_BackslashIsDirSeparator))
-                expected &= BackslashIsDirSeparator;
-            if (condition.HasFlag(If_PathsAreCaseInsensitive))
-                expected &= PathsAreCaseInsensitive;
-            return expected;
-        }
+        private static bool ExpectedResult(bool expected, PathCaseSensitivity caseSensitivity) =>
+            expected && (caseSensitivity != RequiresCaseInsensitivePaths || PathsAreCaseInsensitive);
 
         private static DirectoryInfo? Directory(string path)
             => string.IsNullOrWhiteSpace(path) ? null : new DirectoryInfo(path);
@@ -56,38 +43,39 @@ namespace Test_Utils
             => string.IsNullOrWhiteSpace(path) ? null : new FileInfo(path);
 
         [TestMethod]
-        [DataRow(null, null, NoMatch, None)]
-        [DataRow("", " ", NoMatch, None)]
-        [DataRow("", null, NoMatch, None)]
-        [DataRow("x/y", null, NoMatch, None)]
-        [DataRow(null, "x/y", NoMatch, None)]
-        [DataRow("x/y/z", "x/y/z", Match, None)]
-        [DataRow("x/y/z", "x/y/z/", Match, None)]
-        [DataRow("x/y/z", "x\\y\\z", Match, If_BackslashIsDirSeparator)]
-        [DataRow("x/y/z", "x/Y/z", Match, If_PathsAreCaseInsensitive)]
-        [DataRow("x/y", "x\\Y", Match, If_BackslashIsDirSeparator | If_PathsAreCaseInsensitive)]
-        [DataRow("x/y", "x", NoMatch, None)]
-        public void PathEquals(string left, string right, PathResult result, TestCondition condition)
+        [DataRow(null, null, NoMatch, CaseIndependent)]
+        [DataRow("", " ", NoMatch, CaseIndependent)]
+        [DataRow("", null, NoMatch, CaseIndependent)]
+        [DataRow("x/y", null, NoMatch, CaseIndependent)]
+        [DataRow(null, "x/y", NoMatch, CaseIndependent)]
+        [DataRow("x/y/z", "x/y/z", Match, CaseIndependent)]
+        [DataRow("x/y/z", "x/y/z/", Match, CaseIndependent)]
+        [DataRow("x/y/z", "x\\y\\z", Match, CaseIndependent)]
+        [DataRow("x/y/z", "x/Y/z", Match, RequiresCaseInsensitivePaths)]
+        [DataRow("x/y", "x\\Y", Match, RequiresCaseInsensitivePaths)]
+        [DataRow("x/y", "x", NoMatch, CaseIndependent)]
+        public void PathEquals(string left, string right, PathResult result,
+            PathCaseSensitivity caseSensitivity)
         {
-            var expected = ExpectedResult(result == Match, condition);
+            var expected = ExpectedResult(result == Match, caseSensitivity);
             Assert.AreEqual(expected, Directory(left).PathEquals(Directory(right)));
             Assert.AreEqual(expected, File(left).PathEquals(File(right)));
         }
 
         [TestMethod]
-        [DataRow(null, null, NoSubPath, None)]
-        [DataRow(null, "x/y", NoSubPath, None)]
-        [DataRow("x/y", null, NoSubPath, None)]
-        [DataRow("x/y/z", "x/y/z", NoSubPath, None)]
-        [DataRow("x/y/z", "x/y", SubPath, None)]
-        [DataRow("x/y/z", "x\\y", SubPath, If_BackslashIsDirSeparator)]
-        [DataRow("x/y/z", "x/Y", SubPath, If_PathsAreCaseInsensitive)]
-        [DataRow("x/y/z", "x\\Y", SubPath, If_BackslashIsDirSeparator | If_PathsAreCaseInsensitive)]
-        [DataRow("x/y/z", "a/b", NoSubPath, None)]
+        [DataRow(null, null, NoSubPath, CaseIndependent)]
+        [DataRow(null, "x/y", NoSubPath, CaseIndependent)]
+        [DataRow("x/y", null, NoSubPath, CaseIndependent)]
+        [DataRow("x/y/z", "x/y/z", NoSubPath, CaseIndependent)]
+        [DataRow("x/y/z", "x/y", SubPath, CaseIndependent)]
+        [DataRow("x/y/z", "x\\y", SubPath, CaseIndependent)]
+        [DataRow("x/y/z", "x/Y", SubPath, RequiresCaseInsensitivePaths)]
+        [DataRow("x/y/z", "x\\Y", SubPath, RequiresCaseInsensitivePaths)]
+        [DataRow("x/y/z", "a/b", NoSubPath, CaseIndependent)]
         public void IsSubPathOf(string child,
-            string parent, SubPathResult result, TestCondition condition)
+            string parent, SubPathResult result, PathCaseSensitivity caseSensitivity)
         {
-            var expected = ExpectedResult(result == SubPath, condition);
+            var expected = ExpectedResult(result == SubPath, caseSensitivity);
             Assert.AreEqual(expected, Directory(child).IsSubPathOf(Directory(parent)));
             Assert.AreEqual(expected, File(child).IsSubPathOf(Directory(parent)));
         }

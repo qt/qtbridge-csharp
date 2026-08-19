@@ -25,7 +25,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         {
             if (paths is not { Length: > 0 })
                 return;
-            Assert.IsFalse(paths.All(path =>
+            Assert.IsFalse(paths.Any(path =>
                 File.Exists(Path.Combine(root.FullName, path))
                     || Directory.Exists(Path.Combine(root.FullName, path))));
         }
