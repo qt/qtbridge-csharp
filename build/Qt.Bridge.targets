@@ -224,7 +224,7 @@ namespace Qt.Qml
       </QtGenRules>
     </ItemGroup>
 
-    <Error Condition="'$(QtDotNetGen)' == '' OR !Exists('$(QtDotNetGen)')"
+    <Error Condition="'$(QtDotNetGenAssembly)' == '' OR !Exists('$(QtDotNetGenAssembly)')"
       Text="Error: Qt Bridge code generator tool not found" />
     <Error Condition="!Exists('%(QtGenRules.Dll)')"
       Text="Error: Qt Bridge code generation rules not found: %(QtGenRules.Identity)" />

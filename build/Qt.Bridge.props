@@ -22,12 +22,9 @@
     <QtDotNetSolutionDir Condition="'$(QtDotNetSolutionDir)' == '' AND Exists('$(MSBuildThisFileDirectory)../../qtbridge-csharp.sln')"
       >$(MSBuildThisFileDirectory)../../</QtDotNetSolutionDir>
 
-    <QtDotNetGen Condition="'$(QtHostIsWindows)' == 'true'">$(MSBuildThisFileDirectory)qbgen.exe</QtDotNetGen>
-    <QtDotNetGen Condition="'$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true'">$(MSBuildThisFileDirectory)qbgen</QtDotNetGen>
-    <QtDotNetGen Condition="!Exists('$(QtDotNetGen)') AND '$(QtDotNetSolutionDir)' != '' AND '$(QtHostIsWindows)' == 'true'"
-      >$(QtDotNetSolutionDir)src/Qt.Bridge.CSharp.Generator/bin/$(Configuration)/$(TargetFramework)/qbgen.exe</QtDotNetGen>
-    <QtDotNetGen Condition="!Exists('$(QtDotNetGen)') AND '$(QtDotNetSolutionDir)' != '' AND ('$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true')"
-      >$(QtDotNetSolutionDir)src/Qt.Bridge.CSharp.Generator/bin/$(Configuration)/$(TargetFramework)/qbgen</QtDotNetGen>
+    <QtDotNetGenAssembly>$(MSBuildThisFileDirectory)qbgen.dll</QtDotNetGenAssembly>
+    <QtDotNetGenAssembly Condition="!Exists('$(QtDotNetGenAssembly)') AND '$(QtDotNetSolutionDir)' != ''"
+      >$(QtDotNetSolutionDir)src/Qt.Bridge.CSharp.Generator/bin/$(Configuration)/$(TargetFramework)/qbgen.dll</QtDotNetGenAssembly>
 
     <QtDotNetGenExtensions>$(MSBuildThisFileDirectory)Qt.Bridge.CSharp.Generator.Extensions.dll</QtDotNetGenExtensions>
     <QtDotNetGenExtensions Condition="!Exists('$(QtDotNetGenExtensions)') AND '$(QtDotNetSolutionDir)' != ''"
@@ -45,7 +42,7 @@
     <QtDotNetLib Condition="!Exists('$(QtDotNetLib)/qdotnethost.h') AND '$(QtDotNetSolutionDir)' != ''"
       >$(QtDotNetSolutionDir)include</QtDotNetLib>
 
-    <QtGenCmd>"$(QtDotNetGen)"</QtGenCmd>
+    <QtGenCmd>dotnet "$(QtDotNetGenAssembly)"</QtGenCmd>
     <QtGenCmd>$(QtGenCmd) --ref "$(QtDotNetAdapter)"</QtGenCmd>
     <QtGenCmd>$(QtGenCmd) --rules "$(QtDotNetGenExtensions)"</QtGenCmd>
     <QtGenCmd>$(QtGenCmd) --rules "$(QtDotNetGenMetaFunctions)"</QtGenCmd>

@@ -33,7 +33,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem
             "QtQmlRootModule",
             "QtDir",
             "QtInstallRoot",
-            "QtDotNetGen"
+            "QtDotNetGen", // TODO: Remove once we reach TP
+            "QtDotNetGenAssembly"
         ];
 
         /// <summary>
