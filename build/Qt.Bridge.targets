@@ -635,10 +635,41 @@ namespace Qt.Qml
       <DeployCmd>$(DeployCmd) "$(RunCommand)"</DeployCmd>
       <DeployCmd>$(DeployCmd) &gt; NUL</DeployCmd>
     </PropertyGroup>
+
+    <ItemGroup>
+      <!--
+      MSBuild and Visual Studio format for diagnostic messages
+      https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-diagnostic-format-for-tasks
+      -->
+      <QtMsgRegex Include="__QtMsgRegex__">
+        <Origin>(?:((?:(?![\s-[\r\n]]*:[\s-[\r\n]]+).)+)[\s-[\r\n]]*:[\s-[\r\n]]+)?</Origin>
+        <SubCat>((?:(?![\s-[\r\n]]*:[\s-[\r\n]]+).(?!(?i:error|warning)))+)?[\s-[\r\n]]*</SubCat>
+        <CatError>((?i:error))[\s-[\r\n]]*</CatError>
+        <CatWarn>((?i:warning))[\s-[\r\n]]*</CatWarn>
+        <Code>((?:(?![\s-[\r\n]]*:[\s-[\r\n]]+).)+)?</Code>
+        <Sep>[\s-[\r\n]]*:[\s-[\r\n]]+</Sep>
+        <Text>(?'Text'(?:(?![\s-[\r\n]]*:[\s-[\r\n]]+).)+)</Text>
+      </QtMsgRegex>
+
+      <QtMsgRegexIgnore
+        Include="Warning: Translations will not be available due to the following error" />
+      <!-- Add more patterns to ignore here -->
+
+      <QtMsgRegex>
+        <Ignore>@(QtMsgRegexIgnore->'(?!%(Identity))','')</Ignore>
+      </QtMsgRegex>
+      <QtMsgRegex>
+        <Error>^%(Ignore)%(Origin)%(SubCat)%(CatError)%(Code)%(Sep)%(Text)$</Error>
+        <Warning>^%(Ignore)%(Origin)%(SubCat)%(CatWarn)%(Code)%(Sep)%(Text)$</Warning>
+      </QtMsgRegex>
+    </ItemGroup>
     <Exec Condition="'$(QtHostIsWindows)' == 'true' and Exists('$(QtDir)\bin\windeployqt.exe')"
       Command="
           $(VcVarsCmd)
           $(DeployCmd)"
+      IgnoreStandardErrorWarningFormat="true"
+      CustomErrorRegularExpression="%(QtMsgRegex.Error)"
+      CustomWarningRegularExpression="%(QtMsgRegex.Warning)"
       WorkingDirectory="$(TargetDir)" IgnoreExitCode="true">
       <Output TaskParameter="ExitCode" PropertyName="DeployResult" />
     </Exec>
