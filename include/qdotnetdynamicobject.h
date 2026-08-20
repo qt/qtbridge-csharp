@@ -705,7 +705,8 @@ private:
             argValues.set(i - 1, readArg(method->params[i], args[i]));
 
         auto result = method->methodInfo.invoke(*obj, argValues);
-        obj->writeResult(method->params[0], args[0], result);
+        if (result.isValid())
+            obj->writeResult(method->params[0], args[0], result);
     }
 
     static void readProperty(QDotNetDynamicObject *obj, DynamicProperty *prop, void **args)
