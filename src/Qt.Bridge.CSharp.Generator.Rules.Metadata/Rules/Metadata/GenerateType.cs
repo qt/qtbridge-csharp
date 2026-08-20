@@ -41,7 +41,7 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
                 Content = [
                     $@"""name"": ""{type.MFn(Src | Ns | Name)}""",
                     $@"""assemblyQualifiedName"": ""{type.MFn(Src | Fqn)}""",
-                    $@"""assemblyFile"": ""{type.MFn(Src | File)}""",
+                    $@"""assemblyFile"": ""{type.Assembly.GetName().Name}""",
                     $@"""assemblyFileHash"": ""{new string('0', 128)}""",
                     $@"""moduleMetadataToken"": {type.Module.MetadataToken}",
                     $@"""metadataToken"": {type.MetadataToken}"

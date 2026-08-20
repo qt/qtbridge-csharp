@@ -85,7 +85,7 @@ public:
     Q_DECLARE_FLAGS(ModelOverrides, ModelOverride)
 
     static QMetaObjectBuilder *defineType(const QString &typeName, const QString &qualifiedTypeName,
-                                          const QString &assemblyFile, const QString &appDirPath,
+                                          const QString &assemblyName,
                                           bool isQmlElement,
                                           BaseClass baseClass = BaseClass::Object,
                                           ModelOverrides modelOverrides = ModelOverride::None)
@@ -93,16 +93,10 @@ public:
         if (!QCoreApplication::startingUp())
             return nullptr;
 
-        auto assemblyPath = QDir(appDirPath).filePath(assemblyFile);
-        if (!QFile::exists(assemblyPath)) {
-            qWarning() << "QDotNetDynamicObject: File not found:" << assemblyPath;
-            return nullptr;
-        }
-
         auto *typeDef = new QMetaObjectBuilder();
         auto *type = dynamicTypesByDef[typeDef] = new DynamicType();
         type->name = typeName;
-        type->assemblyPath = assemblyPath;
+        type->assemblyName = assemblyName;
         type->assemblyQualifiedName = qualifiedTypeName;
         dynamicTypesByName[type->assemblyQualifiedName] = type;
         type->isQmlElement = isQmlElement;
@@ -387,10 +381,9 @@ private:
     static void init(DynamicType *type)
     {
         if (!type->assembly.isValid()) {
-            QDotNetAssembly assembly = QtDotNet::call<QDotNetRef, QString>(
-                    "System.Reflection.Assembly", "LoadFrom", type->assemblyPath);
+            QDotNetAssembly assembly = adapter().loadAssembly(type->assemblyName);
             if (!assembly.isValid()) {
-                qFatal() << "QDotNetDynamicObject: ERROR loading assembly:" << type->assemblyPath;
+                qFatal() << "QDotNetDynamicObject: ERROR loading assembly:" << type->assemblyName;
                 return;
             }
 
@@ -1234,7 +1227,7 @@ private:
     struct DynamicType
     {
         QString name;
-        QString assemblyPath;
+        QString assemblyName;
         QString assemblyQualifiedName;
         QDotNetAssembly assembly;
         QDotNetModule module;

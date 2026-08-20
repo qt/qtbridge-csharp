@@ -187,8 +187,7 @@ bool loadProperty(QMetaObjectBuilder *typeDef, const QJsonObject &jsonProp)
     return true;
 }
 
-bool loadType(const QString &appDirPath, const QJsonObject &jsonType,
-              std::function<void()> qml_register_types)
+bool loadType(const QJsonObject &jsonType, std::function<void()> qml_register_types)
 {
     auto typeName = jsonType["dotNet"]["name"].toString();
 
@@ -211,7 +210,7 @@ bool loadType(const QString &appDirPath, const QJsonObject &jsonType,
     }
 
     auto *typeDef =
-            QDotNetDynamicObject::defineType(typeName, qualifiedTypeName, assemblyFile, appDirPath,
+            QDotNetDynamicObject::defineType(typeName, qualifiedTypeName, assemblyFile,
                                              isQmlElement, baseClass, overrides);
 
     if (const auto &jsonProps = jsonType["properties"]; jsonProps.isArray()) {
@@ -272,7 +271,7 @@ bool QtDotNet::loadTypeMetadata(const QString &appDirPath, std::function<void()>
 
     const auto &jsonTypes = jsonMetadata.object()["types"].toArray();
     for (const auto &jsonTypesItem : jsonTypes) {
-        if (!loadType(appDirPath, jsonTypesItem.toObject(), qml_register_types))
+        if (!loadType(jsonTypesItem.toObject(), qml_register_types))
             return false;
     }
 
