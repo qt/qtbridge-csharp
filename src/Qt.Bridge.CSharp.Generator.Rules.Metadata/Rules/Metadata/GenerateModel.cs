@@ -22,12 +22,17 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
             if (src is not Type type)
                 return Error();
 
-            var baseClass = type.IsAssignableTo(TypeOf<ListModel>()) ? "listModel"
-                          : type.IsAssignableTo(TypeOf<TableModel>()) ? "tableModel"
-                          : "model";
+            var modelTypes = new[]
+            {
+                (TypeOf<ListModel>(), "listModel"),
+                (TypeOf<TableModel>(), "tableModel"),
+                (TypeOf<Model>(), "model")
+            };
+            (var baseType, var baseClass) = modelTypes
+                .FirstOrDefault(m => type.IsAssignableTo(m.Item1));
 
             var overrides = type.GetMethods()
-                .Where(method => method.IsOverrideOf<Model>())
+                .Where(method => method.IsOverrideOf(baseType) && !method.IsIgnored())
                 .Select(method => method.Name switch
                 {
                     nameof(Model.RowCount) => "rowCount",
