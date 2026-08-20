@@ -216,6 +216,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Qt.Bridge.CSharp.Generator.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Paths", "utils\Paths\Paths.csproj", "{49D3E526-5440-4AD2-950F-4F6BF08B0B33}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Qt.Bridge.CSharp.AppHost", "src\Qt.Bridge.CSharp.AppHost\Qt.Bridge.CSharp.AppHost.csproj", "{C10AE556-35B7-458F-0EF4-78AD799F910D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -588,6 +590,18 @@ Global
 		{49D3E526-5440-4AD2-950F-4F6BF08B0B33}.Release|x64.Build.0 = Release|Any CPU
 		{49D3E526-5440-4AD2-950F-4F6BF08B0B33}.Release|x86.ActiveCfg = Release|Any CPU
 		{49D3E526-5440-4AD2-950F-4F6BF08B0B33}.Release|x86.Build.0 = Release|Any CPU
+		{C10AE556-35B7-458F-0EF4-78AD799F910D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C10AE556-35B7-458F-0EF4-78AD799F910D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C10AE556-35B7-458F-0EF4-78AD799F910D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C10AE556-35B7-458F-0EF4-78AD799F910D}.Debug|x64.Build.0 = Debug|Any CPU
+		{C10AE556-35B7-458F-0EF4-78AD799F910D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C10AE556-35B7-458F-0EF4-78AD799F910D}.Debug|x86.Build.0 = Debug|Any CPU
+		{C10AE556-35B7-458F-0EF4-78AD799F910D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C10AE556-35B7-458F-0EF4-78AD799F910D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C10AE556-35B7-458F-0EF4-78AD799F910D}.Release|x64.ActiveCfg = Release|Any CPU
+		{C10AE556-35B7-458F-0EF4-78AD799F910D}.Release|x64.Build.0 = Release|Any CPU
+		{C10AE556-35B7-458F-0EF4-78AD799F910D}.Release|x86.ActiveCfg = Release|Any CPU
+		{C10AE556-35B7-458F-0EF4-78AD799F910D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

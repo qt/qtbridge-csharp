@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
+-->
+
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_version.props))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_rid.props))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_bridge_package.props))" />
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AssemblyName>qapphost</AssemblyName>
+    <RootNamespace>Qt.Bridge</RootNamespace>
+    <QtBuildConfig>$(Configuration)</QtBuildConfig>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
+    <ProjectReference Include="..\Qt.Bridge.CSharp.Build.Tasks\Qt.Bridge.CSharp.Build.Tasks.csproj" />
+    <ProjectReference Include="..\Qt.Bridge.CSharp.Generator\Qt.Bridge.CSharp.Generator.csproj" />
+    <ProjectReference Include="..\Qt.Bridge.CSharp.Generator.Extensions\Qt.Bridge.CSharp.Generator.Extensions.csproj" />
+    <ProjectReference Include="..\Qt.Bridge.CSharp.Generator.MetaFunctions\Qt.Bridge.CSharp.Generator.MetaFunctions.csproj" />
+    <ProjectReference Include="..\Qt.Bridge.CSharp.Generator.Rules.Metadata\Qt.Bridge.CSharp.Generator.Rules.Metadata.csproj" />
+    <ProjectReference Include="..\Qt.Bridge.CSharp.Generator.Rules.SourceCode\Qt.Bridge.CSharp.Generator.Rules.SourceCode.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <AppendPlatformToOutputPath>false</AppendPlatformToOutputPath>
+    <QtDotNetSolutionDir>$([System.IO.Path]::GetFullPath("$(MSBuildThisFileDirectory)../../"))</QtDotNetSolutionDir>
+  </PropertyGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+  <Import Project="..\..\build\Qt.Bridge.targets" />
+
+  <Target Name="_CreateAppHost">
+    <Copy SkipUnchangedFiles="true"
+      SourceFiles="$(AppHostSourcePath)" DestinationFiles="$(AppHostIntermediatePath)" />
+  </Target>
+</Project>
