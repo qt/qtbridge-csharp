@@ -1,9 +1,7 @@
 // Copyright (C) 2025 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
-using System.ComponentModel;
 using System.Reflection;
-using System.Text;
 using Qt.Quick;
 
 namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
@@ -15,10 +13,15 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
     public class GenerateQmlElement : GenerateClass
     {
         public override int Priority => base.Priority + 1;
+
         public override bool Matches(MemberInfo src)
             => src is Type type && base.Matches(type) && type.IsQmlElement();
+
         public override Result Execute(MemberInfo src)
         {
+            if (!StatusFile.CheckIn(src, nameof(GenerateQmlElement)))
+                return Ok;
+
             if (src is not Type type)
                 return Error();
 

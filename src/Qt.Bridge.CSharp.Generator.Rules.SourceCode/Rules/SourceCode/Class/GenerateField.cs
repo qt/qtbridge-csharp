@@ -1,9 +1,7 @@
 // Copyright (C) 2025 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
-using System.ComponentModel;
 using System.Reflection;
-using System.Text;
 
 namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
 {
@@ -14,10 +12,15 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
     public class GenerateField : GenerateClass
     {
         public override int Priority => base.Priority + 1;
+
         public override bool Matches(MemberInfo src) => src is FieldInfo { IsStatic: false } field
             && field.ReflectedType.ExportAsSourceCode();
+
         public override Result Execute(MemberInfo src)
         {
+            if (!StatusFile.CheckIn(src, nameof(GenerateField)))
+                return Ok;
+
             if (src is not FieldInfo field)
                 return Error();
 

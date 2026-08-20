@@ -3,20 +3,23 @@
 
 using System.ComponentModel;
 using System.Reflection;
+using Qt.Quick;
 
 namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
 {
-    using MetaFunctions;
     using Extensions;
-    using Quick;
     using static Placeholders;
     using static Traits;
 
     public class GenerateClass : GenerateClassFiles
     {
         public override int Priority => base.Priority + 1;
+
         public override Result Execute(MemberInfo src)
         {
+            if (!StatusFile.CheckIn(src, nameof(GenerateClass)))
+                return Ok;
+
             if (src is not Type type)
                 return Error();
 

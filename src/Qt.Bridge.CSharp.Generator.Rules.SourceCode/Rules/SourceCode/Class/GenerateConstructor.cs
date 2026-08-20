@@ -6,17 +6,21 @@ using System.Reflection;
 namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
 {
     using Extensions;
-    using System;
     using static Placeholders;
     using static Traits;
 
     public class GenerateConstructor : GenerateClass
     {
         public override int Priority => base.Priority + 1;
+
         public override bool Matches(MemberInfo src) => src is ConstructorInfo ctor
             && ctor.ReflectedType.ExportAsSourceCode();
+
         public override Result Execute(MemberInfo src)
         {
+            if (!StatusFile.CheckIn(src, nameof(GenerateConstructor)))
+                return Ok;
+
             if (src is not ConstructorInfo ctor)
                 return Error();
             var type = src.ReflectedType;

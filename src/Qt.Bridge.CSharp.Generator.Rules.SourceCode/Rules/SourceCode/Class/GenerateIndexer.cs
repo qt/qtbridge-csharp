@@ -1,10 +1,7 @@
 // Copyright (C) 2025 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
-using System;
-using System.ComponentModel;
 using System.Reflection;
-using System.Text;
 
 namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
 {
@@ -15,12 +12,17 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
     public class GenerateIndexer : GenerateClass
     {
         public override int Priority => base.Priority + 1;
+
         public override bool Matches(MemberInfo src)
             => src is PropertyInfo prop && !prop.IsStatic()
             && prop.GetIndexParameters() is { Length: > 0 }
             && prop.ReflectedType.ExportAsSourceCode();
+
         public override Result Execute(MemberInfo src)
         {
+            if (!StatusFile.CheckIn(src, nameof(GenerateIndexer)))
+                return Ok;
+
             if (src is not PropertyInfo prop)
                 return Error();
 

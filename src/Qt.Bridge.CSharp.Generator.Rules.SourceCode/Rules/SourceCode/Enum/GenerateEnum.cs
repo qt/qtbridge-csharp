@@ -11,8 +11,12 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Enum
     public class GenerateEnum : GenerateEnumHeader
     {
         public override int Priority => base.Priority + 1;
+
         public override Result Execute(MemberInfo src)
         {
+            if (!StatusFile.CheckIn(src, nameof(GenerateEnum)))
+                return Ok;
+
             if (src is not Type { IsEnum: true } type)
                 return Error();
 

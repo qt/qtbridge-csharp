@@ -5,15 +5,18 @@ using System.Reflection;
 
 namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
 {
-    using MetaFunctions;
     using static Placeholders;
     using static Traits;
 
     public class GenerateMainCpp : GenerateBuildSpec
     {
         public override int Priority => base.Priority + 1;
+
         public override Result Execute(MemberInfo _)
         {
+            if (!StatusFile.CheckIn(Root, nameof(GenerateMainCpp)))
+                return Ok;
+
             var mainPath = "cpp/main.cpp";
 
             if (Root.GetPlaceholder(SourceFiles) is not { } sourceFiles)
@@ -57,6 +60,7 @@ int main(int argc, char *argv[])
         qCritical() << ""Unpatched app host"";
         return -3;
     }}
+
     QDotNetConvert::setDispatch(QtDotNet::objectDispatch);
     auto appDirPath = QFileInfo(argv[0]).absoluteDir().path();
     QtDotNet::loadTypeMetadata(appDirPath, qml_register_types);

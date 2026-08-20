@@ -14,11 +14,16 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Models
     public class GenerateListAsModel : Class.GenerateClass
     {
         public override int Priority => base.Priority + 1;
+
         public override bool Matches(MemberInfo src)
             => src is Type type && type.IsList(out _) && !type.IsObservableList(out _)
             && type.ExportAsSourceCode();
+
         public override Result Execute(MemberInfo src)
         {
+            if (!StatusFile.CheckIn(src, nameof(GenerateListAsModel)))
+                return Ok;
+
             if (src is not Type type || !type.IsList(out var itemType))
                 return Error();
 

@@ -8,7 +8,6 @@ using System.Text;
 namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
 {
     using Extensions;
-    using MetaFunctions;
     using static Placeholders;
     using static Traits;
 
@@ -20,8 +19,12 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
         protected const string CppDir = Cpp + "/";
 
         public override bool Matches(MemberInfo src) => src.IsRootNode();
+
         public override Result Execute(MemberInfo _)
         {
+            if (!StatusFile.CheckIn(Root, nameof(GenerateBuildSpec)))
+                return Ok;
+
             Placeholder sourceFiles = null, qmlElementSourceFiles = null;
             var (collisions, resourceSpec) = BuildResourceSpec();
             if (collisions.Count > 0)

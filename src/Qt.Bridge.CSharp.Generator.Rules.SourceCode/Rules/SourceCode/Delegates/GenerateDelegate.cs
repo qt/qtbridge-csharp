@@ -5,7 +5,6 @@ using System.Reflection;
 
 namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Delegates
 {
-    using MetaFunctions;
     using Extensions;
     using static Placeholders;
     using static Traits;
@@ -13,8 +12,12 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Delegates
     public class GenerateDelegate : GenerateDelegateHeader
     {
         public override int Priority => base.Priority + 1;
+
         public override Result Execute(MemberInfo src)
         {
+            if (!StatusFile.CheckIn(src, nameof(GenerateDelegate)))
+                return Ok;
+
             if (src is not Type type)
                 return Error();
 

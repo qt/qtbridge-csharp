@@ -1,12 +1,10 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
-using System;
 using System.Reflection;
 
 namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Delegates
 {
-    using MetaFunctions;
     using Extensions;
     using static Placeholders;
     using static Traits;
@@ -16,11 +14,16 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Delegates
         private readonly object criticalSection = new();
 
         public override int Priority => base.Priority + 1;
+
         public override bool Matches(MemberInfo src)
             => src is Type type && type.IsAssignableTo(TypeOf<Delegate>())
             && type.ExportAsSourceCode();
+
         public override Result Execute(MemberInfo src)
         {
+            if (!StatusFile.CheckIn(src, nameof(GenerateDelegateHeader)))
+                return Ok;
+
             if (src is not Type type)
                 return Error();
 

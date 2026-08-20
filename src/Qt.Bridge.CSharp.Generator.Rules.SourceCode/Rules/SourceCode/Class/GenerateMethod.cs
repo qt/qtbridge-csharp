@@ -12,11 +12,16 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
     public class GenerateMethod : GenerateClass
     {
         public override int Priority => base.Priority + 1;
+
         public override bool Matches(MemberInfo src) => src is MethodInfo { IsStatic: false }
             && !src.ReflectedType.IsStaticClass()
             && src.ReflectedType.ExportAsSourceCode();
+
         public override Result Execute(MemberInfo src)
         {
+            if (!StatusFile.CheckIn(src, nameof(GenerateMethod)))
+                return Ok;
+
             if (src is not MethodInfo func)
                 return Error();
 

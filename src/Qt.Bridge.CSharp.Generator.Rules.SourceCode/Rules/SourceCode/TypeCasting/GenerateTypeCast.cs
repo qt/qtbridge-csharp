@@ -18,9 +18,14 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.TypeCasting
                 && !type.IsValueType
                 && !type.IsInterface
                 && !type.IsAbstract;
+
         public override IEnumerable<MemberInfo> DependsOn => [TypeOf<TypeCast>()];
+
         public override Result Execute(MemberInfo src)
         {
+            if (!StatusFile.CheckIn(src, nameof(GenerateTypeCast)))
+                return Ok;
+
             if (src is not Type type)
                 return Error();
 

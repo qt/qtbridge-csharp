@@ -5,7 +5,6 @@ using System.Reflection;
 
 namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
 {
-    using MetaFunctions;
     using Extensions;
     using static Placeholders;
     using static Traits;
@@ -13,8 +12,12 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
     public class GenerateObjectDispatch : GenerateBuildSpec
     {
         public override int Priority => base.Priority + 1;
+
         public override Result Execute(MemberInfo _)
         {
+            if (!StatusFile.CheckIn(Root, nameof(GenerateObjectDispatch)))
+                return Ok;
+
             var dispatchCppPath = "cpp/object_dispatch.cpp";
 
             if (Root.GetPlaceholder(SourceFiles) is not { } sourceFiles)

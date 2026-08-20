@@ -5,7 +5,6 @@ using System.Reflection;
 
 namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
 {
-    using MetaFunctions;
     using Extensions;
     using static Placeholders;
     using static Traits;
@@ -16,6 +15,9 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
 
         public override Result Execute(MemberInfo _)
         {
+            if (!StatusFile.CheckIn(Root, nameof(GenerateQmlRegisterTypes)))
+                return Ok;
+
             var qmlRegTypesHppPath = "hpp/qml_register_types.h";
 
             if (Root.GetPlaceholder(SourceFiles) is not { } sourceFiles)

@@ -23,6 +23,9 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
 
         public override Result Execute(MemberInfo _)
         {
+            if (!StatusFile.CheckIn(Root, nameof(GenerateStaticFiles)))
+                return Ok;
+
             var resObjs = ResourceManager.GetResourceSet(CultureInfo.CurrentUICulture, true, true);
             foreach (var resObj in resObjs) {
                 if (resObj is not DictionaryEntry res)

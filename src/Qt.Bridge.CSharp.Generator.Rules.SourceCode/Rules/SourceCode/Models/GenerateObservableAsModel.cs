@@ -23,6 +23,9 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Models
 
         public override Result Execute(MemberInfo src)
         {
+            if (!StatusFile.CheckIn(src, nameof(GenerateObservableAsModel)))
+                return Ok;
+
             if (src is not Type type || !type.IsObservableList(out _))
                 return Error();
 

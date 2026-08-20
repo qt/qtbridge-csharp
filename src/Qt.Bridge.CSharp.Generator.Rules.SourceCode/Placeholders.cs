@@ -66,5 +66,7 @@ namespace Qt.Bridge.CodeGeneration
                     , EventHandlers
                     , PropertyNotifiers
                     , MethodsImplementation
+            ,
+        Status
     }
 }
