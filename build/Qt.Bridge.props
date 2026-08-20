@@ -43,6 +43,11 @@
       >$(QtDotNetSolutionDir)include</QtDotNetLib>
 
     <QtGenCmd>dotnet "$(QtDotNetGenAssembly)"</QtGenCmd>
+    <QtGenCmd>$(QtGenCmd) --clean</QtGenCmd>
+    <QtGenCmd>$(QtGenCmd) --clean-ignores "bin"</QtGenCmd>
+    <QtGenCmd>$(QtGenCmd) --clean-ignores "build"</QtGenCmd>
+    <QtGenCmd>$(QtGenCmd) --clean-ignores "source/qml"</QtGenCmd>
+    <QtGenCmd>$(QtGenCmd) --clean-ignores "source/qtdotnet.cmake"</QtGenCmd>
     <QtGenCmd>$(QtGenCmd) --ref "$(QtDotNetAdapter)"</QtGenCmd>
     <QtGenCmd>$(QtGenCmd) --rules "$(QtDotNetGenExtensions)"</QtGenCmd>
     <QtGenCmd>$(QtGenCmd) --rules "$(QtDotNetGenMetaFunctions)"</QtGenCmd>
