@@ -85,6 +85,8 @@ namespace Test_Qt.Bridge.Project
             AssertSameDirectory(
                 artifacts.BuildDirectory,
                 qml.GetProperty("buildDirs")[0].GetString()!);
+            Assert.AreEqual("qrc:/qt/qml/Application/Main.qml",
+                qml.GetProperty("files")[0].GetProperty("resourceUrl").GetString());
             AssertSameFilePath(
                 artifacts.ReadyMarkerPath,
                 qmlls.GetProperty("readyFile").GetString()!);

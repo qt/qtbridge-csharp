@@ -115,6 +115,7 @@
         <TypeName>%(FileName)</TypeName>
         <JsonSourcePath>$([System.String]::Copy('$(ProjectDir)%(RelativeDir)%(Filename)%(Extension)').Replace('\', '/'))</JsonSourcePath>
         <JsonModulePath>$([System.String]::Copy('%(SourceDir)').Replace('\', '/'))</JsonModulePath>
+        <JsonResourceUrl>$([System.String]::Copy('qrc:/qt/qml/%(SourceDir)%(Filename)%(Extension)').Replace('\', '/'))</JsonResourceUrl>
       </Qml>
     </ItemGroup>
     <ItemGroup>
@@ -578,7 +579,8 @@ namespace Qt.Qml
       { "sourcePath": "%(JsonSourcePath)",
         "uri": "%(Uri)",
         "typeName": "%(TypeName)",
-        "modulePath": "%(JsonModulePath)"
+        "modulePath": "%(JsonModulePath)",
+        "resourceUrl": "%(JsonResourceUrl)"
       }', ',
 ')
     ]
