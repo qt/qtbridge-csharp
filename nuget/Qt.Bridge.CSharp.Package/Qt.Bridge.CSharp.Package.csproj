@@ -261,6 +261,14 @@
             Include="..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen"
             Condition="Exists('..\..\src\Qt.Bridge.CSharp.Generator\bin\$(Configuration)\$(TargetFramework)\qbgen')"
             PackagePath="build\$(TargetFramework)\" Visible="false" />
+      <None Pack="true"
+            Include="..\..\src\Qt.Bridge.CSharp.AppHost\bin\$(Configuration)\$(TargetFramework)\qapphost.exe"
+            Condition="Exists('..\..\src\Qt.Bridge.CSharp.AppHost\bin\$(Configuration)\$(TargetFramework)\qapphost.exe')"
+            PackagePath="build\$(TargetFramework)\" Visible="false" />
+      <None Pack="true"
+            Include="..\..\src\Qt.Bridge.CSharp.AppHost\bin\$(Configuration)\$(TargetFramework)\qapphost"
+            Condition="Exists('..\..\src\Qt.Bridge.CSharp.AppHost\bin\$(Configuration)\$(TargetFramework)\qapphost')"
+            PackagePath="build\$(TargetFramework)\" Visible="false" />
       <None Pack="true" Include="..\..\include\**\*"
         PackagePath="include\" Visible="false" />
     </ItemGroup>
