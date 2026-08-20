@@ -1,6 +1,7 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace Qt.DotNet
@@ -13,7 +14,9 @@ namespace Qt.DotNet
         public static class Delegates
         {
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-            public delegate bool LoadAssembly(
+            [return: MarshalAs(UnmanagedType.CustomMarshaler,
+                MarshalTypeRef = typeof(ObjectMarshaler))]
+            public delegate Assembly LoadAssembly(
                 [MarshalAs(UnmanagedType.LPWStr)]
                 [In] string assemblyName);
 

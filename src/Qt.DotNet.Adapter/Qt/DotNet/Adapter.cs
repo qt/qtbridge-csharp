@@ -100,35 +100,48 @@ namespace Qt.DotNet
         /// Loads a .NET assembly into memory
         /// </summary>
         /// <param name="assemblyName">Name of the assembly or path to the assembly DLL.</param>
-        /// <returns>'true' if load was successful; 'false' otherwise</returns>
-        public static bool LoadAssembly(string assemblyName)
+        /// <returns>Requested assembly, if found; 'null' otherwise</returns>
+        public static Assembly LoadAssembly(string assemblyName)
         {
 #if DEBUG
             // Compile-time signature check of delegate vs. method
             _ = new Delegates.LoadAssembly(LoadAssembly);
 #endif
+            if (!assemblyName.Contains(Path.DirectorySeparatorChar)
+                && !assemblyName.Contains(Path.AltDirectorySeparatorChar)) {
+                try {
+                    return Assembly.Load(assemblyName);
+                } catch (Exception) {
+                }
+            }
+
+            var candidateDirs = new List<string>([""]);
             try {
-                Assembly.Load(assemblyName);
-                return true;
-            } catch (Exception) {
-            }
+                if (Environment.ProcessPath is { Length: > 0 } procPath)
+                    candidateDirs.Add(Path.GetDirectoryName(procPath));
+            } catch (Exception) { }
+            try {
+                if (Assembly.GetEntryAssembly() is { } execDll)
+                    candidateDirs.Add(Path.GetDirectoryName(execDll.Location));
+            } catch (Exception) { }
+            try {
+                if (typeof(Adapter).Assembly is { } adaptertDll)
+                    candidateDirs.Add(Path.GetDirectoryName(adaptertDll.Location));
+            } catch (Exception) { }
+            candidateDirs.Add(Environment.CurrentDirectory);
 
-            if (File.Exists(Path.GetFullPath(assemblyName))) {
+            foreach (var dir in candidateDirs) {
                 try {
-                    Assembly.LoadFile(Path.GetFullPath(assemblyName));
-                    return true;
+                    return Assembly.LoadFrom(Path.Combine(dir, assemblyName));
+                } catch (Exception) {
+                }
+                try {
+                    return Assembly.LoadFrom(Path.Combine(dir, assemblyName + ".dll"));
                 } catch (Exception) {
                 }
             }
 
-            if (File.Exists(Path.GetFullPath($"{assemblyName}.dll"))) {
-                try {
-                    Assembly.LoadFile(Path.GetFullPath($"{assemblyName}.dll"));
-                    return true;
-                } catch (Exception) {
-                }
-            }
-            return false;
+            return null;
         }
 
         /// <summary>

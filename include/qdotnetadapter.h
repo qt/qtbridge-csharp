@@ -142,7 +142,7 @@ public:
     bool isValid() const { return host != nullptr; }
 
 public:
-    bool loadAssembly(const QString &assemblyName) const
+    void *loadAssembly(const QString &assemblyName) const
     {
         init();
         return fnLoadAssembly(assemblyName);
@@ -374,7 +374,7 @@ public:
 private:
     QDotNetHost defaultHost;
     mutable QDotNetHost *host = nullptr;
-    mutable QDotNetFunction<bool, QString> fnLoadAssembly;
+    mutable QDotNetFunction<void *, QString> fnLoadAssembly;
     mutable QDotNetFunction<void *, QString, QString, qint32, QList<QDotNetParameter>>
         fnResolveStaticMethod;
     mutable QDotNetFunction<void *, qint32, QList<QDotNetParameter>> fnResolveConstructor;
