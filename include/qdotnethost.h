@@ -570,9 +570,35 @@ private:
 #define EMBED_HASH_HI_PART_UTF8 "c3ab8ff13720e8ad9047dd39466b3c89"
 #define EMBED_HASH_LO_PART_UTF8 "74e592c2fa383d4a3960714caef0c4f2"
 #define EMBED_HASH_FULL_UTF8 (EMBED_HASH_HI_PART_UTF8 EMBED_HASH_LO_PART_UTF8)
-#define QT_DOTNET_HOST(appName) \
-constexpr int EMBED_SZ = sizeof(EMBED_HASH_FULL_UTF8) / sizeof(EMBED_HASH_FULL_UTF8[0]); \
-constexpr int EMBED_MAX = (EMBED_SZ > 1025 ? EMBED_SZ : 1025); \
-static char appName[EMBED_MAX] = EMBED_HASH_FULL_UTF8; \
-static const char hi_part[] = EMBED_HASH_HI_PART_UTF8; \
-static const char lo_part[] = EMBED_HASH_LO_PART_UTF8
+#define QT_DOTNET_HOST(appName)                                                                  \
+    static bool host_mem_eq(volatile const char *a, volatile const char *b, size_t length)       \
+    {                                                                                            \
+        for (size_t i = 0; i < length; i++) {                                                    \
+            if (*a++ != *b++)                                                                    \
+                return false;                                                                    \
+        }                                                                                        \
+        return true;                                                                             \
+    }                                                                                            \
+                                                                                                 \
+    static char *host_app_name()                                                                 \
+    {                                                                                            \
+        constexpr int EMBED_SZ = sizeof(EMBED_HASH_FULL_UTF8) / sizeof(EMBED_HASH_FULL_UTF8[0]); \
+        constexpr int EMBED_MAX = (EMBED_SZ > 1025 ? EMBED_SZ : 1025);                           \
+        static char embed[EMBED_MAX] = EMBED_HASH_FULL_UTF8;                                     \
+        static const char hi_part[] = EMBED_HASH_HI_PART_UTF8;                                   \
+        static const char lo_part[] = EMBED_HASH_LO_PART_UTF8;                                   \
+                                                                                                 \
+        size_t len = strlen(&embed[0]);                                                          \
+        if (len == 0 || len >= EMBED_MAX)                                                        \
+            return nullptr;                                                                      \
+                                                                                                 \
+        size_t hi_len = sizeof(hi_part) - 1;                                                     \
+        size_t lo_len = sizeof(lo_part) - 1;                                                     \
+        if (len >= (hi_len + lo_len) && host_mem_eq(&embed[0], hi_part, hi_len)                  \
+            && host_mem_eq(&embed[hi_len], lo_part, lo_len)) {                                   \
+            return nullptr;                                                                      \
+        }                                                                                        \
+        return embed;                                                                            \
+    }                                                                                            \
+                                                                                                 \
+    static char *appName = host_app_name()

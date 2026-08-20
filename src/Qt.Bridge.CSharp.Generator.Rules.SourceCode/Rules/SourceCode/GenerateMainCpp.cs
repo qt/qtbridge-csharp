@@ -53,6 +53,10 @@ QT_DOTNET_HOST(appName);
 
 int main(int argc, char *argv[])
 {{
+    if (!appName) {{
+        qCritical() << ""Unpatched app host"";
+        return -3;
+    }}
     QDotNetConvert::setDispatch(QtDotNet::objectDispatch);
     auto appDirPath = QFileInfo(argv[0]).absoluteDir().path();
     QtDotNet::loadTypeMetadata(appDirPath, qml_register_types);
@@ -68,10 +72,6 @@ int main(int argc, char *argv[])
 
     QGuiApplication app(argc, argv);
     auto assemblyPath = QDir(appDirPath).filePath(appName);
-    if (!QFile::exists(assemblyPath)) {{
-        assemblyPath = QDir(appDirPath)
-            .filePath(""{Root.Assembly.GetName().Name}.dll"");
-    }}
     if (!QFile::exists(assemblyPath)) {{
         qCritical() << ""App assembly not found: "" << assemblyPath;
         return -1;
