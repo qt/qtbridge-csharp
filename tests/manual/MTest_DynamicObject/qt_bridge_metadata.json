@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../qt_bridge_metadata_schema.json",
+  "$schema": "https://code.qt.io/cgit/qt/qtbridge-csharp.git/plain/qt_bridge_metadata_schema.json",
   "types": [
     {
       "dotNet": {

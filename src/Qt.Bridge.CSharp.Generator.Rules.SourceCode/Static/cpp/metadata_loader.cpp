@@ -260,7 +260,7 @@ bool validateMetadata(const QJsonDocument &metadata)
 
 bool QtDotNet::loadTypeMetadata(const QString &appDirPath, std::function<void()> qml_register_types)
 {
-    QFile metadataFile(QDir(appDirPath).filePath("qt_dotnet_types.json"));
+    QFile metadataFile(QDir(appDirPath).filePath("qt_bridge_metadata.json"));
     if (!metadataFile.open(QIODevice::ReadOnly))
         return warn("Error loading metadata file");
 

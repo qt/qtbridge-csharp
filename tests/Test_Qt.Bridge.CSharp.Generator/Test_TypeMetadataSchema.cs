@@ -61,7 +61,7 @@ namespace Test_Qt.Bridge.CSharp.Generator
         private static JsonNode LoadManualSampleMetadataJson()
         {
             return JsonNode.Parse(File.ReadAllText(Path.Combine(
-                RepoRoot, "tests", "manual", "MTest_DynamicObject", "qt_dotnet_types.json")))!;
+                RepoRoot, "tests", "manual", "MTest_DynamicObject", "qt_bridge_metadata.json")))!;
         }
 
         private static string FindRepoRoot()

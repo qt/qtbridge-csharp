@@ -48,7 +48,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="qt_dotnet_types.json">
+    <Content Include="qt_bridge_metadata.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
