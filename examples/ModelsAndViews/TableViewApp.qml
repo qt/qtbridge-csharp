@@ -5,57 +5,54 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-ApplicationWindow {
-    id: appWin; width: 220; height: 240; visible: true
+ExampleWindow {
+    screenColumn: 1
     title: "Table"
 
     TableData {
         id: data
     }
 
+    function selectRow(row) {
+        Qt.callLater(function() {
+            view.forceLayout()
+            if (view.rows > 0) {
+                view.selectionModel.setCurrentIndex(
+                    view.index(Math.min(row, view.rows - 1), 0), ItemSelectionModel.Current)
+            } else {
+                view.selectionModel.clearCurrentIndex()
+            }
+        })
+    }
+
     GridLayout {
         anchors.fill: parent
+        anchors.margins: 8
         columns: 2
-        rowSpacing: 0
-        columnSpacing: 0
+        rowSpacing: 8
+        columnSpacing: 8
 
         RowLayout {
             Layout.columnSpan: 2
+            Layout.fillWidth: true
             Button {
+                Layout.fillWidth: true
                 text: "Insert"
                 onClicked: {
                     var row = view.selectionModel.currentIndex.row
                     var at = row >= 0 ? Math.min(row + 1, view.rows) : view.rows
-                    if (!data.insertRows(at, 1))
-                        return;
-
-                    Qt.callLater(function() {
-                        view.forceLayout()
-                        if (view.rows > at) {
-                            view.selectionModel.setCurrentIndex(view.index(at, 0),
-                                ItemSelectionModel.Current)
-                        }
-                    })
+                    if (data.insertRows(at, 1))
+                        selectRow(at)
                 }
             }
             Button {
+                Layout.fillWidth: true
                 text: "Remove"
                 enabled: view.rows > 0 && view.selectionModel.currentIndex.valid
                 onClicked: {
                     var row = view.selectionModel.currentIndex.row
-                    if (!data.removeRows(row, 1))
-                        return;
-
-                    Qt.callLater(function() {
-                        view.forceLayout()
-                        if (view.rows > 0) {
-                            var nextRow = Math.min(row, view.rows - 1)
-                            view.selectionModel.setCurrentIndex(view.index(nextRow, 0),
-                                ItemSelectionModel.Current)
-                        } else {
-                            view.selectionModel.clearCurrentIndex()
-                        }
-                    })
+                    if (data.removeRows(row, 1))
+                        selectRow(row)
                 }
             }
         }
@@ -69,24 +66,22 @@ ApplicationWindow {
 
         VerticalHeaderView {
             Layout.fillHeight: true
-            implicitWidth: appWin.width / 10
+            implicitWidth: windowWidth() / 10
             syncView: view
         }
 
         TableView {
             id: view
             Layout.fillWidth: true; Layout.fillHeight: true
+            clip: true
             model: data
             selectionModel: ItemSelectionModel { }
             selectionBehavior: TableView.SelectRows
             selectionMode: TableView.SingleSelection
-            Component.onCompleted: {
-                if (rows > 0)
-                    selectionModel.setCurrentIndex(index(0, 0), ItemSelectionModel.Current)
-            }
+            Component.onCompleted: selectRow(0)
             delegate: TableViewDelegate {
                 implicitHeight: 40
-                implicitWidth: 9 * appWin.width / 20
+                implicitWidth: (windowWidth() - 16 - windowWidth() / 10 - 8) / 2
                 leftPadding: 10; topPadding: 10
             }
         }

@@ -4,10 +4,8 @@
 import QtQuick
 import QtQuick.Controls
 
-ApplicationWindow {
-    width: 240
-    height: 240
-    visible: true
+ExampleWindow {
+    screenColumn: 1; screenRow: 1
     title: "Simple Tree"
 
     SimpleTreeData {
@@ -16,6 +14,8 @@ ApplicationWindow {
 
     TreeView {
         anchors.fill: parent
+        anchors.margins: 8
+        clip: true
         model: data
         columnWidthProvider: function(column) {
             return width
