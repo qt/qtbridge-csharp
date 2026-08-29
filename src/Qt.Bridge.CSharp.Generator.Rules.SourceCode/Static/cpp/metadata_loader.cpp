@@ -199,7 +199,7 @@ bool loadType(const QJsonObject &jsonType, std::function<void()> qml_register_ty
     if (const auto &jsonQml = jsonType["qt"]["isQmlElement"]; jsonQml.isBool())
         isQmlElement = jsonQml.toBool();
 
-    auto baseClass = jsonType["qt"]["model"].isNull() ? BaseClass::Object : BaseClass::Model;
+    auto baseClass = !jsonType["qt"]["model"].isObject() ? BaseClass::Object : BaseClass::Model;
     if (const auto &jsonBaseClass = jsonType["qt"]["model"]["baseClass"]; jsonBaseClass.isString())
         baseClass = modelBaseClasses[jsonBaseClass.toString()];
 

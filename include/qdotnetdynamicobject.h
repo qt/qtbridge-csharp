@@ -588,12 +588,28 @@ private:
             return static_cast<QQmlParserStatus *>(this);
         if (!strcmp(_clname, "org.qt-project.Qt.QQmlParserStatus"))
             return static_cast<QQmlParserStatus *>(this);
-        return QAbstractItemModel::qt_metacast(_clname);
+        switch (type->baseClass) {
+        case BaseClass::Model:
+        case BaseClass::ListModel:
+        case BaseClass::TableModel:
+            return QAbstractItemModel::qt_metacast(_clname);
+        default:
+            return QObject::qt_metacast(_clname);
+        }
     }
 
     int qt_metacall(QMetaObject::Call _c, int _id, void **_a) override
     {
-        _id = QAbstractItemModel::qt_metacall(_c, _id, _a);
+        switch (type->baseClass) {
+        case BaseClass::Model:
+        case BaseClass::ListModel:
+        case BaseClass::TableModel:
+            _id = QAbstractItemModel::qt_metacall(_c, _id, _a);
+            break;
+        default:
+            _id = QObject::qt_metacall(_c, _id, _a);
+            break;
+        }
         if (_id < 0)
             return _id;
 
