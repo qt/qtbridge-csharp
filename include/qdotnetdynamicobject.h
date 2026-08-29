@@ -8,6 +8,7 @@
 #include "qdotnetevent.h"
 #include "qdotnetobject.h"
 #include "qdotnetparameter.h"
+#include "qdotnetprofiler.h"
 #include "qdotnetreflection.h"
 #include "qdotnettype.h"
 
@@ -39,6 +40,8 @@ class QDotNetDynamicObject : public QAbstractItemModel,
                              public QQmlParserStatus,
                              public QDotNetObject
 {
+    Q_DOTNET_PROFILE_SCOPE(QDotNetDynamicObject);
+
     struct DynamicType;
     struct DynamicMethod;
     struct DynamicProperty;
@@ -90,6 +93,8 @@ public:
                                           BaseClass baseClass = BaseClass::Object,
                                           ModelOverrides modelOverrides = ModelOverride::None)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!QCoreApplication::startingUp())
             return nullptr;
 
@@ -130,6 +135,8 @@ public:
     static bool addMethod(QMetaObjectBuilder *typeDef, const QString &methodName, int token,
                           const QMetaMethodBuilder &methodDef, QList<QDotNetParameter> params)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!QCoreApplication::startingUp())
             return false;
 
@@ -158,6 +165,8 @@ public:
                             const QMetaPropertyBuilder &propertyDef, QDotNetParameter getReturnType,
                             QDotNetParameter setValueType)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!QCoreApplication::startingUp())
             return false;
 
@@ -185,6 +194,8 @@ public:
     static bool addEvent(QMetaObjectBuilder *typeDef, const QString &eventName,
                          const QMetaMethodBuilder &signalDef)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!QCoreApplication::startingUp())
             return false;
 
@@ -211,6 +222,8 @@ public:
 
     static const QMetaObject *buildType(QMetaObjectBuilder *typeDef)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return buildType(typeDef, "", "", 0, 0, nullptr);
     }
 
@@ -218,6 +231,8 @@ public:
                                         const QString &qmlUri, int major, int minor,
                                         std::function<void()> qml_register_types = nullptr)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         using namespace QQmlPrivate;
 
         if (!QCoreApplication::startingUp())
@@ -298,6 +313,8 @@ public:
 
     QDotNetDynamicObject(QDotNetDynamicObject &&obj) : type(obj.type)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         moveFrom(obj);
 
         eventHandlers = obj.eventHandlers;
@@ -312,10 +329,17 @@ public:
         obj.qmlElement = nullptr;
     }
 
-    static void *operator new(std::size_t count) { return ::operator new(count); }
+    static void *operator new(std::size_t count)
+    {
+        Q_DOTNET_PROFILE_FUNC();
+
+        return ::operator new(count);
+    }
 
     static void *operator new(std::size_t, void *ptr)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         assert(ptr);
         objectPlacementAddrs.insert(ptr);
         return ptr;
@@ -323,6 +347,8 @@ public:
 
     static void operator delete(void *ptr)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (objectPlacementAddrs.contains(ptr))
             objectPlacementAddrs.remove(ptr);
         else
@@ -340,6 +366,8 @@ public:
     static QObject *dispatch(QDotNetRef &dotNetObj, const QString &qualifiedTypeName,
                              const QObject *context = nullptr)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         const auto &itDynamicType = dynamicTypesByName.find(qualifiedTypeName);
         if (itDynamicType == dynamicTypesByName.end()) {
             qWarning() << "QDotNetDynamicObject: Unrecognized type:" << qualifiedTypeName;
@@ -360,18 +388,24 @@ private:
 
     QDotNetDynamicObject(DynamicType *type, QDotNetRef &&obj) : type(type)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         moveFrom(obj);
         init();
     }
 
     QDotNetDynamicObject(DynamicType *type, const QDotNetRef &obj) : type(type)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         copyFrom(obj);
         init();
     }
 
     void init()
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init(type);
         initEvents();
         initModel();
@@ -380,6 +414,8 @@ private:
 
     static void init(DynamicType *type)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!type->assembly.isValid()) {
             QDotNetAssembly assembly = adapter().loadAssembly(type->assemblyName);
             if (!assembly.isValid()) {
@@ -407,6 +443,8 @@ private:
 
     void cleanUp()
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         cleanUpEvents();
         cleanUpModel();
         cleanUpQmlElement();
@@ -414,12 +452,16 @@ private:
 
     void initEvents()
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         for (auto *event : type->events)
             eventHandlers.append(new DynamicEventHandler(this, event));
     }
 
     void cleanUpEvents()
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         for (auto *eventHandler : eventHandlers)
             delete eventHandler;
         eventHandlers.clear();
@@ -427,6 +469,8 @@ private:
 
     void initModel()
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (model)
             return;
 
@@ -488,6 +532,8 @@ private:
 
     void cleanUpModel()
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model)
             return;
         delete model;
@@ -496,6 +542,8 @@ private:
 
     void initQmlElement()
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!QDotNetObject::type().isAssignableTo<IQmlElement>()) {
             qWarning() << "QDotNetDynamicObject: missing IQmlElement implementation:" << type->name;
             return;
@@ -509,6 +557,8 @@ private:
 
     void cleanUpQmlElement()
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!qmlElement)
             return;
         delete qmlElement;
@@ -517,6 +567,8 @@ private:
 
     static void createObject(void *memory, void *args)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!createInstance.isValid()) {
             createInstance =
                     adapter().resolveStaticMethod("System.Activator", "CreateInstance",
@@ -542,6 +594,8 @@ private:
 
     void classBegin() override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!qmlElement || !qmlElement->fnQmlClassBegin.isValid())
             return;
         qmlElement->fnQmlClassBegin();
@@ -549,6 +603,8 @@ private:
 
     void componentComplete() override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!qmlElement || !qmlElement->fnQmlComponentComplete.isValid())
             return;
 
@@ -580,6 +636,8 @@ private:
 
     void *qt_metacast(const char *_clname) override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!_clname)
             return nullptr;
         if (_clname == QDotNetObject::ClassName || !strcmp(_clname, QDotNetObject::ClassName))
@@ -600,6 +658,8 @@ private:
 
     int qt_metacall(QMetaObject::Call _c, int _id, void **_a) override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         switch (type->baseClass) {
         case BaseClass::Model:
         case BaseClass::ListModel:
@@ -647,6 +707,8 @@ private:
 
     static void staticMetacall(QObject *obj, QMetaObject::Call call, int id, void **args)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         const auto &itTypeDef = typeDefs.find(obj->metaObject());
         if (itTypeDef == typeDefs.end())
             return;
@@ -705,6 +767,9 @@ private:
 
     static void invokeMetaMethod(QDotNetDynamicObject *obj, DynamicMethod *method, void **args)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
+        Q_DOTNET_PROFILER(profileResolve , "invokeMetaMethod_resolve");
         if (!method->methodInfo.isValid()) {
             if (method->token)
                 method->methodInfo = method->declaringType->module.resolveMethod(method->token);
@@ -715,18 +780,30 @@ private:
                 return;
             }
         }
+        Q_DOTNET_PROFILER_STOP(profileResolve);
 
+        Q_DOTNET_PROFILER(profileArgs, "invokeMetaMethod_args");
         QDotNetArray<QDotNetRef> argValues(method->params.count() - 1);
-        for (int i = 1; i < method->params.count(); ++i)
+        for (int i = 1; i < method->params.count(); ++i) {
+            Q_DOTNET_PROFILE("invokeMetaMethod_setArg");
             argValues.set(i - 1, readArg(method->params[i], args[i]));
+        }
+        Q_DOTNET_PROFILER_STOP(profileArgs);
 
+        Q_DOTNET_PROFILER(profileInvoke, "invokeMetaMethod_invoke");
         auto result = method->methodInfo.invoke(*obj, argValues);
+        Q_DOTNET_PROFILER_STOP(profileInvoke);
+
+        Q_DOTNET_PROFILER(profileResult, "invokeMetaMethod_result");
         if (result.isValid())
             obj->writeResult(method->params[0], args[0], result);
+        Q_DOTNET_PROFILER_STOP(profileResult);
     }
 
     static void readProperty(QDotNetDynamicObject *obj, DynamicProperty *prop, void **args)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!prop->propertyInfo.isValid()) {
             prop->propertyInfo = prop->declaringType->typeInfo.property(prop->name);
             if (!prop->propertyInfo.isValid()) {
@@ -747,6 +824,8 @@ private:
 
     static void writeProperty(QDotNetDynamicObject *obj, DynamicProperty *prop, void **args)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!prop->propertyInfo.isValid()) {
             prop->propertyInfo = prop->declaringType->typeInfo.property(prop->name);
             if (!prop->propertyInfo.isValid()) {
@@ -766,6 +845,8 @@ private:
 
     static QDotNetRef readArg(const Parameter &param, void *arg)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         switch (param.unmanagedType) {
         case UnmanagedType::Bool:
             return QDotNetConvert::fromBoolean(*reinterpret_cast<bool *>(arg));
@@ -807,6 +888,8 @@ private:
 
     void writeResult(const Parameter &param, void *arg, QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         switch (param.unmanagedType) {
         case UnmanagedType::Bool:
             *reinterpret_cast<bool *>(arg) = QDotNetConvert::toBoolean(obj);
@@ -872,6 +955,8 @@ private:
 
         void handleEvent(const QString &name, QDotNetObject &sender, QDotNetObject &args) override
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             if (!args.isValid())
                 return;
 
@@ -901,6 +986,8 @@ private:
 
     void onEvent(DynamicEvent *event, QObject *args)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (event->idxEventSignal < 0)
             return;
         auto idxSignal = type->metaObject->methodOffset() + event->idxEventSignal;
@@ -910,6 +997,8 @@ private:
 
     void onPropertyChanged(const QString &propertyName)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         const auto &itProperty = type->propertiesByName.find(propertyName);
         if (itProperty == type->propertiesByName.end())
             return;
@@ -930,6 +1019,8 @@ private:
 
     QModelIndex setOwnIndex(const QModelIndex &idx) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (idx.model() != nullptr && idx.model() != reinterpret_cast<void *>(-1))
             return QModelIndex(idx);
         return createIndex(idx.row(), idx.column(), idx.internalId());
@@ -937,6 +1028,8 @@ private:
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnRowCount.isValid())
             return {};
         return model->fnRowCount(parent);
@@ -944,6 +1037,8 @@ private:
 
     int columnCount(const QModelIndex &parent) const override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model)
             return {};
         if (!model->fnColumnCount.isValid()) {
@@ -959,6 +1054,8 @@ private:
 
     QHash<int, QByteArray> roleNames() const override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnRoleNames.isValid())
             return QAbstractItemModel::roleNames();
 
@@ -980,6 +1077,8 @@ private:
 
     bool canFetchMore(const QModelIndex &parent) const override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnCanFetchMore.isValid())
             return QAbstractItemModel::canFetchMore(parent);
         return model->fnCanFetchMore(parent);
@@ -987,6 +1086,8 @@ private:
 
     Qt::ItemFlags flags(const QModelIndex &idx) const override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model)
             return QAbstractItemModel::flags(idx);
         if (!model->fnFlags.isValid()) {
@@ -1007,6 +1108,8 @@ private:
 
     bool hasChildren(const QModelIndex &parent) const override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model)
             return QAbstractItemModel::hasChildren(parent);
         if (!model->fnHasChildren.isValid()) {
@@ -1026,6 +1129,8 @@ private:
 
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model)
             return {};
         if (!model->fnIndex.isValid()) {
@@ -1042,6 +1147,8 @@ private:
 
     QModelIndex parent(const QModelIndex &idx) const override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model)
             return {};
         if (!model->fnParent.isValid()) {
@@ -1058,6 +1165,8 @@ private:
 
     QModelIndex sibling(int row, int column, const QModelIndex &idx) const override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model)
             return QAbstractItemModel::sibling(row, column, idx);
         if (!model->fnSibling.isValid()) {
@@ -1075,6 +1184,8 @@ private:
 
     QModelIndex buddy(const QModelIndex &idx) const override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnBuddy.isValid())
             return QAbstractItemModel::buddy(idx);
         return setOwnIndex(model->fnBuddy(idx));
@@ -1082,6 +1193,8 @@ private:
 
     QVariant data(const QModelIndex &idx, int role) const override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnData.isValid())
             return {};
         auto result = model->fnData(idx, role);
@@ -1090,6 +1203,8 @@ private:
 
     QVariant headerData(int section, Qt::Orientation ori, int role) const override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnHeaderData.isValid())
             return QAbstractItemModel::headerData(section, ori, role);
         auto result = model->fnHeaderData(section, ori, role);
@@ -1098,6 +1213,8 @@ private:
 
     bool insertRows(int row, int count, const QModelIndex &parent) override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnInsertRows.isValid())
             return QAbstractItemModel::insertRows(row, count, parent);
         return model->fnInsertRows(row, count, parent);
@@ -1105,6 +1222,8 @@ private:
 
     bool insertColumns(int column, int count, const QModelIndex &parent) override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnInsertColumns.isValid())
             return QAbstractItemModel::insertColumns(column, count, parent);
         return model->fnInsertColumns(column, count, parent);
@@ -1113,6 +1232,8 @@ private:
     bool moveRows(const QModelIndex &srcParent, int srcRow, int count,
                   const QModelIndex &destParent, int destChild) override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnMoveRows.isValid())
             return QAbstractItemModel::moveRows(srcParent, srcRow, count, destParent, destChild);
         return model->fnMoveRows(srcParent, srcRow, count, destParent, destChild);
@@ -1121,6 +1242,8 @@ private:
     bool moveColumns(const QModelIndex &srcParent, int srcCol, int count,
                      const QModelIndex &destParent, int destChild) override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnMoveColumns.isValid())
             return QAbstractItemModel::moveColumns(srcParent, srcCol, count, destParent, destChild);
         return model->fnMoveColumns(srcParent, srcCol, count, destParent, destChild);
@@ -1128,6 +1251,8 @@ private:
 
     bool removeRows(int row, int count, const QModelIndex &parent) override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnRemoveRows.isValid())
             return QAbstractItemModel::removeRows(row, count, parent);
         return model->fnRemoveRows(row, count, parent);
@@ -1135,6 +1260,8 @@ private:
 
     bool removeColumns(int column, int count, const QModelIndex &parent) override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnRemoveColumns.isValid())
             return QAbstractItemModel::removeColumns(column, count, parent);
         return model->fnRemoveColumns(column, count, parent);
@@ -1142,6 +1269,8 @@ private:
 
     void sort(int column, Qt::SortOrder order) override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnSort.isValid())
             return QAbstractItemModel::sort(column, order);
         model->fnSort(column, order);
@@ -1149,6 +1278,8 @@ private:
 
     void fetchMore(const QModelIndex &parent) override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnFetchMore.isValid())
             return QAbstractItemModel::fetchMore(parent);
         model->fnFetchMore(parent);
@@ -1156,6 +1287,8 @@ private:
 
     bool setData(const QModelIndex &idx, const QVariant &value, int role) override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnSetData.isValid())
             return QAbstractItemModel::setData(idx, value, role);
         return model->fnSetData(idx, QDotNetConvert::fromVariant(value), role);
@@ -1163,6 +1296,8 @@ private:
 
     bool setHeaderData(int section, Qt::Orientation ori, const QVariant &value, int role) override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!model || !model->fnSetHeaderData.isValid())
             return QAbstractItemModel::setHeaderData(section, ori, value, role);
         return model->fnSetHeaderData(section, ori, QDotNetConvert::fromVariant(value), role);
@@ -1170,6 +1305,8 @@ private:
 
     void onModelDataChanged(QDotNetModelEvent &args)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         // NOTE: Do not change invokeMethod using Qt::AutoConnection
         //   * Emit must run on the object's thread.
         QMetaObject::invokeMethod(this, [=]() mutable {

@@ -4,6 +4,7 @@
 #include <metadata_loader.h>
 
 #include <QDotNetDynamicObject>
+#include <QDotNetProfiler>
 
 #include <QByteArray>
 #include <QDir>
@@ -18,6 +19,8 @@
 #include <QtDebug>
 
 namespace {
+
+Q_DOTNET_PROFILE_SCOPE(MetaDataLoader);
 
 using BaseClass = QDotNetDynamicObject::BaseClass;
 using ModelOverride = QDotNetDynamicObject::ModelOverride;
@@ -34,6 +37,8 @@ struct BuiltInType
 template <typename T>
 BuiltInType builtInType()
 {
+    Q_DOTNET_PROFILE_FUNC();
+
     return { static_cast<QMetaType::Type>(QMetaType::fromType<T>().id()),
              QDotNetInbound<T>::Parameter, QDotNetOutbound<T>::Parameter };
 }
@@ -41,6 +46,8 @@ BuiltInType builtInType()
 template <>
 BuiltInType builtInType<QVariant>()
 {
+    Q_DOTNET_PROFILE_FUNC();
+
     return { QMetaType::Type::QVariant, QDotNetInbound<QDotNetObject>::Parameter,
              QDotNetOutbound<QDotNetObject>::Parameter };
 }
@@ -91,6 +98,8 @@ QHash<QString, ModelOverride> modelOverrides = {
 
 bool warn(const QString &msg, const QJsonValue &json = {})
 {
+    Q_DOTNET_PROFILE_FUNC();
+
     qWarning() << "Metadata Loader:" << msg;
     if (!json.isNull())
         qWarning() << json;
@@ -99,11 +108,15 @@ bool warn(const QString &msg, const QJsonValue &json = {})
 
 QString camelStr(const QString &pascalStr)
 {
+    Q_DOTNET_PROFILE_FUNC();
+
     return QString(pascalStr).replace(0, 1, pascalStr[0].toLower());
 }
 
 bool loadMethod(QMetaObjectBuilder *typeDef, const QJsonObject &jsonMethod)
 {
+    Q_DOTNET_PROFILE_FUNC();
+
     auto methodName = jsonMethod["dotNet"]["name"].toString();
 
     int token = 0;
@@ -139,6 +152,8 @@ bool loadMethod(QMetaObjectBuilder *typeDef, const QJsonObject &jsonMethod)
 
 bool loadEvent(QMetaObjectBuilder *typeDef, const QJsonObject &jsonEvent)
 {
+    Q_DOTNET_PROFILE_FUNC();
+
     auto eventName = jsonEvent["dotNet"]["name"].toString();
 
     auto qtSignal = camelStr(eventName);
@@ -154,6 +169,8 @@ bool loadEvent(QMetaObjectBuilder *typeDef, const QJsonObject &jsonEvent)
 
 bool loadProperty(QMetaObjectBuilder *typeDef, const QJsonObject &jsonProp)
 {
+    Q_DOTNET_PROFILE_FUNC();
+
     auto propName = jsonProp["dotNet"]["name"].toString();
 
     auto propQtName = camelStr(propName);
@@ -189,6 +206,8 @@ bool loadProperty(QMetaObjectBuilder *typeDef, const QJsonObject &jsonProp)
 
 bool loadType(const QJsonObject &jsonType, std::function<void()> qml_register_types)
 {
+    Q_DOTNET_PROFILE_FUNC();
+
     auto typeName = jsonType["dotNet"]["name"].toString();
 
     auto qualifiedTypeName = jsonType["dotNet"]["assemblyQualifiedName"].toString();
@@ -250,6 +269,8 @@ bool loadType(const QJsonObject &jsonType, std::function<void()> qml_register_ty
 
 bool validateMetadata(const QJsonDocument &metadata)
 {
+    Q_DOTNET_PROFILE_FUNC();
+
     // Placeholder for a future implementation of native-side validation of the metadata file.
     //   * This could be a full JSON schema validation or, in the case of generated metadata files,
     //     a faster check, for example: verifying a signature added to the file by the 'qbgen' tool.
@@ -260,6 +281,8 @@ bool validateMetadata(const QJsonDocument &metadata)
 
 bool QtDotNet::loadTypeMetadata(const QString &appDirPath, std::function<void()> qml_register_types)
 {
+    Q_DOTNET_PROFILE_FUNC();
+
     QFile metadataFile(QDir(appDirPath).filePath("qt_bridge_metadata.json"));
     if (!metadataFile.open(QIODevice::ReadOnly))
         return warn("Error loading metadata file");

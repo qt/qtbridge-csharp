@@ -45,6 +45,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
 "#include <QDotNetRef>",
 "#include <QDotNetStatic>",
 "#include <QDotNetConvert>",
+@"#include <QDotNetProfiler>
+Q_DOTNET_PROFILER(main_profiler, ""qt_main_thread"");",
 "#include <object_dispatch.h>",
 "#include <metadata_loader.h>",
 "#include <qml_register_types.h>"
@@ -90,6 +92,7 @@ int main(int argc, char *argv[])
     auto *dotnetThread = QThread::create(
         [&args, &app, &dotNetHost, &assemblyPath, &dotNetResult, &dotNetExited]()
         {{
+            Q_DOTNET_PROFILE(""dotnet_main_thread"");
             dotNetHost.loadApp(assemblyPath, args);
             dotNetResult = dotNetHost.runApp();
             dotNetExited = true;
@@ -123,6 +126,10 @@ int main(int argc, char *argv[])
 
     auto res = app.exec();
     dotnetThread->wait();
+
+    Q_DOTNET_PROFILER_STOP(main_profiler);
+    Q_DOTNET_PROFILER_WRITE_LOG(QDir(appDirPath).filePath(""qt_dotnet_profiler.log""));
+
 #ifdef Q_OS_WINDOWS
     ExitProcess(res);
 #endif

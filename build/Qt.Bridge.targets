@@ -290,10 +290,17 @@ namespace Qt.Qml
         "$(ProjectQtNativeRootDir)", "source_code_status.txt"))))</QtGenSourceCode>
     </PropertyGroup>
 
+    <ItemGroup>
+      <QtDotnetCMake
+        Include="include_directories(&quot;$(QtDotNetLib.Replace('\', '/'))&quot;)" />
+      <QtDotnetCMake Condition="'$(QtDotNetProfiler)' == 'enable'"
+        Include="add_compile_definitions(ENABLE_QDOTNETPROFILER)" />
+    </ItemGroup>
+
     <WriteLinesToFile Condition="'$(QtGenSourceCode)' == 'true'"
       Overwrite="true" WriteOnlyWhenDifferent="true"
       File="$(QtNativeSourceDir)/qtdotnet.cmake"
-      Lines="include_directories(&quot;$(QtDotNetLib.Replace('\', '/'))&quot;)" />
+      Lines="@(QtDotnetCMake)" />
 
     <ItemGroup Condition="'$(QtGenSourceCode)' == 'true'">
       <QtDotNetNativeSource Include="$(QtNativeSourceDir)/**/*" />

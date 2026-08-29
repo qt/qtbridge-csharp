@@ -26,6 +26,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "include", "include", "{63F4
 		include\qdotnetmarshal.h = include\qdotnetmarshal.h
 		include\qdotnetobject.h = include\qdotnetobject.h
 		include\qdotnetparameter.h = include\qdotnetparameter.h
+		include\qdotnetprofiler.h = include\qdotnetprofiler.h
 		include\qdotnetref.h = include\qdotnetref.h
 		include\qdotnetreflection.h = include\qdotnetreflection.h
 		include\qdotnetsafemethod.h = include\qdotnetsafemethod.h
@@ -218,6 +219,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Paths", "utils\Paths\Paths.csproj", "{49D3E526-5440-4AD2-950F-4F6BF08B0B33}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Qt.Bridge.CSharp.AppHost", "src\Qt.Bridge.CSharp.AppHost\Qt.Bridge.CSharp.AppHost.csproj", "{C10AE556-35B7-458F-0EF4-78AD799F910D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Profiler", "utils\Profiler\Profiler.csproj", "{DED6A218-68C8-50AC-06F6-C1757CF94990}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -603,6 +606,18 @@ Global
 		{C10AE556-35B7-458F-0EF4-78AD799F910D}.Release|x64.Build.0 = Release|Any CPU
 		{C10AE556-35B7-458F-0EF4-78AD799F910D}.Release|x86.ActiveCfg = Release|Any CPU
 		{C10AE556-35B7-458F-0EF4-78AD799F910D}.Release|x86.Build.0 = Release|Any CPU
+		{DED6A218-68C8-50AC-06F6-C1757CF94990}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DED6A218-68C8-50AC-06F6-C1757CF94990}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DED6A218-68C8-50AC-06F6-C1757CF94990}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DED6A218-68C8-50AC-06F6-C1757CF94990}.Debug|x64.Build.0 = Debug|Any CPU
+		{DED6A218-68C8-50AC-06F6-C1757CF94990}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DED6A218-68C8-50AC-06F6-C1757CF94990}.Debug|x86.Build.0 = Debug|Any CPU
+		{DED6A218-68C8-50AC-06F6-C1757CF94990}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DED6A218-68C8-50AC-06F6-C1757CF94990}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DED6A218-68C8-50AC-06F6-C1757CF94990}.Release|x64.ActiveCfg = Release|Any CPU
+		{DED6A218-68C8-50AC-06F6-C1757CF94990}.Release|x64.Build.0 = Release|Any CPU
+		{DED6A218-68C8-50AC-06F6-C1757CF94990}.Release|x86.ActiveCfg = Release|Any CPU
+		{DED6A218-68C8-50AC-06F6-C1757CF94990}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -658,6 +673,7 @@ Global
 		{2DA9A41A-CBF5-8485-4718-3AE7F05FB40E} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{49D3E526-5440-4AD2-950F-4F6BF08B0B33} = {6C631C62-472F-4D89-A382-541CD62A6781}
 		{C10AE556-35B7-458F-0EF4-78AD799F910D} = {EE16DD31-3C19-4809-8AB3-2C6108598A1B}
+		{DED6A218-68C8-50AC-06F6-C1757CF94990} = {6C631C62-472F-4D89-A382-541CD62A6781}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E4CDB648-EF1A-4ADE-B6EA-D4E9D668E676}
