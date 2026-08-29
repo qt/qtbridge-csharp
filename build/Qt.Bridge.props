@@ -143,4 +143,9 @@
               ;$(IntermediateOutputPath)qt/native/build/**/*" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <!-- TO-DO: Remove this after safe-method optimizations -->
+    <QtDotNetSafeMethod Condition="'$(QtDotNetSafeMethod)' == ''">disable</QtDotNetSafeMethod>
+  </PropertyGroup>
+
 </Project>

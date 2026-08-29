@@ -295,6 +295,8 @@ namespace Qt.Qml
         Include="include_directories(&quot;$(QtDotNetLib.Replace('\', '/'))&quot;)" />
       <QtDotnetCMake Condition="'$(QtDotNetProfiler)' == 'enable'"
         Include="add_compile_definitions(ENABLE_QDOTNETPROFILER)" />
+      <QtDotnetCMake Condition="'$(QtDotNetSafeMethod)' == 'disable'"
+        Include="add_compile_definitions(DISABLE_QDOTNETSAFEMETHOD)" />
     </ItemGroup>
 
     <WriteLinesToFile Condition="'$(QtGenSourceCode)' == 'true'"

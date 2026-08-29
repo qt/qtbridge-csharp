@@ -5,6 +5,10 @@
 
 #include "qdotnetexception.h"
 
+#ifdef DISABLE_QDOTNETSAFEMETHOD
+#  define QDotNetSafeMethod QDotNetFunction
+#else
+
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wconversion"
@@ -167,3 +171,5 @@ private:
     FuncType func = nullptr;
     SafeFuncType safeFunc = nullptr;
 };
+
+#endif // !defined(DISABLE_QDOTNETSAFEMETHOD)

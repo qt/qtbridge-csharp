@@ -204,6 +204,7 @@ public:
         return func;
     }
 
+#ifndef DISABLE_QDOTNETSAFEMETHOD
     template<typename TResult, typename ...TArg>
     static QDotNetSafeMethod<TResult, TArg...> &staticMethod(const QString &typeName,
         const QString &methodName, QDotNetSafeMethod<TResult, TArg...> &func)
@@ -212,6 +213,7 @@ public:
             func = staticMethod<TResult, TArg...>(typeName, methodName);
         return func;
     }
+#endif
 
     template<typename TResult, typename ...TArg>
     QDotNetFunction<TResult, TArg...> staticMethod(const QString &methodName) const
@@ -228,6 +230,7 @@ public:
         return func;
     }
 
+#ifndef DISABLE_QDOTNETSAFEMETHOD
     template<typename TResult, typename ...TArg>
     QDotNetSafeMethod<TResult, TArg...> &staticMethod(const QString &methodName,
         QDotNetSafeMethod<TResult, TArg...> &func) const
@@ -236,6 +239,7 @@ public:
             func = staticMethod<TResult, TArg...>(methodName);
         return func;
     }
+#endif
 
     template<typename T, typename ...TArg>
     static QDotNetFunction<T, TArg...> constructor(const QString &typeName)
@@ -257,6 +261,7 @@ public:
         return ctor;
     }
 
+#ifndef DISABLE_QDOTNETSAFEMETHOD
     template<typename T, typename ...TArg>
     static QDotNetSafeMethod<T, TArg...> &constructor(const QString &typeName,
         QDotNetSafeMethod<T, TArg...> &ctor)
@@ -265,6 +270,7 @@ public:
             ctor = constructor<T, TArg...>(typeName);
         return ctor;
     }
+#endif
 
     template<typename T, typename ...TArg>
     QDotNetFunction<T, TArg...> constructor() const
@@ -278,11 +284,13 @@ public:
         return constructor(assemblyQualifiedName(), ctor);
     }
 
+#ifndef DISABLE_QDOTNETSAFEMETHOD
     template<typename T, typename ...TArg>
     QDotNetFunction<T, TArg...> &constructor(QDotNetSafeMethod<T, TArg...> &ctor) const
     {
         return constructor(assemblyQualifiedName(), ctor);
     }
+#endif
 
     void freeTypeRef()
     {

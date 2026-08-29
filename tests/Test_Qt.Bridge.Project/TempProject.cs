@@ -21,19 +21,19 @@ namespace Test_Qt.Bridge.Project
 
     public class CreationOptions
     {
-        public string Filename { get; init; }
-        public string Extension { get; init; }
-        public OutputType OutputType { get; init; } = OutputType.Exe;
-        public string TargetFramework { get; init; }
-        public bool ImplicitUsings { get; init; } = true;
-        public bool Nullable { get; init; } = false;
-        public List<(string Id, string Version)> PackageReferences { get; init; } = [];
-        public string BeforeSdkProps { get; init; } = string.Empty;
-        public string AfterSdkProps { get; init; } = string.Empty;
-        public string BeforeSdkTargets { get; init; } = string.Empty;
-        public string AfterSdkTargets { get; init; } = string.Empty;
-        public bool LocalPackages { get; init; } = false;
-        public IEnumerable<(string Old, string New)> ReplaceGeneratedFiles { get; init; } = [];
+        public string Filename { get; set; }
+        public string Extension { get; set; }
+        public OutputType OutputType { get; set; } = OutputType.Exe;
+        public string TargetFramework { get; set; }
+        public bool ImplicitUsings { get; set; } = true;
+        public bool Nullable { get; set; } = false;
+        public List<(string Id, string Version)> PackageReferences { get; set; } = [];
+        public string BeforeSdkProps { get; set; } = string.Empty;
+        public string AfterSdkProps { get; set; } = string.Empty;
+        public string BeforeSdkTargets { get; set; } = string.Empty;
+        public string AfterSdkTargets { get; set; } = string.Empty;
+        public bool LocalPackages { get; set; } = false;
+        public IEnumerable<(string Old, string New)> ReplaceGeneratedFiles { get; set; } = [];
         public bool Reset { get; set; } = true;
     }
 

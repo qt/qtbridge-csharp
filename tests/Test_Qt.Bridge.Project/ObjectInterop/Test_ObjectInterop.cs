@@ -15,6 +15,11 @@ namespace Test_Qt.Bridge.Project.ObjectInterop
             using var temp = new TempProject();
 
             var options = CreateQtTestOptions(Path.Combine("ObjectInterop", "main.cpp"));
+            options.BeforeSdkProps += """
+                <PropertyGroup>
+                  <QtDotNetSafeMethod>enable</QtDotNetSafeMethod>
+                </PropertyGroup>
+                """;
             await InitializeAndBuildAsync(temp, options, project =>
             {
                 project.CopyFile("Program.cs", Path.Combine("ObjectInterop", "Program.cs"));

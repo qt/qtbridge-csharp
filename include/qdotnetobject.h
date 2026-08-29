@@ -194,6 +194,7 @@ public:
         return func;
     }
 
+#ifndef DISABLE_QDOTNETSAFEMETHOD
     template<typename TResult, typename ...TArg>
     QDotNetSafeMethod<TResult, TArg...> &method(const QString &methodName,
         QDotNetSafeMethod<TResult, TArg...> &func) const
@@ -202,6 +203,7 @@ public:
             func = method<TResult, TArg...>(methodName);
         return func;
     }
+#endif
 
     template<typename TResult, typename ...TArg>
     QDotNetFunction<TResult, TArg...> staticMethod(const QString &methodName) const
@@ -218,6 +220,7 @@ public:
         return func;
     }
 
+#ifndef DISABLE_QDOTNETSAFEMETHOD
     template<typename TResult, typename ...TArg>
     QDotNetSafeMethod<TResult, TArg...> &staticMethod(const QString &methodName,
         QDotNetSafeMethod<TResult, TArg...> &func) const
@@ -226,6 +229,7 @@ public:
             func = type().staticMethod<TResult, TArg...>(methodName);
         return func;
     }
+#endif
 
     template<typename ...TArg>
     static QDotNetFunction<QDotNetObject, TArg...> constructor(const QString &typeName)
@@ -240,12 +244,14 @@ public:
         return QDotNetType::constructor(typeName, ctor);
     }
 
+#ifndef DISABLE_QDOTNETSAFEMETHOD
     template<typename ...TArg>
     static QDotNetSafeMethod<QDotNetObject, TArg...> &constructor(const QString &typeName,
         QDotNetSafeMethod<QDotNetObject, TArg...> &ctor)
     {
         return QDotNetType::constructor(typeName, ctor);
     }
+#endif
 
     template<typename T>
     QDotNetFunction<T, QDotNetRef> fieldGet(const QString &fieldName) const
@@ -330,11 +336,13 @@ protected:
         return QDotNetType::constructor(T::AssemblyQualifiedName, ctor);
     }
 
+#ifndef DISABLE_QDOTNETSAFEMETHOD
     template<typename T, typename ...TArg>
     static QDotNetSafeMethod<T, TArg...> &constructor(QDotNetSafeMethod<T, TArg...> &ctor)
     {
         return QDotNetType::constructor(T::AssemblyQualifiedName, ctor);
     }
+#endif
 
 private:
     static inline void QDOTNETFUNCTION_CALLTYPE eventCallback(void *context, void *eventNameChars,
