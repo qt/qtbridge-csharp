@@ -60,6 +60,7 @@
       >$(QtDotNetSolutionDir)src/Qt.Bridge.CSharp.AppHost/bin/$(Configuration)/$(TargetFramework)/qapphost</QtAppHost>
 
     <QtQmlFilesCs>qt/csharp/QmlFiles.cs</QtQmlFilesCs>
+    <QtGlobalsCs>qt/csharp/Globals.cs</QtGlobalsCs>
     <QtResourceFilesCs>qt/csharp/QtResources.cs</QtResourceFilesCs>
     <QtBridgeAssemblyResourceId Condition="'$(QtBridgeAssemblyResourceId)' == ''"
       >$(AssemblyName)</QtBridgeAssemblyResourceId>
