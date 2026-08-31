@@ -183,7 +183,7 @@
                     "name": {
                       "type": "string",
                       "description": "Exported name, defaults to camel-case version of dotnet name",
-                      "pattern": "^[a-z]\\\\w+$"
+                      "pattern": "^[a-z]\\w+$"
                     },
                     "type": {
                       "type": "string",
@@ -247,7 +247,7 @@
                     "signal": {
                       "type": "string",
                       "description": "Signal name, defaults to camel-case version of dotnet name",
-                      "pattern": "^[a-z]\\\\w+$"
+                      "pattern": "^[a-z]\\w+$"
                     }
                   }
                 }
@@ -289,7 +289,7 @@
                     "name": {
                       "type": "string",
                       "description": "Exported name, defaults to camel-case version of dotnet name",
-                      "pattern": "^[a-z]\\\\w+$"
+                      "pattern": "^[a-z]\\w+$"
                     },
                     "returnType": {
                       "type": "string",
@@ -348,7 +348,7 @@
                               "name": {
                                 "type": "string",
                                 "description": "Parameter name",
-                                "pattern": "^[a-z]\\\\w+$"
+                                "pattern": "^[a-z]\\w+$"
                               },
                               "type": {
                                 "type": "string",
