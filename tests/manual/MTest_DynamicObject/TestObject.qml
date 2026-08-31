@@ -46,6 +46,14 @@ Menu {
         Test { text: "(83) === 99194853094755497" }
     }
     TestMenu {
+        object: test.object; member: "item"; symbol: "𝑓"
+        Test { text: "(0) === 42" }
+    }
+    TestMenu {
+        object: test.object; member: "setItem"; symbol: "𝑓"
+        Test { text: "(0, 43) || " + test.object + ".item(0) === 43" }
+    }
+    TestMenu {
         object: test.object; member: "buildTimeTypeObj"; symbol: "𝑥"
         Test { text: ".toString()" }
         Test { text: ".equals(" + test.object + ")" }

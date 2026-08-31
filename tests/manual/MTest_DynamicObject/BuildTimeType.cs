@@ -52,6 +52,14 @@ namespace MTest_DynamicObject
         public Uri UriProperty { get; set; }
             = new("https://www.qt.io/development/qt-framework/qt-bridges");
 
+        private readonly List<int> indexerValues = [42, 43, 44];
+
+        public virtual int this[int index]
+        {
+            get => indexerValues[index];
+            set => indexerValues[index] = value;
+        }
+
         public virtual object BuildTimeTypeObj => BuildTimeType.BuildTimeTypeInstance;
 
         public virtual object LoadTimeTypeObj => LoadTimeType.LoadTimeTypeInstance;
