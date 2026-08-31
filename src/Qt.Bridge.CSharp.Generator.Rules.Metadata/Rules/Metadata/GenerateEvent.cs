@@ -11,9 +11,10 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
 
     public class GenerateEvent : Rule
     {
+        internal static bool IsSupported(EventInfo ev) => ev.AddMethod?.IsStatic == false;
+
         public override bool Matches(MemberInfo src) => src is EventInfo ev
-            && ev.AddMethod?.IsStatic == false
-            && ev.ReflectedType.ExportAsMetadata();
+            && IsSupported(ev) && ev.ReflectedType.ExportAsMetadata();
 
         public override Result Execute(MemberInfo src)
         {

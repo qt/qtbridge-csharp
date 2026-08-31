@@ -15,10 +15,7 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
             && src is Type type && type.ExportAsMetadata();
         public override Result Execute(MemberInfo src)
         {
-            if (src is not Type type)
-                return Error();
-
-            if (Root.GetPlaceholder(MetadataTypes) is not { } jsonTypes)
+            if (src is not Type type || Root.GetPlaceholder(MetadataTypes) is not { } jsonTypes)
                 return Error();
 
             ////////////////////////////////////////////////////////////////////////////////////////
@@ -80,7 +77,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
             ////////////////////////////////////////////////////////////////////////////////////////
             //
 
-            if (SourceGraph.NodeSet<PropertyInfo>().Any(p => p.ReflectedType == type)) {
+            if (SourceGraph.NodeSet<PropertyInfo>()
+                .Any(p => p.ReflectedType == type && GenerateProperty.IsSupported(p))) {
                 jsonType += $@"
 ""properties"": [
     {jsonType[new(MetadataProperties, type) { Sorted = true, Separator = "," }]}
@@ -90,7 +88,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
             ////////////////////////////////////////////////////////////////////////////////////////
             //
 
-            if (SourceGraph.NodeSet<EventInfo>().Any(p => p.ReflectedType == type)) {
+            if (SourceGraph.NodeSet<EventInfo>()
+                .Any(e => e.ReflectedType == type && GenerateEvent.IsSupported(e))) {
                 jsonType += $@"
 ""events"": [
     {jsonType[new(MetadataEvents, type) { Sorted = true, Separator = "," }]}
@@ -100,7 +99,10 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
             ////////////////////////////////////////////////////////////////////////////////////////
             //
 
-            if (SourceGraph.NodeSet<MethodInfo>().Any(p => p.ReflectedType == type)) {
+            if (SourceGraph.NodeSet<MethodInfo>()
+                .Any(m => m.ReflectedType == type && GenerateMethod.IsSupported(m))
+                || SourceGraph.NodeSet<PropertyInfo>()
+                .Any(p => p.ReflectedType == type && GenerateIndexer.IsSupported(p))) {
                 jsonType += $@"
 ""methods"": [
     {jsonType[new(MetadataMethods, type) { Sorted = true, Separator = "," }]}

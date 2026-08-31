@@ -12,8 +12,11 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
 
     public class GenerateProperty : Rule
     {
+        internal static bool IsSupported(PropertyInfo prop)
+            => !prop.IsStatic() && prop.GetIndexParameters() is not { Length: > 0 };
+
         public override bool Matches(MemberInfo src) => src is PropertyInfo prop
-            && prop.ReflectedType.ExportAsMetadata();
+            && IsSupported(prop) && prop.ReflectedType.ExportAsMetadata();
 
         public override Result Execute(MemberInfo src)
         {

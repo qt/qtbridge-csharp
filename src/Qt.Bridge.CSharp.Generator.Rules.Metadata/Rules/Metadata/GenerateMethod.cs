@@ -11,14 +11,26 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
 
     public class GenerateMethod : Rule
     {
-        public override bool Matches(MemberInfo src) => src is MethodInfo { IsStatic: false }
-            && !src.ReflectedType.IsStaticClass()
-            && src.ReflectedType.ExportAsMetadata();
+        internal static bool IsSupported(MethodInfo method)
+            => !method.IsStatic && !method.ReflectedType.IsStaticClass();
+
+        public override bool Matches(MemberInfo src) => src is MethodInfo method
+            && IsSupported(method) && method.ReflectedType.ExportAsMetadata();
 
         public override Result Execute(MemberInfo src)
         {
             if (src is not MethodInfo func)
                 return Error();
+
+            if (func.ReflectedType.GetPlaceholder(MetadataMethods) is not { } jsonFuncs)
+                return Error();
+
+            Append(jsonFuncs, func);
+            return Ok;
+        }
+
+        internal static void Append(Placeholder jsonFuncs, MethodInfo func, string qtName = null)
+        {
 
             var returnType = func.ReturnType switch
             {
@@ -34,9 +46,6 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
                 })
                 ?.ToArray() ?? [];
 
-            if (func.ReflectedType.GetPlaceholder(MetadataMethods) is not { } jsonFuncs)
-                return Error();
-
             Placeholder jsonFunc = null;
             jsonFuncs += $@"
 {{
@@ -51,7 +60,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
                 Sorted = false,
                 Separator = ",",
                 Content = [
-                    $@"""name"": ""{func.MFn(Src)}"""
+                    $@"""name"": ""{func.MFn(Src)}""",
+                    $@"""metadataToken"": {func.MetadataToken}"
                 ]
             }]}
 }},
@@ -61,6 +71,7 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
                 Sorted = false,
                 Separator = ",",
                 Content = [
+                    qtName is { Length: > 0 } ? $@"""name"": ""{qtName}""" : string.Empty,
                     $@"""returnType"": ""{returnType.MFn(Ns | Name | Arg)}""",
                     argTypes is not { Length: > 0 } ? string.Empty : $@"
 ""parameters"": [
@@ -70,8 +81,6 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
                 ]
             }]}
 }}";
-
-            return Ok;
         }
     }
 }
