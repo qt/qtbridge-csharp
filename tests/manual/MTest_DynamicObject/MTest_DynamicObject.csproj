@@ -47,4 +47,10 @@
     <UpToDateCheckInput Include="..\..\..\include\*" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="fixtures.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

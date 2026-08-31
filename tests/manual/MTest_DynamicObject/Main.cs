@@ -13,6 +13,9 @@ using System.Runtime.InteropServices;
     #elif defined(Q_OS_MACOS)
         qputenv("QT_QPA_PLATFORM", "cocoa");
     #endif
+        // Main.qml reads fixtures.json from disk via XMLHttpRequest,
+        // which Qt disables for file:// URLs by default.
+        qputenv("QML_XHR_ALLOW_FILE_READ", "1");
     """)]
 
 namespace MTest_DynamicObject

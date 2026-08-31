@@ -1,0 +1,109 @@
+[
+    {
+        "name": "toString()",
+        "expression": "typeof target.toString() === 'string'"
+    },
+    {
+        "name": "Integer property",
+        "expression": "target.intProperty = 42; target.intProperty === 42"
+    },
+    {
+        "name": "Read-only property",
+        "expression": "target.intProperty = 42; target.intReadOnlyProperty === 42"
+    },
+    {
+        "name": "Write-only property",
+        "expression": "target.intWriteOnlyProperty = 43; target.intProperty === 43"
+    },
+    {
+        "name": "Notify: intProperty",
+        "expression": [
+            "(function() {",
+            "    let fired = false;",
+            "    const handler = () => { fired = true };",
+            "    target.intPropertyChanged.connect(handler);",
+            "    const previous = target.intProperty;",
+            "    target.intProperty = previous + 1;",
+            "    target.intPropertyChanged.disconnect(handler);",
+            "    return fired",
+            "})()"
+        ],
+        "display": "intPropertyChanged fires when intProperty is set"
+    },
+    {
+        "name": "Notify: intReadOnlyProperty",
+        "expression": [
+            "(function() {",
+            "    let fired = false;",
+            "    const handler = () => { fired = true };",
+            "    target.intReadOnlyPropertyChanged.connect(handler);",
+            "    const previous = target.intProperty;",
+            "    target.intProperty = previous + 1;",
+            "    target.intReadOnlyPropertyChanged.disconnect(handler);",
+            "    return fired",
+            "})()"
+        ],
+        "display": "intReadOnlyPropertyChanged fires when intProperty is set"
+    },
+    {
+        "name": "Notify: generic",
+        "expression": [
+            "(function() {",
+            "    let fired = false;",
+            "    const handler = () => { fired = true };",
+            "    target.propertyChanged.connect(handler);",
+            "    const previous = target.intProperty;",
+            "    target.intProperty = previous + 1;",
+            "    target.propertyChanged.disconnect(handler);",
+            "    return fired",
+            "})()"
+        ],
+        "display": "propertyChanged fires when any property is set"
+    },
+    {
+        "name": "String property",
+        "expression": "target.stringProperty = 'Qt Bridge'; target.stringProperty === 'Qt Bridge'"
+    },
+    {
+        "name": "DateTime property",
+        "expression": [
+            "target.dateTimeProperty = new Date(2030, 0, 15);",
+            "target.dateTimeProperty.getFullYear() === 2030",
+            "    && target.dateTimeProperty.getMonth() === 0",
+            "    && target.dateTimeProperty.getDate() === 15"
+        ],
+        "display": "dateTimeProperty round-trips a Date (year, month, day)"
+    },
+    {
+        "name": "Uri property",
+        "expression": [
+            "target.uriProperty = 'https://www.qt.io/test';",
+            "String(target.uriProperty).indexOf('qt.io') >= 0"
+        ]
+    },
+    {
+        "name": "Method call",
+        "expression": "target.uInt64FuncInt(83) === 99194853094755497"
+    },
+    {
+        "name": "Indexer",
+        "expression": [
+            "(function() {",
+            "    const original = target.item(0);",
+            "    target.setItem(0, original + 1);",
+            "    const updated = target.item(0);",
+            "    target.setItem(0, original);",
+            "    return updated === original + 1",
+            "})()"
+        ],
+        "display": "setItem(0, x) changes what item(0) returns"
+    },
+    {
+        "name": "Cross-reference to bt",
+        "expression": "target.buildTimeTypeObj.equals(bt)"
+    },
+    {
+        "name": "Cross-reference to lt",
+        "expression": "target.loadTimeTypeObj.equals(lt)"
+    }
+]
