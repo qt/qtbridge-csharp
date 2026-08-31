@@ -3,7 +3,7 @@
 
 namespace MTest_DynamicObject
 {
-    [Qt.Ignore]
+    [Qt.Export(Options = Qt.ExportAs.Metadata)]
     public class LoadTimeType : BuildTimeType
     {
         internal static LoadTimeType LoadTimeTypeInstance { get; private set; }
