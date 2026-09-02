@@ -121,6 +121,9 @@ public:
         return *this;
     }
 
+    // Invokes the method represented by this MethodInfo instance on the specified object with
+    // the given parameters. Important: Value-type results are boxed, so this invocation returns
+    // a QDotNetRef even when the actual method returns a value type.
     QDotNetRef invoke(const QDotNetRef &obj, const QDotNetArray<QDotNetRef> &parameters) const
     {
         if (!isValid())
@@ -137,6 +140,26 @@ public:
 
 private:
     mutable QDotNetFunction<QDotNetRef, QDotNetRef, QDotNetArray<QDotNetRef>> fnInvoke;
+};
+
+class QDotNetBoxedMethod
+{
+public:
+    QDotNetRef invoke(const QDotNetObject &obj, const QString &methodName,
+                      const QDotNetArray<QDotNetRef> &parameters)
+    {
+        if (name != methodName) {
+            name = methodName;
+            methodInfo = QDotNetMethodInfo(nullptr);
+        }
+        if (!methodInfo.isValid())
+            methodInfo = obj.type().method(name);
+        return methodInfo.invoke(obj, parameters);
+    }
+
+private:
+    QString name;
+    QDotNetMethodInfo methodInfo;
 };
 
 class QDotNetPropertyInfo : public QDotNetRef

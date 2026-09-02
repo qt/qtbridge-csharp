@@ -204,6 +204,25 @@ bool loadProperty(QMetaObjectBuilder *typeDef, const QJsonObject &jsonProp)
     return true;
 }
 
+bool loadCollectionModel(QMetaObjectBuilder *typeDef, const QJsonObject &jsonCollection)
+{
+    Q_DOTNET_PROFILE_FUNC();
+
+    QDotNetDynamicObject::CollectionModel model;
+    model.countMethod = jsonCollection["countMethod"].toString();
+    model.itemMethod = jsonCollection["itemMethod"].toString();
+    model.isObservable = jsonCollection["isObservable"].toBool();
+    for (const auto jsonRole : jsonCollection["roles"].toArray()) {
+        const auto role = jsonRole.toObject();
+        model.roles.append({
+            role["dotNet"].toObject()["name"].toString(),
+            role["qt"].toObject()["name"].toString().toUtf8()
+        });
+    }
+    return QDotNetDynamicObject::addCollectionModel(typeDef, model)
+            || warn("Error calling 'addCollectionModel'", jsonCollection);
+}
+
 bool loadType(const QJsonObject &jsonType, const std::function<void()> &qmlRegisterTypes)
 {
     Q_DOTNET_PROFILE_FUNC();
@@ -231,6 +250,11 @@ bool loadType(const QJsonObject &jsonType, const std::function<void()> &qmlRegis
     auto *typeDef =
             QDotNetDynamicObject::defineType(typeName, qualifiedTypeName, assemblyFile,
                                              isQmlElement, baseClass, overrides);
+
+    if (const auto &collection = jsonType["qt"]["model"]["collection"]; collection.isObject()) {
+        if (!loadCollectionModel(typeDef, collection.toObject()))
+            return false;
+    }
 
     if (const auto &jsonProps = jsonType["properties"]; jsonProps.isArray()) {
         for (const auto &jsonProp : jsonProps.toArray()) {

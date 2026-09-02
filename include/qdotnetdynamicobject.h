@@ -87,6 +87,34 @@ public:
 
     Q_DECLARE_FLAGS(ModelOverrides, ModelOverride)
 
+    struct CollectionModel
+    {
+        struct Role { QString dotNetName; QByteArray qtName; };
+
+        QString countMethod;
+        QString itemMethod;
+        bool isObservable = false;
+        QList<Role> roles;
+
+        [[nodiscard]] bool isValid() const
+        {
+            if (countMethod.isEmpty() || itemMethod.isEmpty())
+                return false;
+
+            // TODO: Remove the role checks once validateMetadata() validates the JSON schema on
+            //    the native side. Until then, metadata may come from an unchecked external file.
+            if (roles.isEmpty())
+                return false;
+            QSet<QByteArray> roleNames;
+            for (const auto &[dotNetName, qtName] : roles) {
+                if (qtName.isEmpty() || roleNames.contains(qtName))
+                    return false;
+                roleNames.insert(qtName);
+            }
+            return true;
+        }
+    };
+
     static QMetaObjectBuilder *defineType(const QString &typeName, const QString &qualifiedTypeName,
                                           const QString &assemblyName,
                                           bool isQmlElement,
@@ -158,6 +186,29 @@ public:
         method->token = token;
         method->params = { params.begin(), params.end() };
 
+        return true;
+    }
+
+    static bool addCollectionModel(QMetaObjectBuilder *typeDef, const CollectionModel &model)
+    {
+        Q_DOTNET_PROFILE_FUNC();
+
+        if (!QCoreApplication::startingUp())
+            return false;
+
+        if (!model.isValid()) {
+            qWarning() << "QDotNetDynamicObject: Invalid collection model definition";
+            return false;
+        }
+
+        const auto &itDynamicType = dynamicTypesByDef.find(typeDef);
+        if (itDynamicType == dynamicTypesByDef.end()) {
+            qWarning() << "QDotNetDynamicObject: Unrecognized type definition:" << typeDef;
+            return false;
+        }
+
+        auto *type = *itDynamicType;
+        type->collectionModel = model;
         return true;
     }
 
@@ -484,6 +535,7 @@ private:
         }
 
         model = new DynamicModel;
+        model->collectionModel = type->collectionModel;
         if (type->modelOverrides.testFlag(RowCount))
             RESOLVE_FUNC(model, RowCount);
         if (type->modelOverrides.testFlag(ColumnCount))
@@ -974,6 +1026,8 @@ private:
                     auto modelChanged = args.cast<QDotNetModelEvent>();
                     qDynObj->onModelDataChanged(modelChanged);
                     args = modelChanged.cast<QDotNetObject>();
+                } else if (name == "CollectionChanged") {
+                    qDynObj->onCollectionChanged();
                 }
 
                 QObject *qEvArgs = QDotNetConvert::objectDispatch(args);
@@ -1011,6 +1065,20 @@ private:
         notifySignal.invoke(this);
     }
 
+    void onCollectionChanged()
+    {
+        Q_DOTNET_PROFILE_FUNC();
+
+        // TODO: Translate NotifyCollectionChangedEventArgs actions into the corresponding Qt
+        // model deltas, as the source-code exporter does. Until then, reset conservatively: the
+        // event is raised after the managed collection has changed, and this avoids violating
+        // Qt's begin/end model-operation invariants for every INotifyCollectionChanged source.
+        if (!model || !model->collectionModel.isValid() || !model->collectionModel.isObservable)
+            return;
+        beginResetModel();
+        endResetModel();
+    }
+
     //// END Event handling
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1030,7 +1098,11 @@ private:
     {
         Q_DOTNET_PROFILE_FUNC();
 
-        if (!model || !model->fnRowCount.isValid())
+        if (!model)
+            return {};
+        if (model->collectionModel.isValid())
+            return parent.isValid() ? 0 : method<int>(model->collectionModel.countMethod)();
+        if (!model->fnRowCount.isValid())
             return {};
         return model->fnRowCount(parent);
     }
@@ -1056,7 +1128,19 @@ private:
     {
         Q_DOTNET_PROFILE_FUNC();
 
-        if (!model || !model->fnRoleNames.isValid())
+        if (!model)
+            return QAbstractItemModel::roleNames();
+
+        if (model->collectionModel.isValid()) {
+            if (model->roleNamesByIndex.isEmpty()) {
+                for (int i = 0; i < model->collectionModel.roles.size(); ++i) {
+                    model->roleNamesByIndex.insert(Qt::UserRole + i,
+                        model->collectionModel.roles[i].qtName);
+                }
+            }
+            return model->roleNamesByIndex;
+        }
+        if (!model->fnRoleNames.isValid())
             return QAbstractItemModel::roleNames();
 
         if (!model->roleNamesByIndex.isEmpty())
@@ -1195,7 +1279,33 @@ private:
     {
         Q_DOTNET_PROFILE_FUNC();
 
-        if (!model || !model->fnData.isValid())
+        if (!model)
+            return {};
+        if (model->collectionModel.isValid()) {
+            if (!idx.isValid() || idx.row() < 0 || idx.row() >= rowCount())
+                return {};
+
+            QDotNetArray<QDotNetRef> args(1);
+            args[0] = QDotNetConvert::fromInt32(idx.row());
+
+            // Collection item accessors can return value types. Invoke
+            // through MethodInfo so the result is boxed into QDotNetRef.
+            const auto &cm = model->collectionModel;
+            QDotNetObject item(model->collectionItemMethod.invoke(*this, cm.itemMethod, args));
+
+            const int roleIndex = role - Qt::UserRole;
+            if (!item.isValid() || roleIndex < 0 || roleIndex >= cm.roles.size())
+                return {};
+
+            const auto &[dotNetName, qtName] = cm.roles[roleIndex];
+            if (dotNetName.isEmpty())
+                return QDotNetConvert::toVariant(item, this);
+
+            const QDotNetPropertyInfo property(item.type().property(dotNetName));
+            auto value = property.getValue(item);
+            return QDotNetConvert::toVariant(value, this);
+        }
+        if (!model->fnData.isValid())
             return {};
         auto result = model->fnData(idx, role);
         return QDotNetConvert::toVariant(result, this);
@@ -1388,6 +1498,7 @@ private:
         QDotNetType typeInfo;
         BaseClass baseClass = BaseClass::Object;
         ModelOverrides modelOverrides = ModelOverride::None;
+        CollectionModel collectionModel;
         bool isQmlElement = false;
         QMap<int, DynamicMethod *> methods = {};
         QMap<int, DynamicProperty *> properties = {};
@@ -1427,6 +1538,8 @@ private:
 
     struct DynamicModel
     {
+        CollectionModel collectionModel;
+        QDotNetBoxedMethod collectionItemMethod;
         QHash<int, QByteArray> roleNamesByIndex;
         QDotNetFunction<int, QModelIndex> fnRowCount = nullptr;
         QDotNetFunction<int, QModelIndex> fnColumnCount = nullptr;

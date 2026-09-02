@@ -105,6 +105,36 @@
                       ]
                     },
                     "minItems": 1
+                  },
+                  "collection": {
+                    "type": "object",
+                    "description": "Expose a CLR collection as a list model",
+                    "properties": {
+                      "countMethod": { "type": "string" },
+                      "itemMethod": { "type": "string" },
+                      "isObservable": { "type": "boolean" },
+                      "roles": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "dotNet": {
+                              "type": "object",
+                              "properties": { "name": { "type": "string" } },
+                              "required": [ "name" ]
+                            },
+                            "qt": {
+                              "type": "object",
+                              "properties": { "name": { "type": "string", "pattern": "^[a-z]\\w+$" } },
+                              "required": [ "name" ]
+                            }
+                          },
+                          "required": [ "dotNet", "qt" ]
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "required": [ "countMethod", "itemMethod", "roles" ]
                   }
                 }
               },
