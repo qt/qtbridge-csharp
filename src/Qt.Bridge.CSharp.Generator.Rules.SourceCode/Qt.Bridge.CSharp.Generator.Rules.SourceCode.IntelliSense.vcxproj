@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
+-->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+    This project deliberately has no build output. Its purpose is to give the native source-code
+    templates and shared bridge headers a stable Visual Studio IntelliSense context when the main
+    solution is opened.
+  -->
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{A60A2D39-A8E8-437D-A04C-1972B4293D0C}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+
+  <PropertyGroup>
+    <ConfigurationType>Utility</ConfigurationType>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <QtDir Condition="'$(QtDir)' == ''">$(QtInstallRoot)</QtDir>
+    <QtModuleIncludePaths>$([System.String]::Join(';',$([System.IO.Directory]::GetDirectories($(QtDir)\include))))</QtModuleIncludePaths>
+    <QtCoreVersionPath>$([System.IO.Directory]::GetDirectories($(QtDir)\include\QtCore,'6.*')[0])</QtCoreVersionPath>
+    <QtBridgeIntelliSenseIncludes>$(MSBuildThisFileDirectory)IntelliSense\include;$(MSBuildThisFileDirectory)Static\hpp;$(MSBuildThisFileDirectory)..\..\include</QtBridgeIntelliSenseIncludes>
+    <IncludePath>$(QtDir)\include;$(QtModuleIncludePaths);$(QtCoreVersionPath);$(QtCoreVersionPath)\QtCore;$(QtBridgeIntelliSenseIncludes);$(IncludePath)</IncludePath>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <ConformanceMode>true</ConformanceMode>
+      <!-- Match the Qt::Quick link interface used by generated native projects. -->
+      <PreprocessorDefinitions>QT_QUICK_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+
+  <ItemGroup>
+    <ClCompile Include="Static\cpp\metadata_loader.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClInclude Include="Static\hpp\metadata_loader.h" />
+    <ClInclude Include="Static\hpp\builtin_types.h" />
+    <ClInclude Include="IntelliSense\include\QDotNetArray" />
+    <ClInclude Include="IntelliSense\include\QDotNetConvert" />
+    <ClInclude Include="IntelliSense\include\QDotNetDynamicObject" />
+    <ClInclude Include="IntelliSense\include\QDotNetObject" />
+    <ClInclude Include="IntelliSense\include\QDotNetProfiler" />
+    <ClInclude Include="IntelliSense\include\QDotNetType" />
+    <ClInclude Include="..\..\include\iqqmlengine.h" />
+    <ClInclude Include="..\..\include\iqtapplication.h" />
+    <ClInclude Include="..\..\include\iqtresources.h" />
+    <ClInclude Include="..\..\include\qdotnetadapter.h" />
+    <ClInclude Include="..\..\include\qdotnetarray.h" />
+    <ClInclude Include="..\..\include\qdotnetcallback.h" />
+    <ClInclude Include="..\..\include\qdotnetconvert.h" />
+    <ClInclude Include="..\..\include\qdotnetdelegate.h" />
+    <ClInclude Include="..\..\include\qdotnetdynamicobject.h" />
+    <ClInclude Include="..\..\include\qdotnetevent.h" />
+    <ClInclude Include="..\..\include\qdotnetexception.h" />
+    <ClInclude Include="..\..\include\qdotnetfunction.h" />
+    <ClInclude Include="..\..\include\qdotnethost.h" />
+    <ClInclude Include="..\..\include\qdotnethostfxr.h" />
+    <ClInclude Include="..\..\include\qdotnetinterface.h" />
+    <ClInclude Include="..\..\include\qdotnetmarshal.h" />
+    <ClInclude Include="..\..\include\qdotnetobject.h" />
+    <ClInclude Include="..\..\include\qdotnetparameter.h" />
+    <ClInclude Include="..\..\include\qdotnetprofiler.h" />
+    <ClInclude Include="..\..\include\qdotnetref.h" />
+    <ClInclude Include="..\..\include\qdotnetreflection.h" />
+    <ClInclude Include="..\..\include\qdotnetsafemethod.h" />
+    <ClInclude Include="..\..\include\qdotnetsignal.h" />
+    <ClInclude Include="..\..\include\qdotnetstatic.h" />
+    <ClInclude Include="..\..\include\qdotnettype.h" />
+  </ItemGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
