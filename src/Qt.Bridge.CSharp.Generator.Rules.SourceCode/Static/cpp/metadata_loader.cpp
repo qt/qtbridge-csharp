@@ -204,7 +204,7 @@ bool loadProperty(QMetaObjectBuilder *typeDef, const QJsonObject &jsonProp)
     return true;
 }
 
-bool loadType(const QJsonObject &jsonType, std::function<void()> qml_register_types)
+bool loadType(const QJsonObject &jsonType, const std::function<void()> &qmlRegisterTypes)
 {
     Q_DOTNET_PROFILE_FUNC();
 
@@ -262,7 +262,7 @@ bool loadType(const QJsonObject &jsonType, std::function<void()> qml_register_ty
     auto qmlRevMinor = jsonType["qt"]["qml"]["moduleRevisionMinor"].toInt();
 
     QDotNetDynamicObject::buildType(typeDef, qmlName, qmlModule, qmlRevMajor, qmlRevMinor,
-                                    qml_register_types);
+                                    qmlRegisterTypes);
 
     return true;
 }
@@ -279,7 +279,7 @@ bool validateMetadata(const QJsonDocument &metadata)
 
 } // namespace
 
-bool QtDotNet::loadTypeMetadata(const QString &appDirPath, std::function<void()> qml_register_types)
+bool QtDotNet::loadTypeMetadata(const QString &appDirPath, const std::function<void()> &qmlRegisterTypes)
 {
     Q_DOTNET_PROFILE_FUNC();
 
@@ -294,7 +294,7 @@ bool QtDotNet::loadTypeMetadata(const QString &appDirPath, std::function<void()>
 
     const auto &jsonTypes = jsonMetadata.object()["types"].toArray();
     for (const auto &jsonTypesItem : jsonTypes) {
-        if (!loadType(jsonTypesItem.toObject(), qml_register_types))
+        if (!loadType(jsonTypesItem.toObject(), qmlRegisterTypes))
             return false;
     }
 

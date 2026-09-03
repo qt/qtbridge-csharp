@@ -229,7 +229,7 @@ public:
 
     static const QMetaObject *buildType(QMetaObjectBuilder *typeDef, const QString &qmlName,
                                         const QString &qmlUri, int major, int minor,
-                                        std::function<void()> qml_register_types = nullptr)
+                                        const std::function<void()> &qmlRegisterTypes = nullptr)
     {
         Q_DOTNET_PROFILE_FUNC();
 
@@ -287,8 +287,8 @@ public:
         t.attachedPropertiesMetaObject = metaObject;
 
         qmlregister(RegistrationType::TypeRegistration, &t);
-        if (qml_register_types)
-            qml_register_types();
+        if (qmlRegisterTypes)
+            qmlRegisterTypes();
         else
             qmlRegisterModule(qmlUriUtf8, major, minor);
 

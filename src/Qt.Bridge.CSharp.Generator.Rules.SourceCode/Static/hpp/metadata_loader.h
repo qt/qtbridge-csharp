@@ -7,5 +7,5 @@
 #include <functional>
 
 namespace QtDotNet {
-    bool loadTypeMetadata(const QString &appDirPath, std::function<void()> qml_register_types);
+    bool loadTypeMetadata(const QString &appDirPath, const std::function<void()> &qmlRegisterTypes);
 }
