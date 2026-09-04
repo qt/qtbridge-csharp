@@ -797,6 +797,45 @@ namespace Qt.Qml
 
   <!--
   //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtBridgeDeployResources
+  //
+  // QML files are loose-deployed so that the application-directory import path
+  // can load them without a native rebuild. Qt.resolvedUrl() therefore resolves
+  // relative asset URLs against that loose tree. Mirror QtResource items into
+  // the same tree so those URLs reach the same files the qrc copy holds.
+  //
+  // The deploy path comes from the alias, not the source path: QtBridgeSetupQml
+  // remaps root-level QML into $(QtQmlRootModuleName), so a source-derived path
+  // would not line up with it.
+  //
+  // Boundary: only qt/qml/-aliased resources are deployed, to support
+  // Qt.resolvedUrl(). Default-aliased (assemblies/...) resources are native
+  // resource URLs rather than QML-relative files, and stay qrc-only.
+  -->
+  <Target Name="QtBridgeDeployResources"
+    AfterTargets="QtBridgeDeployQml"
+    Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_QtQmlAliasPrefix>qt/qml/</_QtQmlAliasPrefix>
+    </PropertyGroup>
+    <ItemGroup>
+      <QtResourceDeploy Include="@(QtResource)"
+        Condition="$([System.String]::Copy('%(QtResource.Alias)').StartsWith('$(_QtQmlAliasPrefix)'))">
+        <DeployPath>$([System.String]::Copy('%(QtResource.Alias)').Substring($(_QtQmlAliasPrefix.Length)))</DeployPath>
+      </QtResourceDeploy>
+    </ItemGroup>
+    <Copy Condition="'@(QtResourceDeploy)' != ''"
+      SourceFiles="@(QtResourceDeploy->'%(FullPath)')"
+      DestinationFiles="@(QtResourceDeploy->'$(TargetDir)%(DeployPath)')"
+      SkipUnchangedFiles="true" />
+    <WriteLinesToFile Condition="'@(QtResourceDeploy)' != ''"
+      File="$(TargetDir)qtdeploy.txt" Overwrite="false"
+      Lines="@(QtResourceDeploy->'%(DeployPath)'->Distinct())" />
+  </Target>
+  <!-- END QtBridgeDeployResources -->
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
   // QtBridgeClean
   -->
   <Target Name="QtBridgeClean" AfterTargets="Clean">

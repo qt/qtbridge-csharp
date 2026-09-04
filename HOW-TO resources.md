@@ -188,6 +188,12 @@ qrc:/qt/qml/MyCompany.Controls/icons/app.svg
 If two resources claim the same alias for different physical files, the build fails with a
 diagnostic instead of picking one silently.
 
+Resources aliased under `qt/qml/` are also deployed as loose files next to the executable, mirroring
+the module layout the alias describes. That is what lets `Qt.resolvedUrl()` reach the same file
+whether the QML was loaded from the resource system or from the application directory. Resources
+that keep the default alias stay in the resource system only: they are addressed by resource URL,
+not by a path relative to a QML file.
+
 ## Use resources from referenced projects
 
 Resources from referenced Qt Bridge projects are aggregated into the app build. A library can own

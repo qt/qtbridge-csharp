@@ -149,5 +149,44 @@ ApplicationWindow {{
             var contents = File.ReadAllText(qtResourcesCs);
             StringAssert.Contains(contents, "Alias = \"qml/MyModule/asset.txt\"");
         }
+
+        [TestMethod]
+        public async Task QtResourceLooseDeploymentUsesQmlAliasPath()
+        {
+            using var temp = new TempProject();
+            temp.Create(new()
+            {
+                PackageReferences = [Packages.QtBridge],
+                AfterSdkTargets = """
+                  <PropertyGroup>
+                    <TargetDir>$(MSBuildProjectDirectory)/loose/</TargetDir>
+                  </PropertyGroup>
+                  <ItemGroup>
+                    <QtResource Include="assets/logo.svg">
+                      <Alias>qt\qml\Application\images\logo.svg</Alias>
+                    </QtResource>
+                    <QtResource Include="internal.txt" />
+                  </ItemGroup>
+                  """
+            });
+            temp.AddFile("assets/logo.svg", "logo");
+            temp.AddFile("internal.txt", "internal");
+
+            var (buildOk, buildOutput) = await temp.BuildAsync(new()
+            {
+                Targets = ["QtBridgeAddResources", "QtBridgeDeployResources"],
+                TargetPath = "",
+                TargetExePath = ""
+            });
+            Assert.IsTrue(buildOk, buildOutput);
+
+            var deployDir = Path.Combine(temp.ProjectDir, "loose");
+            Assert.IsTrue(File.Exists(Path.Combine(deployDir, "Application", "images", "logo.svg")));
+            Assert.IsFalse(File.Exists(Path.Combine(deployDir, "assets", "logo.svg")));
+            Assert.IsFalse(File.Exists(Path.Combine(deployDir, "internal.txt")));
+            CollectionAssert.AreEqual(
+                new[] { "Application/images/logo.svg" },
+                File.ReadAllLines(Path.Combine(deployDir, "qtdeploy.txt")));
+        }
     }
 }
