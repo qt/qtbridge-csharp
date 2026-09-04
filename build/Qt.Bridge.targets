@@ -176,14 +176,12 @@ namespace Qt.Qml
       <QtGlobalAttribs Condition="'$(QtExportAs)' == 'source'"
         Include="Qt.Export(Global = true, Options = Qt.ExportAs.SourceCode)"/>
     </ItemGroup>
-    <MakeDir Condition="'@(QtGlobalAttribs)' != ''"
-      Directories="$(IntermediateOutputPath)qt/csharp" />
-    <WriteLinesToFile Condition="'@(QtGlobalAttribs)' != ''" Overwrite="true"
-      WriteOnlyWhenDifferent="false" File="$(ProjectDir)$(IntermediateOutputPath)$(QtGlobalsCs)"
+    <MakeDir Directories="$(IntermediateOutputPath)qt/csharp" />
+    <WriteLinesToFile Overwrite="true" WriteOnlyWhenDifferent="true"
+      File="$(ProjectDir)$(IntermediateOutputPath)$(QtGlobalsCs)"
       Lines="@(QtGlobalAttribs->'[assembly: %(Identity)]')" />
     <ItemGroup>
-      <Compile Condition="'@(QtGlobalAttribs)' != ''"
-        Include="$(IntermediateOutputPath)$(QtGlobalsCs)" />
+      <Compile Include="$(IntermediateOutputPath)$(QtGlobalsCs)" />
     </ItemGroup>
   </Target>
   <!-- END QtBridgeAddGlobals -->
