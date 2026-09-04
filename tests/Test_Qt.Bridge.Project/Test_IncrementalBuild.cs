@@ -123,5 +123,31 @@ ApplicationWindow {{
             Assert.IsTrue(File.Exists(qtResourcesCs), $"Expected '{qtResourcesCs}' to be written "
                 + "always, since it is declared as an UpToDateCheckOutput.");
         }
+
+        [TestMethod]
+        public async Task QtResourceAliasUsesForwardSlashes()
+        {
+            using var temp = new TempProject();
+            temp.Create(new()
+            {
+                PackageReferences = [Packages.QtBridge],
+                AfterSdkTargets = """
+                  <ItemGroup>
+                    <QtResource Include="asset.txt">
+                      <Alias>qml\MyModule\asset.txt</Alias>
+                    </QtResource>
+                  </ItemGroup>
+                  """
+            });
+            temp.AddFile("Program.cs", ProgramCs);
+            temp.AddFile("asset.txt", "resource");
+            await temp.BuildAsync(new() { Targets = ["CoreCompile"] });
+
+            var outputPath = await temp.GetPropertyAsync("IntermediateOutputPath");
+            var qtResourceFilesCs = await temp.GetPropertyAsync("QtResourceFilesCs");
+            var qtResourcesCs = Path.Combine(temp.ProjectDir, outputPath, qtResourceFilesCs);
+            var contents = File.ReadAllText(qtResourcesCs);
+            StringAssert.Contains(contents, "Alias = \"qml/MyModule/asset.txt\"");
+        }
     }
 }

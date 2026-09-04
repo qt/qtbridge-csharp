@@ -63,6 +63,7 @@
     <ItemGroup>
       <QtResource>
         <SourcePath>%(QtResource.FullPath)</SourcePath>
+        <Alias Condition="'%(QtResource.Alias)' != ''">$([System.String]::Copy('%(QtResource.Alias)').Replace('\','/'))</Alias>
         <Alias Condition="'%(QtResource.Alias)' == ''">assemblies/$(QtBridgeAssemblyResourceId)/$([System.String]::Copy('%(QtResource.Identity)').Replace('\','/'))</Alias>
         <AssemblyId Condition="'%(QtResource.AssemblyId)' == ''">$(QtBridgeAssemblyResourceId)</AssemblyId>
         <Key Condition="'%(QtResource.Key)' == ''">$([System.String]::Copy('%(QtResource.Identity)').Replace('\','/'))</Key>
