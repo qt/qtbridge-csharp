@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
 using System.Text.RegularExpressions;
+using System.Linq;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -46,6 +48,64 @@ namespace Test_Qt.Bridge.CSharp.Generator
             Assert.IsTrue(result.Sink.Files.TryGetValue(
                 "source/hpp/test/array_foo.h", out var w) && Regex.IsMatch(w,
                 @"class Test::Array_Foo\s+:\s+public\s+QAbstractListModel,"));
+        }
+
+        [TestMethod]
+        public async Task Metadata_Exports_Collections_As_ListModels_With_ItemRoles()
+        {
+            const string source = """
+                using System.Collections.Generic;
+                using Qt;
+                [assembly: Export(Options = ExportAs.Metadata)]
+                namespace Test {
+                    public class Person { public string Name { get; set; } }
+                    public class People : List<Person> { }
+                }
+                """;
+
+            using var result = await TestCodeGenerator.GenerateAsync([source], sourceRefs:
+                [typeof(Qt.ExportAttribute).Assembly,
+                 typeof(Qt.Bridge.CodeGeneration.Rules.Metadata.GenerateType).Assembly],
+                ct: TestContext.CancellationTokenSource.Token);
+            var types = JsonNode.Parse(result.Sink.Files["qt_bridge_metadata.json"])!["types"]!
+                .AsArray();
+            var model = types.Single(type => type!["dotNet"]!["name"]!.GetValue<string>()
+                == "Test.People")!["qt"]!["model"]!;
+
+            Assert.AreEqual("listModel", model!["baseClass"]!.GetValue<string>());
+            var collection = model["collection"]!;
+            Assert.AreEqual("get_Count", collection["countMethod"]!.GetValue<string>());
+            Assert.AreEqual("get_Item", collection["itemMethod"]!.GetValue<string>());
+            CollectionAssert.AreEqual(new[] { "item", "name" }, collection["roles"]!.AsArray()
+                .Select(role => role!["qt"]!["name"]!.GetValue<string>()).ToArray());
+        }
+
+        [TestMethod]
+        public async Task Metadata_Marks_Observable_Collections_For_Model_Updates()
+        {
+            const string source = """
+                using System.Collections.ObjectModel;
+                using Qt;
+                [assembly: Export(Options = ExportAs.Metadata)]
+                namespace Test { public class People : ObservableCollection<string> { } }
+                """;
+
+            using var result = await TestCodeGenerator.GenerateAsync([source], sourceRefs:
+                [typeof(Qt.ExportAttribute).Assembly,
+                 typeof(System.Collections.ObjectModel.ObservableCollection<>).Assembly,
+                 typeof(Qt.Bridge.CodeGeneration.Rules.Metadata.GenerateType).Assembly],
+                ct: TestContext.CancellationTokenSource.Token);
+            var types = JsonNode.Parse(result.Sink.Files["qt_bridge_metadata.json"])!["types"]!
+                .AsArray();
+            var collection = types.Single(type => type!["dotNet"]!["name"]!.GetValue<string>()
+                == "Test.People")!["qt"]!["model"]!["collection"]!;
+            Assert.IsTrue(collection!["isObservable"]!.GetValue<bool>());
+
+            var people = types.Single(type => type!["dotNet"]!["name"]!.GetValue<string>()
+                == "Test.People")!;
+            CollectionAssert.Contains(people["events"]!.AsArray()
+                .Select(@event => @event!["dotNet"]!["name"]!.GetValue<string>()).ToArray(),
+                "CollectionChanged");
         }
 
         private const string SourceWithArray = """

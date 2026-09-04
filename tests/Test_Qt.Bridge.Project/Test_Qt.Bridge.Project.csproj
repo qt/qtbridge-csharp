@@ -26,6 +26,7 @@
     <Compile Remove="Models\TableModel\Program.cs" />
     <Compile Remove="Models\TableModelRemoveRanges\Program.cs" />
     <Compile Remove="Models\TreeModel\Program.cs" />
+    <Compile Remove="Models\CollectionModel\Program.cs" />
     <Compile Remove="ObjectInterop\Program.cs" />
     <Compile Remove="QmlToManagedDelegates\Program.cs" />
     <Compile Remove="QtQuickTest\Program.cs" />
@@ -44,6 +45,7 @@
     <None Remove="HostLifecycle\main.cpp" />
     <None Remove="ObjectInterop\main.cpp" />
     <None Remove="Models\TreeModel\main.cpp" />
+    <None Remove="Models\CollectionModel\main.cpp" />
     <None Remove="QmlToManagedDelegates\main.cpp" />
     <None Remove="QtQuickTest\main.cpp" />
     <None Remove="QtTest\main.cpp" />
@@ -125,6 +127,15 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Models\TreeModel\tst_treemodel.qml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Models\CollectionModel\main.cpp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Models\CollectionModel\Program.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Models\CollectionModel\tst_collectionmodel.qml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Models\TableModelRemoveRanges\tst_modelremoveranges.qml">
