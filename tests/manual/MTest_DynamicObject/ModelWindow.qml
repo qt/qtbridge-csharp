@@ -21,7 +21,8 @@ Window {
 
     // Map fixture kinds to their build/load pane components.
     readonly property var paneComponents: ({
-        "tree": { build: treeModelPaneBuild, load: treeModelPaneLoad }
+        "tree": { build: treeModelPaneBuild, load: treeModelPaneLoad },
+        "collection": { build: collectionModelPaneBuild, load: collectionModelPaneLoad }
     })
 
     ColumnLayout {
@@ -84,6 +85,21 @@ Window {
     Component {
         id: treeModelPaneLoad
         TreeModelPane {
+            label: "Load-time (lt) — metadata-driven"
+            model: root.currentFixture.loadModel
+        }
+    }
+
+    Component {
+        id: collectionModelPaneBuild
+        CollectionModelPane {
+            label: "Build-time (bt) — source-generated"
+            model: root.currentFixture.buildModel
+        }
+    }
+    Component {
+        id: collectionModelPaneLoad
+        CollectionModelPane {
             label: "Load-time (lt) — metadata-driven"
             model: root.currentFixture.loadModel
         }

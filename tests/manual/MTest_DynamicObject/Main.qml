@@ -88,6 +88,14 @@ ApplicationWindow {
                 + "member rows when each group is expanded.",
             buildModel: bt,
             loadModel: lt
+        },
+        {
+            name: "Value collection model",
+            kind: "collection",
+            expected: "Both panes show the same six values (2, 3, 5, 7, 11, and 13) "
+                + "through the item role of a C# int[] list model.",
+            buildModel: bt.collectionValues,
+            loadModel: lt.collectionValues
         }
     ]
 

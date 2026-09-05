@@ -54,6 +54,8 @@ namespace MTest_DynamicObject
 
         private readonly List<int> indexerValues = [42, 43, 44];
 
+        public int[] CollectionValues { get; } = [2, 3, 5, 7, 11, 13];
+
         public virtual int this[int index]
         {
             get => indexerValues[index];
