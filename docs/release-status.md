@@ -10,8 +10,8 @@ documentation are all subject to change as feedback comes in from early adopters
 * **Documentation is focused but incomplete.** Pages cover the workflows and APIs that exist today
   rather than every possible scenario. Expect gaps, especially around less common use cases.
 * **Some workflows are smoother than others.** The Windows and Visual Studio workflow is the most
-  mature. Linux support is newer and still evolving, and packaging or editor integrations there
-  may need more iteration before they feel as integrated.
+  mature, on both x64 and arm64. Linux and macOS support is newer and still evolving, and packaging
+  or editor integrations there may need more iteration before they feel as integrated.
 * **Feedback drives what gets polished next.** Early-adopter reports about workflow gaps, missing
   guidance, and unclear behavior directly shape which workflows and docs improve first.
 

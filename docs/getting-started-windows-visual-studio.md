@@ -8,7 +8,7 @@ information it needs to understand QML-facing C# types and imports.
 
 ## Requirements
 
-* Windows x64
+* Windows x64 or arm64
 * .NET SDK 8+
 * Visual Studio 2022 or 2026
 * .NET desktop development workload
@@ -34,6 +34,12 @@ information it needs to understand QML-facing C# types and imports.
   application template.
 </p>
 
+<p class="docs-hint">
+  On Windows arm64, the package does not bundle Qt (unlike win-x64), so set the
+  <code>QtDir</code> MSBuild property to a Qt 6 installation prefix before building, for example
+  in the project's properties or a <code>Directory.Build.props</code> file.
+</p>
+
 For generated project structure, template options, and QML item templates, see
 [Project Templates](templates-and-examples.md).
 
@@ -57,4 +63,4 @@ If the project does not build or the editor support looks incomplete, check thes
 * Visual Studio is missing the C++ workload
 * The first build has not completed yet; QML-facing C# types and editor support require a
   successful build
-* The selected package or runtime does not match Windows x64
+* The selected package or runtime does not match your Windows architecture (x64 or arm64)

@@ -43,19 +43,24 @@ Detailed documentation can be found
 The currently supported workflow is:
 
 - **Windows x64 with .NET 8+** using the bundled Qt runtime or an external Qt installation.
+- **Windows arm64 with .NET 8+** using an external Qt installation, matching the Linux/macOS
+  packaging policy (Qt is not bundled).
 - **Linux x64 with .NET 8+** using an external Qt installation from or compatible with the target
   Linux distribution.
+- **macOS x64 or arm64 with .NET 8+** using an external Qt installation, matching the Linux
+  packaging policy (Qt is not bundled).
 
 ## Requirements
 
-- Windows 11 (`x64`) or Ubuntu/WSL (`x64`)
+- Windows 11 (`x64` or `arm64`), Ubuntu/WSL (`x64`), or macOS (`x64` or `arm64`)
 - **.NET SDK 8+** (`dotnet --version`)
 - **Git**
 - **CMake** & **Ninja**
 - A C++ toolchain:
-  - Windows: **Visual Studio 2022** (Desktop development with C++) and
-    **x64 Native Tools Command Prompt**
+  - Windows: **Visual Studio 2022** (Desktop development with C++) and the matching
+    **Native Tools Command Prompt** (**x64** or **ARM64**, matching your host architecture)
   - Ubuntu/WSL: `build-essential` (or equivalent)
+  - macOS: Xcode command line tools
 - **Python** & **Perl** (required only if you build Qt from source); see Qt's system requirements
 - Sufficient disk space (Qt build can require tens of GB)
 
@@ -77,19 +82,28 @@ consume local packages from this repository.
 
 #### Add via dotnet CLI
 
-Choose the package that matches your RID (runtime identifier). The Windows package includes a
-minimal Qt runtime. The Linux package does not include Qt; set `QtDir` to a Qt 6 installation
-prefix before building.
+Choose the package that matches your RID (runtime identifier). The `win-x64` package includes a
+minimal Qt runtime. The `win-arm64`, Linux, and macOS packages do not include Qt; set `QtDir` to a
+Qt 6 installation prefix before building.
 
 ```bash
 # Windows x64
 dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.3.*-*
 
+# Windows arm64
+dotnet add package QtGroup.Qt.Bridge.CSharp.win-arm64 --version 0.3.*-*
+
 # Linux x64 (Ubuntu / WSL)
 dotnet add package QtGroup.Qt.Bridge.CSharp.linux-x64 --version 0.3.*-*
+
+# macOS x64
+dotnet add package QtGroup.Qt.Bridge.CSharp.osx-x64 --version 0.3.*-*
+
+# macOS arm64 (Apple Silicon)
+dotnet add package QtGroup.Qt.Bridge.CSharp.osx-arm64 --version 0.3.*-*
 ```
 
-Linux example:
+Linux/macOS example:
 
 ```bash
 dotnet build -p:QtDir=/usr/lib/qt6
@@ -149,7 +163,8 @@ environment variables are available as build properties.
 #### Building Qt 6 from source on Windows
 
 > The paths below use `D:\work` for demonstration. Adjust as needed. All commands are meant to run
-from the **x64 Native Tools Command Prompt for VS 2022**.
+from the **Native Tools Command Prompt for VS 2022** matching your host architecture (**x64** or
+**ARM64**).
 
 ```bat
 :: Choose a working directory
@@ -254,14 +269,15 @@ After Qt is available, run from this repository root:
 dotnet build -c Release
 ```
 
-On Windows, setting `QtInstallRoot` before the build lets the local `win-x64` package include the
-Qt payload.
+On Windows x64, setting `QtInstallRoot` before the build lets the local `win-x64` package include
+the Qt payload.
 
-On Linux, the local `linux-x64` package does not include Qt by default, even when `QtInstallRoot`
-points to a valid Qt installation. Projects that consume the package must select a compatible
-system Qt by setting `QtDir`.
+On Windows arm64, Linux, and macOS, the local `win-arm64`/`linux-x64`/`osx-x64`/`osx-arm64`
+packages do not include Qt by default, even when `QtInstallRoot` points to a valid Qt
+installation. Projects that consume the package must select a compatible Qt by setting `QtDir`.
 
-To build a Linux package with a bundled Qt payload for local testing, opt in explicitly:
+To build a win-arm64, Linux, or macOS package with a bundled Qt payload for local testing, opt in
+explicitly:
 
 ```bash
 dotnet build -c Release \
@@ -407,8 +423,9 @@ See [Resources in Qt Bridge for C# apps](HOW-TO%20resources.md) for the resource
 ## Troubleshooting
 
 - **C++ toolchain not detected**:
-  - Windows: use the *x64 Native Tools* prompt.
+  - Windows: use the *Native Tools* prompt matching your host architecture (*x64* or *ARM64*).
   - Ubuntu/WSL: ensure `build-essential`, `cmake`, and `ninja-build` are installed.
+  - macOS: ensure the Xcode command line tools are installed (`xcode-select --install`).
 - **Missing Python/Perl**: Install them and ensure they are on `PATH` before running
   `init-repository`/`configure`.
 - **Rebuild Qt from scratch**: Delete `qt6-build` and `qt6-install`, then run `configure` again.
@@ -431,9 +448,10 @@ The NuGet contains:
 - **Generator** (discovers your types and emits interop glue)
 - **Filtering rules** (Include/Ignore/Exclude attributes)
 - **C++ include headers** for the native bridge
-- On Windows packages, a **minimal open-source Qt Quick runtime subset** sufficient to run QML
+- On the `win-x64` package, a **minimal open-source Qt Quick runtime subset** sufficient to run QML
 
-Linux packages do not contain Qt. They use the Qt installation selected with `QtDir`.
+The `win-arm64`, Linux, and macOS packages do not contain Qt. They use the Qt installation
+selected with `QtDir`.
 
 ## Clean up
 

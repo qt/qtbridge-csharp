@@ -25,6 +25,13 @@ to inspect the template output directly.
 Use this workflow if you are evaluating Qt Bridge for C# on Linux or WSL. Linux requires an external
 Qt installation selected during build.
 
+### macOS with .NET CLI
+
+macOS (x64 or arm64) is also supported, following the same CLI workflow as Linux: install the
+templates, then build against an external Qt installation selected with `QtDir`. Use the
+`QtGroup.Qt.Bridge.CSharp.osx-x64` or `QtGroup.Qt.Bridge.CSharp.osx-arm64` package — see
+[Adding QML to Existing C# Projects](existing-csharp-projects.md) for package selection details.
+
 ## Common requirements
 
 All workflows require:
@@ -38,8 +45,9 @@ All workflows require:
   to write CMake files or C++ code for a template project.
 </p>
 
-Windows workflows target Windows x64. Linux workflows target Linux x64 and require a Qt 6
-installation that contains `lib/cmake/Qt6/Qt6Config.cmake`.
+Windows workflows target Windows x64 or arm64. Linux workflows target Linux x64, and macOS
+workflows target macOS x64 or arm64; both require a Qt 6 installation that contains
+`lib/cmake/Qt6/Qt6Config.cmake`.
 
 ## What the first build does
 

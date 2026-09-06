@@ -6,7 +6,7 @@ Code's integrated terminal, or from any editor that opens the generated project 
 
 ## Requirements
 
-* Windows x64
+* Windows x64 or arm64
 * .NET SDK 8+
 * CMake and Ninja available on `PATH`
 * A C++ toolchain
@@ -37,12 +37,21 @@ dotnet run
 For template options such as `--Framework` and `--SampleCode`, generated project structure, and QML
 item templates, see [Project Templates](templates-and-examples.md).
 
+<p class="docs-hint">
+  On Windows arm64, the package does not bundle Qt (unlike win-x64), so point <code>QtDir</code>
+  at a Qt 6 installation: <code>dotnet build -p:QtDir=D:\Qt\6.11.0\msvc2022_arm64</code>.
+</p>
+
 ## Add Qt Bridge for C# to an existing project
 
-For an existing Windows x64 project, add the Windows package:
+For an existing Windows project, add the package matching your architecture:
 
 ```bash
+# Windows x64
 dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.3.*-*
+
+# Windows arm64
+dotnet add package QtGroup.Qt.Bridge.CSharp.win-arm64 --version 0.3.*-*
 ```
 
 The package is platform-specific because the bridge includes native runtime pieces for the target
@@ -53,6 +62,13 @@ Then build and run from the command line or your editor:
 ```bash
 dotnet build
 dotnet run
+```
+
+On Windows arm64, the package does not bundle Qt, so point `QtDir` at a Qt 6 installation instead:
+
+```bash
+dotnet build -p:QtDir=D:\Qt\6.11.0\msvc2022_arm64
+dotnet run -p:QtDir=D:\Qt\6.11.0\msvc2022_arm64
 ```
 
 For the full migration workflow, including QML files, startup calls, and exposing your existing
@@ -73,5 +89,5 @@ If the project does not build or run, check these areas first:
 
 * The .NET SDK is missing or older than .NET 8
 * The C++ toolchain is not installed or not available to the build
-* The selected package or runtime does not match Windows x64
+* The selected package or runtime does not match your Windows architecture (x64 or arm64)
 * The terminal is not running from the project directory

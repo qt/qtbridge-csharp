@@ -12,10 +12,11 @@ If you are starting from scratch, see [Getting Started](getting-started.md),
 Before you add the bridge to an existing project, confirm that the project meets these requirements:
 
 * .NET SDK 8+
-* Windows x64 or Linux x64
+* Windows (x64 or arm64), Linux x64, or macOS (x64 or arm64)
 * CMake and Ninja available on `PATH`
-* A C++ toolchain (Visual Studio Build Tools on Windows, `build-essential` on Linux)
-* On Linux: a Qt 6 installation whose prefix contains `lib/cmake/Qt6/Qt6Config.cmake`
+* A C++ toolchain (Visual Studio Build Tools on Windows, `build-essential` on Linux, Xcode command
+  line tools on macOS)
+* On Linux and macOS: a Qt 6 installation whose prefix contains `lib/cmake/Qt6/Qt6Config.cmake`
 
 <p class="docs-hint">
   CMake, Ninja, and the C++ toolchain are used by the bridge build behind the scenes; you do not
@@ -33,18 +34,30 @@ Packages for Solution**) and search for `QtGroup.Qt.Bridge.CSharp`. Install the 
 matches your target platform:
 
 * `QtGroup.Qt.Bridge.CSharp.win-x64` for Windows x64
+* `QtGroup.Qt.Bridge.CSharp.win-arm64` for Windows arm64
 * `QtGroup.Qt.Bridge.CSharp.linux-x64` for Linux x64
+* `QtGroup.Qt.Bridge.CSharp.osx-x64` for macOS x64
+* `QtGroup.Qt.Bridge.CSharp.osx-arm64` for macOS arm64 (Apple Silicon)
 
 ### .NET CLI
 
 From your project folder, run:
 
 ```bash
-# Windows
+# Windows x64
 dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.3.*-*
+
+# Windows arm64
+dotnet add package QtGroup.Qt.Bridge.CSharp.win-arm64 --version 0.3.*-*
 
 # Linux
 dotnet add package QtGroup.Qt.Bridge.CSharp.linux-x64 --version 0.3.*-*
+
+# macOS x64
+dotnet add package QtGroup.Qt.Bridge.CSharp.osx-x64 --version 0.3.*-*
+
+# macOS arm64
+dotnet add package QtGroup.Qt.Bridge.CSharp.osx-arm64 --version 0.3.*-*
 ```
 
 The package is platform-specific because the bridge includes a native integration layer for the
@@ -84,7 +97,7 @@ while (!Qml.WaitForExit(100))
 ## Add QML files
 
 Add at least one `.qml` file to the project directory. The build picks up every `.qml` file in
-the project tree automatically — no project file entry is needed. The name you pass to
+the project tree automatically - no project file entry is needed. The name you pass to
 `LoadFromRootModule` must match the file name without the `.qml` extension.
 
 For a minimal starting point, `Main.qml` can be as simple as:
@@ -103,14 +116,15 @@ ApplicationWindow {
 
 ## Build
 
-On Windows, build with:
+On Windows x64, build with:
 
 ```bash
 dotnet build
 dotnet run
 ```
 
-On Linux, point `QtDir` at your Qt installation:
+On Windows arm64, Linux, or macOS, point `QtDir` at your Qt installation (the `win-arm64` package
+does not bundle Qt, unlike `win-x64`):
 
 ```bash
 dotnet build -p:QtDir=/path/to/qt-prefix
@@ -283,12 +297,12 @@ If the build fails or the window does not appear, check these areas first:
 * The .NET SDK version is older than .NET 8
 * The C++ toolchain is not installed or not on `PATH`
 * CMake or Ninja is missing
-* On Linux, `QtDir` is not set or points to the wrong prefix
+* On Windows arm64, Linux, or macOS, `QtDir` is not set or points to the wrong prefix
 * The `.qml` file is outside the project directory and not picked up by the build
 * The name passed to `LoadFromRootModule` does not match the `.qml` file name
 * The first build has not completed yet; QML-facing C# types and editor support require a
   successful build
-* A `qrc:/` URL in QML returns nothing — check that the file has a `<QtResource>` item and that
+* A `qrc:/` URL in QML returns nothing - check that the file has a `<QtResource>` item and that
   the path matches `qrc:/assemblies/<AssemblyName>/<relative-path>`
 
 ## Where to go from here
