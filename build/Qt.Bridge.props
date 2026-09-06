@@ -14,6 +14,18 @@
     <QtHostIsMacOS Condition="$([MSBuild]::IsOSPlatform('OSX'))">true</QtHostIsMacOS>
     <QtHostIsMacOS Condition="'$(QtHostIsMacOS)' == ''">false</QtHostIsMacOS>
 
+  </PropertyGroup>
+
+  <!--
+    Import shared QtArch detection logic. QtArch is normally set by qt_rid.props (located via
+    GetPathOfFileAbove), which is only available to repo-internal projects. For NuGet consumers,
+    we detect the host architecture here, since Qt.Bridge.props is always imported. The shared
+    logic is in qt_arch.props.
+  -->
+  <Import Condition="'$(QtArchPropsImported)' != 'true'" Project="$(MSBuildThisFileDirectory)qt_arch.props" />
+
+  <PropertyGroup>
+
     <QtDir Condition="'$(QtDir)' == '' and '$(QtInstallRoot)' != '' and Exists('$(QtInstallRoot)/lib/cmake/Qt6/Qt6Config.cmake')"
       >$(QtInstallRoot)</QtDir>
 

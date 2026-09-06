@@ -10,14 +10,13 @@
     <QtRid Condition="'$(QtRid)' == '' AND '$(RuntimeIdentifier)' != ''"
       >$(RuntimeIdentifier)</QtRid>
 
-    <!-- Determine architecture if RID not already set -->
-    <QtArch Condition="'$(QtRid)' == ''"
-      >$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</QtArch>
+  </PropertyGroup>
 
-    <!-- Normalize architecture -->
-    <QtArch Condition="'$(QtArch)' == 'X64'">x64</QtArch>
-    <QtArch Condition="'$(QtArch)' == 'Arm64'">arm64</QtArch>
-    <QtArch Condition="'$(QtArch)' == 'X86'">x86</QtArch>
+  <!-- Determine and normalize architecture if RID not already set -->
+  <Import Condition="'$(QtRid)' == '' AND '$(QtArchPropsImported)' != 'true'"
+    Project="$(MSBuildThisFileDirectory)build/qt_arch.props" />
+
+  <PropertyGroup>
 
     <!-- Default architecture -->
     <QtArch Condition="'$(QtArch)' == ''">x64</QtArch>

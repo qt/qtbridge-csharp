@@ -136,6 +136,9 @@
           Include="..\..\build\Qt.Bridge.props"
           PackagePath="build\$(TargetFramework)\Qt.Bridge.props" Visible="false" />
     <None Pack="true"
+          Include="..\..\build\qt_arch.props"
+          PackagePath="build\$(TargetFramework)\qt_arch.props" Visible="false" />
+    <None Pack="true"
           Include="..\..\build\Qt.Bridge.targets"
           PackagePath="build\$(TargetFramework)\Qt.Bridge.targets" Visible="false" />
     <None Pack="true"
