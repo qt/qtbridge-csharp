@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
 using System.Threading;
@@ -18,13 +19,18 @@ namespace Test_Qt.Bridge.Project
         private static readonly object criticalSection = new();
         private static Exception initError = null;
 
+        private static readonly string NativeMsBuildArch =
+            RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "arm64" : "amd64";
+
         private static void CheckInstallPath(string path)
         {
             if (File.Exists(MsBuildPath))
                 return;
             if (!Directory.Exists(path))
                 return;
-            var test = Path.Combine(path, "MSBuild", "Current", "Bin", "amd64", "MSBuild.exe");
+            var test = Path.Combine(path, "MSBuild", "Current", "Bin", NativeMsBuildArch, "MSBuild.exe");
+            if (!File.Exists(test))
+                test = Path.Combine(path, "MSBuild", "Current", "Bin", "amd64", "MSBuild.exe");
             if (!File.Exists(test))
                 return;
             MsBuildPath = test;
@@ -48,7 +54,7 @@ namespace Test_Qt.Bridge.Project
                     throw initError = new InvalidOperationException("VS Locator tool not found.");
 
                 CmdProc.Start(vswherePath, Environment.CurrentDirectory, stdOut: CheckInstallPath,
-                    args: ["-version", "[17.0,18.0)", "-latest", "-property", "installationPath"])
+                    args: ["-version", "[17.0,)", "-latest", "-property", "installationPath"])
                     .WaitForExit();
 
                 if (!File.Exists(MsBuildPath))

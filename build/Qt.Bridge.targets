@@ -376,10 +376,18 @@ namespace Qt.Qml
       <QtCMakeGenerator>Visual Studio 17 2022</QtCMakeGenerator>
     </PropertyGroup>
     <PropertyGroup>
-      <QtVcVarsCmd Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' != '' and Exists('$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat')"
-        >CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL &amp;&amp; </QtVcVarsCmd>
+      <!-- Native arch-specific vcvars script: vcvarsarm64.bat for arm64, vcvars64.bat otherwise -->
+      <QtVcVarsScript Condition="'$(QtArch)' == 'arm64'">vcvarsarm64.bat</QtVcVarsScript>
+      <QtVcVarsScript Condition="'$(QtVcVarsScript)' == ''">vcvars64.bat</QtVcVarsScript>
+      <QtVcVarsCmd Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' != '' and Exists('$(VsInstallRoot)\VC\Auxiliary\Build\$(QtVcVarsScript)')"
+        >CALL "$(VsInstallRoot)\VC\Auxiliary\Build\$(QtVcVarsScript)" &gt; NUL &amp;&amp; </QtVcVarsCmd>
       <QtCMakeGenerator Condition="'$(QtCMakeGenerator)' == ''">Ninja</QtCMakeGenerator>
       <QtCMakeExtraArgs Condition="'$(QtCMakeGenerator)' == 'Ninja'">-DCMAKE_BUILD_TYPE=$(QtBuildConfig)</QtCMakeExtraArgs>
+      <!-- MSBuild-generator (Visual Studio) CMake configs need an explicit target architecture -->
+      <QtCMakeMSBuildPlatform Condition="'$(QtCMakeGenerator)' != 'Ninja' and '$(QtArch)' == 'arm64'">ARM64</QtCMakeMSBuildPlatform>
+      <QtCMakeMSBuildPlatform Condition="'$(QtCMakeGenerator)' != 'Ninja' and '$(QtArch)' == 'x86'">Win32</QtCMakeMSBuildPlatform>
+      <QtCMakeMSBuildPlatform Condition="'$(QtCMakeGenerator)' != 'Ninja' and '$(QtCMakeMSBuildPlatform)' == ''">x64</QtCMakeMSBuildPlatform>
+      <QtCMakeExtraArgs Condition="'$(QtCMakeGenerator)' != 'Ninja'">$(QtCMakeExtraArgs) -A $(QtCMakeMSBuildPlatform)</QtCMakeExtraArgs>
     </PropertyGroup>
 
     <MakeDir Directories="$(QtNativeBuildDir)" />
@@ -414,7 +422,7 @@ namespace Qt.Qml
     </ItemGroup>
     <MSBuild Condition="'$(QtUseMsBuildGenerator)' == 'true'"
       Projects="@(NativeProject)" BuildInParallel="false" StopOnFirstFailure="true"
-      Properties="Platform=x64;Configuration=$(QtBuildConfig);CL_MP=true" Targets="Build" />
+      Properties="Platform=$(QtCMakeMSBuildPlatform);Configuration=$(QtBuildConfig);CL_MP=true" Targets="Build" />
     <Exec Condition="'$(QtUseMsBuildGenerator)' != 'true'"
       Command="$(QtVcVarsCmd)cmake --build . --parallel"
       WorkingDirectory="$(QtNativeBuildDir)" EchoOff="true" IgnoreExitCode="true">
@@ -675,8 +683,11 @@ namespace Qt.Qml
     </PropertyGroup>
 
     <PropertyGroup>
+      <!-- Native arch-specific vcvars script: vcvarsarm64.bat for arm64, vcvars64.bat otherwise -->
+      <VcVarsScript Condition="'$(QtArch)' == 'arm64'">vcvarsarm64.bat</VcVarsScript>
+      <VcVarsScript Condition="'$(VcVarsScript)' == ''">vcvars64.bat</VcVarsScript>
       <VcVarsCmd Condition="'$(VsInstallRoot)' != ''"
-        >CALL "$(VsInstallRoot)\VC\Auxiliary\Build\vcvars64.bat" &gt; NUL</VcVarsCmd>
+        >CALL "$(VsInstallRoot)\VC\Auxiliary\Build\$(VcVarsScript)" &gt; NUL</VcVarsCmd>
       <DeployCmd>"$(QtDir)\bin\windeployqt.exe"</DeployCmd>
       <DeployCmd>$(DeployCmd) --qmldir "$(ProjectDir.TrimEnd('\'))"</DeployCmd>
       <DeployCmd>$(DeployCmd) --no-translations</DeployCmd>

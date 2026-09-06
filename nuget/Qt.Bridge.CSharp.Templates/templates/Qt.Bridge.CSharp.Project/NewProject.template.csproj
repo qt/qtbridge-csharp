@@ -20,7 +20,7 @@
     <QtBridgeTemplateRid Condition="'$(QtBridgeTemplateRid)' == '' and '$(RuntimeIdentifier)' != ''"
       >$(RuntimeIdentifier)</QtBridgeTemplateRid>
     <QtBridgeTemplateRid Condition="'$(QtBridgeTemplateRid)' == '' and $([MSBuild]::IsOSPlatform('Windows'))"
-      >win-x64</QtBridgeTemplateRid>
+      >win-$(QtBridgeTemplateArch)</QtBridgeTemplateRid>
     <QtBridgeTemplateRid Condition="'$(QtBridgeTemplateRid)' == '' and $([MSBuild]::IsOSPlatform('Linux'))"
       >linux-$(QtBridgeTemplateArch)</QtBridgeTemplateRid>
     <QtBridgeTemplateRid Condition="'$(QtBridgeTemplateRid)' == '' and $([MSBuild]::IsOSPlatform('OSX'))"
@@ -29,6 +29,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(QtBridgeTemplateRid)' == 'win-x64'
+                    or '$(QtBridgeTemplateRid)' == 'win-arm64'
                     or '$(QtBridgeTemplateRid)' == 'linux-x64'
                     or '$(QtBridgeTemplateRid)' == 'osx-x64'
                     or '$(QtBridgeTemplateRid)' == 'osx-arm64'">
@@ -37,10 +38,11 @@
 
   <Target Name="EnsureSupportedQtBridgePlatform" BeforeTargets="Restore;Build"
           Condition="'$(QtBridgeTemplateRid)' != 'win-x64'
+                  and '$(QtBridgeTemplateRid)' != 'win-arm64'
                   and '$(QtBridgeTemplateRid)' != 'linux-x64'
                   and '$(QtBridgeTemplateRid)' != 'osx-x64'
                   and '$(QtBridgeTemplateRid)' != 'osx-arm64'">
-    <Error Text="Qt Bridge for C# currently supports win-x64, linux-x64, osx-x64, and osx-arm64. Selected RID: '$(QtBridgeTemplateRid)'." />
+    <Error Text="Qt Bridge for C# currently supports win-x64, win-arm64, linux-x64, osx-x64, and osx-arm64. Selected RID: '$(QtBridgeTemplateRid)'." />
   </Target>
 
   <ItemGroup>
