@@ -68,7 +68,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
                             (type.QmlElementName() is {Length: > 0 } name ? name : type.Name )}""",
                         $@"""module"": ""{Root.Assembly.QmlRootModule()}""",
                         $@"""moduleRevisionMajor"": {new Version(Root.MFn(Version)).Major}",
-                        $@"""moduleRevisionMinor"": {new Version(Root.MFn(Version)).Minor}"
+                        $@"""moduleRevisionMinor"": {new Version(Root.MFn(Version)).Minor}",
+                        $@"""singleton"": {(type.IsQmlSingleton() ? "true" : "false")}"
                     ]
                 }]}
 }}";
