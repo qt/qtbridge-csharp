@@ -280,7 +280,8 @@ public:
 
     static const QMetaObject *buildType(QMetaObjectBuilder *typeDef, const QString &qmlName,
                                         const QString &qmlUri, int major, int minor,
-                                        const std::function<void()> &qmlRegisterTypes = nullptr)
+                                        const std::function<void()> &qmlRegisterTypes = nullptr,
+                                        bool singleton = false)
     {
         Q_DOTNET_PROFILE_FUNC();
 
@@ -318,31 +319,55 @@ public:
         QByteArray qmlUriUtf8(utf8.length(), Qt::Uninitialized);
         qmlUriUtf8.assign(utf8).nullTerminate();
 
-        RegisterType t{};
-        t.structVersion = RegisterType::StructVersion::CurrentVersion;
-        t.metaObject = metaObject;
-        t.elementName = qmlNameUtf8;
-        t.uri = qmlUriUtf8;
-        t.version = QTypeRevision::fromVersion(major, minor);
-        t.revision = QTypeRevision::zero();
-        t.objectSize = sizeof(QDotNetDynamicObject);
-        t.create = QDotNetDynamicObject::createObject;
-        t.userdata = const_cast<DynamicType *>(type);
-        t.typeId = QmlMetaType<QDotNetDynamicObject>::self();
-        t.listId = QmlMetaType<QDotNetDynamicObject>::list();
-        t.parserStatusCast = StaticCastSelector<QQmlParserStatus>::cast();
-        t.valueSourceCast = StaticCastSelector<QQmlPropertyValueSource>::cast();
-        t.valueInterceptorCast = StaticCastSelector<QQmlPropertyValueInterceptor>::cast();
-        t.finalizerCast = StaticCastSelector<QQmlFinalizerHook>::cast();
-        t.attachedPropertiesFunction = qmlAttachedPropertiesFunction(nullptr, metaObject);
-        t.attachedPropertiesMetaObject = metaObject;
+        if (singleton) {
+            RegisterSingletonType s{ };
+            s.structVersion = 0;
+            s.uri = qmlUriUtf8;
+            s.version = QTypeRevision::fromVersion(major, minor);
+            s.typeName = qmlNameUtf8;
+            s.scriptApi = nullptr;
+            // This callback must return a fully constructed QObject. Qt destroys it with the
+            // engine.
+            s.qObjectApi = [type](QQmlEngine *, QJSEngine *) -> QObject * {
+                // Qt does not require this explicit allocation. Reusing createObject(...), which
+                // constructs the wrapper with placement new, requires an address to construct into.
+                auto *instance =
+                    static_cast<QDotNetDynamicObject *>(operator new(sizeof(QDotNetDynamicObject)));
+                createObject(instance, type); // inside marks the address as placement storage
+                objectPlacementAddrs.remove(instance); // undo that, storage was allocated above
+                return instance;
+            };
+            s.instanceMetaObject = metaObject;
+            s.typeId = QmlMetaType<QDotNetDynamicObject>::self();
+            s.extensionObjectCreate = nullptr;
+            s.extensionMetaObject = nullptr;
+            s.revision = QTypeRevision::zero();
 
-        qmlregister(RegistrationType::TypeRegistration, &t);
-        if (qmlRegisterTypes)
-            qmlRegisterTypes();
-        else
-            qmlRegisterModule(qmlUriUtf8, major, minor);
+            qmlregister(RegistrationType::SingletonRegistration, &s);
+        } else {
+            RegisterType t{ };
+            t.structVersion = RegisterType::StructVersion::CurrentVersion;
+            t.metaObject = metaObject;
+            t.elementName = qmlNameUtf8;
+            t.uri = qmlUriUtf8;
+            t.version = QTypeRevision::fromVersion(major, minor);
+            t.revision = QTypeRevision::zero();
+            t.objectSize = sizeof(QDotNetDynamicObject);
+            t.create = QDotNetDynamicObject::createObject;
+            t.userdata = const_cast<DynamicType *>(type);
+            t.typeId = QmlMetaType<QDotNetDynamicObject>::self();
+            t.listId = QmlMetaType<QDotNetDynamicObject>::list();
+            t.parserStatusCast = StaticCastSelector<QQmlParserStatus>::cast();
+            t.valueSourceCast = StaticCastSelector<QQmlPropertyValueSource>::cast();
+            t.valueInterceptorCast = StaticCastSelector<QQmlPropertyValueInterceptor>::cast();
+            t.finalizerCast = StaticCastSelector<QQmlFinalizerHook>::cast();
+            t.attachedPropertiesFunction = qmlAttachedPropertiesFunction(nullptr, metaObject);
+            t.attachedPropertiesMetaObject = metaObject;
 
+            qmlregister(RegistrationType::TypeRegistration, &t);
+        }
+
+        qmlRegisterTypes ? qmlRegisterTypes() : qmlRegisterModule(qmlUriUtf8, major, minor);
         return metaObject;
     }
 

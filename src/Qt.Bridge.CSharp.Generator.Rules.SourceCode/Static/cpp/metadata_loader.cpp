@@ -284,9 +284,10 @@ bool loadType(const QJsonObject &jsonType, const std::function<void()> &qmlRegis
     auto qmlModule = jsonType["qt"]["qml"]["module"].toString();
     auto qmlRevMajor = jsonType["qt"]["qml"]["moduleRevisionMajor"].toInt();
     auto qmlRevMinor = jsonType["qt"]["qml"]["moduleRevisionMinor"].toInt();
+    auto qmlSingleton = jsonType["qt"]["qml"]["singleton"].toBool(false);
 
     QDotNetDynamicObject::buildType(typeDef, qmlName, qmlModule, qmlRevMajor, qmlRevMinor,
-                                    qmlRegisterTypes);
+                                    qmlRegisterTypes, qmlSingleton);
 
     return true;
 }
