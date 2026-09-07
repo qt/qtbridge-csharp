@@ -163,6 +163,10 @@
                   "moduleRevisionMinor": {
                     "type": "integer",
                     "description": "QML module revision minor number"
+                  },
+                  "singleton": {
+                    "type": "boolean",
+                    "description": "Register as a QML singleton rather than an instantiable type"
                   }
                 },
                 "required": [
