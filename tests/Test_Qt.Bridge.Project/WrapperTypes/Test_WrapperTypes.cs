@@ -17,6 +17,11 @@ namespace Test_Qt.Bridge.Project.WrapperTypes
             var options = new CreationOptions
             {
                 PackageReferences = [Packages.QtBridge],
+                BeforeSdkProps = """
+                    <PropertyGroup>
+                      <QtDotNetSafeMethod>enable</QtDotNetSafeMethod>
+                    </PropertyGroup>
+                    """,
                 ReplaceGeneratedFiles =
                 [
                     (@"source\cpp\main.cpp", @"WrapperTypes\main.cpp"),
