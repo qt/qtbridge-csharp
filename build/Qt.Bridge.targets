@@ -372,9 +372,25 @@ namespace Qt.Qml
     </PropertyGroup>
     <Warning Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' == '' and '$(QtBuildSystem)' != 'ninja'"
              Text="Visual Studio installation not found; falling back to Ninja generator." />
+    <Exec Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' != '' and '$(QtBuildSystem)' != 'ninja' and Exists('$(VsWhereExe)')"
+          Command="&quot;$(VsWhereExe)&quot; -path &quot;$(VsInstallRoot)&quot; -property catalog_productLineVersion"
+          ConsoleToMsBuild="true" IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="VsMajorVersion" />
+    </Exec>
+    <Exec Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' != '' and '$(QtBuildSystem)' != 'ninja'"
+          Command="cmake --help" ConsoleToMsBuild="true" IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="CMakeGeneratorHelp" />
+    </Exec>
     <PropertyGroup Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' != '' and '$(QtBuildSystem)' != 'ninja'">
-      <QtCMakeGenerator>Visual Studio 17 2022</QtCMakeGenerator>
+      <!-- The generator must match the selected VS instance and be supported by this CMake. -->
+      <QtCMakeGenerator Condition="'$(VsMajorVersion)' == '17' AND
+                        $([System.String]::Copy('$(CMakeGeneratorHelp)').Contains('Visual Studio 17 2022'))">Visual Studio 17 2022</QtCMakeGenerator>
+      <QtCMakeGenerator Condition="'$(VsMajorVersion)' == '18' AND
+                        $([System.String]::Copy('$(CMakeGeneratorHelp)').Contains('Visual Studio 18 2026'))">Visual Studio 18 2026</QtCMakeGenerator>
+      <QtCMakeGenerator Condition="'$(QtCMakeGenerator)' == ''">Ninja</QtCMakeGenerator>
     </PropertyGroup>
+    <Warning Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' != '' and '$(QtBuildSystem)' != 'ninja' and '$(QtCMakeGenerator)' == 'Ninja'"
+             Text="CMake does not support a generator for the selected Visual Studio installation; falling back to Ninja." />
     <PropertyGroup>
       <!-- Native arch-specific vcvars script: vcvarsarm64.bat for arm64, vcvars64.bat otherwise -->
       <QtVcVarsScript Condition="'$(QtArch)' == 'arm64'">vcvarsarm64.bat</QtVcVarsScript>
