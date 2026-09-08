@@ -683,6 +683,12 @@ namespace Qt.Qml
     </PropertyGroup>
 
     <PropertyGroup>
+      <!--
+        Resolved here, not as a static default, since QtBuildConfig
+        may not be final yet at import time for packaged consumers
+      -->
+      <QtDeployConfig Condition="'$(QtDeployConfig)' == ''">$(QtBuildConfig)</QtDeployConfig>
+
       <!-- Native arch-specific vcvars script: vcvarsarm64.bat for arm64, vcvars64.bat otherwise -->
       <VcVarsScript Condition="'$(QtArch)' == 'arm64'">vcvarsarm64.bat</VcVarsScript>
       <VcVarsScript Condition="'$(VcVarsScript)' == ''">vcvars64.bat</VcVarsScript>
