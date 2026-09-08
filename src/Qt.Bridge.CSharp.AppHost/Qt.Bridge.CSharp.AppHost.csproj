@@ -19,7 +19,6 @@
     <Nullable>disable</Nullable>
     <AssemblyName>qapphost</AssemblyName>
     <RootNamespace>Qt.Bridge</RootNamespace>
-    <QtBuildConfig>$(Configuration)</QtBuildConfig>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
