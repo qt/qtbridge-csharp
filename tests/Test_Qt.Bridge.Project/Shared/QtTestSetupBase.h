@@ -75,6 +75,11 @@ protected:
 
     bool locateAssembly()
     {
+        if (!appName) {
+            qCritical() << "Unpatched app host";
+            return false;
+        }
+
         assemblyPath = QDir(QCoreApplication::applicationDirPath()).filePath(appName);
         if (!QFile::exists(assemblyPath))
             return false;

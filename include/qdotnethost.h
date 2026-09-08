@@ -571,7 +571,7 @@ private:
 #define EMBED_HASH_LO_PART_UTF8 "74e592c2fa383d4a3960714caef0c4f2"
 #define EMBED_HASH_FULL_UTF8 (EMBED_HASH_HI_PART_UTF8 EMBED_HASH_LO_PART_UTF8)
 #define QT_DOTNET_HOST(appName)                                                                  \
-    static bool host_mem_eq(volatile const char *a, volatile const char *b, size_t length)       \
+    inline bool host_mem_eq(volatile const char *a, volatile const char *b, size_t length)       \
     {                                                                                            \
         for (size_t i = 0; i < length; i++) {                                                    \
             if (*a++ != *b++)                                                                    \
@@ -580,7 +580,7 @@ private:
         return true;                                                                             \
     }                                                                                            \
                                                                                                  \
-    static char *host_app_name()                                                                 \
+    inline char *host_app_name()                                                                 \
     {                                                                                            \
         constexpr int EMBED_SZ = sizeof(EMBED_HASH_FULL_UTF8) / sizeof(EMBED_HASH_FULL_UTF8[0]); \
         constexpr int EMBED_MAX = (EMBED_SZ > 1025 ? EMBED_SZ : 1025);                           \
@@ -601,4 +601,4 @@ private:
         return embed;                                                                            \
     }                                                                                            \
                                                                                                  \
-    static char *appName = host_app_name()
+    inline char *appName = host_app_name()
