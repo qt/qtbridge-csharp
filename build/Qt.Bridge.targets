@@ -407,7 +407,8 @@ namespace Qt.Qml
       <QtUseMsBuildGenerator Condition="'$(QtUseMsBuildGenerator)' == ''">false</QtUseMsBuildGenerator>
     </PropertyGroup>
     <ItemGroup Condition="'$(QtUseMsBuildGenerator)' == 'true'">
-      <NativeSln Include="$(QtNativeBuildDir)\*.sln" />
+      <!-- Newer CMake/VS generate .slnx (XML solution format) instead of .sln -->
+      <NativeSln Include="$(QtNativeBuildDir)\*.sln;$(QtNativeBuildDir)\*.slnx" />
     </ItemGroup>
     <PropertyGroup Condition="'$(QtUseMsBuildGenerator)' == 'true'">
       <NativeApp>%(NativeSln.RelativeDir)%(NativeSln.Filename)</NativeApp>
