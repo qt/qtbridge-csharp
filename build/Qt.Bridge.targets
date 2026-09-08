@@ -689,6 +689,14 @@ namespace Qt.Qml
       -->
       <QtDeployConfig Condition="'$(QtDeployConfig)' == ''">$(QtBuildConfig)</QtDeployConfig>
 
+      <!--
+        If we do not have debug binaries installed, fall back to release
+        deployment rather than failing the build if they're missing.
+      -->
+      <_QtDeployConfigWantedDebug Condition="'$(QtDeployConfig)' == 'debug'">true</_QtDeployConfigWantedDebug>
+      <QtDeployConfig Condition="'$(QtDeployConfig)' == 'debug' AND !Exists('$(QtDir)\bin\Qt6Cored.dll')"
+        >release</QtDeployConfig>
+
       <!-- Native arch-specific vcvars script: vcvarsarm64.bat for arm64, vcvars64.bat otherwise -->
       <VcVarsScript Condition="'$(QtArch)' == 'arm64'">vcvarsarm64.bat</VcVarsScript>
       <VcVarsScript Condition="'$(VcVarsScript)' == ''">vcvars64.bat</VcVarsScript>
@@ -703,6 +711,9 @@ namespace Qt.Qml
       <DeployCmd>$(DeployCmd) "$(RunCommand)"</DeployCmd>
       <DeployCmd>$(DeployCmd) &gt; NUL</DeployCmd>
     </PropertyGroup>
+
+    <Warning Condition="'$(_QtDeployConfigWantedDebug)' == 'true' AND '$(QtDeployConfig)' != 'debug'"
+      Text="Qt Bridge: Debug Qt binaries not found under '$(QtDir)\bin'; deploying release Qt binaries instead." />
 
     <ItemGroup>
       <!--
