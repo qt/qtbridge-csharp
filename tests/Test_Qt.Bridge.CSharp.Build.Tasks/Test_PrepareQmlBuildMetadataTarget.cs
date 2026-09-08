@@ -344,6 +344,7 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
                   <PropertyGroup>
                     <Configuration>Debug</Configuration>
                     <DesignTimeBuild>false</DesignTimeBuild>
+                    <QtGenSourceCode>true</QtGenSourceCode>
                     <AssemblyName>TargetTestApp</AssemblyName>
                     <TargetFramework>net8.0</TargetFramework>
                     <BaseOutputPath>bin/</BaseOutputPath>
