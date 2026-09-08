@@ -21,7 +21,7 @@ namespace Test_Qt.Bridge.Project
                             "QtDir", EnvironmentVariableTarget.User)
                         ?? Environment.GetEnvironmentVariable(
                             "QtDir", EnvironmentVariableTarget.Machine);
-                    if (qtDir != sysQtDir) {
+                    if (!string.IsNullOrEmpty(sysQtDir) && qtDir != sysQtDir) {
                         Console.WriteLine($"Resetting QTDIR to: {sysQtDir}");
                         Environment.SetEnvironmentVariable(
                             "QtDir", sysQtDir, EnvironmentVariableTarget.Process);
