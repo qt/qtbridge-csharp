@@ -25,7 +25,8 @@ TreeView {
         when: view.viewCompleted
 
         function test_expand_metadata_tree() {
-            verify(view.expand(0))
+            view.expand(0)
+            verify(view.isExpanded(0))
             view.forceLayout()
             tryVerify(function() { return view.childVisible })
         }
