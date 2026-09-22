@@ -106,10 +106,13 @@ dotnet add package QtGroup.Qt.Bridge.CSharp.osx-arm64 --version 0.4.*-*
 Linux/macOS example:
 
 ```bash
-dotnet build -p:QtDir=/usr/lib/qt6
+dotnet build -p:QtDir=/usr
 ```
 
-The selected Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`.
+The selected Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`. Distribution packages
+with a different library directory are also accepted: `lib64/cmake/Qt6/Qt6Config.cmake` on Fedora
+and openSUSE, and `lib/<multiarch>/cmake/Qt6/Qt6Config.cmake` (for example
+`lib/x86_64-linux-gnu`) on Debian and Ubuntu. For distribution packages, the prefix is `/usr`.
 
 ### Using the Visual Studio extension
 

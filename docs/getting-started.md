@@ -49,7 +49,8 @@ All workflows require:
 
 Windows workflows target Windows x64 or arm64. Linux workflows target Linux x64 or arm64, and macOS
 workflows target macOS arm64; both require a Qt 6 installation that contains
-`lib/cmake/Qt6/Qt6Config.cmake`.
+`lib/cmake/Qt6/Qt6Config.cmake`, `lib64/cmake/Qt6/Qt6Config.cmake` (Fedora, openSUSE), or
+`lib/<multiarch>/cmake/Qt6/Qt6Config.cmake` (Debian, Ubuntu).
 
 ## What the first build does
 

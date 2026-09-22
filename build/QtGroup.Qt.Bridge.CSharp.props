@@ -12,7 +12,10 @@
   <Import Project="$(MSBuildThisFileDirectory)Qt.Bridge.props"/>
 
   <PropertyGroup>
-    <QtDir Condition="'$(QtDir)' == '' and Exists('$(QtPackageRoot)/lib/cmake/Qt6/Qt6Config.cmake')"
+    <!-- "lib" or the "lib64" multilib layout; see the note in Qt.Bridge.props. -->
+    <QtDir Condition="'$(QtDir)' == ''
+        and (Exists('$(QtPackageRoot)/lib/cmake/Qt6/Qt6Config.cmake')
+          or Exists('$(QtPackageRoot)/lib64/cmake/Qt6/Qt6Config.cmake'))"
       >$(QtPackageRoot)</QtDir>
   </PropertyGroup>
 </Project>

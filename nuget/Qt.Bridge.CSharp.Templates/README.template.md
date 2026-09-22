@@ -76,7 +76,10 @@ building:
 dotnet build -p:QtDir=/path/to/qt-prefix
 ```
 
-The Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`.
+The Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`. Distribution packages
+with a different library directory are also accepted: `lib64/cmake/Qt6/Qt6Config.cmake` on Fedora
+and openSUSE, and `lib/<multiarch>/cmake/Qt6/Qt6Config.cmake` (for example
+`lib/x86_64-linux-gnu`) on Debian and Ubuntu. For distribution packages, the prefix is `/usr`.
 
 This generates:
 ```

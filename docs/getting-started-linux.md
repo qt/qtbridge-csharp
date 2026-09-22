@@ -16,10 +16,12 @@ with the bridge package, so the build must be pointed at a compatible Qt 6 insta
   need to write CMake files or C++ code for a template project.
 </p>
 
-The selected Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`. The Qt online installer
-installs Qt with this layout, for example in `~/Qt/6.11.0/gcc_64`. Qt from distribution packages
-often keeps its CMake files elsewhere, such as `/usr/lib/x86_64-linux-gnu/cmake/Qt6`, and then
-cannot be used as `QtDir`.
+The selected Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`. Distribution packages with a
+different library directory are also accepted: `lib64/cmake/Qt6/Qt6Config.cmake` on Fedora and
+openSUSE, and `lib/<multiarch>/cmake/Qt6/Qt6Config.cmake` (for example `lib/x86_64-linux-gnu`) on
+Debian and Ubuntu. Install Qt 6 from your distribution packages or the Qt online installer, then
+point `QtDir` at that Qt prefix: `/usr` for distribution packages, or for example
+`~/Qt/6.11.0/gcc_64` for the Qt online installer.
 
 Every build needs `QtDir`, including the build that `dotnet run` starts. Set it as an environment
 variable in your shell, for example in your shell profile, so that you do not have to pass it to
@@ -94,7 +96,8 @@ After the first build, check that:
 * The project builds without missing Qt or toolchain errors
 * The application launches
 * QML files are present in the project folder
-* `QtDir` points to a Qt prefix containing `lib/cmake/Qt6/Qt6Config.cmake`
+* `QtDir` points to a Qt prefix containing `lib/cmake/Qt6/Qt6Config.cmake` (or
+  `lib64/cmake/...`, or `lib/<multiarch>/cmake/...`)
 
 ## Common first issues
 

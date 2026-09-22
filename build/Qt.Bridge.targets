@@ -337,7 +337,7 @@ namespace Qt.Qml
     DependsOnTargets="QtBridgeResolveResourcePack;QtBridgeCompileResourcePack;QtBridgeDeployResourcePack"
     Condition="'$(DesignTimeBuild)' != 'true'" />
 
-  <Target Name="QtBridgeResolveResourcePack">
+  <Target Name="QtBridgeResolveResourcePack" DependsOnTargets="QtBridgeResolveQtLayout">
     <PropertyGroup>
       <_QtResourceQrc>$(ProjectQtNativeRootDir)/qt_bridge_resources.qrc</_QtResourceQrc>
       <!-- Keep the binary under build/, which generator cleanup preserves. -->
@@ -345,8 +345,20 @@ namespace Qt.Qml
       <_QtDeployedResourcePack>$(TargetDir)$(QtBridgeResourcePackFileName)</_QtDeployedResourcePack>
       <QtRccExecutable Condition="'$(QtRccExecutable)' == '' AND '$(QtHostIsWindows)' == 'true'"
         >$(QtDir)/bin/rcc.exe</QtRccExecutable>
+      <!--
+        Qt installer: <prefix>/libexec/rcc. Distribution packages keep the Qt 6 host tools in a
+        qt6 subdirectory: <libdir>/qt6/libexec (Fedora, openSUSE), lib/qt6/libexec (Debian,
+        Ubuntu) or lib/qt6 (Arch Linux). These are checked before <prefix>/bin/rcc, which on a
+        distribution prefix such as /usr may be the Qt 5 resource compiler.
+      -->
       <QtRccExecutable Condition="'$(QtRccExecutable)' == '' AND Exists('$(QtDir)/libexec/rcc')"
         >$(QtDir)/libexec/rcc</QtRccExecutable>
+      <QtRccExecutable Condition="'$(QtRccExecutable)' == '' AND '$(QtLibDir)' != ''
+          AND Exists('$(QtLibDir)/qt6/libexec/rcc')">$(QtLibDir)/qt6/libexec/rcc</QtRccExecutable>
+      <QtRccExecutable Condition="'$(QtRccExecutable)' == '' AND Exists('$(QtDir)/lib/qt6/libexec/rcc')"
+        >$(QtDir)/lib/qt6/libexec/rcc</QtRccExecutable>
+      <QtRccExecutable Condition="'$(QtRccExecutable)' == '' AND Exists('$(QtDir)/lib/qt6/rcc')"
+        >$(QtDir)/lib/qt6/rcc</QtRccExecutable>
       <QtRccExecutable Condition="'$(QtRccExecutable)' == ''">$(QtDir)/bin/rcc</QtRccExecutable>
     </PropertyGroup>
     <ItemGroup>
@@ -389,14 +401,50 @@ namespace Qt.Qml
 
   <!--
   //////////////////////////////////////////////////////////////////////////////////////////////////
+  // QtBridgeResolveQtLayout
+  //
+  // Locates the Qt CMake package files and the QML directory under $(QtDir):
+  //   lib/cmake                     Qt installer, Arch Linux, macOS
+  //   lib64/cmake                   Fedora, openSUSE
+  //   lib/<multiarch>/cmake         Debian, Ubuntu
+  // QtLibDirName is derived from the layout found on disk, so any value passed in from outside
+  // is overwritten. Distribution packages keep the QML modules under <libdir>/qt6/qml instead of
+  // <prefix>/qml.
+  -->
+  <Target Name="QtBridgeResolveQtLayout">
+    <PropertyGroup>
+      <QtLibDirName></QtLibDirName>
+      <QtLibDir></QtLibDir>
+      <QtLibDirName Condition="'$(QtDir)' != '' AND Exists('$(QtDir)/lib/cmake/Qt6/Qt6Config.cmake')"
+        >lib</QtLibDirName>
+      <QtLibDirName Condition="'$(QtLibDirName)' == '' AND '$(QtDir)' != ''
+          AND Exists('$(QtDir)/lib64/cmake/Qt6/Qt6Config.cmake')"
+        >lib64</QtLibDirName>
+      <QtLibDirName Condition="'$(QtLibDirName)' == '' AND '$(QtDir)' != '' AND '$(QtLinuxMultiarch)' != ''
+          AND Exists('$(QtDir)/lib/$(QtLinuxMultiarch)/cmake/Qt6/Qt6Config.cmake')"
+        >lib/$(QtLinuxMultiarch)</QtLibDirName>
+      <QtLibDir Condition="'$(QtLibDirName)' != ''">$(QtDir)/$(QtLibDirName)</QtLibDir>
+
+      <QtQmlDir Condition="'$(QtQmlDir)' == '' AND '$(QtDir)' != '' AND Exists('$(QtDir)/qml')"
+        >$(QtDir)/qml</QtQmlDir>
+      <QtQmlDir Condition="'$(QtQmlDir)' == '' AND '$(QtLibDir)' != '' AND Exists('$(QtLibDir)/qt6/qml')"
+        >$(QtLibDir)/qt6/qml</QtQmlDir>
+      <QtQmlDir Condition="'$(QtQmlDir)' == '' AND '$(QtDir)' != ''">$(QtDir)/qml</QtQmlDir>
+    </PropertyGroup>
+  </Target>
+  <!-- END QtBridgeResolveQtLayout -->
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
   // QtBridgeValidateQt
   -->
   <Target Name="QtBridgeValidateQt" BeforeTargets="QtBridgeBuild"
+    DependsOnTargets="QtBridgeResolveQtLayout"
     Condition="'$(DesignTimeBuild)' != 'true'">
     <Error Condition="'$(QtDir)' == ''"
-      Text="Qt Bridge for C# could not find Qt. Set QtDir to a Qt 6 installation prefix containing lib/cmake/Qt6/Qt6Config.cmake." />
-    <Error Condition="'$(QtDir)' != '' AND !Exists('$(QtDir)/lib/cmake/Qt6/Qt6Config.cmake')"
-      Text="Qt Bridge for C# could not find Qt at '$(QtDir)'. Set QtDir to a Qt 6 installation prefix containing lib/cmake/Qt6/Qt6Config.cmake." />
+      Text="Qt Bridge for C# could not find Qt. Set QtDir to a Qt 6 installation prefix containing lib/cmake/Qt6/Qt6Config.cmake, lib64/cmake/Qt6/Qt6Config.cmake, or lib/&lt;multiarch triplet&gt;/cmake/Qt6/Qt6Config.cmake. QtInstallRoot is also accepted as a compatibility alias." />
+    <Error Condition="'$(QtDir)' != '' AND '$(QtLibDirName)' == ''"
+      Text="Qt Bridge for C# could not find Qt at '$(QtDir)'. Set QtDir to a Qt 6 installation prefix containing lib/cmake/Qt6/Qt6Config.cmake, lib64/cmake/Qt6/Qt6Config.cmake, or lib/&lt;multiarch triplet&gt;/cmake/Qt6/Qt6Config.cmake." />
 
     <PropertyGroup>
       <_QtBridgeUsesPackageQt>false</_QtBridgeUsesPackageQt>
@@ -594,7 +642,7 @@ namespace Qt.Qml
   -->
   <Target Name="QtBridgePrepareQmlBuildMetadata"
     AfterTargets="QtBridgeBuild"
-    DependsOnTargets="QtBridgeSetupQml"
+    DependsOnTargets="QtBridgeSetupQml;QtBridgeResolveQtLayout"
     Condition="'$(DesignTimeBuild)' != 'true' AND '$(QtGenSourceCode)' == 'true'" >
 
     <PropertyGroup>
@@ -614,7 +662,7 @@ namespace Qt.Qml
       <_QtQmllsGeneratedImportPath
         Include="$(_QtQmllsBuildDir)/$(QtQmlRootModuleName)" />
       <_QtQmllsImportPath Include="$(_QtQmllsSourceDir)/qml" />
-      <_QtQmllsImportPath Include="$(QtDir)/qml" Condition="'$(QtDir)' != ''" />
+      <_QtQmllsImportPath Include="$(QtQmlDir)" Condition="'$(QtQmlDir)' != ''" />
       <_QtQmllsResourceFile Include="$(_QtQmllsBuildDir)/**/*.qrc" />
       <_QtQmllsResourceFile
         Remove="$(_QtQmllsBuildDir)/.qt/qtbridge_project_sources.qrc" />
@@ -657,7 +705,7 @@ namespace Qt.Qml
   // to avoid spurious file-watcher churn in the extension.
   -->
   <Target Name="QtBridgeWriteQmlMetadataFile" AfterTargets="PrepareForBuild"
-    DependsOnTargets="QtBridgeSetupQml"
+    DependsOnTargets="QtBridgeSetupQml;QtBridgeResolveQtLayout"
     Condition="'$(DesignTimeBuild)' != 'true'">
 
     <PropertyGroup>
@@ -711,8 +759,8 @@ namespace Qt.Qml
         '$(_QtIdeSrcDir)/qml').Replace('\', '/'))</_QtIdeJSourceQmlDir>
       <_QtIdeJReadyFile>$([System.String]::Copy(
         '$(_QtIdeBldDir)/.qt/qtbridge-build.ready').Replace('\', '/'))</_QtIdeJReadyFile>
-      <_QtIdeJQtQmlDir Condition="'$(QtDir)' != ''">$([System.String]::Copy(
-        $([System.IO.Path]::GetFullPath('$(QtDir)/qml'))).Replace('\', '/'))</_QtIdeJQtQmlDir>
+      <_QtIdeJQtQmlDir Condition="'$(QtQmlDir)' != ''">$([System.String]::Copy(
+        $([System.IO.Path]::GetFullPath('$(QtQmlDir)'))).Replace('\', '/'))</_QtIdeJQtQmlDir>
 
       <!--
         importPaths JSON array content (no surrounding brackets).

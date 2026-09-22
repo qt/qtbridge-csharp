@@ -16,7 +16,9 @@ Before you add the bridge to an existing project, confirm that the project meets
 * CMake and Ninja available on `PATH`
 * A C++ toolchain (Visual Studio Build Tools on Windows, `build-essential` on Linux, Xcode command
   line tools on macOS)
-* On Linux and macOS: a Qt 6 installation whose prefix contains `lib/cmake/Qt6/Qt6Config.cmake`
+* On Linux and macOS: a Qt 6 installation whose prefix contains
+  `lib/cmake/Qt6/Qt6Config.cmake`, `lib64/cmake/Qt6/Qt6Config.cmake` (Fedora, openSUSE), or
+  `lib/<multiarch>/cmake/Qt6/Qt6Config.cmake` (Debian, Ubuntu)
 
 <p class="docs-hint">
   CMake, Ninja, and the C++ toolchain are used by the bridge build behind the scenes; you do not

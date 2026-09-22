@@ -26,7 +26,28 @@
 
   <PropertyGroup>
 
-    <QtDir Condition="'$(QtDir)' == '' and '$(QtInstallRoot)' != '' and Exists('$(QtInstallRoot)/lib/cmake/Qt6/Qt6Config.cmake')"
+    <!--
+      Debian multiarch triplet of the target architecture. Debian and Ubuntu install the Qt
+      libraries and CMake package files under lib/<triplet>. Set QtLinuxMultiarch explicitly for
+      architectures not listed here.
+    -->
+    <QtLinuxMultiarch Condition="'$(QtLinuxMultiarch)' == '' AND '$(QtHostIsLinux)' == 'true'
+        AND '$(QtArch)' == 'x64'">x86_64-linux-gnu</QtLinuxMultiarch>
+    <QtLinuxMultiarch Condition="'$(QtLinuxMultiarch)' == '' AND '$(QtHostIsLinux)' == 'true'
+        AND '$(QtArch)' == 'arm64'">aarch64-linux-gnu</QtLinuxMultiarch>
+
+    <!--
+      A Qt prefix is recognized by its CMake package files. Most installations keep those under
+      "lib", but multilib distributions such as Fedora and openSUSE use "lib64", and Debian and
+      Ubuntu use "lib/<multiarch triplet>", so all three layouts are accepted here and wherever
+      else the build derives paths from the Qt library directory. QtBridgeResolveQtLayout records
+      the detected name in QtLibDirName.
+    -->
+    <QtDir Condition="'$(QtDir)' == '' and '$(QtInstallRoot)' != ''
+        and (Exists('$(QtInstallRoot)/lib/cmake/Qt6/Qt6Config.cmake')
+          or Exists('$(QtInstallRoot)/lib64/cmake/Qt6/Qt6Config.cmake')
+          or ('$(QtLinuxMultiarch)' != ''
+            and Exists('$(QtInstallRoot)/lib/$(QtLinuxMultiarch)/cmake/Qt6/Qt6Config.cmake')))"
       >$(QtInstallRoot)</QtDir>
 
     <QtDotNetSolutionDir Condition="'$(SolutionDir)' != '' AND Exists('$(SolutionDir)qtbridge-csharp.sln')"

@@ -162,6 +162,62 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
         }
 
         [TestMethod]
+        [DataRow("lib")]
+        [DataRow("lib64")]
+        [DataRow("lib/x86_64-linux-gnu")]
+        public void QtValidation_AcceptsLibLib64AndMultiarchLayouts(string qtLibDirName)
+        {
+            var projectPath = WriteProject(
+                generatedWorkspaceExists: true,
+                qtLibDirName: qtLibDirName);
+
+            var result = RunMsBuild(projectPath, "QtBridgeValidateQt");
+
+            Assert.AreEqual(0, result.ExitCode, result.Output);
+        }
+
+        [TestMethod]
+        // Qt installer: rcc in <prefix>/libexec, QML in <prefix>/qml.
+        [DataRow("lib", "libexec/rcc", "qml", "libexec/rcc", "qml")]
+        // Arch Linux: Qt 5 rcc in bin must lose against the Qt 6 one in lib/qt6.
+        [DataRow("lib", "lib/qt6/rcc", "lib/qt6/qml", "lib/qt6/rcc", "lib/qt6/qml")]
+        // Debian, Ubuntu: host tools in lib/qt6/libexec, QML in the multiarch directory.
+        [DataRow("lib/x86_64-linux-gnu", "lib/qt6/libexec/rcc", "lib/x86_64-linux-gnu/qt6/qml",
+            "lib/qt6/libexec/rcc", "lib/x86_64-linux-gnu/qt6/qml")]
+        // Fedora, openSUSE: host tools and QML under lib64/qt6.
+        [DataRow("lib64", "lib64/qt6/libexec/rcc", "lib64/qt6/qml",
+            "lib64/qt6/libexec/rcc", "lib64/qt6/qml")]
+        public void QtLayout_ResolvesDistributionPaths(
+            string qtLibDirName,
+            string qt6RccPath,
+            string qmlDirPath,
+            string expectedRccPath,
+            string expectedQmlDirPath)
+        {
+            var projectPath = WriteProject(
+                generatedWorkspaceExists: true,
+                qtLibDirName: qtLibDirName,
+                qtFiles: [qt6RccPath, "bin/rcc", Path.Combine(qmlDirPath, "QtQuick", "qmldir")]);
+
+            var result = RunMsBuild(projectPath, "DumpQtLayout");
+
+            Assert.AreEqual(0, result.ExitCode, result.Output);
+            var qtDirectory = Path.Combine(TempDirectory, "qt");
+            var layout = File.ReadAllLines(Path.Combine(TempDirectory, "qt-layout.txt"));
+            Assert.AreEqual(
+                NormalizeHostPath(Path.Combine(qtDirectory, qtLibDirName)),
+                NormalizeHostPath(layout[0]));
+            Assert.AreEqual(
+                NormalizeHostPath(Path.Combine(qtDirectory, expectedQmlDirPath)),
+                NormalizeHostPath(layout[1]));
+            if (!OperatingSystem.IsWindows()) {
+                Assert.AreEqual(
+                    NormalizeHostPath(Path.Combine(qtDirectory, expectedRccPath)),
+                    NormalizeHostPath(layout[2]));
+            }
+        }
+
+        [TestMethod]
         public void QtValidationFailure_InvalidatesReadyMarker()
         {
             var projectPath = WriteProject(
@@ -321,7 +377,9 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             bool generatedWorkspaceExists,
             bool includeQml = true,
             bool includeQmlTypes = true,
-            bool validQt = true)
+            bool validQt = true,
+            string qtLibDirName = "lib",
+            string[]? qtFiles = null)
         {
             Directory.CreateDirectory(TempDirectory);
             if (includeQml) {
@@ -334,9 +392,14 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             var taskAssembly = typeof(PrepareQmlBuildMetadata).Assembly.Location;
             var qtDirectory = Path.Combine(TempDirectory, "qt");
             if (validQt) {
-                var qtConfigDirectory = Path.Combine(qtDirectory, "lib", "cmake", "Qt6");
+                var qtConfigDirectory = Path.Combine(qtDirectory, qtLibDirName, "cmake", "Qt6");
                 Directory.CreateDirectory(qtConfigDirectory);
                 File.WriteAllText(Path.Combine(qtConfigDirectory, "Qt6Config.cmake"), "");
+                foreach (var qtFile in qtFiles ?? []) {
+                    var qtFilePath = Path.Combine(qtDirectory, qtFile);
+                    Directory.CreateDirectory(Path.GetDirectoryName(qtFilePath)!);
+                    File.WriteAllText(qtFilePath, "");
+                }
             }
             var qtPath = validQt ? qtDirectory : Path.Combine(TempDirectory, "missing-qt");
             var sourceExpression = generatedWorkspaceExists
@@ -361,9 +424,16 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
                     <QtNativeSourceDir>native/source</QtNativeSourceDir>
                     <QtNativeBinDir>native/bin</QtNativeBinDir>
                     <QtDir>{XmlEscape(qtPath)}</QtDir>
+                    <QtLinuxMultiarch>x86_64-linux-gnu</QtLinuxMultiarch>
                     <QtBridgeBuildTasks>{XmlEscape(taskAssembly)}</QtBridgeBuildTasks>
                   </PropertyGroup>
                   <Import Project="{XmlEscape(targetsPath)}" />
+                  <Target Name="DumpQtLayout" DependsOnTargets="QtBridgeResolveResourcePack">
+                    <WriteLinesToFile
+                      File="$(MSBuildProjectDirectory)/qt-layout.txt"
+                      Lines="$(QtLibDir);$(QtQmlDir);$(QtRccExecutable)"
+                      Overwrite="true" />
+                  </Target>
                   <Target Name="QtBridgeBuild">
                     <Error
                       Condition="Exists(

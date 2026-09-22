@@ -51,7 +51,10 @@ dotnet add package __PACKAGE_ID__ --version __PACKAGE_VERSION__
    dotnet build -p:QtDir=/path/to/qt-prefix
    ```
 
-   The Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`.
+   The Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`. Distribution packages
+   with a different library directory are also accepted: `lib64/cmake/Qt6/Qt6Config.cmake` on Fedora
+   and openSUSE, and `lib/<multiarch>/cmake/Qt6/Qt6Config.cmake` (for example
+   `lib/x86_64-linux-gnu`) on Debian and Ubuntu. For distribution packages, the prefix is `/usr`.
 1. Manage the **visibility of C# types and type members in QML**:
    - By default, the set of types and type members exposed to QML includes all C# `public` types
      defined in the project.
