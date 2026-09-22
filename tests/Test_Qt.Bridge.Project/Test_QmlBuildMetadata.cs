@@ -264,7 +264,7 @@ namespace Test_Qt.Bridge.Project
                 .Where(Path.IsPathRooted);
             var quotedValues = Regex.Matches(ini, "=\"([^\"]*)\"").SelectMany(match =>
                 match.Groups[1].Value
-                    .Split(';', StringSplitOptions.RemoveEmptyEntries)
+                    .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
                     .Select(DecodeIniPath));
             return sectionPaths.Concat(quotedValues);
         }

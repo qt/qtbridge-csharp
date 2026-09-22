@@ -22,7 +22,8 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
                 "1\\resourceFiles=\"/generated/resources.qrc\"",
                 $"2\\sourcePath=\"{Normalize(paths.ProjectSourceDirectory)}\"",
                 "2\\importPaths=\"/generated/imports\"",
-                $"2\\resourceFiles=\"/generated/resources.qrc;{Normalize(projectQrcPath)}\"",
+                $"2\\resourceFiles=\"/generated/resources.qrc{Path.PathSeparator}"
+                    + $"{Normalize(projectQrcPath)}\"",
                 "size=2"));
             File.WriteAllText(projectQrcPath, "<RCC />");
 
