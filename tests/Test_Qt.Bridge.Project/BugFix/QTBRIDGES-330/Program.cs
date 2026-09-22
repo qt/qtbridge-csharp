@@ -28,7 +28,9 @@ namespace Test_InboundMemLeak
         public static double Correlation()
         {
             var r = MathNet.Numerics.Statistics.Correlation.Pearson(SampleCalls, SampleBytes);
-            return r;
+            // A constant memory sample has no variance, making Pearson correlation
+            // undefined. It also cannot show a positive correlation with call count.
+            return double.IsNaN(r) ? 0 : r;
         }
 
         public static void InboundVoid()
