@@ -49,7 +49,8 @@ namespace Test_Qt.Bridge.Project
                 "more than one patched manifest header found");
 
             // If the manifest is present, the assembly name must be present too.
-            var expected = Path.GetFileNameWithoutExtension(temp.ExePath) + ".dll";
+            var expected = await temp.GetPropertyAsync("TargetFileName");
+            Assert.IsFalse(string.IsNullOrEmpty(expected));
             Assert.AreEqual(expected, ReadNulTerminated(bytes, manifest + AssemblyNameOffset,
                 AssemblyNameSize));
         }
