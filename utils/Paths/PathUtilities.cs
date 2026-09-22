@@ -1,8 +1,6 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
-using System.Runtime.InteropServices;
-
 namespace Qt.Bridge.Utils
 {
     internal static class PathUtilities
@@ -43,9 +41,48 @@ namespace Qt.Bridge.Utils
             var normalized = ToForwardSlashes(path);
             if (IsWindowsPath(normalized))
                 return true;
-            if (normalized.StartsWith("/", StringComparison.Ordinal))
-                return false;
-            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+            return IsCaseInsensitiveVolume(ToHostSeparators(normalized));
+        }
+
+        private static bool IsCaseInsensitiveVolume(string path)
+        {
+            try {
+                DirectoryInfo? directory = new DirectoryInfo(Path.GetFullPath(path));
+                while (directory != null && !directory.Exists)
+                    directory = directory.Parent;
+
+                while (directory?.Parent != null) {
+                    var alternateName = ChangeCase(directory.Name);
+                    if (alternateName != null) {
+                        var alternatePath = Path.Combine(directory.Parent.FullName, alternateName);
+                        return Directory.Exists(alternatePath);
+                    }
+                    directory = directory.Parent;
+                }
+            } catch (Exception exception) when (exception is ArgumentException
+                or NotSupportedException or IOException or UnauthorizedAccessException) {
+                // Be conservative here, use case-sensitive comparison when the containing
+                return false; // volume cannot be inspected.
+            }
+
+            return false;
+        }
+
+        private static string? ChangeCase(string name)
+        {
+            for (var index = 0; index < name.Length; ++index) {
+                if (!char.IsLetter(name[index]))
+                    continue;
+                var alternate = char.IsUpper(name[index])
+                    ? char.ToLowerInvariant(name[index])
+                    : char.ToUpperInvariant(name[index]);
+                if (alternate == name[index])
+                    continue;
+                return name.Substring(0, index) + alternate + name.Substring(index + 1);
+            }
+
+            return null;
         }
 
         private static string NormalizeForComparison(string path)

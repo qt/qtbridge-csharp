@@ -31,7 +31,8 @@ namespace Test_Utils
             RequiresCaseInsensitivePaths
         }
 
-        private static bool PathsAreCaseInsensitive => Path.GetRelativePath("a", "A") == ".";
+        private static bool PathsAreCaseInsensitive =>
+            PathUtilities.IsCaseInsensitive(Path.GetFullPath("."));
 
         private static bool ExpectedResult(bool expected, PathCaseSensitivity caseSensitivity) =>
             expected && (caseSensitivity != RequiresCaseInsensitivePaths || PathsAreCaseInsensitive);

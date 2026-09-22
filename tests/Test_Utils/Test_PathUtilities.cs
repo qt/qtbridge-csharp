@@ -22,9 +22,27 @@ namespace Test_Utils
         }
 
         [TestMethod]
-        public void AreEquivalent_TreatsUnixPathsCaseSensitively()
+        public void AreEquivalent_TreatsPathsOnUnknownVolumesCaseSensitively()
         {
-            Assert.IsFalse(PathUtilities.AreEquivalent("/work/Project", "/work/project"));
+            Assert.IsFalse(PathUtilities.AreEquivalent(
+                "/qtbridge-path-utilities-does-not-exist/Project",
+                "/qtbridge-path-utilities-does-not-exist/project"));
+        }
+
+        [TestMethod]
+        public void IsCaseInsensitive_UsesContainingVolume()
+        {
+            var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            var path = Path.Combine(directory, "CaseProbe");
+            var alternate = Path.Combine(directory, "cASEpROBE");
+
+            try {
+                File.WriteAllText(path, "");
+                Assert.AreEqual(File.Exists(alternate), PathUtilities.IsCaseInsensitive(path));
+            } finally {
+                Directory.Delete(directory, recursive: true);
+            }
         }
 
         [TestMethod]
