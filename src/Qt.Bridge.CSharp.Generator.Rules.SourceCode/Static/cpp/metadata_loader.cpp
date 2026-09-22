@@ -124,21 +124,21 @@ bool loadMethod(QMetaObjectBuilder *typeDef, const QJsonObject &jsonMethod)
     const auto dotNet = jsonMethod["dotNet"].toObject();
 
     int token = 0;
-    if (const auto &jsonToken = dotNet["metadataToken"]; jsonToken.isDouble())
+    if (const QJsonValue jsonToken = dotNet["metadataToken"]; jsonToken.isDouble())
         token = jsonToken.toInt();
 
     const auto qt = jsonMethod["qt"].toObject();
     auto methodName = dotNet["name"].toString();
 
     auto qtMethod = camelStr(methodName);
-    if (const auto &jsonQtName = qt["name"]; jsonQtName.isString())
+    if (const QJsonValue jsonQtName = qt["name"]; jsonQtName.isString())
         qtMethod = jsonQtName.toString();
 
     auto qtReturnType = qt["returnType"].toString();
 
     QList<QDotNetParameter> paramTypes = { builtInTypes[qtReturnType].inbound };
     QStringList qtParamTypes;
-    for (const auto &jsonParam : qt["parameters"].toArray()) {
+    for (const QJsonValue jsonParam : qt["parameters"].toArray()) {
         QString qtParamType;
         if (jsonParam.isString())
             qtParamType = jsonParam.toString();
@@ -165,7 +165,8 @@ bool loadEvent(QMetaObjectBuilder *typeDef, const QJsonObject &jsonEvent)
     auto eventName = dotNet["name"].toString();
 
     auto qtSignal = camelStr(eventName);
-    if (const auto &jsonSignal = jsonEvent["qt"].toObject()["signal"]; jsonSignal.isString())
+    if (const QJsonValue jsonSignal = jsonEvent["qt"].toObject()["signal"];
+        jsonSignal.isString())
         qtSignal = jsonSignal.toString();
     qtSignal.append("(QObject *)");
 
@@ -185,7 +186,7 @@ bool loadProperty(QMetaObjectBuilder *typeDef, const QJsonObject &jsonProp)
     auto propName = dotNet["name"].toString();
 
     auto propQtName = camelStr(propName);
-    if (const auto &jsonQtName = qt["name"]; jsonQtName.isString())
+    if (const QJsonValue jsonQtName = qt["name"]; jsonQtName.isString())
         propQtName = jsonQtName.toString();
 
     auto propQtType = qt["type"].toString();
@@ -194,19 +195,19 @@ bool loadProperty(QMetaObjectBuilder *typeDef, const QJsonObject &jsonProp)
     auto propDef = typeDef->addProperty(propQtName.toUtf8(), propQtType.toUtf8());
 
     auto getType = propType.inbound;
-    if (const auto &flag = dotNet["hasGet"]; flag.isBool() && !flag.toBool()) {
+    if (const QJsonValue flag = dotNet["hasGet"]; flag.isBool() && !flag.toBool()) {
         propDef.setReadable(false);
         getType = BuiltInType::Void.inbound;
     }
 
     auto setType = propType.outbound;
-    if (const auto &flag = dotNet["hasSet"]; flag.isBool() && !flag.toBool()) {
+    if (const QJsonValue flag = dotNet["hasSet"]; flag.isBool() && !flag.toBool()) {
         propDef.setWritable(false);
         setType = BuiltInType::Void.outbound;
     }
 
     auto propNotifySignal = QString(propQtName).append("Changed()");
-    if (const auto &flag = dotNet["isNotifiable"]; !flag.isBool() || flag.toBool())
+    if (const QJsonValue flag = dotNet["isNotifiable"]; !flag.isBool() || flag.toBool())
         propDef.setNotifySignal(typeDef->addSignal(propNotifySignal.toUtf8()));
 
     if (!QDotNetDynamicObject::addProperty(typeDef, propName, propDef, getType, setType))
@@ -223,7 +224,7 @@ bool loadCollectionModel(QMetaObjectBuilder *typeDef, const QJsonObject &jsonCol
     model.countMethod = jsonCollection["countMethod"].toString();
     model.itemMethod = jsonCollection["itemMethod"].toString();
     model.isObservable = jsonCollection["isObservable"].toBool();
-    for (const auto jsonRole : jsonCollection["roles"].toArray()) {
+    for (const QJsonValue jsonRole : jsonCollection["roles"].toArray()) {
         const auto role = jsonRole.toObject();
         model.roles.append({
             role["dotNet"].toObject()["name"].toString(),
@@ -266,7 +267,7 @@ bool loadType(const QJsonObject &jsonType, const std::function<void()> &qmlRegis
     const auto dotNet = jsonType["dotNet"].toObject();
     const auto qt = jsonType["qt"].toObject();
 
-    const auto &jsonModel = qt["model"];
+    const QJsonValue jsonModel = qt["model"];
     const auto model = jsonModel.toObject();
 
     auto typeName = dotNet["name"].toString();
@@ -276,16 +277,16 @@ bool loadType(const QJsonObject &jsonType, const std::function<void()> &qmlRegis
     auto assemblyFile = dotNet["assemblyFile"].toString();
 
     auto isQmlElement = false;
-    if (const auto &jsonQml = qt["isQmlElement"]; jsonQml.isBool())
+    if (const QJsonValue jsonQml = qt["isQmlElement"]; jsonQml.isBool())
         isQmlElement = jsonQml.toBool();
 
     auto baseClass = !jsonModel.isObject() ? BaseClass::Object : BaseClass::Model;
-    if (const auto &jsonBaseClass = model["baseClass"]; jsonBaseClass.isString())
+    if (const QJsonValue jsonBaseClass = model["baseClass"]; jsonBaseClass.isString())
         baseClass = modelBaseClasses[jsonBaseClass.toString()];
 
     ModelOverrides overrides = ModelOverride::None;
-    if (const auto &jsonOverrides = model["overrides"]; jsonOverrides.isArray()) {
-        for (const auto &jsonOverride : jsonOverrides.toArray())
+    if (const QJsonValue jsonOverrides = model["overrides"]; jsonOverrides.isArray()) {
+        for (const QJsonValue jsonOverride : jsonOverrides.toArray())
             overrides |= modelOverrides[jsonOverride.toString()];
     }
 
@@ -293,38 +294,38 @@ bool loadType(const QJsonObject &jsonType, const std::function<void()> &qmlRegis
             QDotNetDynamicObject::defineType(typeName, qualifiedTypeName, assemblyFile,
                                              isQmlElement, baseClass, overrides);
 
-    if (const auto &collection = model["collection"]; collection.isObject()) {
+    if (const QJsonValue collection = model["collection"]; collection.isObject()) {
         if (!loadCollectionModel(typeDef, collection.toObject()))
             return false;
     }
 
-    if (const auto &jsonProps = jsonType["properties"]; jsonProps.isArray()) {
-        for (const auto &jsonProp : jsonProps.toArray()) {
+    if (const QJsonValue jsonProps = jsonType["properties"]; jsonProps.isArray()) {
+        for (const QJsonValue jsonProp : jsonProps.toArray()) {
             if (!loadProperty(typeDef, jsonProp.toObject()))
                 return false;
         }
     }
 
-    if (const auto &jsonEvents = jsonType["events"]; jsonEvents.isArray()) {
-        for (const auto &jsonEvent : jsonEvents.toArray()) {
+    if (const QJsonValue jsonEvents = jsonType["events"]; jsonEvents.isArray()) {
+        for (const QJsonValue jsonEvent : jsonEvents.toArray()) {
             if (!loadEvent(typeDef, jsonEvent.toObject()))
                 return false;
         }
     }
 
-    if (const auto &jsonMethods = jsonType["methods"]; jsonMethods.isArray()) {
-        for (const auto &jsonMethod : jsonMethods.toArray()) {
+    if (const QJsonValue jsonMethods = jsonType["methods"]; jsonMethods.isArray()) {
+        for (const QJsonValue jsonMethod : jsonMethods.toArray()) {
             if (!loadMethod(typeDef, jsonMethod.toObject()))
                 return false;
         }
     }
 
-    if (const auto &jsonEnum = qt["enum"]; jsonEnum.isObject()) {
+    if (const QJsonValue jsonEnum = qt["enum"]; jsonEnum.isObject()) {
         if (!loadEnum(typeDef, jsonEnum.toObject()))
             return false;
     }
 
-    const auto &jsonQmlInfo = qt["qml"];
+    const QJsonValue jsonQmlInfo = qt["qml"];
     if (!jsonQmlInfo.isObject())
         return QDotNetDynamicObject::buildType(typeDef) != nullptr;
 
@@ -378,7 +379,7 @@ bool QtDotNet::loadTypeMetadata(const QString &appDirPath, const std::function<v
         return false;
 
     const auto &jsonTypes = jsonMetadata.object()["types"].toArray();
-    for (const auto &jsonTypesItem : jsonTypes) {
+    for (const QJsonValue jsonTypesItem : jsonTypes) {
         if (!loadType(jsonTypesItem.toObject(), qmlRegisterTypes))
             return false;
     }
