@@ -1,6 +1,7 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
+using System;
 using System.IO;
 using System.Threading;
 
@@ -97,7 +98,10 @@ namespace Test_Qt.Bridge.Project
 
             var corrupt = await temp.RunAsync(RunOpts);
             Assert.AreNotEqual(0, corrupt.ExitCode, corrupt.StdOut);
-            Assert.Contains("corrupt", corrupt.StdOut);
+            // macOS rejects a modified signed Mach-O before it reaches main(), so it
+            // cannot produce the native host's corruption diagnostic in that case.
+            if (!OperatingSystem.IsMacOS() || !string.IsNullOrEmpty(corrupt.StdOut))
+                Assert.Contains("corrupt", corrupt.StdOut);
             Assert.DoesNotContain("Unpatched", corrupt.StdOut);
         }
 
