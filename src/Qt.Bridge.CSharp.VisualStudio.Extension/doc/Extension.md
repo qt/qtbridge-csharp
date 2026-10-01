@@ -442,15 +442,7 @@ enqueues `workspace/didChangeWorkspaceFolders` and `$/addBuildDirs` on the activ
 If no metadata file exists, a "build project X" InfoBar is shown once (controlled by
 `MissingMetadataNotified`). If the active pipe changed while awaiting async work,
 `BuildDirsInjected` is reset so the next session retries. On successful injection,
-the provider dismisses any still-open missing-build InfoBar for that project and calls
-`QueueSemanticTokensRefresh` to prompt VS to re-classify open documents.
-
-**`QueueSemanticTokensRefresh`.**
-qmlls does not send a `workspace/semanticTokens/refresh` request to VS after it receives new
-build directory or workspace information, so already-open documents keep stale token
-classification until the next editor event. This helper works around that by queuing a 250 ms
-delayed call to `pipe.EnqueueSemanticTokensRefresh()`, triggered after both server
-initialization and each successful build-directory injection.
+the provider dismisses any still-open missing-build InfoBar for that project.
 
 **`OnProjectMetadataChanged`.**
 Called by each project's `IQmlMetadataWatcher` when the metadata file timestamp changes.
@@ -473,47 +465,39 @@ growth across server restarts while preserving later entries from the same sessi
 ### `QmlLanguageServerTransportPipe`
 
 Implements `IDuplexPipe` by wrapping the qmlls `Process`. It owns two background tasks, two
-`System.IO.Pipelines.Pipe` instances, two unbounded `Channel<byte[]>` queues, and a
-`TaskCompletionSource<bool>` (`serverInitializedSource`) that coordinates the relay tasks
-around the LSP handshake.
+`System.IO.Pipelines.Pipe` instances, and an `InjectedMessageQueue` holding an unbounded
+`Channel<byte[]>` of extension notifications plus a `TaskCompletionSource<bool>`
+(`serverInitializedSource`) that marks the end of the LSP handshake.
 
 **`EnqueueNotification(json)`** queues a notification for delivery to qmlls (VS → process
 direction). The notification is held until after `initialized` arrives, then delivered without
 waiting for VS to send additional traffic.
 
-**`EnqueueSemanticTokensRefresh()`** queues an injected `workspace/semanticTokens/refresh`
-request in the process → VS direction (`pendingServerRequests` channel). The request carries
-a unique `qtbridge-semanticTokens-refresh-N` ID that is tracked in `injectedRequestIds`.
-When VS responds, `IsInjectedRequestResponse` detects the matching ID and drops the response
-so qmlls never sees an unsolicited reply. VS may also echo a `NotificationReceived`
-notification back; `IsVsRefreshEchoNotification` detects and drops that too.
+VS answers each server-initiated `workspace/semanticTokens/refresh` request with an extra,
+non-standard `NotificationReceived` notification. The transport forwards it unchanged; qmlls
+ignores it but logs `Unknown notification with method NotificationReceived` to stderr, which
+shows up in the output pane. This is expected and not filtered on purpose.
 
 **`BuildWorkspaceFolderNotification(folderUri, add)`** and
 **`BuildAddBuildDirsNotification(folderUri, buildDirs)`** are internal static helpers that
 serialize the respective notification DTOs to JSON using `DataContractJsonSerializer`.
 The provider calls these and hands the results to `EnqueueNotification`.
 
-**`RelayFromProcessAsync`** reads qmlls stdout and forwards bytes to the VS-facing read pipe.
-Before `serverInitializedSource` is signalled, the relay holds a pending `source.ReadAsync`
-but races it against the TCS task so it can detect initialization without blocking. After
-initialization, it additionally races against `pendingServerRequests`: whenever the channel
-has items and qmlls has not sent output yet, the relay writes the synthetic requests directly
-into the VS-facing pipe. When LSP file logging is enabled, it also parses incoming messages
-through `LspByteBuffer` and writes the method and body to the configured log file. Parsed
-method names are still written to `IExtensionLog.Verbose`.
+**`RelayFromProcessAsync`** reads qmlls stdout and forwards bytes unchanged to the VS-facing
+read pipe. When LSP file logging is enabled, it also parses incoming messages through
+`LspByteBuffer` and writes the method and body to the configured log file. Parsed method names
+are still written to `IExtensionLog.Verbose`.
 
 **`RelayToProcessAsync`** reads from the VS-facing write pipe and forwards bytes to qmlls
-stdin. It sets `handshakeComplete` and signals `serverInitializedSource` when the
-`initialized` notification passes through. Before forwarding each message it calls
-`IsInjectedRequestResponse` and `IsVsRefreshEchoNotification` and drops matching messages.
-After the handshake it enters a select loop that drains `pendingNotifications` (the
+stdin. It signals `serverInitializedSource` when the `initialized` notification passes
+through. After the handshake it enters a select loop that drains `pendingNotifications` (the
 extension-to-qmlls notification queue) without waiting for VS to send a message.
 
 **`LspByteBuffer`** is a feature-local helper that accumulates raw bytes from an LSP stream and
 extracts complete framed messages (`Content-Length: N\r\n\r\n<body>`). Both relay tasks use
 it - the from-process task for optional LSP file logging, the to-process task to detect the
 `initialized` notification and to log outbound methods. `TryExtractBody` is a static helper
-used by the response-filtering and logging methods to reach the JSON body without re-parsing
+used by the method extraction and traffic logging to reach the JSON body without re-parsing
 the header.
 
 **Logging partial.**

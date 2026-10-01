@@ -13,19 +13,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer.Contracts
     }
 
     [DataContract]
-    internal sealed class SemanticTokensRefreshRequestDto
-    {
-        [DataMember(Name = "jsonrpc")]
-        public string JsonRpc { get; set; } = "2.0";
-
-        [DataMember(Name = "id")]
-        public string? Id { get; set; }
-
-        [DataMember(Name = "method")]
-        public string Method { get; set; } = "workspace/semanticTokens/refresh";
-    }
-
-    [DataContract]
     internal sealed class WorkspaceFoldersNotificationDto
     {
         [DataMember(Name = "jsonrpc")]

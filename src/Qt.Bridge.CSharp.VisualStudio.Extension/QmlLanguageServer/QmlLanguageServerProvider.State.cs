@@ -211,12 +211,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             }
         }
 
-        private QmlLanguageServerTransportPipe? GetActivePipe()
-        {
-            lock (registryLock)
-                return activePipe;
-        }
-
         private void ClearActivePipe()
         {
             lock (registryLock)

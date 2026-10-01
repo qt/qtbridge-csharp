@@ -157,8 +157,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 Enabled = false;
                 log.Warning(initializationFailureInfo?.StatusMessage
                     ?? "QML Language Server initialization failed.");
-            } else {
-                QueueSemanticTokensRefresh("server initialization");
             }
 
             return base.OnServerInitializationResultAsync(
@@ -645,18 +643,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
             var projectFileName = Path.GetFileName(projectFilePath);
             log.Info($"QML Language Server: injected build dirs for '{projectFileName}'.");
-
-            QueueSemanticTokensRefresh($"build-dir injection for {projectFileName}");
-        }
-
-        private void QueueSemanticTokensRefresh(string reason)
-        {
-            QueueLoggedTask(async () =>
-            {
-                await Task.Delay(250);
-                GetActivePipe()?.EnqueueSemanticTokensRefresh();
-                log.Info($"QML Language Server: requested semantic token refresh after {reason}.");
-            }, $"semantic token refresh after {reason}");
         }
 
         private void EnsureBuildSettingsMonitor(string projectFilePath)

@@ -69,17 +69,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             injectedMessages.EnqueueNotification(framed);
         }
 
-        /// <summary>
-        /// Requests that Visual Studio refresh semantic tokens for open documents. This mimics
-        /// servers such as rust-analyzer that explicitly ask the client to refresh after startup.
-        /// </summary>
-        public void EnqueueSemanticTokensRefresh()
-        {
-            injectedMessages.EnqueueServerRequest(
-                "qtbridge-semanticTokens-refresh-",
-                BuildSemanticTokensRefreshRequest);
-        }
-
         public void Dispose()
         {
             process.Exited -= OnProcessExited;
@@ -161,17 +150,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private static string FrameLspMessage(string body) =>
             $"Content-Length: {Encoding.UTF8.GetByteCount(body)}\r\n\r\n{body}";
 
-        private static string BuildSemanticTokensRefreshRequest(string requestId)
-        {
-            var dto = new SemanticTokensRefreshRequestDto {
-                Id = requestId
-            };
-            using var ms = new MemoryStream();
-            new DataContractJsonSerializer(typeof(SemanticTokensRefreshRequestDto))
-                .WriteObject(ms, dto);
-            return Encoding.UTF8.GetString(ms.ToArray());
-        }
-
         private static string GetFolderName(string folderUri)
         {
             try {
@@ -212,33 +190,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 var source = process.StandardOutput.BaseStream;
                 var writer = vsReadPipe.Writer;
                 var buffer = new byte[4096];
-                var readTask = source.ReadAsync(buffer, 0, buffer.Length, ct);
                 while (!ct.IsCancellationRequested) {
-                    if (!injectedMessages.ServerInitialized.IsCompleted) {
-#pragma warning disable VSTHRD003 // relay task owns both awaited tasks
-                        var completed = await Task.WhenAny(
-                            readTask, injectedMessages.ServerInitialized);
-#pragma warning restore VSTHRD003
-                        if (completed != readTask)
-                            continue;
-                    } else {
-                        var pendingTask = injectedMessages
-                            .WaitToReadServerRequestsAsync(ct).AsTask();
-                        var completed = await Task.WhenAny(readTask, pendingTask);
-                        if (completed != readTask) {
-                            while (injectedMessages.TryReadServerRequest(out var pending)) {
-                                var pendingMem = writer.GetMemory(pending.Length);
-                                pending.CopyTo(pendingMem);
-                                writer.Advance(pending.Length);
-                            }
-                            var flush = await writer.FlushAsync(ct);
-                            if (flush.IsCompleted)
-                                break;
-                            continue;
-                        }
-                    }
-
-                    var read = await readTask;
+                    var read = await source.ReadAsync(buffer, 0, buffer.Length, ct);
                     if (read == 0)
                         break;
                     var mem = writer.GetMemory(read);
@@ -248,19 +201,18 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     if (result.IsCompleted)
                         break;
 
-                    // Parse incoming messages for optional LSP file logging only.
-                    if (logBuffer != null) {
-                        logBuffer.Append(buffer.AsSpan(0, read));
-                        while (logBuffer.TryExtractMessage(out var msg)) {
-                            var method = LspByteBuffer.TryExtractMethod(msg);
-                            log.Verbose(method != null
-                                ? $"QML LS -> VS: {method} ({msg.Length} B)"
-                                : $"QML LS -> VS: response ({msg.Length} B)");
-                            TraceLspTraffic("QML LS -> VS", msg, method);
-                        }
-                    }
+                    if (logBuffer == null)
+                        continue;
 
-                    readTask = source.ReadAsync(buffer, 0, buffer.Length, ct);
+                    // Parse incoming messages for optional LSP file logging only.
+                    logBuffer.Append(buffer.AsSpan(0, read));
+                    while (logBuffer.TryExtractMessage(out var msg)) {
+                        var method = LspByteBuffer.TryExtractMethod(msg);
+                        log.Verbose(method != null
+                            ? $"QML LS -> VS: {method} ({msg.Length} B)"
+                            : $"QML LS -> VS: response ({msg.Length} B)");
+                        TraceLspTraffic("QML LS -> VS", msg, method);
+                    }
                 }
             } catch (OperationCanceledException) {
             } catch (Exception ex) {
@@ -315,9 +267,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                             ? $"VS -> QML LS: {method} ({message.Length} B)"
                             : $"VS -> QML LS: response ({message.Length} B)");
                         TraceLspTraffic("VS -> QML LS", message, method);
-
-                        if (injectedMessages.ShouldSuppressClientMessage(message, method))
-                            continue;
 
                         await dest.WriteAsync(message, 0, message.Length, ct);
 
