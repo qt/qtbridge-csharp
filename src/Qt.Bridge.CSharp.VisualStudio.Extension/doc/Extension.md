@@ -386,7 +386,13 @@ Called by the VS SDK when `Enabled` is `true`. The sequence is:
    `QmlLanguageServerInstallException` is caught, logged with its typed `Error` kind, and
    a per-error-kind InfoBar error is shown via `INotificationService` (keyed so the same
    failure is not re-shown on restart). The method returns `null` on any install failure.
-2. Collect import paths from two sources across all loaded Qt Bridge projects, deduplicated:
+2. Collect import paths from three sources across all loaded Qt Bridge projects, deduplicated:
+   - **Configured Qt**: `QtBridgeQtDirResolver` (Core) resolves the project's `QtDir` property,
+     falling back to the `QTDIR` environment variable, and adds `<QtDir>/qml` if it exists.
+     `QtInstallRoot` is deliberately ignored; it shall only used to build the NuGet packages,
+     and users configure Qt via `QtDir`. This path comes first, because MSBuild also
+     prefers an explicit `QtDir` over bundled Qt. Packages without bundled Qt, such as
+     win-arm64, depend on it until the first build has written metadata.
    - **Bundled NuGet package path**: reads `obj/project.assets.json` for each project, locates the
      Qt Bridge package entry in the `libraries` map, resolves it via `packageFolders`, and
      returns `<folder>/<path>/tools/qt/qml` if that directory exists. This works without a
@@ -558,7 +564,7 @@ DteContextSubscription fires (solution opened)
   |- Enabled = true  (VS SDK calls CreateServerConnectionAsync)
        │
        |- IQmlLanguageServerInstaller.EnsureInstalledAsync()  -> executable path
-       |- ResolveStartupSettingsAsync()  -> bundled NuGet tools/qt/qml + built metadata import
+       |- ResolveStartupSettingsAsync()  -> <QtDir>/qml + bundled NuGet tools/qt/qml + metadata import
        │                                    paths, disableCMakeCalls
        |- ResolveActiveProjectContextAsync()  -> (dir, projectFile, configKey)
        |- ReadLoggingConfigAsync()  -> qmlls process log + LSP traffic log settings

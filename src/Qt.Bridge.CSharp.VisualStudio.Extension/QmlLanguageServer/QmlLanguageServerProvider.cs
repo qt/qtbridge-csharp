@@ -309,6 +309,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             ISet<string> importPathKeys,
             CancellationToken ct)
         {
+            var qtQmlImportPath = TryResolveQtQmlImportPath(projectMetadata);
+            if (qtQmlImportPath != null)
+                AddStartupImportPath(importPaths, importPathKeys, qtQmlImportPath);
+
             var packageImportPath = TryResolveNuGetQmlImportPath(
                 projectFilePath, projectMetadata);
             if (!string.IsNullOrWhiteSpace(packageImportPath)
@@ -356,6 +360,24 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
             return path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                 .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+        }
+
+        private string? TryResolveQtQmlImportPath(QtBridgeProjectMetadata projectMetadata)
+        {
+            var qtDir = QtBridgeQtDirResolver.Resolve(projectMetadata);
+            if (qtDir == null)
+                return null;
+
+            try {
+                var qmlPath = Path.Combine(qtDir, "qml");
+                if (Directory.Exists(qmlPath))
+                    return qmlPath;
+            } catch (ArgumentException) {
+                // Invalid path characters in a user-configured value.
+            }
+
+            log.Info($"QML Language Server: configured Qt '{qtDir}' has no qml directory.");
+            return null;
         }
 
         private string? TryResolveNuGetQmlImportPath(
