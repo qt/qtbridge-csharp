@@ -36,7 +36,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private readonly ILoggingSettingsProvider loggingSettingsProvider;
         private readonly IQmlBuildNotificationSettings buildNotificationSettings;
         private readonly IDisposable contextSubscription;
-        private readonly LegacyQmllsBuildMetadataSupport legacyBuildMetadata;
 
         private static string BuildOutputNotificationKey(string projectFilePath) =>
             $"qmls-no-metadata:{projectFilePath}";
@@ -57,7 +56,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         {
             log = extensionLog
                 ?? throw new ArgumentNullException(nameof(extensionLog));
-            legacyBuildMetadata = new LegacyQmllsBuildMetadataSupport(log);
             notifications = notificationsSvc
                 ?? throw new ArgumentNullException(nameof(notificationsSvc));
             projectService = projectSvc ?? throw new ArgumentNullException(nameof(projectSvc));
@@ -578,25 +576,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 return false;
             }
 
-            // TODO: After dropping legacy producer support, replace the active block with:
-            // var readyFile = QmlBuildMetadataContract.GetReadyMarkerPath(metadata);
-            // if (string.IsNullOrWhiteSpace(readyFile))
-            //     return NotReady("the project publishes qmlLanguageServer.readyFile");
-            // return File.Exists(readyFile)
-            //     || NotReady("the build-generated qmlls ready marker exists");
-
-            // qmlls matches .qmlls.build.ini sections by source-root prefix. Patch the
-            // generated ini before injection so project-root QML files resolve against
-            // the project alias, and wait until generated .qmltypes files are readable
-            // as well.
+            // The build patches .qmlls.build.ini and validates the generated .qmltypes files
+            // before it publishes the ready marker, so the marker alone gates injection.
             var readyFile = QmlBuildMetadataContract.GetReadyMarkerPath(metadata);
-            if (readyFile != null) {
-                return File.Exists(readyFile)
-                    || NotReady("the build-generated qmlls ready marker exists");
-            }
-
-            return legacyBuildMetadata.AreReady(metadata, projectFilePath)
-                || NotReady(legacyBuildMetadata.NotReadyReason);
+            if (readyFile == null)
+                return NotReady("the project publishes qmlLanguageServer.readyFile");
+            return File.Exists(readyFile)
+                || NotReady("the build-generated qmlls ready marker exists");
         }
 
         private async Task<bool> TryRestartForReadyBuildSettingsAsync(
@@ -703,18 +689,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             if (!metadataReader.Validate(readResult.Metadata!, projectFilePath, configuration))
                 return [];
 
-            var metadata = readResult.Metadata!;
             var signatures = new Dictionary<string, FileSignature>(StringComparer.OrdinalIgnoreCase);
-            var readyFile = QmlBuildMetadataContract.GetReadyMarkerPath(metadata);
-            if (readyFile != null) {
+            var readyFile = QmlBuildMetadataContract.GetReadyMarkerPath(readResult.Metadata!);
+            if (readyFile != null)
                 AddPathSignature(signatures, readyFile);
-                return signatures;
-            }
-
-            // TODO: After dropping legacy producer support, remove the following two lines.
-            foreach (var path in legacyBuildMetadata.GetWatchedPaths(metadata))
-                AddPathSignature(signatures, path);
-
             return signatures;
         }
 
