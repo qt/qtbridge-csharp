@@ -80,9 +80,7 @@ reliable.
 `QmlMetadataReader` deserializes JSON into a set of private `DataContract` DTO classes and
 then maps them to the public `QmlMetadata` model. This keeps `[DataMember]` attributes and
 serialization concerns out of the domain model and lets the mapping code enforce required
-fields and filter blank entries before a `QmlMetadata` object is ever constructed. The DTO
-layer also handles backward compatibility: the legacy `qmlls` JSON key is accepted alongside
-the current `qmlLanguageServer` key, with the canonical key taking precedence.
+fields and filter blank entries before a `QmlMetadata` object is ever constructed.
 
 **Interface-driven composition.**
 `IQmlMetadataReader` and `IQmlMetadataWatcher` define the contracts. Concrete types are

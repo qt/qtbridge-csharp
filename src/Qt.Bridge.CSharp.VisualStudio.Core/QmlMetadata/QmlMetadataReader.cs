@@ -149,8 +149,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
                             f.ModulePath!))
                         .ToArray() ?? []),
                 qmlLanguageServer: new QmlMetadata.QmlLanguageServerSection(
-                    disableCMakeCalls: dto.QmlLanguageServer?.DisableCMakeCalls
-                        ?? dto.LegacyQmlLanguageServer?.DisableCMakeCalls ?? true,
+                    disableCMakeCalls: dto.QmlLanguageServer?.DisableCMakeCalls ?? true,
                     readyFile: dto.QmlLanguageServer?.ReadyFile,
                     buildIni: dto.QmlLanguageServer?.BuildIni,
                     projectSourcesQrc: dto.QmlLanguageServer?.ProjectSourcesQrc));
@@ -176,9 +175,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
 
             [DataMember(Name = "qmlLanguageServer")]
             public QmlLanguageServerDto? QmlLanguageServer { get; set; }
-
-            [DataMember(Name = "qmlls")]
-            public QmlLanguageServerDto? LegacyQmlLanguageServer { get; set; }
         }
 
         [DataContract]

@@ -203,40 +203,6 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
         }
 
         [TestMethod]
-        public async Task TryRead_Uses_Legacy_Qmlls_DisableCMakeCalls_When_Present()
-        {
-            using var tempDir = new TempDir();
-            var sourceDirPath = Directory.CreateDirectory(Path.Combine(tempDir.Path, "source"))
-                .FullName;
-            var buildDirPath = Directory.CreateDirectory(Path.Combine(tempDir.Path, "build"))
-                .FullName;
-            var metadataFilePath = Path.Combine(tempDir.Path, QmlMetadataReader.MetadataFileName);
-
-            await File.WriteAllTextAsync(metadataFilePath, $$"""
-                {
-                  "version": 1,
-                  "projectFile": "C:\\App\\App.csproj",
-                  "configuration": "Debug",
-                  "qml": {
-                    "sourceDir": "{{sourceDirPath.Replace("\\", @"\\")}}",
-                    "buildDirs": ["{{buildDirPath.Replace("\\", @"\\")}}"]
-                  },
-                  "qmlls": {
-                    "disableCMakeCalls": false
-                  }
-                }
-                """, CancellationToken);
-
-            var reader = new QmlMetadataReader();
-            var readResult = reader.TryRead(metadataFilePath, CancellationToken);
-            Assert.IsTrue(readResult.Success);
-
-            var result = readResult.Metadata;
-            Assert.IsNotNull(result);
-            Assert.IsFalse(result.QmlLanguageServer.DisableCMakeCalls);
-        }
-
-        [TestMethod]
         public void TryRead_Returns_Null_For_Missing_File()
         {
             var reader = new QmlMetadataReader();
