@@ -114,7 +114,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
             if (string.IsNullOrWhiteSpace(dto.ProjectFile)
                 || string.IsNullOrWhiteSpace(dto.Configuration)
                 || string.IsNullOrWhiteSpace(dto.Qml?.SourceDir)
-                || dto.Qml?.BuildDirs is not { Length: > 0 }) {
+                || dto.Qml?.BuildDirs is not { Length: > 0 }
+                || string.IsNullOrWhiteSpace(dto.QmlLanguageServer?.ReadyFile)) {
                 return null;
             }
 
@@ -149,10 +150,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
                             f.ModulePath!))
                         .ToArray() ?? []),
                 qmlLanguageServer: new QmlMetadata.QmlLanguageServerSection(
-                    disableCMakeCalls: dto.QmlLanguageServer?.DisableCMakeCalls ?? true,
-                    readyFile: dto.QmlLanguageServer?.ReadyFile,
-                    buildIni: dto.QmlLanguageServer?.BuildIni,
-                    projectSourcesQrc: dto.QmlLanguageServer?.ProjectSourcesQrc));
+                    disableCMakeCalls: dto.QmlLanguageServer!.DisableCMakeCalls ?? true,
+                    readyFile: dto.QmlLanguageServer.ReadyFile!));
         }
 
         [DataContract]
@@ -220,12 +219,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
 
             [DataMember(Name = "readyFile")]
             public string? ReadyFile { get; set; }
-
-            [DataMember(Name = "buildIni")]
-            public string? BuildIni { get; set; }
-
-            [DataMember(Name = "projectSourcesQrc")]
-            public string? ProjectSourcesQrc { get; set; }
         }
     }
 }

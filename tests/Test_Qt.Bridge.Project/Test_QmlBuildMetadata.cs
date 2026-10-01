@@ -91,13 +91,6 @@ namespace Test_Qt.Bridge.Project
             AssertSameFilePath(
                 artifacts.ReadyMarkerPath,
                 qmlls.GetProperty("readyFile").GetString()!);
-            AssertSameFilePath(
-                artifacts.BuildIniPath,
-                qmlls.GetProperty("buildIni").GetString()!);
-            AssertSameFilePath(
-                artifacts.ProjectSourcesQrcPath,
-                qmlls.GetProperty("projectSourcesQrc").GetString()!);
-
             // An incremental build repairs metadata artifacts deleted by external tools.
             File.Delete(artifacts.BuildIniPath);
             File.Delete(artifacts.ProjectSourcesQrcPath);

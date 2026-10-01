@@ -121,10 +121,7 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
             var projectFilePath = Path.Combine(tempDir.Path, "App.csproj");
             var metadataFilePath = Path.Combine(tempDir.Path, QmlMetadataReader.MetadataFileName);
 
-            var dotQt = Path.Combine(buildDirPath, ".qt");
-            var readyFilePath = Path.Combine(dotQt, BuildReadyMarker.FileName);
-            var buildIniPath = Path.Combine(dotQt, QmllsBuildIniPatcher.FileName);
-            var projectSourcesQrcPath = Path.Combine(dotQt, ProjectSourcesQrcWriter.FileName);
+            var readyFilePath = Path.Combine(buildDirPath, ".qt", BuildReadyMarker.FileName);
 
             await File.WriteAllTextAsync(metadataFilePath, $$"""
                 {
@@ -139,9 +136,7 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
                   },
                   "qmlLanguageServer": {
                     "disableCMakeCalls": true,
-                    "readyFile": "{{readyFilePath.Replace("\\", @"\\")}}",
-                    "buildIni": "{{buildIniPath.Replace("\\", @"\\")}}",
-                    "projectSourcesQrc": "{{projectSourcesQrcPath.Replace("\\", @"\\")}}"
+                    "readyFile": "{{readyFilePath.Replace("\\", @"\\")}}"
                   }
                 }
                 """, CancellationToken);
@@ -162,8 +157,6 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
             Assert.AreEqual(buildDirPath, result.Qml.BuildDirs[0]);
             Assert.IsTrue(result.QmlLanguageServer.DisableCMakeCalls);
             Assert.AreEqual(readyFilePath, result.QmlLanguageServer.ReadyFile);
-            Assert.AreEqual(buildIniPath, result.QmlLanguageServer.BuildIni);
-            Assert.AreEqual(projectSourcesQrcPath, result.QmlLanguageServer.ProjectSourcesQrc);
         }
 
         [TestMethod]
@@ -184,6 +177,9 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
                   "qml": {
                     "sourceDir": "{{sourceDirPath.Replace("\\", @"\\")}}",
                     "buildDirs": ["{{buildDirPath.Replace("\\", @"\\")}}"]
+                  },
+                  "qmlLanguageServer": {
+                    "readyFile": "ready"
                   }
                 }
                 """, CancellationToken);
@@ -195,11 +191,40 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
             var result = readResult.Metadata;
             Assert.IsNotNull(result);
             Assert.IsTrue(result.QmlLanguageServer.DisableCMakeCalls);
-            Assert.IsNull(result.QmlLanguageServer.ReadyFile);
-            Assert.IsNull(result.QmlLanguageServer.BuildIni);
-            Assert.IsNull(result.QmlLanguageServer.ProjectSourcesQrc);
+            Assert.AreEqual("ready", result.QmlLanguageServer.ReadyFile);
             Assert.IsNull(result.Qml.ProjectSourceDir);
             Assert.IsNull(result.TargetFramework);
+        }
+
+        [TestMethod]
+        [DataRow("")]
+        [DataRow(""" , "qmlLanguageServer": { "disableCMakeCalls": true } """)]
+        [DataRow(""" , "qmlLanguageServer": { "readyFile": "  " } """)]
+        public async Task TryRead_Fails_Without_ReadyFile(string languageServerSection)
+        {
+            using var tempDir = new TempDir();
+            var sourceDirPath = Directory.CreateDirectory(Path.Combine(tempDir.Path, "source"))
+                .FullName;
+            var buildDirPath = Directory.CreateDirectory(Path.Combine(tempDir.Path, "build"))
+                .FullName;
+            var metadataFilePath = Path.Combine(tempDir.Path, QmlMetadataReader.MetadataFileName);
+
+            await File.WriteAllTextAsync(metadataFilePath, $$"""
+                {
+                  "version": 1,
+                  "projectFile": "C:\\App\\App.csproj",
+                  "configuration": "Debug",
+                  "qml": {
+                    "sourceDir": "{{sourceDirPath.Replace("\\", @"\\")}}",
+                    "buildDirs": ["{{buildDirPath.Replace("\\", @"\\")}}"]
+                  }{{languageServerSection}}
+                }
+                """, CancellationToken);
+
+            var reader = new QmlMetadataReader();
+            var readResult = reader.TryRead(metadataFilePath, CancellationToken);
+            Assert.IsFalse(readResult.Success);
+            Assert.AreEqual(QmlMetadataReadError.ParseError, readResult.Error);
         }
 
         [TestMethod]
@@ -253,6 +278,9 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
                   "qml": {
                     "sourceDir": "{{sourceDirPath.Replace("\\", @"\\")}}",
                     "buildDirs": ["{{buildDirPath.Replace("\\", @"\\")}}"]
+                  },
+                  "qmlLanguageServer": {
+                    "readyFile": "ready"
                   }
                 }
                 """, CancellationToken);
@@ -284,6 +312,9 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
                   "qml": {
                     "sourceDir": "{{sourceDirPath.Replace("\\", @"\\")}}",
                     "buildDirs": ["{{buildDirPath.Replace("\\", @"\\")}}"]
+                  },
+                  "qmlLanguageServer": {
+                    "readyFile": "ready"
                   }
                 }
                 """, CancellationToken);
@@ -317,6 +348,9 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
                   "qml": {
                     "sourceDir": "{{sourceDirPath.Replace("\\", @"\\")}}",
                     "buildDirs": ["{{buildDirPath.Replace("\\", @"\\")}}"]
+                  },
+                  "qmlLanguageServer": {
+                    "readyFile": "ready"
                   }
                 }
                 """, CancellationToken);
@@ -354,6 +388,9 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
                       "{{buildDirPath.Replace("\\", @"\\")}}",
                       "{{missingBuildDirPath.Replace("\\", @"\\")}}"
                     ]
+                  },
+                  "qmlLanguageServer": {
+                    "readyFile": "ready"
                   }
                 }
                 """, CancellationToken);
@@ -385,6 +422,9 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
                   "qml": {
                     "sourceDir": "C:\\does\\not\\exist",
                     "buildDirs": ["{{buildDirPath.Replace("\\", @"\\")}}"]
+                  },
+                  "qmlLanguageServer": {
+                    "readyFile": "ready"
                   }
                 }
                 """, CancellationToken);

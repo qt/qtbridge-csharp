@@ -598,10 +598,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
             // The build patches .qmlls.build.ini and validates the generated .qmltypes files
             // before it publishes the ready marker, so the marker alone gates injection.
-            var readyFile = QmlBuildMetadataContract.GetReadyMarkerPath(metadata);
-            if (readyFile == null)
-                return NotReady("the project publishes qmlLanguageServer.readyFile");
-            return File.Exists(readyFile)
+            return File.Exists(metadata.QmlLanguageServer.ReadyFile)
                 || NotReady("the build-generated qmlls ready marker exists");
         }
 
@@ -710,9 +707,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 return [];
 
             var signatures = new Dictionary<string, FileSignature>(StringComparer.OrdinalIgnoreCase);
-            var readyFile = QmlBuildMetadataContract.GetReadyMarkerPath(readResult.Metadata!);
-            if (readyFile != null)
-                AddPathSignature(signatures, readyFile);
+            AddPathSignature(signatures, readResult.Metadata!.QmlLanguageServer.ReadyFile);
             return signatures;
         }
 

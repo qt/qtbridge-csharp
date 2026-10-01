@@ -14,8 +14,7 @@ configure the QML Language Server for the active project.
 `qtbridge-qml.ide.json` is not private to the Visual Studio extension. The Qt VS Code
 extension (`qt-csharp/src/metadata.mts`) reads the same file for its QML Language Server
 integration, QML Preview, profiling and target framework selection, and requires some fields
-that Visual Studio ignores, for example `application`, `qml.files`, `targetFramework` and
-`qmlLanguageServer.buildIni`.
+that Visual Studio ignores, for example `application`, `qml.files` and `targetFramework`.
 
 Do not remove or rename a field in `build/Qt.Bridge.targets` just because the Visual Studio
 reader does not use it. Check the VS Code parser first and change both readers together.
@@ -123,13 +122,14 @@ An immutable model of the `qtbridge-qml.ide.json` file. It carries two nested se
 | `ProjectSourceDir` | The user's original project source root. Used for the runtime `$/addBuildDirs` mapping so qmlls covers user-authored QML files, not just generated ones. |
 | `BuildDirs` | One or more Qt-native build directories containing `.qt/.qmlls.build.ini`. |
 | `ImportPaths` | Additional QML import paths passed to qmlls via `-I`. These suppress the CI-baked fallback path compiled into the qmlls binary. |
-| `Files` | Original QML file paths plus generated module metadata. The extension uses these to generate a qrc that maps editor files back into the generated `/qt/qml/<module>/...` resource tree. |
+| `Files` | Original QML file paths plus generated module metadata. The build maps them into `qtbridge_project_sources.qrc`; the Visual Studio extension does not use them, the VS Code extension uses them to find the project that owns an open QML file. |
 
 **`QmlLanguageServerSection`** - startup policy:
 
 | Property | Description |
 |---|---|
 | `DisableCMakeCalls` | Whether to launch qmlls with `--no-cmake-calls`. Defaults to `true`: the native build directory is a CMake build tree that MSBuild drives, and qmlls must not start its own background builds there. Both extensions pass the flag if any loaded project sets it. |
+| `ReadyFile` | Required. The marker file the build deletes before it rewrites the qmlls build outputs and writes once they are complete. Editors inject build directories only while it exists. |
 
 ---
 

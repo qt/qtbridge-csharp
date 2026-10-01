@@ -90,9 +90,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
         /// <summary> QML Language Server startup policy from the metadata file. </summary>
         public sealed class QmlLanguageServerSection(
             bool disableCMakeCalls,
-            string? readyFile = null,
-            string? buildIni = null,
-            string? projectSourcesQrc = null)
+            string readyFile)
         {
             /// <summary>
             /// Whether to launch the QML Language Server executable with --no-cmake-calls.
@@ -101,17 +99,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
             public bool DisableCMakeCalls { get; } = disableCMakeCalls;
 
             /// <summary>
-            /// Optional publication marker for build-generated qmlls artifacts. When present,
-            /// editor integrations must treat the build outputs as read-only and wait for this
-            /// file before using them.
+            /// Publication marker for the build-generated qmlls artifacts. The build deletes it
+            /// before it rewrites them and writes it once they are complete, so editor
+            /// integrations must wait for this file before using the build directories.
             /// </summary>
-            public string? ReadyFile { get; } = readyFile;
-
-            /// <summary>Optional path to the build-generated qmlls settings file.</summary>
-            public string? BuildIni { get; } = buildIni;
-
-            /// <summary>Optional path to the project-source QRC used by qmlls.</summary>
-            public string? ProjectSourcesQrc { get; } = projectSourcesQrc;
+            public string ReadyFile { get; } = readyFile
+                ?? throw new ArgumentNullException(nameof(readyFile));
         }
     }
 }

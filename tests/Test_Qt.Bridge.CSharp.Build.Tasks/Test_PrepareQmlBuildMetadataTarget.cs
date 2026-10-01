@@ -192,8 +192,6 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             AssertMetadataPath(qml.GetProperty("importPaths")[1].GetString()!);
             var qmlls = document.RootElement.GetProperty("qmlLanguageServer");
             AssertMetadataPath(qmlls.GetProperty("readyFile").GetString()!);
-            AssertMetadataPath(qmlls.GetProperty("buildIni").GetString()!);
-            AssertMetadataPath(qmlls.GetProperty("projectSourcesQrc").GetString()!);
             var buildDirectory = Path.Combine(TempDirectory, "native", "build");
             var executableName = OperatingSystem.IsWindows()
                 ? "TargetTestApp.exe"
@@ -228,18 +226,8 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
                     ".qt",
                     BuildReadyMarker.FileName)),
                 NormalizeHostPath(qmlls.GetProperty("readyFile").GetString()!));
-            Assert.AreEqual(
-                NormalizeHostPath(Path.Combine(
-                    buildDirectory,
-                    ".qt",
-                    QmllsBuildIniPatcher.FileName)),
-                NormalizeHostPath(qmlls.GetProperty("buildIni").GetString()!));
-            Assert.AreEqual(
-                NormalizeHostPath(Path.Combine(
-                    buildDirectory,
-                    ".qt",
-                   ProjectSourcesQrcWriter.FileName)),
-                NormalizeHostPath(qmlls.GetProperty("projectSourcesQrc").GetString()!));
+            Assert.IsFalse(qmlls.TryGetProperty("buildIni", out _));
+            Assert.IsFalse(qmlls.TryGetProperty("projectSourcesQrc", out _));
         }
 
         [TestMethod]

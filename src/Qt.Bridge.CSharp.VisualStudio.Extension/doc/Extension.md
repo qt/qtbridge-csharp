@@ -139,10 +139,10 @@ does not patch or inspect any of these files itself.
 **Injection is deferred until the ready marker exists.**
 After a build, `qtbridge-qml.ide.json` may appear before the native build has finished.
 Injecting at that point would let qmlls load incomplete build settings into the running
-session. `TryInjectProjectAsync` therefore injects only once the ready marker exists. Metadata
-without a `readyFile`, written by older Qt Bridge packages, is never injected. Until the marker appears,
-the project's `BuildSettingsMonitor` retries `TryInjectProjectAsync` whenever the marker's
-signature changes.
+session. `TryInjectProjectAsync` therefore injects only once the ready marker exists.
+`readyFile` is a required metadata field, so metadata without it fails to read. Until the
+marker appears, the project's `BuildSettingsMonitor` retries `TryInjectProjectAsync` whenever
+the marker's signature changes.
 
 **Metadata change defers restart until build output is ready.**
 When the metadata watcher fires, or the ready marker changes after a successful injection, the
