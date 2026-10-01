@@ -103,7 +103,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             // Best-effort: read import paths from any loaded Qt Bridge project. These paths are
             // identical for all projects using the same NuGet package version, so the first project
             // with built metadata is a valid source even if the active project has none yet.
-            var importPaths = await TryFindImportPathsAsync(ct);
+            var (importPaths, disableCMakeCalls) = await ResolveStartupSettingsAsync(ct);
             if (importPaths != null) {
                 foreach (var importPath in importPaths)
                     log.Info($"QML Language Server: startup import path: {importPath}");
@@ -118,7 +118,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             QmlLanguageServerTransportPipe pipe;
             try {
                 pipe = LaunchQmlLanguageServer(installation.ExecutablePath, importPaths,
-                    loggingConfig);
+                    disableCMakeCalls, loggingConfig);
             } catch (QmlLanguageServerLaunchException ex) {
                 log.Error($"QML Language Server: failed to launch '{ex.ExecutablePath}'.", ex);
                 await notifications.ShowErrorAsync("qmls-launch-failed",
@@ -199,6 +199,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private QmlLanguageServerTransportPipe LaunchQmlLanguageServer(
             string executablePath,
             IEnumerable<string>? importPaths,
+            bool disableCMakeCalls,
             LoggingOptions loggingOptions)
         {
             var qmllsLogActive = loggingOptions.QmllsLogEnabled
@@ -206,7 +207,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             if (qmllsLogActive)
                 ResetQmlLanguageServerLogOnce(loggingOptions.QmllsLogFilePath);
 
-            var args = BuildStartupArguments(importPaths, qmllsLogActive,
+            var args = BuildStartupArguments(importPaths, disableCMakeCalls, qmllsLogActive,
                 loggingOptions.QmllsLogFilePath);
             var startInfo = new ProcessStartInfo
             {
@@ -252,10 +253,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
         private static string BuildStartupArguments(
             IEnumerable<string>? importPaths,
+            bool disableCMakeCalls,
             bool qmllsLogActive,
             string qmllsLogFilePath)
         {
-            var parts = new List<string> { "--no-cmake-calls" };
+            var parts = new List<string>();
+            if (disableCMakeCalls)
+                parts.Add("--no-cmake-calls");
             if (qmllsLogActive)
                 parts.AddRange(["--verbose", $"-l \"{qmllsLogFilePath}\""]);
             if (importPaths != null)
@@ -263,27 +267,41 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             return string.Join(" ", parts);
         }
 
-        private async Task<string[]?> TryFindImportPathsAsync(CancellationToken ct)
+        /// <summary>
+        /// Collects the qmlls command-line settings from all loaded Qt Bridge projects. CMake
+        /// calls are disabled if any project's metadata asks for it, matching the VS Code
+        /// extension. Without any readable metadata they stay disabled, which is the metadata
+        /// default.
+        /// </summary>
+        private async Task<(string[]? ImportPaths, bool DisableCMakeCalls)>
+            ResolveStartupSettingsAsync(CancellationToken ct)
         {
             var configKey = await ResolveConfigKeyAsync(ct);
             if (configKey == null)
-                return null;
+                return (null, true);
 
             var importPaths = new List<string>();
             var importPathKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            bool? disableCMakeCalls = null;
             var loadedPaths = await contextService.GetLoadedProjectPathsAsync(ct);
             foreach (var projectPath in loadedPaths) {
                 var metadata = await TryGetQtBridgeProjectMetadataAsync(projectPath, ct);
                 if (metadata == null)
                     continue;
 
-                AddProjectImportPaths(
+                var projectDisableCMakeCalls = AddProjectStartupSettings(
                     projectPath, metadata, configKey, importPaths, importPathKeys, ct);
+                if (projectDisableCMakeCalls != null)
+                    disableCMakeCalls = disableCMakeCalls == true || projectDisableCMakeCalls.Value;
             }
-            return importPaths.Count > 0 ? [..importPaths] : null;
+            return (importPaths.Count > 0 ? [..importPaths] : null, disableCMakeCalls ?? true);
         }
 
-        private void AddProjectImportPaths(
+        /// <summary>
+        /// Adds the project's startup import paths and returns its <c>disableCMakeCalls</c>
+        /// metadata value, or <see langword="null"/> if the project has no readable metadata.
+        /// </summary>
+        private bool? AddProjectStartupSettings(
             string projectFilePath,
             QtBridgeProjectMetadata projectMetadata,
             string configKey,
@@ -300,20 +318,22 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
             var projectDirectory = Path.GetDirectoryName(projectFilePath);
             if (projectDirectory == null)
-                return;
+                return null;
 
             var metadataPath = metadataReader.FindMetadataFilePath(projectDirectory, configKey);
             if (metadataPath == null)
-                return;
+                return null;
 
             var readResult = metadataReader.TryRead(metadataPath, ct);
             if (!readResult.Success)
-                return;
+                return null;
 
-            foreach (var importPath in readResult.Metadata!.Qml.ImportPaths) {
+            var metadata = readResult.Metadata!;
+            foreach (var importPath in metadata.Qml.ImportPaths) {
                 if (!string.IsNullOrWhiteSpace(importPath))
                     AddStartupImportPath(importPaths, importPathKeys, importPath);
             }
+            return metadata.QmlLanguageServer.DisableCMakeCalls;
         }
 
         private static void AddStartupImportPath(

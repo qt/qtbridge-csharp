@@ -401,11 +401,15 @@ Called by the VS SDK when `Enabled` is `true`. The sequence is:
    generated project metadata.
    Each resolved path is logged at `Info` level; a "no paths found" entry is logged if the
    scan produces nothing.
+   The same scan reads `qmlLanguageServer.disableCMakeCalls` from each project's metadata.
+   `--no-cmake-calls` is passed if any project sets it, as in the VS Code extension. When no
+   project has readable metadata yet, the flag is passed as well, matching the metadata
+   default of `true`.
 3. Resolve the active project context (directory, project file path, config key).
 4. Read a `LoggingOptions` snapshot via `ILoggingSettingsProvider.GetConfigAsync`.
    If the settings cannot be read, logging is disabled for this server session and startup continues.
-5. Launch the qmlls process with `--no-cmake-calls`, the collected import paths, and, when
-   enabled, `--verbose -l <path>` for the qmlls process log. A
+5. Launch the qmlls process with `--no-cmake-calls` (see step 2), the collected import paths,
+   and, when enabled, `--verbose -l <path>` for the qmlls process log. A
    `QmlLanguageServerLaunchException` is caught, an error notification is shown, and the
    method returns `null`. On success, stores the pipe as `activePipe`.
 6. Reset `BuildDirsInjected` on all existing registry entries (they belong to the previous
@@ -554,12 +558,13 @@ DteContextSubscription fires (solution opened)
   |- Enabled = true  (VS SDK calls CreateServerConnectionAsync)
        │
        |- IQmlLanguageServerInstaller.EnsureInstalledAsync()  -> executable path
-       |- TryFindImportPathsAsync()  -> bundled NuGet tools/qt/qml + built metadata import paths
+       |- ResolveStartupSettingsAsync()  -> bundled NuGet tools/qt/qml + built metadata import
+       │                                    paths, disableCMakeCalls
        |- ResolveActiveProjectContextAsync()  -> (dir, projectFile, configKey)
        |- ReadLoggingConfigAsync()  -> qmlls process log + LSP traffic log settings
        │
        |- LaunchQmlLanguageServer()
-       │    Process.Start(qmlls, --no-cmake-calls [--verbose -l path] [-I ...])
+       │    Process.Start(qmlls, [--no-cmake-calls] [--verbose -l path] [-I ...])
        │    -> QmlLanguageServerTransportPipe (IDuplexPipe)
        │         RelayFromProcessAsync  [background]
        │         RelayToProcessAsync    [background]

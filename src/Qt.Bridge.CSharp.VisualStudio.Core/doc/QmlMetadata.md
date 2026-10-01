@@ -9,6 +9,19 @@ configure the QML Language Server for the active project.
 
 ---
 
+## A Shared Contract
+
+`qtbridge-qml.ide.json` is not private to the Visual Studio extension. The Qt VS Code
+extension (`qt-csharp/src/metadata.mts`) reads the same file for its QML Language Server
+integration, QML Preview, profiling and target framework selection, and requires some fields
+that Visual Studio ignores, for example `application`, `qml.files`, `targetFramework` and
+`qmlLanguageServer.buildIni`.
+
+Do not remove or rename a field in `build/Qt.Bridge.targets` just because the Visual Studio
+reader does not use it. Check the VS Code parser first and change both readers together.
+
+---
+
 ## The MSBuild Producer
 
 The `qtbridge-qml.ide.json` file is written by the `QtBridgeWriteQmlMetadataFile` target in
@@ -116,7 +129,7 @@ An immutable model of the `qtbridge-qml.ide.json` file. It carries two nested se
 
 | Property | Description |
 |---|---|
-| `DisableCMakeCalls` | Whether to launch qmlls with `--no-cmake-calls`. Defaults to `true` for Qt Bridge C# projects, which do not use CMake. |
+| `DisableCMakeCalls` | Whether to launch qmlls with `--no-cmake-calls`. Defaults to `true`: the native build directory is a CMake build tree that MSBuild drives, and qmlls must not start its own background builds there. Both extensions pass the flag if any loaded project sets it. |
 
 ---
 
