@@ -1,4 +1,4 @@
 dependencies:
-  ../../qt/qtdeclarative:
-    ref: 4c77c50924afcb92aed176f7d9471e0e29818c3a
+  ../../qt/qtquick3dphysics:
+    ref: 6514607dec860d7a5f2a42619ecac9322cfb91e2
     required: true
