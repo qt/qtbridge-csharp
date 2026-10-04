@@ -4,6 +4,7 @@
 #pragma once
 
 #include "qdotnetsafemethod.h"
+#include "qdotnetprofiler.h"
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
@@ -16,6 +17,8 @@
 
 class QDotNetType : public QDotNetRef
 {
+    Q_DOTNET_PROFILE_SCOPE(QDotNetType);
+
 public:
     static inline const QString AssemblyQualifiedName = QStringLiteral("System.Type");
 
@@ -45,6 +48,8 @@ public:
 
     QDotNetRef module() const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!isValid())
             return nullptr;
         if (!fnModule.isValid()) {
@@ -56,6 +61,8 @@ public:
 
     QDotNetRef property(const QString &name) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!isValid())
             return nullptr;
         if (!fnGetProperty.isValid()) {
@@ -68,6 +75,8 @@ public:
 
     QDotNetRef method(const QString &name) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!isValid())
             return nullptr;
         if (!fnGetMethod.isValid()) {
@@ -82,6 +91,8 @@ public:
     // paths where the full assembly identity is intentional.
     QString assemblyQualifiedName() const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!isValid())
             return QStringLiteral("");
         if (!fnAssemblyQualifiedName.isValid()) {
@@ -96,6 +107,8 @@ public:
     // comparisons, not for places that require the exact assembly identity.
     QString stableAssemblyQualifiedName() const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!isValid())
             return QStringLiteral("");
         if (strStableAssemblyQualifiedName.isEmpty())
@@ -105,6 +118,8 @@ public:
 
     QString fullName() const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!isValid())
             return QStringLiteral("");
         if (!fnFullName.isValid()) {
@@ -117,6 +132,8 @@ public:
 
     static QDotNetType typeOf(const QString &typeName)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         QDotNetFunction<QDotNetType, QString> fnGetType;
         return staticMethod(AssemblyQualifiedName, "GetType", fnGetType).invoke(nullptr, typeName);
     }
@@ -124,6 +141,8 @@ public:
     template<typename T>
     static QDotNetType typeOf()
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return typeOf(T::AssemblyQualifiedName);
     }
 
@@ -131,6 +150,8 @@ public:
     static QDotNetFunction<T> staticFieldGet(const QString &typeName,
         const QString &fieldName)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         const QList<QDotNetParameter> parameters
         {
             QDotNetInbound<T>::Parameter
@@ -142,6 +163,8 @@ public:
     static QDotNetFunction<T> &staticFieldGet(const QString &typeName,
         const QString &fieldName, QDotNetFunction<T> &func)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!func.isValid())
             func = staticFieldGet<T>(typeName, fieldName);
         return func;
@@ -150,6 +173,8 @@ public:
     template<typename T>
     QDotNetFunction<T> staticFieldGet(const QString &fieldName) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return staticFieldGet<T>(assemblyQualifiedName(), fieldName);
     }
 
@@ -157,6 +182,8 @@ public:
     QDotNetFunction<T> &staticFieldGet(
         const QString &fieldName, QDotNetFunction<T> &func) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!func.isValid())
             func = staticFieldGet<T>(fieldName);
         return func;
@@ -166,6 +193,8 @@ public:
     static QDotNetFunction<void, T> staticFieldSet(const QString &typeName,
         const QString &fieldName)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         const QList<QDotNetParameter> parameters
         {
             QDotNetInbound<void>::Parameter,
@@ -178,6 +207,8 @@ public:
     static QDotNetFunction<void, T> &staticFieldSet(const QString &typeName,
         const QString &fieldName, QDotNetFunction<void, T> &func)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!func.isValid())
             func = staticFieldSet<T>(typeName, fieldName);
         return func;
@@ -187,6 +218,8 @@ public:
     static QDotNetFunction<TResult, TArg...> staticMethod(const QString &typeName,
         const QString &methodName)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         const QList<QDotNetParameter> parameters
         {
             QDotNetInbound<TResult>::Parameter,
@@ -199,6 +232,8 @@ public:
     static QDotNetFunction<TResult, TArg...> &staticMethod(const QString &typeName,
         const QString &methodName, QDotNetFunction<TResult, TArg...> &func)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!func.isValid())
             func = staticMethod<TResult, TArg...>(typeName, methodName);
         return func;
@@ -209,6 +244,8 @@ public:
     static QDotNetSafeMethod<TResult, TArg...> &staticMethod(const QString &typeName,
         const QString &methodName, QDotNetSafeMethod<TResult, TArg...> &func)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!func.isValid())
             func = staticMethod<TResult, TArg...>(typeName, methodName);
         return func;
@@ -218,6 +255,8 @@ public:
     template<typename TResult, typename ...TArg>
     QDotNetFunction<TResult, TArg...> staticMethod(const QString &methodName) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return staticMethod<TResult, TArg...>(assemblyQualifiedName(), methodName);
     }
 
@@ -225,6 +264,8 @@ public:
     QDotNetFunction<TResult, TArg...> &staticMethod(const QString &methodName,
         QDotNetFunction<TResult, TArg...> &func) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!func.isValid())
             func = staticMethod<TResult, TArg...>(methodName);
         return func;
@@ -235,6 +276,8 @@ public:
     QDotNetSafeMethod<TResult, TArg...> &staticMethod(const QString &methodName,
         QDotNetSafeMethod<TResult, TArg...> &func) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!func.isValid())
             func = staticMethod<TResult, TArg...>(methodName);
         return func;
@@ -244,6 +287,8 @@ public:
     template<typename T, typename ...TArg>
     static QDotNetFunction<T, TArg...> constructor(const QString &typeName)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         const QList<QDotNetParameter> parameters
         {
             QDotNetParameter(typeName, UnmanagedType::ObjectRef),
@@ -256,6 +301,8 @@ public:
     static QDotNetFunction<T, TArg...> &constructor(const QString &typeName,
         QDotNetFunction<T, TArg...> &ctor)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!ctor.isValid())
             ctor = constructor<T, TArg...>(typeName);
         return ctor;
@@ -266,6 +313,8 @@ public:
     static QDotNetSafeMethod<T, TArg...> &constructor(const QString &typeName,
         QDotNetSafeMethod<T, TArg...> &ctor)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!ctor.isValid())
             ctor = constructor<T, TArg...>(typeName);
         return ctor;
@@ -275,12 +324,16 @@ public:
     template<typename T, typename ...TArg>
     QDotNetFunction<T, TArg...> constructor() const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return constructor<T, TArg...>(assemblyQualifiedName());
     }
 
     template<typename T, typename ...TArg>
     QDotNetFunction<T, TArg...> &constructor(QDotNetFunction<T, TArg...> &ctor) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return constructor(assemblyQualifiedName(), ctor);
     }
 
@@ -288,28 +341,38 @@ public:
     template<typename T, typename ...TArg>
     QDotNetFunction<T, TArg...> &constructor(QDotNetSafeMethod<T, TArg...> &ctor) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return constructor(assemblyQualifiedName(), ctor);
     }
 #endif
 
     void freeTypeRef()
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         freeTypeRef(assemblyQualifiedName());
     }
 
     static void freeTypeRef(const QString &typeName)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         adapter().freeTypeRef(typeName);
     }
 
     template<typename T>
     static void freeTypeRef()
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         freeTypeRef(T::AssemblyQualifiedName);
     }
 
     bool isAssignableFrom(const QDotNetType &c) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!c.isValid())
             return false;
         if (!fnIsAssignableFrom.isValid()) {
@@ -324,11 +387,15 @@ public:
     template<typename T>
     bool isAssignableFrom() const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return isAssignableFrom(typeOf<T>());
     }
 
     bool isAssignableTo(const QDotNetType &c) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!c.isValid())
             return false;
         if (!fnIsAssignableTo.isValid()) {
@@ -343,17 +410,23 @@ public:
     template<typename T>
     bool isAssignableTo() const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return isAssignableTo(typeOf<T>());
     }
 
     bool is(const QDotNetType &c) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return equals(c);
     }
 
     template<typename T>
     bool is() const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return is(typeOf<T>());
     }
 
@@ -375,6 +448,8 @@ namespace QtDotNet
     template<typename T, typename... TArg>
     T call(const QString &type, const QString &method, TArg... arg)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return QDotNetType::staticMethod<T, TArg...>(type, method).invoke(nullptr, arg...);
     }
 }

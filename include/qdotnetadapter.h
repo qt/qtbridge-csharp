@@ -4,6 +4,7 @@
 #pragma once
 
 #include "qdotnethost.h"
+#include "qdotnetprofiler.h"
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
@@ -27,6 +28,8 @@ class QDotNetRef;
 
 class QDotNetAdapter final
 {
+    Q_DOTNET_PROFILE_SCOPE(QDotNetAdapter);
+
 private:
     QDotNetAdapter() = default;
     QDotNetAdapter(const QDotNetAdapter &) = delete;
@@ -49,6 +52,8 @@ private:
 
     static void init()
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (instance().isValid())
             return;
         init(QDir(QCoreApplication::applicationDirPath())
@@ -58,6 +63,8 @@ private:
 public:
     static void init(QDotNetHost *externalHost)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (instance().isValid())
             return;
         init(QDir(QCoreApplication::applicationDirPath())
@@ -67,6 +74,8 @@ public:
     static void init(const QString &assemblyPath, const QString &typeAndAssemblyName,
         QDotNetHost *externalHost = nullptr, QQmlEngine *qml = nullptr)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init(assemblyPath, typeAndAssemblyName, typeAndAssemblyName, externalHost, qml);
     }
 
@@ -74,6 +83,8 @@ public:
         const QString &typeName, QDotNetHost *externalHost = nullptr,
         QQmlEngine *qml = nullptr)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (instance().isValid())
             return;
 
@@ -144,6 +155,8 @@ public:
 public:
     void *loadAssembly(const QString &assemblyName) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         return fnLoadAssembly(assemblyName);
     }
@@ -151,6 +164,8 @@ public:
     void *resolveStaticMethod(const QString &typeName, const QString &methodName,
         const QList<QDotNetParameter> &params) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (typeName.isEmpty() || methodName.isEmpty())
             return nullptr;
@@ -160,6 +175,8 @@ public:
 
     void *resolveConstructor(const QList<QDotNetParameter> &params) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         return fnResolveConstructor(static_cast<qint32>(params.size()), params);
     }
@@ -167,6 +184,8 @@ public:
     void *resolveInstanceMethod(const QDotNetRef &objectRef, const QString &methodName,
         const QList<QDotNetParameter> &params) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (QtDotNet::isNull(objectRef) || methodName.isEmpty())
             return nullptr;
@@ -177,6 +196,8 @@ public:
     void *resolveStaticFieldGet(const QString &typeName, const QString &fieldName,
         const QList<QDotNetParameter> &params)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (typeName.isEmpty() || fieldName.isEmpty())
             return nullptr;
@@ -187,6 +208,8 @@ public:
     void *resolveStaticFieldSet(const QString &typeName, const QString &fieldName,
         const QList<QDotNetParameter> &params)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (typeName.isEmpty() || fieldName.isEmpty())
             return nullptr;
@@ -197,6 +220,8 @@ public:
     void *resolveInstanceFieldGet(const QDotNetRef &objectRef, const QString &fieldName,
         const QList<QDotNetParameter> &params)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (QtDotNet::isNull(objectRef) || fieldName.isEmpty())
             return nullptr;
@@ -207,6 +232,8 @@ public:
     void *resolveInstanceFieldSet(const QDotNetRef &objectRef, const QString &fieldName,
         const QList<QDotNetParameter> &params)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (QtDotNet::isNull(objectRef) || fieldName.isEmpty())
             return nullptr;
@@ -218,6 +245,8 @@ public:
 
     void *resolveSafeMethod(void *funcPtr, const QList<QDotNetParameter> &params) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (!funcPtr)
             return nullptr;
@@ -228,6 +257,8 @@ public:
     void addEventHandler(const QDotNetRef &eventSource, const QString &eventName,
         void *context, EventCallback eventCallback) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (QtDotNet::isNull(eventSource) || eventName.isEmpty() || !eventCallback)
             return;
@@ -237,6 +268,8 @@ public:
     void addEventHandler(QDotNetRef &eventSource, const QString &eventName,
         EventCallback eventCallback) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (QtDotNet::isNull(eventSource) || eventName.isEmpty() || !eventCallback)
             return;
@@ -246,6 +279,8 @@ public:
     void removeEventHandler(const QDotNetRef &eventSource, const QString &eventName,
         void *context) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (QtDotNet::isNull(eventSource) || eventName.isEmpty())
             return;
@@ -254,6 +289,8 @@ public:
 
     void removeEventHandler(QDotNetRef &eventSource, const QString &eventName) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (QtDotNet::isNull(eventSource) || eventName.isEmpty())
             return;
@@ -262,6 +299,8 @@ public:
 
     void removeAllEventHandlersByContext(void *context) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!isValid() || !fnRemoveAllEventHandlersByContext.isValid())
             return;
         fnRemoveAllEventHandlersByContext(context);
@@ -269,6 +308,8 @@ public:
 
     void *addObjectRef(const QDotNetRef &objectRef, bool weakRef = false) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (QtDotNet::isNull(objectRef))
             return nullptr;
@@ -277,6 +318,8 @@ public:
 
     void freeDelegateRef(void *delegateRef) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (!delegateRef)
             return;
@@ -285,6 +328,8 @@ public:
 
     void freeObjectRef(const QDotNetRef &objectRef) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (QtDotNet::isNull(objectRef))
             return;
@@ -293,6 +338,8 @@ public:
 
     void freeTypeRef(const QString &typeName) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (typeName.isEmpty())
             return;
@@ -301,6 +348,8 @@ public:
 
     QString stableAssemblyQualifiedName(const QDotNetRef &typeRef) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (QtDotNet::isNull(typeRef))
             return QStringLiteral("");
@@ -309,6 +358,8 @@ public:
 
     void *addInterfaceProxy(const QString &interfaceName, void *data, void *cleanUp) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (interfaceName.isEmpty())
             return nullptr;
@@ -318,6 +369,8 @@ public:
     void *addDelegateProxy(const QString &delegateTypeName, const QList<QDotNetParameter> &params,
         void *data, void *deleteData, void *callback, void *cleanUp, void *error, void *ctx) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (delegateTypeName.isEmpty() || !callback)
             return nullptr;
@@ -328,6 +381,8 @@ public:
     void setInterfaceMethod(const QDotNetRef &obj, const QString &methodName,
         const QList<QDotNetParameter> &params, void *callback, void *cleanUp, void *context) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         if (QtDotNet::isNull(obj) || methodName.isEmpty() || !callback)
             return;
@@ -362,6 +417,8 @@ public:
 
     void *object(const QDotNetRef &obj, const QString &path)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         init();
         return fnGetObject(obj, path);
     }

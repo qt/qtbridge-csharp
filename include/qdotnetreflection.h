@@ -5,6 +5,7 @@
 
 #include "qdotnetarray.h"
 #include "qdotnetref.h"
+#include "qdotnetprofiler.h"
 
 #ifdef __GNUC__
 #  pragma GCC diagnostic push
@@ -18,6 +19,8 @@
 
 class QDotNetAssembly : public QDotNetRef
 {
+    Q_DOTNET_PROFILE_SCOPE(QDotNetAssembly);
+
 public:
     static inline const QString AssemblyQualifiedName =
             QStringLiteral("System.Reflection.Assembly");
@@ -42,6 +45,8 @@ public:
 
     QDotNetRef getType(const QString &typeName) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!isValid())
             return nullptr;
 
@@ -59,6 +64,8 @@ private:
 
 class QDotNetModule : public QDotNetRef
 {
+    Q_DOTNET_PROFILE_SCOPE(QDotNetModule);
+
 public:
     static inline const QString AssemblyQualifiedName = QStringLiteral("System.Reflection.Module");
 
@@ -82,6 +89,8 @@ public:
 
     QDotNetRef resolveMethod(int metadataToken) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!isValid())
             return nullptr;
 
@@ -99,6 +108,8 @@ private:
 
 class QDotNetMethodInfo : public QDotNetRef
 {
+    Q_DOTNET_PROFILE_SCOPE(QDotNetMethodInfo);
+
 public:
     static inline const QString AssemblyQualifiedName =
             QStringLiteral("System.Reflection.MethodInfo");
@@ -126,6 +137,8 @@ public:
     // a QDotNetRef even when the actual method returns a value type.
     QDotNetRef invoke(const QDotNetRef &obj, const QDotNetArray<QDotNetRef> &parameters) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!isValid())
             return nullptr;
 
@@ -144,10 +157,14 @@ private:
 
 class QDotNetBoxedMethod
 {
+    Q_DOTNET_PROFILE_SCOPE(QDotNetBoxedMethod);
+
 public:
     QDotNetRef invoke(const QDotNetObject &obj, const QString &methodName,
                       const QDotNetArray<QDotNetRef> &parameters)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (name != methodName) {
             name = methodName;
             methodInfo = QDotNetMethodInfo(nullptr);
@@ -164,6 +181,8 @@ private:
 
 class QDotNetPropertyInfo : public QDotNetRef
 {
+    Q_DOTNET_PROFILE_SCOPE(QDotNetPropertyInfo);
+
 public:
     static inline const QString AssemblyQualifiedName =
             QStringLiteral("System.Reflection.PropertyInfo");
@@ -189,6 +208,8 @@ public:
     QDotNetRef getValue(const QDotNetRef &obj,
                         const QDotNetArray<QDotNetRef> &parameters = nullptr) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!isValid())
             return nullptr;
 
@@ -204,6 +225,8 @@ public:
     QDotNetRef setValue(const QDotNetRef &obj, const QDotNetRef &value,
                         const QDotNetArray<QDotNetRef> parameters = nullptr) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!isValid())
             return nullptr;
 

@@ -4,6 +4,7 @@
 #pragma once
 
 #include "qdotnetexception.h"
+#include "qdotnetprofiler.h"
 
 #ifdef DISABLE_QDOTNETSAFEMETHOD
 #  define QDotNetSafeMethod QDotNetFunction
@@ -21,6 +22,8 @@
 template<typename T, typename... TArg>
 class QDotNetSafeMethod
 {
+    Q_DOTNET_PROFILE_SCOPE(QDotNetSafeMethod);
+
     using FuncType = QDotNetFunction<T, TArg...>;
     using SafeFuncType = QDotNetFunction<QDotNetRef, QDotNetRef, TArg...>;
 
@@ -29,6 +32,8 @@ public:
     QDotNetSafeMethod(FuncType func)
         : func(func)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         const QList<QDotNetParameter> parameters
         {
             QDotNetInbound<QDotNetRef>::Parameter,
@@ -57,6 +62,8 @@ public:
 
         T value() const
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             if (!fnValue.isValid()) {
                 fnValue = adapter().resolveInstanceMethod(
                     *this, "get_Value", { QDotNetInbound<T>::Parameter });
@@ -65,6 +72,8 @@ public:
         }
         QDotNetException exception() const
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             if (!fnException.isValid()) {
                 fnException = adapter().resolveInstanceMethod(
                     *this, "get_Exception", { QDotNetInbound<QDotNetException>::Parameter });
@@ -79,6 +88,8 @@ public:
     typename QDotNetInbound<T>::TargetType invoke(QDotNetOutbound<QDotNetRef>::SourceType obj,
         typename QDotNetOutbound<TArg>::SourceType... arg) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         SafeReturn safeReturn = safeFunc(obj, arg...).template cast<SafeReturn>();
         QDotNetException exception = safeReturn.exception();
         if (!exception.isValid())
@@ -89,6 +100,8 @@ public:
     typename QDotNetInbound<T>::TargetType invoke(nullptr_t nullObj,
         typename QDotNetOutbound<TArg>::SourceType... arg) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         SafeReturn safeReturn = safeFunc(nullObj, arg...).template cast<SafeReturn>();
         QDotNetException exception = safeReturn.exception();
         if (!exception.isValid())
@@ -112,6 +125,8 @@ public:
     QDotNetSafeMethod(FuncType func)
         : func(func)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         const QList<QDotNetParameter> parameters
         {
             QDotNetInbound<QDotNetRef>::Parameter,
@@ -140,6 +155,8 @@ public:
 
         QDotNetException exception() const
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             if (!fnException.isValid()) {
                 fnException = QDotNetAdapter::instance().resolveInstanceMethod(
                     *this, "get_Exception", { QDotNetInbound<QDotNetException>::Parameter });
@@ -153,6 +170,8 @@ public:
     void invoke(QDotNetOutbound<QDotNetRef>::SourceType obj,
         typename QDotNetOutbound<TArg>::SourceType... arg) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         SafeReturn safeReturn = safeFunc(obj, arg...).template cast<SafeReturn>();
         QDotNetException exception = safeReturn.exception();
         if (exception.isValid())
@@ -161,6 +180,8 @@ public:
 
     void invoke(nullptr_t nullObj, typename QDotNetOutbound<TArg>::SourceType... arg) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         SafeReturn safeReturn = safeFunc(nullObj, arg...).template cast<SafeReturn>();
         QDotNetException exception = safeReturn.exception();
         if (exception.isValid())

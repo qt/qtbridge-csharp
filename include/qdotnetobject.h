@@ -4,6 +4,7 @@
 #pragma once
 
 #include "qdotnettype.h"
+#include "qdotnetprofiler.h"
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
@@ -169,6 +170,8 @@ public:
 
     const QDotNetType &type() const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!objType.isValid())
             objType = QDotNetRef::type();
         return objType;
@@ -177,6 +180,8 @@ public:
     template<typename TResult, typename ...TArg>
     QDotNetFunction<TResult, TArg...> method(const QString &methodName) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         const QList<QDotNetParameter> parameters
         {
             QDotNetInbound<TResult>::Parameter,
@@ -189,6 +194,8 @@ public:
     QDotNetFunction<TResult, TArg...> &method(const QString &methodName,
         QDotNetFunction<TResult, TArg...> &func) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!func.isValid())
             func = method<TResult, TArg...>(methodName);
         return func;
@@ -199,6 +206,8 @@ public:
     QDotNetSafeMethod<TResult, TArg...> &method(const QString &methodName,
         QDotNetSafeMethod<TResult, TArg...> &func) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!func.isValid())
             func = method<TResult, TArg...>(methodName);
         return func;
@@ -208,6 +217,8 @@ public:
     template<typename TResult, typename ...TArg>
     QDotNetFunction<TResult, TArg...> staticMethod(const QString &methodName) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return type().staticMethod<TResult, TArg...>(methodName);
     }
 
@@ -215,6 +226,8 @@ public:
     QDotNetFunction<TResult, TArg...> &staticMethod(const QString &methodName,
         QDotNetFunction<TResult, TArg...> &func) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!func.isValid())
             func = type().staticMethod<TResult, TArg...>(methodName);
         return func;
@@ -225,6 +238,8 @@ public:
     QDotNetSafeMethod<TResult, TArg...> &staticMethod(const QString &methodName,
         QDotNetSafeMethod<TResult, TArg...> &func) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!func.isValid())
             func = type().staticMethod<TResult, TArg...>(methodName);
         return func;
@@ -234,6 +249,8 @@ public:
     template<typename ...TArg>
     static QDotNetFunction<QDotNetObject, TArg...> constructor(const QString &typeName)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return QDotNetType::constructor<QDotNetObject, TArg...>(typeName);
     }
 
@@ -241,6 +258,8 @@ public:
     static QDotNetFunction<QDotNetObject, TArg...> &constructor(const QString &typeName,
         QDotNetFunction<QDotNetObject, TArg...> &ctor)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return QDotNetType::constructor(typeName, ctor);
     }
 
@@ -249,6 +268,8 @@ public:
     static QDotNetSafeMethod<QDotNetObject, TArg...> &constructor(const QString &typeName,
         QDotNetSafeMethod<QDotNetObject, TArg...> &ctor)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return QDotNetType::constructor(typeName, ctor);
     }
 #endif
@@ -256,6 +277,8 @@ public:
     template<typename T>
     QDotNetFunction<T, QDotNetRef> fieldGet(const QString &fieldName) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         const QList<QDotNetParameter> parameters
         {
             QDotNetInbound<T>::Parameter,
@@ -269,6 +292,8 @@ public:
     QDotNetFunction<T, QDotNetRef> fieldGet(const QString &fieldName,
         QDotNetFunction<T, QDotNetRef> &func) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!func.isValid())
             func = fieldGet<T>(fieldName);
         return func;
@@ -277,6 +302,8 @@ public:
     template<typename T>
     QDotNetFunction<void, QDotNetRef, T> fieldSet(const QString &fieldName)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         const QList<QDotNetParameter> parameters
         {
             QDotNetInbound<void>::Parameter,
@@ -291,6 +318,8 @@ public:
     QDotNetFunction<void, QDotNetRef, T> fieldSet(const QString &fieldName,
         QDotNetFunction<void, QDotNetRef, T> &func)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!func.isValid())
             func = fieldSet<T>(fieldName);
         return func;
@@ -298,28 +327,38 @@ public:
 
     void subscribe(const QString &eventName, QDotNetEventHandler *eventHandler)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         adapter().addEventHandler(*this, eventName, eventHandler, eventCallback);
     }
 
     void unsubscribe(const QString &eventName, QDotNetEventHandler *eventHandler)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         adapter().removeEventHandler(*this, eventName, eventHandler);
     }
 
     QDotNetObject object(const QString &path)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return adapter().object(*this, path);
     }
 
     template<typename TResult, typename ...TArg>
     TResult call(const QString &methodName, TArg... arg) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return method<TResult, TArg...>(methodName).invoke(*this, arg...);
     }
 
     template<typename ...TArg>
     void call(const QString &methodName, TArg... arg) const
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         method<void, TArg...>(methodName).invoke(*this, arg...);
     }
 
@@ -327,12 +366,16 @@ protected:
     template<typename T, typename ...TArg>
     static QDotNetFunction<T, TArg...> constructor()
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return QDotNetType::constructor<T, TArg...>(T::AssemblyQualifiedName);
     }
 
     template<typename T, typename ...TArg>
     static QDotNetFunction<T, TArg...> &constructor(QDotNetFunction<T, TArg...> &ctor)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return QDotNetType::constructor(T::AssemblyQualifiedName, ctor);
     }
 
@@ -340,6 +383,8 @@ protected:
     template<typename T, typename ...TArg>
     static QDotNetSafeMethod<T, TArg...> &constructor(QDotNetSafeMethod<T, TArg...> &ctor)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return QDotNetType::constructor(T::AssemblyQualifiedName, ctor);
     }
 #endif
@@ -364,11 +409,15 @@ struct QDotNetEventHandlerHelper : public QDotNetEventHandler
     QDotNetEventHandlerHelper(const QString &eventName, QDotNetObject *receiver, T *d = nullptr)
         : eventName(eventName), receiver(receiver), d(d)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         receiver->subscribe(eventName, this);
     }
 
     ~QDotNetEventHandlerHelper() override
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         QDotNetAdapter::instance().removeAllEventHandlersByContext(this);
     }
 
@@ -398,6 +447,8 @@ event_name##EventHandler
 inline void QDOTNETFUNCTION_CALLTYPE QDotNetObject::eventCallback(void *context, void *eventNameChars,
     void *eventSourceRef, void *eventArgsRef)
 {
+    Q_DOTNET_PROFILE_FUNC();
+
     auto *receiver = static_cast<QDotNetEventHandler *>(context);
     const QString eventName(static_cast<const QChar *>(eventNameChars));
     QDotNetObject eventSource(eventSourceRef);

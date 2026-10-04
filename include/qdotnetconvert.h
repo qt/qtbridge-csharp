@@ -8,6 +8,7 @@
 #include "qdotnetparameter.h"
 #include "qdotnetreflection.h"
 #include "qdotnettype.h"
+#include "qdotnetprofiler.h"
 
 #include <functional>
 
@@ -35,6 +36,8 @@
 
 class QDotNetConvert
 {
+    Q_DOTNET_PROFILE_SCOPE(QDotNetConvert);
+
 public:
     static inline const QString TypeName =
             QStringLiteral("Qt.Bridge.ValueConverter, Qt.Bridge.CSharp.Api");
@@ -43,11 +46,15 @@ public:
 
     static void setDispatch(FnObjectDispatch fn)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         fnObjectDispatch = fn;
     }
 
     static QObject *objectDispatch(QDotNetRef &dotnetObj, const QObject *context = nullptr)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!fnObjectDispatch)
             return nullptr;
         return fnObjectDispatch(dotnetObj, context);
@@ -55,6 +62,8 @@ public:
 
     static QDotNetType &type()
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetType convertType;
         if (!convertType.isValid())
             convertType = QDotNetType::typeOf(TypeName);
@@ -63,6 +72,8 @@ public:
 
     static QDotNetRef fromBoolean(bool value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, bool> fn;
         if (!fn.isValid())
             type().staticMethod("FromBoolean", fn);
@@ -71,6 +82,8 @@ public:
 
     static QDotNetRef fromSByte(qint8 value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, qint8> fn;
         if (!fn.isValid())
             type().staticMethod("FromSByte", fn);
@@ -79,6 +92,8 @@ public:
 
     static QDotNetRef fromByte(quint8 value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, quint8> fn;
         if (!fn.isValid())
             type().staticMethod("FromByte", fn);
@@ -87,6 +102,8 @@ public:
 
     static QDotNetRef fromInt16(qint16 value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, qint16> fn;
         if (!fn.isValid())
             type().staticMethod("FromInt16", fn);
@@ -95,6 +112,8 @@ public:
 
     static QDotNetRef fromUInt16(quint16 value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, quint16> fn;
         if (!fn.isValid())
             type().staticMethod("FromUInt16", fn);
@@ -103,6 +122,8 @@ public:
 
     static QDotNetRef fromInt32(qint32 value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, qint32> fn;
         if (!fn.isValid())
             type().staticMethod("FromInt32", fn);
@@ -111,6 +132,8 @@ public:
 
     static QDotNetRef fromUInt32(quint32 value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, quint32> fn;
         if (!fn.isValid())
             type().staticMethod("FromUInt32", fn);
@@ -119,6 +142,8 @@ public:
 
     static QDotNetRef fromInt64(qint64 value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, qint64> fn;
         if (!fn.isValid())
             type().staticMethod("FromInt64", fn);
@@ -127,6 +152,8 @@ public:
 
     static QDotNetRef fromUInt64(quint64 value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, quint64> fn;
         if (!fn.isValid())
             type().staticMethod("FromUInt64", fn);
@@ -135,6 +162,8 @@ public:
 
     static QDotNetRef fromSingle(float value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, float> fn;
         if (!fn.isValid())
             type().staticMethod("FromSingle", fn);
@@ -143,6 +172,8 @@ public:
 
     static QDotNetRef fromDouble(double value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, double> fn;
         if (!fn.isValid())
             type().staticMethod("FromDouble", fn);
@@ -151,6 +182,8 @@ public:
 
     static QDotNetRef fromDateTime(const QDateTime &value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, QDateTime> fn;
         if (!fn.isValid())
             type().staticMethod("FromDateTime", fn);
@@ -159,6 +192,8 @@ public:
 
     static QDotNetRef fromUri(const QUrl &value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, QUrl> fn;
         if (!fn.isValid())
             type().staticMethod("FromUri", fn);
@@ -167,6 +202,8 @@ public:
 
     static QDotNetRef fromModelIndex(const QModelIndex &value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, QModelIndex> fn;
         if (!fn.isValid())
             type().staticMethod("FromModelIndex", fn);
@@ -175,6 +212,8 @@ public:
 
     static QDotNetRef fromChar(QChar value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, QChar> fn;
         if (!fn.isValid())
             type().staticMethod("FromChar", fn);
@@ -183,6 +222,8 @@ public:
 
     static QDotNetRef fromString(const QString &value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetRef, QString> fn;
         if (!fn.isValid())
             type().staticMethod("FromString", fn);
@@ -191,6 +232,8 @@ public:
 
     static bool isBoolean(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsBoolean", fn);
@@ -199,6 +242,8 @@ public:
 
     static bool isSByte(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsSByte", fn);
@@ -207,6 +252,8 @@ public:
 
     static bool isByte(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsByte", fn);
@@ -215,6 +262,8 @@ public:
 
     static bool isInt16(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsInt16", fn);
@@ -223,6 +272,8 @@ public:
 
     static bool isUInt16(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsUInt16", fn);
@@ -231,6 +282,8 @@ public:
 
     static bool isInt32(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsInt32", fn);
@@ -239,6 +292,8 @@ public:
 
     static bool isUInt32(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsUInt32", fn);
@@ -247,6 +302,8 @@ public:
 
     static bool isInt64(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsInt64", fn);
@@ -255,6 +312,8 @@ public:
 
     static bool isUInt64(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsUInt64", fn);
@@ -263,6 +322,8 @@ public:
 
     static bool isSingle(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsSingle", fn);
@@ -271,6 +332,8 @@ public:
 
     static bool isDouble(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsDouble", fn);
@@ -279,6 +342,8 @@ public:
 
     static bool isDateTime(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsDateTime", fn);
@@ -287,6 +352,8 @@ public:
 
     static bool isUri(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsUri", fn);
@@ -295,6 +362,8 @@ public:
 
     static bool isModelIndex(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsModelIndex", fn);
@@ -303,6 +372,8 @@ public:
 
     static bool isChar(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsChar", fn);
@@ -311,6 +382,8 @@ public:
 
     static bool isString(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsString", fn);
@@ -319,6 +392,8 @@ public:
 
     static bool toBoolean(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToBoolean", fn);
@@ -327,6 +402,8 @@ public:
 
     static qint8 toSByte(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<qint8, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToSByte", fn);
@@ -335,6 +412,8 @@ public:
 
     static quint8 toByte(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<quint8, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToByte", fn);
@@ -343,6 +422,8 @@ public:
 
     static qint16 toInt16(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<qint16, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToInt16", fn);
@@ -351,6 +432,8 @@ public:
 
     static quint16 toUInt16(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<quint16, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToUInt16", fn);
@@ -359,6 +442,8 @@ public:
 
     static qint32 toInt32(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<qint32, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToInt32", fn);
@@ -367,6 +452,8 @@ public:
 
     static quint32 toUInt32(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<quint32, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToUInt32", fn);
@@ -375,6 +462,8 @@ public:
 
     static qint64 toInt64(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<qint64, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToInt64", fn);
@@ -383,6 +472,8 @@ public:
 
     static quint64 toUInt64(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<quint64, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToUInt64", fn);
@@ -391,6 +482,8 @@ public:
 
     static float toSingle(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<float, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToSingle", fn);
@@ -399,6 +492,8 @@ public:
 
     static double toDouble(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<double, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToDouble", fn);
@@ -407,6 +502,8 @@ public:
 
     static QDateTime toDateTime(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDateTime, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToDateTime", fn);
@@ -415,6 +512,8 @@ public:
 
     static QUrl toUri(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QUrl, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToUri", fn);
@@ -423,6 +522,8 @@ public:
 
     static QModelIndex toModelIndex(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QModelIndex, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToModelIndex", fn);
@@ -431,6 +532,8 @@ public:
 
     static QChar toChar(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QChar, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToChar", fn);
@@ -439,6 +542,8 @@ public:
 
     static QString toString(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QString, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToString", fn);
@@ -447,6 +552,8 @@ public:
 
     static bool isConvertible(const QDotNetRef &t)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("IsConvertible", fn);
@@ -455,6 +562,8 @@ public:
 
     static QDotNetArray<QDotNetRef> toArray(const QDotNetRef &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static QDotNetFunction<QDotNetArray<QDotNetRef>, QDotNetRef> fn;
         if (!fn.isValid())
             type().staticMethod("ToArray", fn);
@@ -463,6 +572,8 @@ public:
 
     static QDotNetObject fromVariant(const QVariant &value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         switch (value.typeId()) {
         case QMetaType::Bool:
             return fromBoolean(value.toBool());
@@ -513,6 +624,8 @@ public:
 
     static QVariant toVariant(QDotNetRef &obj, const QObject *context)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (isBoolean(obj))
             return QVariant::fromValue(toBoolean(obj));
         if (isSByte(obj))
@@ -552,6 +665,8 @@ public:
 
     static const QDotNetObject *asDotNetObject(QObject *qObj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!qObj)
             return nullptr;
 
@@ -585,6 +700,8 @@ public:
     static QJSValue toScriptValue(QJSEngine *engine, TValue &value,
                                   const QObject *context = nullptr)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!engine)
             return {};
         if constexpr (std::is_base_of_v<QDotNetRef, TValue>) {
@@ -599,6 +716,8 @@ public:
     template <typename TValue>
     static TValue fromScriptResult(const QJSValue &value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if constexpr (std::is_base_of_v<QDotNetRef, TValue>) {
             QDotNetObject obj = value.isQObject()
                     ? fromVariant(QVariant::fromValue(value.toQObject()))
@@ -612,11 +731,15 @@ public:
 
     static void reportInvokeFailure(const QString &delegateTypeName, const QString &message)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         qCritical() << "Qt/.NET delegate callback failed for" << delegateTypeName << ":" << message;
     }
 
     static void reportScriptError(const QString &delegateTypeName, const QJSValue &error)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         qCritical().nospace() << "Qt/.NET delegate callback threw for " << delegateTypeName << ": "
                               << error.toString();
         if (error.hasProperty("stack")) {
@@ -647,6 +770,8 @@ public:
 
         static void QDOTNETFUNCTION_CALLTYPE deleteSelf(void *data)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             auto *self = reinterpret_cast<ScriptDelegateContext *>(data);
             // Engine already gone: QJSValue is no longer referenced, safe to delete
             // from any thread.
@@ -671,6 +796,8 @@ public:
     private:
         TResult invoke(TArg... arg)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             if (!engine || !function.isCallable())
                 return QtDotNet::null<TResult>();
             if (QThread::currentThread() == engine->thread())
@@ -693,6 +820,8 @@ public:
 
         TResult invokeNow(TArg... arg)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             QJSValueList args{ QDotNetConvert::toScriptValue(engine, arg, context)... };
             const QJSValue result = function.call(args);
             if (result.isError()) {
@@ -705,11 +834,15 @@ public:
 
         void recordErrorMessage(const QString &message)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             errors[QDotNetCallback<TResult, TArg...>::activeKey()] = message;
         }
 
         void recordErrorValue(const QJSValue &error)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             QString message = error.toString();
             if (error.hasProperty("stack")) {
                 const QString stack = error.property("stack").toString();
@@ -722,6 +855,8 @@ public:
         static void QDOTNETFUNCTION_CALLTYPE
         cleanUpCallback(QDotNetCallback<TResult, TArg...> *data, quint64 key)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             auto *self = static_cast<ScriptDelegateContext *>(data);
             self->errors.remove(key);
             if (auto cleanUp = QDotNetCallback<TResult, TArg...>::cleanUp())
@@ -730,6 +865,8 @@ public:
 
         static const QChar *QDOTNETFUNCTION_CALLTYPE errorCallback(void *data, quint64 key)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             auto *self = reinterpret_cast<ScriptDelegateContext *>(data);
             const auto it = self->errors.constFind(key);
             return it == self->errors.cend() ? nullptr : it.value().constData();
@@ -763,6 +900,8 @@ public:
 
         static void QDOTNETFUNCTION_CALLTYPE deleteSelf(void *data)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             auto *self = reinterpret_cast<ScriptDelegateContext *>(data);
             // Engine already gone: QJSValue is no longer referenced, safe to delete
             // from any thread.
@@ -787,6 +926,8 @@ public:
     private:
         void invoke(TArg... arg)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             if (!engine || !function.isCallable())
                 return;
             if (QThread::currentThread() == engine->thread()) {
@@ -809,6 +950,8 @@ public:
 
         void invokeNow(TArg... arg)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             QJSValueList args{ QDotNetConvert::toScriptValue(engine, arg, context)... };
             const QJSValue result = function.call(args);
             if (result.isError()) {
@@ -819,11 +962,15 @@ public:
 
         void recordErrorMessage(const QString &message)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             errors[QDotNetCallback<void, TArg...>::activeKey()] = message;
         }
 
         void recordErrorValue(const QJSValue &error)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             QString message = error.toString();
             if (error.hasProperty("stack")) {
                 const QString stack = error.property("stack").toString();
@@ -835,6 +982,8 @@ public:
 
         static void QDOTNETFUNCTION_CALLTYPE cleanUpCallback(void *data, quint64 key)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             auto *self = reinterpret_cast<ScriptDelegateContext *>(data);
             self->errors.remove(key);
             // QDotNetCallback<void,...>::CleanUp is nullptr_t — no parent cleanup to call.
@@ -842,6 +991,8 @@ public:
 
         static const QChar *QDOTNETFUNCTION_CALLTYPE errorCallback(void *data, quint64 key)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             auto *self = reinterpret_cast<ScriptDelegateContext *>(data);
             const auto it = self->errors.constFind(key);
             return it == self->errors.cend() ? nullptr : it.value().constData();
@@ -858,6 +1009,8 @@ public:
     static TDelegate fromScriptDelegate(const QString &delegateTypeName, const QJSValue &value,
                                         const QObject *context = nullptr)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!value.isCallable())
             return nullptr;
         auto *qContext = const_cast<QObject *>(context);
@@ -881,6 +1034,8 @@ public:
     template <typename T>
     static T *as(QDotNetRef &obj, bool addRef, const QObject *context = nullptr)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static_assert(std::is_base_of_v<QObject, T>, "as<T> requires a QObject-derived type");
         if (!QDotNetType(obj.type()).isAssignableTo<T>())
             return nullptr;
@@ -896,6 +1051,8 @@ public:
     template <typename T>
     static T *as(QObject *qObj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!qObj)
             return nullptr;
         auto dnObj = const_cast<QDotNetObject *>(asDotNetObject(qObj));
@@ -907,6 +1064,8 @@ public:
     template <typename T>
     static T *moveToHeap(T &obj, const QObject *context = nullptr)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         static_assert(std::is_base_of_v<QObject, T> && std::is_base_of_v<QDotNetObject, T>,
                       "moveToHeap<T> requires a QObject- and QDotNetObject-derived type");
         auto *tObj = new T(std::move(obj));
@@ -931,6 +1090,8 @@ public:
         template <typename V>
         static T *toValue(T *obj)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             static_assert(std::is_same_v<V, T *>, "Value must be pointer to object type.");
             return obj;
         }
@@ -938,6 +1099,8 @@ public:
         template <typename V>
         static T *fromValue(T *obj)
         {
+            Q_DOTNET_PROFILE_FUNC();
+
             static_assert(std::is_same_v<V, T>, "Value must be of the object type.");
             return obj;
         }
@@ -955,6 +1118,8 @@ struct QDotNetConvert::Object<QDotNetObject>
 
     static bool isValid(const QVariant &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         if (!obj.isValid())
             return false;
         if (obj.metaType().flags() & QMetaType::PointerToQObject) {
@@ -969,12 +1134,16 @@ struct QDotNetConvert::Object<QDotNetObject>
     template <typename V>
     static V toValue(const QVariant &obj)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return obj.value<V>();
     }
 
     template <typename V>
     static QVariant fromValue(V value)
     {
+        Q_DOTNET_PROFILE_FUNC();
+
         return QVariant::fromValue(value);
     }
 };
