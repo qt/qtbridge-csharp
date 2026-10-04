@@ -12,6 +12,7 @@
 #include <qdotnetarray.h>
 #include <qdotnetobject.h>
 #include <qdotnettype.h>
+#include <qdotnetconvert.h>
 
 #include "QtTestSetupBase.h"
 #include "StringBuilder.h"
@@ -39,6 +40,11 @@ private:
         return QString("%1, %2").arg("CollectionsAndValues.CollectionsFixture", assemblyName);
     }
 
+    static QObject *objectDispatch(QDotNetRef &dotnetObj, const QObject *context)
+    {
+        return const_cast<QObject *>(context);
+    }
+
 private slots:
     void initTestCase()
     {
@@ -48,6 +54,7 @@ private slots:
         QVERIFY(dotNetHost->isLoaded());
         QVERIFY2(QtTestSetupBase::initAdapter(nullptr, false),
             "Failed to initialize Qt/.NET Adapter");
+        QDotNetConvert::setDispatch(objectDispatch);
     }
 
     void arrayOfInts()
@@ -223,6 +230,39 @@ private slots:
         QCOMPARE(destination.sliced(expectedUtf16Bytes),
             QByteArray(static_cast<qsizetype>(allocatedBytes - expectedUtf16Bytes), char(0x5A)));
 #endif
+    }
+
+    void convertToQVariant_data()
+    {
+        QTest::addColumn<int>("typeId");
+#define TEST_ROW(type_id) QTest::newRow(#type_id) << (int)type_id
+        TEST_ROW(QMetaType::Bool);
+        TEST_ROW(QMetaType::SChar);
+        TEST_ROW(QMetaType::UChar);
+        TEST_ROW(QMetaType::Short);
+        TEST_ROW(QMetaType::UShort);
+        TEST_ROW(QMetaType::Int);
+        TEST_ROW(QMetaType::UInt);
+        TEST_ROW(QMetaType::LongLong);
+        TEST_ROW(QMetaType::ULongLong);
+        TEST_ROW(QMetaType::Float);
+        TEST_ROW(QMetaType::Double);
+        TEST_ROW(QMetaType::QDateTime);
+        TEST_ROW(QMetaType::QChar);
+        TEST_ROW(QMetaType::QString);
+        TEST_ROW(QMetaType::QUrl);
+        TEST_ROW(QMetaType::QModelIndex);
+        TEST_ROW(QMetaType::QObjectStar);
+#undef TEST_ROW
+    }
+
+    void convertToQVariant()
+    {
+        QFETCH(int, typeId);
+        auto obj = QtDotNet::call<QDotNetRef, int>(fixtureTypeName(), "FromTypeId", typeId);
+        QVERIFY(obj.isValid());
+        auto value = QDotNetConvert::toVariant(obj, this);
+        QCOMPARE(value.typeId(), typeId);
     }
 
     void cleanupTestCase()

@@ -612,44 +612,57 @@ public:
         return nullptr;
     }
 
+    static int valueTypeId(const QDotNetRef &obj)
+    {
+        Q_DOTNET_PROFILE_FUNC();
+
+        static QDotNetFunction<int, QDotNetRef> fn;
+        if (!fn.isValid())
+            QDotNetType::staticMethod(TypeName, "ValueTypeId", fn);
+        return fn(obj);
+    }
+
     static QVariant toVariant(QDotNetRef &obj, const QObject *context)
     {
         Q_DOTNET_PROFILE_FUNC();
 
-        if (isBoolean(obj))
+        switch (valueTypeId(obj)) {
+        case QMetaType::Bool:
             return QVariant::fromValue(toBoolean(obj));
-        if (isSByte(obj))
+        case QMetaType::SChar:
             return QVariant::fromValue(toSByte(obj));
-        if (isByte(obj))
+        case QMetaType::UChar:
             return QVariant::fromValue(toByte(obj));
-        if (isInt16(obj))
+        case QMetaType::Short:
             return QVariant::fromValue(toInt16(obj));
-        if (isUInt16(obj))
+        case QMetaType::UShort:
             return QVariant::fromValue(toUInt16(obj));
-        if (isInt32(obj))
+        case QMetaType::Int:
             return QVariant::fromValue(toInt32(obj));
-        if (isUInt32(obj))
+        case QMetaType::UInt:
             return QVariant::fromValue(toUInt32(obj));
-        if (isInt64(obj))
+        case QMetaType::LongLong:
             return QVariant::fromValue(toInt64(obj));
-        if (isUInt64(obj))
+        case QMetaType::ULongLong:
             return QVariant::fromValue(toUInt64(obj));
-        if (isSingle(obj))
+        case QMetaType::Float:
             return QVariant::fromValue(toSingle(obj));
-        if (isDouble(obj))
+        case QMetaType::Double:
             return QVariant::fromValue(toDouble(obj));
-        if (isDateTime(obj))
+        case QMetaType::QDateTime:
             return QVariant::fromValue(toDateTime(obj));
-        if (isChar(obj))
+        case QMetaType::QChar:
             return QVariant::fromValue(toChar(obj));
-        if (isString(obj))
+        case QMetaType::QString:
             return QVariant::fromValue(toString(obj));
-        if (isUri(obj))
+        case QMetaType::QUrl:
             return QVariant::fromValue(toUri(obj));
-        if (isModelIndex(obj))
+        case QMetaType::QModelIndex:
             return QVariant::fromValue(toModelIndex(obj));
-        if (QObject *qObj = objectDispatch(obj, context))
-            return QVariant::fromValue(qObj);
+        case QMetaType::QObjectStar:
+            if (QObject *qObj = objectDispatch(obj, context))
+                return QVariant::fromValue(qObj);
+        }
         return {};
     }
 

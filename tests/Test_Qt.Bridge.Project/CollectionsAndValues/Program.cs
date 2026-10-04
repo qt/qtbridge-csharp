@@ -3,8 +3,10 @@
 
 using System;
 using System.ComponentModel;
+using System.Text;
 
 using Qt.DotNet;
+using static Qt.Bridge.ValueConverter;
 
 [assembly: Qt.Generate(Packages = "Test", Libraries = "Qt6::Test")]
 
@@ -65,6 +67,31 @@ namespace CollectionsAndValues
         public static string PrintUri(Uri uri)
         {
             return uri.ToString();
+        }
+
+        public static object FromTypeId(int typeId)
+        {
+            return (QMetaType)typeId switch
+            {
+                QMetaType.Bool => new bool(),
+                QMetaType.SChar => new sbyte(),
+                QMetaType.UChar => new byte(),
+                QMetaType.Short => new short(),
+                QMetaType.UShort => new ushort(),
+                QMetaType.Int => new int(),
+                QMetaType.UInt => new uint(),
+                QMetaType.LongLong => new long(),
+                QMetaType.ULongLong => new ulong(),
+                QMetaType.Float => new float(),
+                QMetaType.Double => new double(),
+                QMetaType.QDateTime => new DateTime(),
+                QMetaType.QChar => new char(),
+                QMetaType.QString => "",
+                QMetaType.QUrl => new Uri("https://qt.io"),
+                QMetaType.QModelIndex => new ModelIndex(),
+                QMetaType.QObjectStar => new StringBuilder(),
+                _ => null
+            };
         }
     }
 }

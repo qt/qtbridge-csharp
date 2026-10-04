@@ -44,24 +44,24 @@ namespace Test_Qt.Bridge.Project.CollectionsAndValues
             AssertQTestExitCode(run.ExitCode,
                 $"{run.StdOut}{Environment.NewLine}{run.StdErr}");
 
-            Assert.Contains("PASS   : Test_CollectionsAndValues::initTestCase()", run.StdOut);
-            Assert.Contains("PASS   : Test_CollectionsAndValues::arrayOfInts()", run.StdOut);
-            Assert.Contains("PASS   : Test_CollectionsAndValues::arrayOfStrings()", run.StdOut);
-            Assert.Contains("PASS   : Test_CollectionsAndValues::arrayOfObjects()", run.StdOut);
-            Assert.Contains("PASS   : Test_CollectionsAndValues::stringMarshal()", run.StdOut);
-            Assert.Contains("PASS   : Test_CollectionsAndValues::fieldAccess()", run.StdOut);
-            Assert.Contains("PASS   : Test_CollectionsAndValues::modelIndexMarshal()", run.StdOut);
-            Assert.Contains("PASS   : Test_CollectionsAndValues::dateTimeMarshal()", run.StdOut);
-            Assert.Contains("PASS   : Test_CollectionsAndValues::uriMarshal()", run.StdOut);
-            Assert.Contains(
-                "PASS   : Test_CollectionsAndValues::qcharWidthDiffersFromWcharOnThisPlatform()",
-                run.StdOut);
-            Assert.Contains(
-                OperatingSystem.IsWindows()
-                    ? "SKIP   : Test_CollectionsAndValues::utf16TerminatedCopyPreservesTail()"
-                    : "PASS   : Test_CollectionsAndValues::utf16TerminatedCopyPreservesTail()",
-                run.StdOut);
-            Assert.Contains("PASS   : Test_CollectionsAndValues::cleanupTestCase()", run.StdOut);
+            var msgs = ParseQtTestMessages(run.StdOut);
+            Assert.Contains(m => m.Contains("initTestCase"), msgs.Pass);
+            Assert.Contains(m => m.Contains("arrayOfInts"), msgs.Pass);
+            Assert.Contains(m => m.Contains("arrayOfStrings"), msgs.Pass);
+            Assert.Contains(m => m.Contains("arrayOfObjects"), msgs.Pass);
+            Assert.Contains(m => m.Contains("stringMarshal"), msgs.Pass);
+            Assert.Contains(m => m.Contains("fieldAccess"), msgs.Pass);
+            Assert.Contains(m => m.Contains("modelIndexMarshal"), msgs.Pass);
+            Assert.Contains(m => m.Contains("dateTimeMarshal"), msgs.Pass);
+            Assert.Contains(m => m.Contains("uriMarshal"), msgs.Pass);
+            Assert.Contains(m => m.Contains("qcharWidthDiffersFromWcharOnThisPlatform"), msgs.Pass);
+            if (OperatingSystem.IsWindows())
+                Assert.Contains(m => m.Contains("utf16TerminatedCopyPreservesTail"), msgs.Skip);
+            else
+                Assert.Contains(m => m.Contains("utf16TerminatedCopyPreservesTail"), msgs.Pass);
+            Assert.Contains(m => m.Contains("convertToQVariant"), msgs.Pass);
+            Assert.DoesNotContain(m => m.Contains("convertToQVariant"), msgs.Fail);
+            Assert.Contains(m => m.Contains("cleanupTestCase"), msgs.Pass);
         }
     }
 }
