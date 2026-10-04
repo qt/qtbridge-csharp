@@ -51,7 +51,7 @@ Q_INVOKABLE {returnType.MFn(Ns | Name | Arg)} {func.MFn(Name)}({string.Join(", "
             if (type.GetPlaceholder(PrivateMemberDeclarations) is not { } privateMembers)
                 return Error();
             privateMembers += $@"
-mutable QDotNetFunction<{returnType.MFn(Ns | Name)}{args switch
+mutable QDotNetSafeMethod<{returnType.MFn(Ns | Name)}{args switch
             {
                 { Length: > 0 } => ", " + string
                     .Join(", ", args.Select(arg => arg.ParameterType.MFn(Ns | Name))),
@@ -65,7 +65,7 @@ mutable QDotNetFunction<{returnType.MFn(Ns | Name)}{args switch
             implementation += $@"
 {returnType.MFn(Ns | Name | Arg)} {type.MFn(Ns | Name)}::{func.MFn(Name)}({string.Join(", ", args
     .Select(QmlArgDecl))}) const
-{{
+{{ try {{
     {(returnType.Is(typeof(void)) ? string.Empty :
         "auto result = ")}method(""{func.MFn(Src)}"", d->{func.MFn(Func)}).invoke(*this{args switch
         {
@@ -77,7 +77,12 @@ mutable QDotNetFunction<{returnType.MFn(Ns | Name)}{args switch
     : !returnType.IsObject() ? $"{Tab}return result;"
     : returnType.Is<object>() ? $"{Tab}return QDotNetConvert::toVariant(result, this);"
     : $"{Tab}return QDotNetConvert::moveToHeap(result, this);")}
-}}
+}} catch (const QDotNetException &e) {{
+    if (auto *js = qjsEngine(this); js)
+        js->throwError(e.toString());
+    qWarning() << e.toString();
+{(returnType.Is(typeof(void)) ? Wrap: $@"{Tab}return {{}};")}
+}} }}
 {Blank}";
 
             return Ok;

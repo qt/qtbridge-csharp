@@ -11,6 +11,7 @@
 #include "qdotnetprofiler.h"
 #include "qdotnetreflection.h"
 #include "qdotnettype.h"
+#include "qdotnetsafemethod.h"
 
 #include <functional>
 
@@ -550,7 +551,12 @@ private:
                 return;
             }
 
-            QDotNetType typeInfo = assembly.getType(type->name);
+            QDotNetType typeInfo = nullptr;
+            try {
+                typeInfo = assembly.getType(type->name);
+            } catch (const QDotNetException &e) {
+                qWarning() << e.toString();
+            }
             if (!typeInfo.isValid()) {
                 qFatal() << "QDotNetDynamicObject: ERROR getting type:" << type->name;
                 return;
@@ -709,7 +715,12 @@ private:
         auto *type = static_cast<DynamicType *>(args);
         init(type);
 
-        QDotNetRef obj = createInstance(type->typeInfo);
+        QDotNetRef obj = nullptr;
+        try {
+            obj = createInstance.invoke(nullptr, type->typeInfo);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+        }
         if (!obj.isValid()) {
             qFatal() << "QDotNetDynamicObject: ERROR creating instance:" << type->name;
             return;
@@ -724,7 +735,11 @@ private:
 
         if (!qmlElement || !qmlElement->fnQmlClassBegin.isValid())
             return;
-        qmlElement->fnQmlClassBegin();
+        try {
+            qmlElement->fnQmlClassBegin.invoke(object());
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+        }
     }
 
     void componentComplete() override
@@ -747,7 +762,11 @@ private:
         for (int i = 0; i < dotNetObjs.size(); ++i)
             nestedObjs[i] = *dotNetObjs[i];
 
-        qmlElement->fnQmlComponentComplete(nestedObjs);
+        try {
+            qmlElement->fnQmlComponentComplete.invoke(object(), nestedObjs);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+        }
     }
 
 #undef RESOLVE_FUNC
@@ -900,10 +919,17 @@ private:
 
         Q_DOTNET_PROFILER(profileResolve , "invokeMetaMethod_resolve");
         if (!method->methodInfo.isValid()) {
-            if (method->token)
-                method->methodInfo = method->declaringType->module.resolveMethod(method->token);
-            else
+            if (method->token) {
+                try {
+                    method->methodInfo = method->declaringType->module.resolveMethod(method->token);
+                } catch (const QDotNetException &e) {
+                    if (auto *js = qjsEngine(obj); js)
+                        js->throwError(e.toString());
+                    qWarning() << e.toString();
+                }
+            } else {
                 method->methodInfo = method->declaringType->typeInfo.method(method->name);
+            }
             if (!method->methodInfo.isValid()) {
                 qFatal() << "QDotNetDynamicObject: ERROR resolving method:" << method->name;
                 return;
@@ -920,7 +946,15 @@ private:
         Q_DOTNET_PROFILER_STOP(profileArgs);
 
         Q_DOTNET_PROFILER(profileInvoke, "invokeMetaMethod_invoke");
-        auto result = method->methodInfo.invoke(*obj, argValues);
+        QDotNetRef result = nullptr;
+        try {
+            result = method->methodInfo.invoke(*obj, argValues);
+        } catch (const QDotNetException &e) {
+            if (auto *js = qjsEngine(obj); js)
+                js->throwError(e.toString());
+            qWarning() << e.toString();
+            return;
+        }
         Q_DOTNET_PROFILER_STOP(profileInvoke);
 
         Q_DOTNET_PROFILER(profileResult, "invokeMetaMethod_result");
@@ -947,7 +981,15 @@ private:
             qWarning() << "QDotNetDynamicObject: property is write-only:" << prop->name;
             return;
         }
-        auto result = prop->propertyInfo.getValue(*obj);
+        QDotNetRef result = nullptr;
+        try {
+            result = prop->propertyInfo.getValue(*obj);
+        } catch (const QDotNetException &e) {
+            if (auto *js = qjsEngine(obj); js)
+                js->throwError(e.toString());
+            qWarning() << e.toString();
+            return;
+        }
         obj->writeResult(prop->params[0], args[0], result);
     }
 
@@ -969,7 +1011,13 @@ private:
             qWarning() << "QDotNetDynamicObject: property is read-only:" << prop->name;
             return;
         }
-        prop->propertyInfo.setValue(*obj, readArg(prop->params[1], args[0]));
+        try {
+            prop->propertyInfo.setValue(*obj, readArg(prop->params[1], args[0]));
+        } catch (const QDotNetException &e) {
+            if (auto *js = qjsEngine(obj); js)
+                js->throwError(e.toString());
+            qWarning() << e.toString();
+        }
     }
 
     static QDotNetRef readArg(const Parameter &param, void *arg)
@@ -1271,7 +1319,12 @@ private:
         }
         if (!model->fnRowCount.isValid())
             return {};
-        return model->fnRowCount(parent);
+        try {
+            return model->fnRowCount.invoke(object(), parent);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return {};
+        }
     }
 
     int columnCount(const QModelIndex &parent) const override
@@ -1288,7 +1341,12 @@ private:
                 return {};
             }
         }
-        return model->fnColumnCount(parent);
+        try {
+            return model->fnColumnCount.invoke(object(), parent);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return {};
+        }
     }
 
     QHash<int, QByteArray> roleNames() const override
@@ -1313,7 +1371,14 @@ private:
         if (!model->roleNamesByIndex.isEmpty())
             return model->roleNamesByIndex;
 
-        auto a = QDotNetConvert::toArray(method("RoleNames", model->fnRoleNames).invoke(*this));
+        QDotNetObject names = nullptr;
+        try {
+            names = method("RoleNames", model->fnRoleNames).invoke(*this);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return {};
+        }
+        auto a = QDotNetConvert::toArray(names);
         for (int i = 0; i + 1 < a.length(); i += 2) {
             auto key = a[i];
             if (!QDotNetConvert::isInt32(key))
@@ -1332,7 +1397,12 @@ private:
 
         if (!model || !model->fnCanFetchMore.isValid())
             return QAbstractItemModel::canFetchMore(parent);
-        return model->fnCanFetchMore(parent);
+        try {
+            return model->fnCanFetchMore.invoke(object(), parent);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return false;
+        }
     }
 
     Qt::ItemFlags flags(const QModelIndex &idx) const override
@@ -1354,7 +1424,12 @@ private:
                 return QAbstractItemModel::flags(idx);
             }
         }
-        return static_cast<Qt::ItemFlags>(model->fnFlags(idx));
+        try {
+            return static_cast<Qt::ItemFlags>(model->fnFlags.invoke(object(), idx));
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return {};
+        }
     }
 
     bool hasChildren(const QModelIndex &parent) const override
@@ -1375,7 +1450,12 @@ private:
                 return QAbstractItemModel::hasChildren(parent);
             }
         }
-        return model->fnHasChildren(parent);
+        try {
+            return model->fnHasChildren.invoke(object(), parent);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return false;
+        }
     }
 
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override
@@ -1393,7 +1473,12 @@ private:
                 return {};
             }
         }
-        return setOwnIndex(model->fnIndex(row, column, parent));
+        try {
+            return setOwnIndex(model->fnIndex.invoke(object(), row, column, parent));
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return {};
+        }
     }
 
     QModelIndex parent(const QModelIndex &idx) const override
@@ -1411,7 +1496,12 @@ private:
                 return {};
             }
         }
-        return setOwnIndex(model->fnParent(idx));
+        try {
+            return setOwnIndex(model->fnParent.invoke(object(), idx));
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return {};
+        }
     }
 
     QModelIndex sibling(int row, int column, const QModelIndex &idx) const override
@@ -1429,8 +1519,12 @@ private:
                 return QAbstractItemModel::sibling(row, column, idx);
             }
         }
-
-        return setOwnIndex(model->fnSibling(row, column, idx));
+        try {
+            return setOwnIndex(model->fnSibling.invoke(object(), row, column, idx));
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return {};
+        }
     }
 
     QModelIndex buddy(const QModelIndex &idx) const override
@@ -1439,7 +1533,12 @@ private:
 
         if (!model || !model->fnBuddy.isValid())
             return QAbstractItemModel::buddy(idx);
-        return setOwnIndex(model->fnBuddy(idx));
+        try {
+            return setOwnIndex(model->fnBuddy.invoke(object(), idx));
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return {};
+        }
     }
 
     QVariant data(const QModelIndex &idx, int role) const override
@@ -1458,7 +1557,14 @@ private:
             // Collection item accessors can return value types. Invoke
             // through MethodInfo so the result is boxed into QDotNetRef.
             const auto &cm = model->collectionModel;
-            QDotNetObject item(model->collectionItemMethod.invoke(*this, cm.itemMethod, args));
+
+            QDotNetObject item = nullptr;
+            try {
+                item = model->collectionItemMethod.invoke(*this, cm.itemMethod, args);
+            } catch (const QDotNetException &e) {
+                qWarning() << e.toString();
+                return {};
+            }
 
             const int roleIndex = role - Qt::UserRole;
             if (!item.isValid() || roleIndex < 0 || roleIndex >= cm.roles.size())
@@ -1469,12 +1575,27 @@ private:
                 return QDotNetConvert::toVariant(item, this);
 
             const QDotNetPropertyInfo property(item.type().property(dotNetName));
-            auto value = property.getValue(item);
+            if (!property.isValid())
+                return {};
+
+            QDotNetRef value = nullptr;
+            try {
+                value = property.getValue(item);
+            } catch (const QDotNetException &e) {
+                qWarning() << e.toString();
+                return {};
+            }
             return QDotNetConvert::toVariant(value, this);
         }
         if (!model->fnData.isValid())
             return {};
-        auto result = model->fnData(idx, role);
+        QDotNetObject result = nullptr;
+        try {
+            result = model->fnData.invoke(object(), idx, role);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return {};
+        }
         return QDotNetConvert::toVariant(result, this);
     }
 
@@ -1484,7 +1605,13 @@ private:
 
         if (!model || !model->fnHeaderData.isValid())
             return QAbstractItemModel::headerData(section, ori, role);
-        auto result = model->fnHeaderData(section, ori, role);
+        QDotNetObject result = nullptr;
+        try {
+            result = model->fnHeaderData.invoke(object(), section, ori, role);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return {};
+        }
         return QDotNetConvert::toVariant(result, this);
     }
 
@@ -1494,7 +1621,12 @@ private:
 
         if (!model || !model->fnInsertRows.isValid())
             return QAbstractItemModel::insertRows(row, count, parent);
-        return model->fnInsertRows(row, count, parent);
+        try {
+            return model->fnInsertRows.invoke(object(), row, count, parent);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return false;
+        }
     }
 
     bool insertColumns(int column, int count, const QModelIndex &parent) override
@@ -1503,7 +1635,12 @@ private:
 
         if (!model || !model->fnInsertColumns.isValid())
             return QAbstractItemModel::insertColumns(column, count, parent);
-        return model->fnInsertColumns(column, count, parent);
+        try {
+            return model->fnInsertColumns.invoke(object(), column, count, parent);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return false;
+        }
     }
 
     bool moveRows(const QModelIndex &srcParent, int srcRow, int count,
@@ -1513,7 +1650,13 @@ private:
 
         if (!model || !model->fnMoveRows.isValid())
             return QAbstractItemModel::moveRows(srcParent, srcRow, count, destParent, destChild);
-        return model->fnMoveRows(srcParent, srcRow, count, destParent, destChild);
+        try {
+            return model->fnMoveRows
+                .invoke(object(), srcParent, srcRow, count, destParent, destChild);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return false;
+        }
     }
 
     bool moveColumns(const QModelIndex &srcParent, int srcCol, int count,
@@ -1523,7 +1666,13 @@ private:
 
         if (!model || !model->fnMoveColumns.isValid())
             return QAbstractItemModel::moveColumns(srcParent, srcCol, count, destParent, destChild);
-        return model->fnMoveColumns(srcParent, srcCol, count, destParent, destChild);
+        try {
+            return model->fnMoveColumns
+                .invoke(object(), srcParent, srcCol, count, destParent, destChild);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return false;
+        }
     }
 
     bool removeRows(int row, int count, const QModelIndex &parent) override
@@ -1532,7 +1681,12 @@ private:
 
         if (!model || !model->fnRemoveRows.isValid())
             return QAbstractItemModel::removeRows(row, count, parent);
-        return model->fnRemoveRows(row, count, parent);
+        try {
+            return model->fnRemoveRows.invoke(object(), row, count, parent);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return false;
+        }
     }
 
     bool removeColumns(int column, int count, const QModelIndex &parent) override
@@ -1541,7 +1695,12 @@ private:
 
         if (!model || !model->fnRemoveColumns.isValid())
             return QAbstractItemModel::removeColumns(column, count, parent);
-        return model->fnRemoveColumns(column, count, parent);
+        try {
+            return model->fnRemoveColumns.invoke(object(), column, count, parent);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return false;
+        }
     }
 
     void sort(int column, Qt::SortOrder order) override
@@ -1550,7 +1709,11 @@ private:
 
         if (!model || !model->fnSort.isValid())
             return QAbstractItemModel::sort(column, order);
-        model->fnSort(column, order);
+        try {
+            model->fnSort.invoke(object(), column, order);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+        }
     }
 
     void fetchMore(const QModelIndex &parent) override
@@ -1559,7 +1722,11 @@ private:
 
         if (!model || !model->fnFetchMore.isValid())
             return QAbstractItemModel::fetchMore(parent);
-        model->fnFetchMore(parent);
+        try {
+            model->fnFetchMore.invoke(object(), parent);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+        }
     }
 
     bool setData(const QModelIndex &idx, const QVariant &value, int role) override
@@ -1568,7 +1735,14 @@ private:
 
         if (!model || !model->fnSetData.isValid())
             return QAbstractItemModel::setData(idx, value, role);
-        return model->fnSetData(idx, QDotNetConvert::fromVariant(value), role);
+
+        auto valueObject = QDotNetConvert::fromVariant(value);
+        try {
+            return model->fnSetData.invoke(object(), idx, valueObject, role);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return false;
+        }
     }
 
     bool setHeaderData(int section, Qt::Orientation ori, const QVariant &value, int role) override
@@ -1577,7 +1751,14 @@ private:
 
         if (!model || !model->fnSetHeaderData.isValid())
             return QAbstractItemModel::setHeaderData(section, ori, value, role);
-        return model->fnSetHeaderData(section, ori, QDotNetConvert::fromVariant(value), role);
+
+        auto valueObject = QDotNetConvert::fromVariant(value);
+        try {
+            return model->fnSetHeaderData.invoke(object(), section, ori, valueObject, role);
+        } catch (const QDotNetException &e) {
+            qWarning() << e.toString();
+            return {};
+        }
     }
 
     void onModelDataChanged(QDotNetModelEvent &args)
@@ -1715,34 +1896,34 @@ private:
         QDotNetBoxedMethod collectionItemMethod;
         int rowCountOverride = -1;
         QHash<int, QByteArray> roleNamesByIndex;
-        QDotNetFunction<int, QModelIndex> fnRowCount = nullptr;
-        QDotNetFunction<int, QModelIndex> fnColumnCount = nullptr;
-        QDotNetFunction<QDotNetObject> fnRoleNames = nullptr;
-        QDotNetFunction<bool, QModelIndex> fnCanFetchMore = nullptr;
-        QDotNetFunction<int, QModelIndex> fnFlags = nullptr;
-        QDotNetFunction<bool, QModelIndex> fnHasChildren = nullptr;
-        QDotNetFunction<QModelIndex, int, int, QModelIndex> fnIndex = nullptr;
-        QDotNetFunction<QModelIndex, QModelIndex> fnParent = nullptr;
-        QDotNetFunction<QModelIndex, int, int, QModelIndex> fnSibling = nullptr;
-        QDotNetFunction<QModelIndex, QModelIndex> fnBuddy = nullptr;
-        QDotNetFunction<QDotNetObject, QModelIndex, int> fnData = nullptr;
-        QDotNetFunction<QDotNetObject, int, int, int> fnHeaderData = nullptr;
-        QDotNetFunction<bool, int, int, QModelIndex> fnInsertRows = nullptr;
-        QDotNetFunction<bool, int, int, QModelIndex> fnInsertColumns = nullptr;
-        QDotNetFunction<bool, QModelIndex, int, int, QModelIndex, int> fnMoveRows = nullptr;
-        QDotNetFunction<bool, QModelIndex, int, int, QModelIndex, int> fnMoveColumns = nullptr;
-        QDotNetFunction<bool, int, int, QModelIndex> fnRemoveRows = nullptr;
-        QDotNetFunction<bool, int, int, QModelIndex> fnRemoveColumns = nullptr;
-        QDotNetFunction<void, int, int> fnSort = nullptr;
-        QDotNetFunction<void, QModelIndex> fnFetchMore = nullptr;
-        QDotNetFunction<bool, QModelIndex, QDotNetObject, int> fnSetData = nullptr;
-        QDotNetFunction<bool, int, int, QDotNetObject, int> fnSetHeaderData = nullptr;
+        QDotNetSafeMethod<int, QModelIndex> fnRowCount = nullptr;
+        QDotNetSafeMethod<int, QModelIndex> fnColumnCount = nullptr;
+        QDotNetSafeMethod<QDotNetObject> fnRoleNames = nullptr;
+        QDotNetSafeMethod<bool, QModelIndex> fnCanFetchMore = nullptr;
+        QDotNetSafeMethod<int, QModelIndex> fnFlags = nullptr;
+        QDotNetSafeMethod<bool, QModelIndex> fnHasChildren = nullptr;
+        QDotNetSafeMethod<QModelIndex, int, int, QModelIndex> fnIndex = nullptr;
+        QDotNetSafeMethod<QModelIndex, QModelIndex> fnParent = nullptr;
+        QDotNetSafeMethod<QModelIndex, int, int, QModelIndex> fnSibling = nullptr;
+        QDotNetSafeMethod<QModelIndex, QModelIndex> fnBuddy = nullptr;
+        QDotNetSafeMethod<QDotNetObject, QModelIndex, int> fnData = nullptr;
+        QDotNetSafeMethod<QDotNetObject, int, int, int> fnHeaderData = nullptr;
+        QDotNetSafeMethod<bool, int, int, QModelIndex> fnInsertRows = nullptr;
+        QDotNetSafeMethod<bool, int, int, QModelIndex> fnInsertColumns = nullptr;
+        QDotNetSafeMethod<bool, QModelIndex, int, int, QModelIndex, int> fnMoveRows = nullptr;
+        QDotNetSafeMethod<bool, QModelIndex, int, int, QModelIndex, int> fnMoveColumns = nullptr;
+        QDotNetSafeMethod<bool, int, int, QModelIndex> fnRemoveRows = nullptr;
+        QDotNetSafeMethod<bool, int, int, QModelIndex> fnRemoveColumns = nullptr;
+        QDotNetSafeMethod<void, int, int> fnSort = nullptr;
+        QDotNetSafeMethod<void, QModelIndex> fnFetchMore = nullptr;
+        QDotNetSafeMethod<bool, QModelIndex, QDotNetObject, int> fnSetData = nullptr;
+        QDotNetSafeMethod<bool, int, int, QDotNetObject, int> fnSetHeaderData = nullptr;
     };
 
     struct DynamicQmlElement
     {
-        QDotNetFunction<void> fnQmlClassBegin = nullptr;
-        QDotNetFunction<void, QDotNetArray<QDotNetRef>> fnQmlComponentComplete = nullptr;
+        QDotNetSafeMethod<void> fnQmlClassBegin = nullptr;
+        QDotNetSafeMethod<void, QDotNetArray<QDotNetRef>> fnQmlComponentComplete = nullptr;
         QList<QObject *> nestedQmlElements;
     };
 
@@ -1771,13 +1952,15 @@ private:
         Q_DOTNET_OBJECT_TYPE(IQmlElement, "Qt.Quick.IQmlElement, Qt.Bridge.CSharp.Api");
     };
 
+    const QDotNetRef &object() const { return *static_cast<const QDotNetRef *>(this); }
+
     //// END Aux. definitions
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     //// BEGIN Data
 
-    static inline QDotNetFunction<QDotNetRef, QDotNetType> createInstance = nullptr;
+    static inline QDotNetSafeMethod<QDotNetRef, QDotNetType> createInstance = nullptr;
 
     static inline QMap<QString, DynamicType *> dynamicTypesByName{};
     static inline QMap<const QMetaObjectBuilder *, DynamicType *> dynamicTypesByDef{};

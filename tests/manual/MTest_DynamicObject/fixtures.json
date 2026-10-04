@@ -119,5 +119,19 @@
             "target.enumFuncBuildTime(LoadTimeConsts.Foo) === 41",
             "target.enumFuncLoadTime(LoadTimeConsts.Bar) === 42"
         ]
+    },
+    {
+        "name": "Handle exception",
+        "expression": [
+            "(function() {",
+            "    try {",
+            "        target.generateException();",
+            "    } catch (error) {",
+            "        return true;",
+            "    }",
+            "    return false;",
+            "})()"
+        ],
+        "display": "Call method that always throws an exception"
     }
 ]

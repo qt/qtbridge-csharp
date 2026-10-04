@@ -278,18 +278,23 @@ QObject::connect(q, &{type.MFn(Ns | Name)}::modelChanged, [q](QObject *evObj)
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             context.PrivateMembers += $@"
-mutable QDotNetFunction<{string.Join(", ", fnTypes)}> {func.MFn(Func)} = nullptr;";
+mutable QDotNetSafeMethod<{string.Join(", ", fnTypes)}> {func.MFn(Func)} = nullptr;";
             ////////////////////////////////////////////////////////////////////////////////////////
             //
             context.Implementation += $@"
 {retType} {context.Type.MFn(Ns | Name)}::{func.MFn(Name)}({string.Join(", ", formalArgs)}){Wrap}
 {(isConst ? " const" : "")}
-{{
+{{ try {{
     return {convert}(
         method(""{func.MFn(Src)}"", d->{func.MFn(Func)})
             .invoke(*this, {string.Join(", ", actualArgs)})
     );
-}}
+}} catch (const QDotNetException &e) {{
+    if (auto *js = qjsEngine(this); js)
+        js->throwError(e.toString());
+    qWarning() << e.toString();
+    return {{}};
+}} }}
 {Blank}";
             return Ok;
         }
@@ -331,7 +336,7 @@ mutable QDotNetFunction<QDotNetObject> {func.MFn(Func)} = nullptr;";
             //
             context.Implementation += $@"
 QHash<int, QByteArray> {context.Type.MFn(Ns | Name)}::roleNames() const
-{{
+{{ try {{
     static QHash<int, QByteArray> roles;
     if (!roles.empty())
         return roles;
@@ -346,7 +351,12 @@ QHash<int, QByteArray> {context.Type.MFn(Ns | Name)}::roleNames() const
     }}
 
     return roles;
-}}
+}} catch (const QDotNetException &e) {{
+    if (auto *js = qjsEngine(this); js)
+        js->throwError(e.toString());
+    qWarning() << e.toString();
+    return {{}};
+}} }}
 {Blank}";
             return Ok;
         }

@@ -51,14 +51,14 @@ Q_INVOKABLE void {prop.MFn(Set)}({string.Join(", ", args
             if (type.GetPlaceholder(PrivateMemberDeclarations) is not { } privateMembers)
                 return Error();
             privateMembers += $@"
-{(prop.CanRead ? $@"mutable QDotNetFunction<{propType.MFn(Ns | Name)}{args switch
+{(prop.CanRead ? $@"mutable QDotNetSafeMethod<{propType.MFn(Ns | Name)}{args switch
             {
                 { Length: > 0 } => ", " + string
                     .Join(", ", args.Select(arg => arg.ParameterType.MFn(Ns | Name))),
                 _ => string.Empty
             }}> {Wrap}
     {prop.MFn(Get | Func)} = nullptr;" : Wrap)}
-{(prop.CanWrite ? $@"mutable QDotNetFunction<void{args switch
+{(prop.CanWrite ? $@"mutable QDotNetSafeMethod<void{args switch
             {
                 { Length: > 0 } => ", " + string
                     .Join(", ", args.Select(arg => arg.ParameterType.MFn(Ns | Name))),
@@ -74,7 +74,7 @@ Q_INVOKABLE void {prop.MFn(Set)}({string.Join(", ", args
 {(prop.CanRead ? $@"{Wrap}
 {propType.MFn(Ns | Name | Arg)} {type.MFn(Ns | Name)}::{prop.MFn(Get)}({string.Join(", ", args
     .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name | Arg)} {arg.MFn(Name | Src)}"))}) const
-{{
+{{ try {{
     auto result = method(""{prop.MFn(Src | Get)}"", d->{prop.MFn(Get | Func)})
         .invoke(*this{args switch
             {
@@ -85,11 +85,16 @@ Q_INVOKABLE void {prop.MFn(Set)}({string.Join(", ", args
     {(!propType.IsObject() ? "return result;"
     : propType.Is<object>() ? $"return QDotNetConvert::toVariant(result, this);"
     : $"return QDotNetConvert::moveToHeap(result, this);")}
-}}" : string.Empty)}
+}} catch (const QDotNetException &e) {{
+    if (auto *js = qjsEngine(this); js)
+        js->throwError(e.toString());
+    qWarning() << e.toString();
+    return {{}};
+}} }}" : string.Empty)}
 {(prop.CanWrite ? $@"
 void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({string.Join(", ", args
     .Select(arg => $@"{arg.ParameterType.MFn(Ns | Name | Arg)} {arg.MFn(Name | Src)}"))}, {propType.MFn(Ns | Name | Arg)} value)
-{{
+{{ try {{
     method(""{prop.MFn(Src | Set)}"", d->{prop.MFn(Set | Func)})
         .invoke(*this{args switch
     {
@@ -97,7 +102,11 @@ void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({string.Join(", ", args
             .Select(arg => $@"{arg.ParameterType.MFn(Star)}{arg.MFn(Name)}")),
         _ => string.Empty
     }}, {(propType.Is<object>() ? $"QDotNetConvert::fromVariant(value)" : $"{propType.MFn(Star)}value")});
-}}" : string.Empty)}{Blank}";
+}} catch (const QDotNetException &e) {{
+    if (auto *js = qjsEngine(this); js)
+        js->throwError(e.toString());
+    qWarning() << e.toString();
+}} }}" : string.Empty)}{Blank}";
 
             return Ok;
         }

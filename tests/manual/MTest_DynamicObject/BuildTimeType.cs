@@ -316,5 +316,7 @@ namespace MTest_DynamicObject
 
         public LoadTimeConsts EnumFuncLoadTime(LoadTimeConsts x) => x;
         public BuildTimeConsts EnumFuncBuildTime(BuildTimeConsts x) => x;
+
+        public int GenerateException() => int.Parse("FOO");
     }
 }

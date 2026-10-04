@@ -93,9 +93,9 @@ PROPERTY_{prop.MFn(Src)} Q_SIGNAL void {prop.MFn(Signal)}();
                 return Error();
             privateMembers += $@"
 {(!prop.CanRead ? Wrap : $@"{Wrap}
-mutable QDotNetFunction<{propType.MFn(Ns | Name)}> {prop.MFn(Get | Func)} = nullptr;")}
+mutable QDotNetSafeMethod<{propType.MFn(Ns | Name)}> {prop.MFn(Get | Func)} = nullptr;")}
 {(!prop.CanWrite ? Wrap : $@"{Wrap}
-mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} = nullptr;")}
+mutable QDotNetSafeMethod<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} = nullptr;")}
 {(!prop.CanRead || !propType.IsObject() || isDelegateProp ? Wrap
 : $@"mutable {cacheDecl} cached{prop.MFn(Src)} {Wrap}
     = QDotNetConvert::Object<{cacheType.MFn(Ns | Name)}>::null();")}";
@@ -113,7 +113,7 @@ mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} 
 }}
 
 {propType.MFn(Ns | Name | Arg)} {type.MFn(Ns | Name)}::{prop.MFn(Get)}(bool cached) const
-{{
+{{ try {{
     {(!propType.IsObject() ? Wrap : $@"{Wrap}
     if (cached && QDotNetConvert::Object<{cacheType.MFn(Ns | Name)}>::isValid(d->cached{prop.MFn(Src)}))
         return QDotNetConvert::Object<{cacheType.MFn(Ns | Name)}>{Wrap}
@@ -125,13 +125,18 @@ mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} 
             !propType.IsObject() ? "result"
             : propType.Is<object>() ? "QDotNetConvert::toVariant(result, this)"
             : "QDotNetConvert::moveToHeap(result, this)")}{(!propType.IsObject() ? "" : ")")};
-}}
+}} catch (const QDotNetException &e) {{
+    if (auto *js = qjsEngine(this); js)
+        js->throwError(e.toString());
+    qWarning() << e.toString();
+    return {{}};
+}} }}
 {Blank}")}
 {(!prop.CanRead || !isDelegateProp ? Wrap : $@"{Wrap}
 {delegateReturnType.MFn(Ns | Name | Arg)} {type.MFn(Ns | Name)}::{delegateInvokeName}({
     string.Join(", ", delegateArgs.Select((arg, i) =>
         $"{arg.ParameterType.MFn(Ns | Name | Arg)} {delegateArgNames[i]}"))}) const
-{{
+{{ try {{
     auto callback = method(""{prop.MFn(Src | Get)}"", d->{prop.MFn(Get | Func)}).invoke(*this);
     if (!callback.isValid()){(delegateReturnType.Is(typeof(void)) ? @"
         return;" : $@"
@@ -139,18 +144,27 @@ mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} 
     {(delegateReturnType.Is(typeof(void)) ? string.Empty : "auto result = ")}callback.invoke({
         string.Join(", ", delegateArgs.Select((arg, i) => DelegateInvokeArg(arg.ParameterType, delegateArgNames[i])))});
 {ReturnResult(delegateReturnType)}
-}}
+}} catch (const QDotNetException &e) {{
+    if (auto *js = qjsEngine(this); js)
+        js->throwError(e.toString());
+    qWarning() << e.toString();
+    return{(delegateReturnType.Is(typeof(void)) ? "" : "{}")};
+}} }}
 {Blank}")}
 {(!prop.CanWrite ? Wrap : $@"{Wrap}
 void {type.MFn(Ns | Name)}::{prop.MFn(Set)}({(isDelegateProp ? "QJSValue" : propType.MFn(Ns | Name | Arg))} value)
-{{
+{{ try {{
     {(!prop.CanRead || !propType.IsObject() || isDelegateProp ? Wrap : $@"{Wrap}
     d->cached{prop.MFn(Src)} = {(propType.IsObject() ? "value" : "QVariant::fromValue(value)")};")}
     method(""{prop.MFn(Src | Set)}"", d->{prop.MFn(Set | Func)}).invoke(*this, {Wrap}
         {(isDelegateProp
             ? $"{propType.MFn(Ns | Name)}::fromScriptValue(value, this)"
             : propType.Is<object>() ? $"QDotNetConvert::fromVariant(value)" : $"{propType.MFn(Star)}value")});
-}}
+}} catch (const QDotNetException &e) {{
+    if (auto *js = qjsEngine(this); js)
+        js->throwError(e.toString());
+    qWarning() << e.toString();
+}} }}
 {Blank}")}";
 
             if (!prop.IsNotifiable() || type.GetEvent("PropertyChanged") is not { } ev)

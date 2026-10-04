@@ -6,6 +6,7 @@
 #include "qdotnetarray.h"
 #include "qdotnetref.h"
 #include "qdotnetprofiler.h"
+#include "qdotnetsafemethod.h"
 
 #ifdef __GNUC__
 #  pragma GCC diagnostic push
@@ -55,11 +56,11 @@ public:
                                                       QDotNetOutbound<QString>::Parameter };
             fnGetType = adapter().resolveInstanceMethod(*this, "GetType", parameters);
         }
-        return fnGetType(typeName);
+        return fnGetType.invoke(*this, typeName);
     }
 
 private:
-    mutable QDotNetFunction<QDotNetRef, QString> fnGetType;
+    mutable QDotNetSafeMethod<QDotNetRef, QString> fnGetType;
 };
 
 class QDotNetModule : public QDotNetRef
@@ -99,11 +100,11 @@ public:
                                                       QDotNetOutbound<int>::Parameter };
             fnResolveMethod = adapter().resolveInstanceMethod(*this, "ResolveMethod", parameters);
         }
-        return fnResolveMethod(metadataToken);
+        return fnResolveMethod.invoke(*this, metadataToken);
     }
 
 private:
-    mutable QDotNetFunction<QDotNetRef, int> fnResolveMethod;
+    mutable QDotNetSafeMethod<QDotNetRef, int> fnResolveMethod;
 };
 
 class QDotNetMethodInfo : public QDotNetRef
@@ -148,11 +149,11 @@ public:
                     { QDotNetInbound<QDotNetRef>::Parameter, QDotNetOutbound<QDotNetRef>::Parameter,
                       QDotNetOutbound<QDotNetArray<QDotNetRef>>::Parameter });
         }
-        return fnInvoke(obj, parameters);
+        return fnInvoke.invoke(*this, obj, parameters);
     }
 
 private:
-    mutable QDotNetFunction<QDotNetRef, QDotNetRef, QDotNetArray<QDotNetRef>> fnInvoke;
+    mutable QDotNetSafeMethod<QDotNetRef, QDotNetRef, QDotNetArray<QDotNetRef>> fnInvoke;
 };
 
 class QDotNetBoxedMethod
@@ -219,28 +220,28 @@ public:
                     { QDotNetInbound<QDotNetRef>::Parameter, QDotNetOutbound<QDotNetRef>::Parameter,
                       QDotNetOutbound<QDotNetArray<QDotNetRef>>::Parameter });
         }
-        return fnGet(obj, parameters);
+        return fnGet.invoke(*this, obj, parameters);
     }
 
-    QDotNetRef setValue(const QDotNetRef &obj, const QDotNetRef &value,
+    void setValue(const QDotNetRef &obj, const QDotNetRef &value,
                         const QDotNetArray<QDotNetRef> parameters = nullptr) const
     {
         Q_DOTNET_PROFILE_FUNC();
 
         if (!isValid())
-            return nullptr;
+            return;
 
         if (!fnSet.isValid()) {
             fnSet = adapter().resolveInstanceMethod(
                     *this, "SetValue",
-                    { QDotNetInbound<QDotNetRef>::Parameter, QDotNetOutbound<QDotNetRef>::Parameter,
+                    { QDotNetInbound<void>::Parameter, QDotNetOutbound<QDotNetRef>::Parameter,
                       QDotNetOutbound<QDotNetRef>::Parameter,
                       QDotNetOutbound<QDotNetArray<QDotNetRef>>::Parameter });
         }
-        return fnSet(obj, value, parameters);
+        fnSet.invoke(*this, obj, value, parameters);
     }
 
 private:
-    mutable QDotNetFunction<QDotNetRef, QDotNetRef, QDotNetArray<QDotNetRef>> fnGet;
-    mutable QDotNetFunction<QDotNetRef, QDotNetRef, QDotNetRef, QDotNetArray<QDotNetRef>> fnSet;
+    mutable QDotNetSafeMethod<QDotNetRef, QDotNetRef, QDotNetArray<QDotNetRef>> fnGet;
+    mutable QDotNetSafeMethod<void, QDotNetRef, QDotNetRef, QDotNetArray<QDotNetRef>> fnSet;
 };
