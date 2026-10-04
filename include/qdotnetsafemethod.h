@@ -29,6 +29,13 @@ class QDotNetSafeMethod
 
 public:
     QDotNetSafeMethod() = default;
+
+    QDotNetSafeMethod(nullptr_t)
+    { }
+
+    QDotNetSafeMethod(void *funcPtr) : QDotNetSafeMethod(FuncType(funcPtr))
+    { }
+
     QDotNetSafeMethod(FuncType func)
         : func(func)
     {
@@ -122,6 +129,13 @@ class QDotNetSafeMethod<void, TArg...>
 
 public:
     QDotNetSafeMethod() = default;
+
+    QDotNetSafeMethod(nullptr_t)
+    { }
+
+    QDotNetSafeMethod(void *funcPtr) : QDotNetSafeMethod(FuncType(funcPtr))
+    { }
+
     QDotNetSafeMethod(FuncType func)
         : func(func)
     {
