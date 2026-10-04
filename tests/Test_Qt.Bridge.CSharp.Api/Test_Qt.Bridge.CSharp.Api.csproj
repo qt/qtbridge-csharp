@@ -10,6 +10,7 @@
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +21,12 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Qt.Bridge.CSharp.Api\Qt.Bridge.CSharp.Api.csproj" />
     <ProjectReference Include="..\..\src\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Primes\" />
+    <Compile Include="..\..\examples\Primes\Prime.cs" Link="Primes\Prime.cs" />
+    <Compile Include="..\..\examples\Primes\Primes.cs" Link="Primes\Primes.cs" />
   </ItemGroup>
 
 </Project>

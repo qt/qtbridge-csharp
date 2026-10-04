@@ -137,11 +137,6 @@ ADAPTER::FreeObjectRef: WARNING Invalid object reference: 0x{objRefPtr:x16}");
             // Compile-time signature check of delegate vs. method
             _ = new Delegates.FreeDelegateRef(FreeDelegateRef);
 #endif
-            if (SafeMethodsBySafePtr.TryRemove(delRefPtr, out var safeDelegate)) {
-                SafeMethodsByUnsafePtr.TryRemove(safeDelegate.UnsafeFuncPtr, out _);
-                safeDelegate.Ref.Handle.Free();
-                return;
-            }
             if (!DelegateRefs.TryRemove(delRefPtr, out var delegateRef))
                 return;
 
@@ -154,11 +149,6 @@ ADAPTER::FreeObjectRef: WARNING Invalid object reference: 0x{objRefPtr:x16}");
                 }
             }
             delegateRef.Ref.Handle.Free();
-
-            if (!SafeMethodsByUnsafePtr.TryRemove(delRefPtr, out var safeDelegateRef))
-                return;
-            SafeMethodsBySafePtr.TryRemove(safeDelegateRef.FuncPtr, out _);
-            safeDelegateRef.Handle.Free();
         }
 
         public static string GetStableAssemblyQualifiedName(IntPtr typeRefPtr)

@@ -28,9 +28,46 @@ namespace Qt.DotNet
     /// </summary>
     internal static partial class CodeGenerator
     {
+        private static MethodInfo GetVisibleMethod(this MethodInfo @this, Type type)
+        {
+            ArgumentNullException.ThrowIfNull(@this);
+            if (type is not { IsVisible: true })
+                return null;
+            return type.GetMethod(@this.Name, BindingFlags.Public
+                    | (@this.IsStatic ? BindingFlags.Static : BindingFlags.Instance),
+                Type.DefaultBinder, @this.CallingConvention,
+                [.. @this.GetParameters().Select(p => p.ParameterType)], null) switch
+            {
+                { } that when @this.ReturnType == that.ReturnType && @this.IsStatic == that.IsStatic
+                    && @this.GetGenericArguments().Length == that.GetGenericArguments().Length
+                    => that,
+                _ => null
+            };
+        }
+
+        private static MethodInfo GetVisibleMethod(this MethodInfo @this)
+        {
+            if (@this.DeclaringType.IsVisible)
+                return @this;
+            Queue<(Type Type, MethodInfo Method)> candidates = [];
+            candidates.Enqueue((@this.DeclaringType, null));
+            while (candidates.TryDequeue(out var candidate)) {
+                if (candidate.Method != null)
+                    return candidate.Method;
+                foreach (var iface in candidate.Type.GetInterfaces())
+                    candidates.Enqueue((iface, @this.GetVisibleMethod(iface)));
+                if (candidate.Type.BaseType is { } baseType)
+                    candidates.Enqueue((baseType, @this.GetVisibleMethod(baseType)));
+            }
+            return null;
+        }
+
         public static MethodInfo CreateSafeMethod(MethodInfo unsafeMethod)
         {
-            Debug.Assert(unsafeMethod.DeclaringType != null, "unsafeMethod.DeclaringType is null");
+            ArgumentNullException.ThrowIfNull(unsafeMethod);
+
+            if ((unsafeMethod = unsafeMethod.GetVisibleMethod()) is not { })
+                throw new ArgumentException("Method is not accessible.", nameof(unsafeMethod));
 
             var typeGen = ModuleGen.DefineType(
                 UniqueName("Safe", unsafeMethod.DeclaringType?.Name, unsafeMethod.Name),
@@ -72,8 +109,10 @@ namespace Qt.DotNet
             code.BeginExceptionBlock();
             {
                 // this = arg0
-                if (!unsafeMethod.IsStatic)
+                if (!unsafeMethod.IsStatic) {
                     code.Emit(OpCodes.Ldarg_0);
+                    code.Emit(OpCodes.Castclass, unsafeMethod.DeclaringType);
+                }
 
                 // Load arguments into stack
                 for (int paramIdx = 1; paramIdx < paramTypes.Length; ++paramIdx) {
@@ -90,7 +129,10 @@ namespace Qt.DotNet
                 // Invoke method
                 if (!returnTypeIsVoid) {
                     // {1} = unsafeMethod([...]);
-                    code.Emit(OpCodes.Call, unsafeMethod);
+                    if (unsafeMethod.IsVirtual)
+                        code.Emit(OpCodes.Callvirt, unsafeMethod);
+                    else
+                        code.Emit(OpCodes.Call, unsafeMethod);
                     code.Emit(OpCodes.Stloc_1);
                     // {0}.Value = {1};
                     code.Emit(OpCodes.Ldloc_0);
@@ -98,7 +140,10 @@ namespace Qt.DotNet
                     code.Emit(OpCodes.Call, safeReturnSetValue);
                 } else {
                     // unsafeMethod([...]);
-                    code.Emit(OpCodes.Call, unsafeMethod);
+                    if (unsafeMethod.IsVirtual)
+                        code.Emit(OpCodes.Callvirt, unsafeMethod);
+                    else
+                        code.Emit(OpCodes.Call, unsafeMethod);
                 }
             }
             // ... } catch (Exception [0]) { ...

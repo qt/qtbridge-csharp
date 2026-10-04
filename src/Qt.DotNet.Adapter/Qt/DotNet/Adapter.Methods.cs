@@ -150,30 +150,28 @@ namespace Qt.DotNet
             // Compile-time signature check of delegate vs. method
             _ = new Delegates.ResolveSafeMethod(ResolveSafeMethod);
 #endif
-            if (TryGetSafeMethod(funcPtr, out var safeDelegateRef))
-                return safeDelegateRef.FuncPtr;
-
             if (!DelegateRefs.TryGetValue(funcPtr, out var delegateInfo))
                 throw new ArgumentException("Unknown function pointer", nameof(funcPtr));
 
-            var delegateHandle = delegateInfo.Ref.Handle;
-            var funcDelegate = delegateHandle.Target as Delegate;
-            Debug.Assert(funcDelegate != null, nameof(funcDelegate) + " is null");
+            if (delegateInfo.Member is not MethodInfo unsafeMethod)
+                throw new ArgumentException("Invalid function pointer", nameof(funcPtr));
 
-            var safeMethod = CodeGenerator.CreateSafeMethod(funcDelegate.Method);
+            if (SafeDelegateRefs.TryGetValue(unsafeMethod, out var safeDelegateRef))
+                return safeDelegateRef.FuncPtr;
+
+            var safeMethod = CodeGenerator.CreateSafeMethod(unsafeMethod);
 
             var delegateType = CodeGenerator.CreateDelegateTypeForMethod(safeMethod, parameters)
+                ?? throw new Exception("Error getting safe method delegate type");
+
+            var safeDelegate = Delegate.CreateDelegate(delegateType, safeMethod)
                 ?? throw new Exception("Error getting safe method delegate");
 
-            var methodDelegate = Delegate.CreateDelegate(delegateType, safeMethod)
-                ?? throw new Exception("Error getting safe method delegate");
-
-            var methodHandle = GCHandle.Alloc(methodDelegate);
-            var methodFuncPtr = Marshal.GetFunctionPointerForDelegate(methodDelegate);
-
-            var delegateRef = new DelegateRef(methodHandle, methodFuncPtr);
-            AddSafeMethodToCache(funcPtr, delegateRef);
-            return methodFuncPtr;
+            var methodHandle = GCHandle.Alloc(safeDelegate);
+            var methodFuncPtr = Marshal.GetFunctionPointerForDelegate(safeDelegate);
+            safeDelegateRef = new DelegateRef(methodHandle, methodFuncPtr);
+            SafeDelegateRefs.TryAdd(unsafeMethod, safeDelegateRef);
+            return safeDelegateRef.FuncPtr;
         }
     }
 

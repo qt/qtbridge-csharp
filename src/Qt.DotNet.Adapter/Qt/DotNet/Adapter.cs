@@ -243,11 +243,7 @@ namespace Qt.DotNet
         private static Dictionary<IntPtr, HashSet<EventKey>> EventKeysByContext
         { get; } = new();
 
-        private static ConcurrentDictionary
-            <nint, (DelegateRef Ref, nint UnsafeFuncPtr)> SafeMethodsBySafePtr
-        { get; } = new();
-
-        private static ConcurrentDictionary<nint, DelegateRef> SafeMethodsByUnsafePtr
+        private static ConcurrentDictionary<MethodInfo, DelegateRef> SafeDelegateRefs
         { get; } = new();
 
         private static void AddDelegateToCache(
@@ -292,17 +288,6 @@ namespace Qt.DotNet
             object obj, MethodInfo ctorProxy, out DelegateRef delegateRef)
         {
             return TryGetDelegate(obj, ctorProxy, MemberAccess.Constructor, out delegateRef);
-        }
-
-        private static void AddSafeMethodToCache(nint ptr, DelegateRef delegateRef)
-        {
-            SafeMethodsByUnsafePtr.TryAdd(ptr, delegateRef);
-            SafeMethodsBySafePtr.TryAdd(delegateRef.FuncPtr, (delegateRef, ptr));
-        }
-
-        private static bool TryGetSafeMethod(nint ptr, out DelegateRef delegateRef)
-        {
-            return SafeMethodsByUnsafePtr.TryGetValue(ptr, out delegateRef);
         }
     }
 }
