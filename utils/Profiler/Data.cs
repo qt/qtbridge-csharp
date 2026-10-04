@@ -12,6 +12,18 @@ namespace Qt.Bridge.Utils.Profiler
         public SortedSet<Function> Functions { get; internal set; }
         public SortedSet<Call> TopCalls { get; internal set; }
 
+        public enum DataContext { Calls, CallGroups, Functions }
+
+        public class ProgressEventArgs(int callIdx, int callCount, DataContext context) : EventArgs
+        {
+            public int CallIdx => callIdx;
+            public int CallCount => callCount;
+            public DataContext Context => context;
+        }
+
+        public event EventHandler<ProgressEventArgs> Progress;
+        private readonly object sync_Progress = new();
+
         public static class OrderBy
         {
             public static Call.Comparer<Call> Start { get; } = new();
@@ -27,8 +39,13 @@ namespace Qt.Bridge.Utils.Profiler
             };
         }
 
-        public Data(Log log)
+        public async Task AnalyzeAsync(Log log)
         {
+            var parallelOptions = new ParallelOptions()
+            {
+                MaxDegreeOfParallelism = Environment.ProcessorCount
+            };
+
             // Log entries record context (file, line, thread, tag), start time and stop time.
             Log = log;
 
@@ -45,10 +62,9 @@ namespace Qt.Bridge.Utils.Profiler
                 .GroupBy(s => s.File)
                 .ToDictionary(g => g.Key, g => g.OrderByDescending(s => s.Line).ToList());
 
-            Scopes = scopesByFile.Values
+            Scopes = [.. scopesByFile.Values
                 .SelectMany(x => x)
-                .OrderBy(s => s.Tag)
-                .ToList();
+                .OrderBy(s => s.Tag)];
 
             // Call objects allow linking log entries according to caller/called relation
             // (e.g. a function that calls another function)
@@ -67,10 +83,16 @@ namespace Qt.Bridge.Utils.Profiler
                     Total = e.Stop - e.Start
                 })
                 .OrderBy(c => c.Start)];
-            for (var i = 0; i < Calls.Count; i++) {
+
+            var done = 0;
+            await Parallel.ForAsync(0, Calls.Count, parallelOptions, async (i, _) =>
+            {
                 var call = Calls[i];
-                if (call.Scope is { } scope)
-                    (scope.Calls ??= new(OrderBy.TotalDesc)).Add(call);
+                if (call.Scope is { } scope) {
+                    lock (call.Scope) {
+                        (scope.Calls ??= new(OrderBy.TotalDesc)).Add(call);
+                    }
+                }
                 for (var j = i - 1; j >= 0; j--) {
                     var caller = Calls[j];
                     if (caller.Thread != call.Thread)
@@ -78,11 +100,17 @@ namespace Qt.Bridge.Utils.Profiler
                     if (caller.Stop < call.Stop)
                         continue;
                     call.Caller = caller;
-                    (caller.Calls ??= new(OrderBy.Start)).Add(call);
+                    lock (caller) {
+                        (caller.Calls ??= new(OrderBy.Start)).Add(call);
+                    }
                     call.Ratio = call.Total / caller.Total;
                     break;
                 }
-            }
+                lock (sync_Progress) {
+                    done++;
+                    Progress?.Invoke(this, new(done, Calls.Count, DataContext.Calls));
+                }
+            });
 
             TopCalls = new(Calls, OrderBy.TotalDesc);
 
@@ -104,19 +132,31 @@ namespace Qt.Bridge.Utils.Profiler
                         Total = cs.Sum(c => c.Total)
                     }),
                 OrderBy.TotalDesc);
-            foreach (var callGroup in CallGroups) {
-                if (callGroup.Scope is { } scope)
-                    (scope.CallGroups ??= new(OrderBy.TotalDesc)).Add(callGroup);
+
+            done = 0;
+            await Parallel.ForEachAsync(CallGroups, parallelOptions, async (callGroup, _) =>
+            {
+                if (callGroup.Scope is { } scope) {
+                    lock (scope) {
+                        (scope.CallGroups ??= new(OrderBy.TotalDesc)).Add(callGroup);
+                    }
+                }
                 callGroup.Average = callGroup.Total / callGroup.Calls.Count;
-                if (callGroup.Caller is not { } caller)
-                    continue;
-                (caller.CallGroups ??= new(OrderBy.Start)).Add(callGroup);
-                callGroup.Ratio = caller.Total > 0 ? callGroup.Total / caller.Total : 0.0;
-            }
+                if (callGroup.Caller is { } caller) {
+                    lock (caller) {
+                        (caller.CallGroups ??= new(OrderBy.Start)).Add(callGroup);
+                    }
+                    callGroup.Ratio = caller.Total > 0 ? callGroup.Total / caller.Total : 0.0;
+                }
+                lock (sync_Progress) {
+                    done++;
+                    Progress?.Invoke(this, new(done, CallGroups.Count, DataContext.CallGroups));
+                }
+            });
 
             // Functions aggregate call groups with the same context, independently of thread/caller
             // (e.g. a function called several times by different callers and/or different threads)
-            Dictionary<(string File, uint Line, Scope Scope, string Tag), Function> funcs = new();
+            Dictionary<(string File, uint Line, Scope Scope, string Tag), Function> funcs = [];
             Functions = new(CallGroups
                 .GroupBy(cg => (cg.File, cg.Line, cg.Scope, cg.Tag),
                     (g, cgs) => funcs[g] = new Function
@@ -133,21 +173,34 @@ namespace Qt.Bridge.Utils.Profiler
                         Calls = new(cgs.SelectMany(cg => cg.Calls), OrderBy.Start)
                     }),
                 OrderBy.TotalDesc);
-            foreach (var func in Functions) {
-                if (func.Scope is { } scope)
-                    (scope.Functions ??= new(OrderBy.TotalDesc)).Add(func);
+
+            done = 0;
+            await Parallel.ForEachAsync(Functions, parallelOptions, async (func, _) =>
+            {
+                if (func.Scope is { } scope) {
+                    lock (scope) {
+                        (scope.Functions ??= new(OrderBy.TotalDesc)).Add(func);
+                    }
+                }
                 func.Average = func.Total / func.Calls.Count;
                 func.Callers = new(func.CallGroups
                     .Select(cg => cg.Caller is not { } caller ? null
                         : funcs[(caller.File, caller.Line, caller.Scope, caller.Tag)])
                     .Where(f => f != null),
                     OrderBy.TotalDesc);
-                if (func.Callers is not { Count: > 0 } callers)
-                    continue;
-                func.Ratio = func.Total / callers.Average(f => f.Total);
-                foreach (var caller in callers)
-                    (caller.Called ??= new(OrderBy.TotalDesc)).Add(func);
-            }
+                if (func.Callers is { Count: > 0 } callers) {
+                    func.Ratio = func.Total / callers.Average(f => f.Total);
+                    foreach (var caller in callers) {
+                        lock (caller) {
+                            (caller.Called ??= new(OrderBy.TotalDesc)).Add(func);
+                        }
+                    }
+                }
+                lock (sync_Progress) {
+                    done++;
+                    Progress?.Invoke(this, new(done, Functions.Count, DataContext.Functions));
+                }
+            });
         }
     }
 }

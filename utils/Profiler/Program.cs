@@ -5,7 +5,7 @@ namespace Qt.Bridge.Utils.Profiler
 {
     internal class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var path = args.FirstOrDefault();
             if (path is not { Length: > 0 } || !File.Exists(path)) {
@@ -17,26 +17,45 @@ namespace Qt.Bridge.Utils.Profiler
                 }
             }
 
-            Data data;
+            var data = new Data();
+            data.Progress += Data_Progress;
             try {
-                data = new Data(Log.Parse(path));
+                Console.Write($" Parsing log file...\r");
+                Console.Out.Flush();
+                var log = Log.Parse(path);
+                Console.Out.Flush();
+                await data.AnalyzeAsync(log);
             } catch (Exception e) {
                 Console.Error.WriteLine($@"ERROR: ""{e.Message}""");
                 return;
             }
 
+            int top = 40;
+            Console.Write($"{new string(' ', ProgressMsg.Length)}\r");
             Console.WriteLine($"# Profiler log");
             Console.WriteLine();
             Console.WriteLine($"`{data.Log.FilePath}`");
             Console.WriteLine();
-            Console.WriteLine($"## Top {(data.TopCalls.Count < 20 ? "" : "20 ")}calls:");
+            Console.WriteLine($"## Top {(data.Functions.Count < top ? "" : $"{top} ")}functions:");
             Console.WriteLine();
-            Console.WriteLine(data.TopCalls.Take(20)
-                .Report(Column.Name, Column.Caller, Column.Total));
-            Console.WriteLine($"## Top {(data.Functions.Count < 20 ? "" : "20 ")}functions:");
-            Console.WriteLine();
-            Console.WriteLine(data.Functions.Take(20)
+            Console.WriteLine(data.Functions.Take(top)
                 .Report(Column.Name, Column.Caller, Column.Calls, Column.Average, Column.Total));
+        }
+
+        private const string ProgressMsg = " Analyzing@@@@@@@@@@@: ###%            ";
+
+        private static void Data_Progress(object sender, Data.ProgressEventArgs e)
+        {
+            Console.Write($"{ProgressMsg
+                .Replace("@@@@@@@@@@@", e.Context switch
+                {
+                    Data.DataContext.Calls => " calls",
+                    Data.DataContext.CallGroups => " call groups",
+                    Data.DataContext.Functions => " functions",
+                    _ => string.Empty
+                })
+                .Replace("###", $"{(e.CallIdx * 100) / e.CallCount}")}\r");
+            Console.Out.Flush();
         }
     }
 }
