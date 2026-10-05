@@ -5,8 +5,9 @@
 <Project>
   <PropertyGroup>
     <!--
-      Allow net8.0 executables and test hosts to run on newer installed .NET runtimes,
-      such as .NET 10 instead of requiring an exact .NET 8 runtime on the machine.
+      Applies to all nested projects. Allow net8.0 executables and test hosts to run on the
+      major installed .NET runtime, such as .NET 10, instead of requiring an exact .NET 8
+      runtime on the machine.
     -->
     <RollForward>Major</RollForward>
   </PropertyGroup>
