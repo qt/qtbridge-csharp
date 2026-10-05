@@ -50,6 +50,17 @@ endif()
 
 {cmake[new(IncludeDirs) { Distinct = true, Content = [$"include_directories({Hpp})"] }]}
 
+# Deploying Qt on Linux rewrites the RPATH of the copied plugins. CMake can only replace an
+# existing RPATH, but distribution packages, such as those of Debian and Ubuntu, ship plugins
+# without one, so prefer patchelf, which can also add it. Qt reads these settings when
+# find_package(Qt6) sets up deployment, so they must be defined before that call.
+if(UNIX AND NOT APPLE AND NOT DEFINED QT_DEPLOY_USE_PATCHELF)
+    find_program(QT_DEPLOY_PATCHELF_EXECUTABLE patchelf)
+    if(QT_DEPLOY_PATCHELF_EXECUTABLE)
+        set(QT_DEPLOY_USE_PATCHELF ON)
+    endif()
+endif()
+
 find_package(Qt6 6.6 REQUIRED COMPONENTS
     Core CorePrivate
     Gui

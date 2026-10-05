@@ -9,6 +9,7 @@ with the bridge package, so the build must be pointed at a compatible Qt 6 insta
 * .NET SDK 8+
 * CMake and Ninja available on `PATH`
 * A C++ toolchain such as `build-essential`
+* `patchelf` when using Qt from distribution packages, such as on Debian and Ubuntu
 * A compatible Qt 6 installation
 
 <p class="docs-hint">

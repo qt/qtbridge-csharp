@@ -970,8 +970,10 @@ namespace Qt.Qml
       WorkingDirectory="$(_QtProjectNativeBuildDir)" IgnoreExitCode="true">
       <Output TaskParameter="ExitCode" PropertyName="DeployResult" />
     </Exec>
-    <Error Condition="'$(DeployResult)' != '0'"
+    <Error Condition="'$(DeployResult)' != '0' AND '$(QtHostIsLinux)' != 'true'"
       Text="Error deploying Qt binaries with CMake install!" />
+    <Error Condition="'$(DeployResult)' != '0' AND '$(QtHostIsLinux)' == 'true'"
+      Text="Error deploying Qt binaries with CMake install! If the error mentions RPATH, install patchelf; Qt packages from Linux distributions need it for deployment." />
 
     <Delete Files="$(_QtNativeDeployDir)/$(_QtNativeDeployHostName)" />
     <RemoveDir Condition="'$(QtHostIsMacOS)' == 'true'"

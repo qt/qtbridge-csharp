@@ -61,6 +61,7 @@ The currently supported workflow is:
     **Native Tools Command Prompt** (**x64** or **ARM64**, matching your host architecture)
   - Ubuntu/WSL: `build-essential` (or equivalent)
   - macOS: Xcode command line tools
+- **patchelf** on Linux when using Qt from distribution packages, such as on Debian and Ubuntu
 - **Python** & **Perl** (required only if you build Qt from source); see Qt's system requirements
 - Sufficient disk space (Qt build can require tens of GB)
 
