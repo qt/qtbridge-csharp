@@ -33,7 +33,28 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
                     .Concat(linkedResources ? ["Linked resources"] : [])
             };
 
+            _ = new FilePlaceholder("NativeBuildReason", Root, "native_build_reason.txt")
+            {
+                Content = BuildReasons(typesToGenerate, linkedResources)
+            };
+
             return Ok;
+        }
+
+        private const int MaxListedTypes = 8;
+
+        private static IEnumerable<string> BuildReasons(Type[] types, bool linkedResources)
+        {
+            var names = types.Select(type => type.FullName ?? type.Name)
+                .Order(StringComparer.Ordinal).ToArray();
+            foreach (var name in names.Take(MaxListedTypes))
+                yield return $"- type '{name}' is exported as source code";
+            if (names.Length > MaxListedTypes)
+                yield return $"- ...and {names.Length - MaxListedTypes} more type(s)";
+            if (linkedResources) {
+                yield return $"- QtResourcePackaging is Linked and "
+                    + $"{GenerateResources.Resources.Count} native resource(s) must be linked";
+            }
         }
 
         internal static bool CheckIn(MemberInfo src, string tag)
