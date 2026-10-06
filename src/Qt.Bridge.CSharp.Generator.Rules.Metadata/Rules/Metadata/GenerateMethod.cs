@@ -76,7 +76,7 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
                 Sorted = false,
                 Separator = ",",
                 Content = [
-                    qtName is { Length: > 0 } ? $@"""name"": ""{qtName}""" : string.Empty,
+                    $@"""name"": ""{(qtName is { Length: > 0 } ? qtName : func.MFn(Name))}""",
                     $@"""returnType"": ""{returnType.MFn(Ns | Name | Arg)}""",
                     argTypes is not { Length: > 0 } ? string.Empty : $@"
 ""parameters"": [

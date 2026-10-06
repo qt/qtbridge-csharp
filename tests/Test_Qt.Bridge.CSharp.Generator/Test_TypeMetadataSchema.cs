@@ -67,6 +67,50 @@ namespace Test_Qt.Bridge.CSharp.Generator
             Assert.IsTrue(result.IsValid, Format(result));
         }
 
+        [TestMethod]
+        public async Task SourceCodeCompatibleQmlNames_ConformToSchema()
+        {
+            const string source = """
+                using System;
+                using System.ComponentModel;
+
+                [assembly: Qt.Export(Options = Qt.ExportAs.Metadata)]
+
+                namespace Test
+                {
+                    public enum Shade { _Hidden, Default }
+
+                    public class Names : INotifyPropertyChanged
+                    {
+                        public event PropertyChangedEventHandler PropertyChanged;
+                        public event EventHandler Delete;
+                        public int X { get; set; }
+                        public int ID { get; set; }
+                        public int _Count { get; set; }
+                        public void A(int x) { }
+                        public void New() { }
+                    }
+                }
+                """;
+
+            using var generated = await TestCodeGenerator.GenerateAsync([QmlModuleSource, source],
+                sourceRefs: [
+                    typeof(Qt.ExportAttribute).Assembly,
+                    typeof(System.ComponentModel.INotifyPropertyChanged).Assembly,
+                    typeof(Qt.Bridge.CodeGeneration.Rules.Metadata.GenerateType).Assembly
+                ],
+                ct: TestContext.CancellationTokenSource.Token);
+            Assert.IsTrue(generated.Sink.Files.TryGetValue(TestCodeGenerator.MetadataFileName,
+                out var json), string.Join(", ", generated.Sink.Files.Keys));
+
+            var result = LoadSchema().Evaluate(JsonNode.Parse(json), new EvaluationOptions
+            {
+                OutputFormat = OutputFormat.List
+            });
+
+            Assert.IsTrue(result.IsValid, Format(result));
+        }
+
         private static JsonSchema LoadSchema()
         {
             return JsonSchema.FromText(File.ReadAllText(Path.Combine(

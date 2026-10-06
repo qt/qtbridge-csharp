@@ -67,7 +67,7 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
                 qtInfo += $@"
 ""enum"": {{
     {string.Join(@",
-    ", enumValues.Select(x => $@"""{x.Name}"": {x.Value}"))}
+    ", enumValues.Select(x => $@"""{x.Name.MFn(Enum)}"": {x.Value}"))}
 }}";
             }
 

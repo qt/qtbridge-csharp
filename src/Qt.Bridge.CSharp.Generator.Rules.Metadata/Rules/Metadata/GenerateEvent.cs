@@ -50,6 +50,16 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
                     $@"""name"": ""{ev.MFn(Src)}"""
                 ]
             }]}
+}},
+""qt"": {{
+    {jsonEvent[new(QtInfo, ev)
+            {
+                Sorted = false,
+                Separator = ",",
+                Content = [
+                    $@"""signal"": ""{ev.MFn(Signal)}"""
+                ]
+            }]}
 }}";
 
             return Ok;

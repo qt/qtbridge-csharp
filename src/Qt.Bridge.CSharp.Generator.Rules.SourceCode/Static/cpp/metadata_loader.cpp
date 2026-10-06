@@ -206,7 +206,10 @@ bool loadProperty(QMetaObjectBuilder *typeDef, const QJsonObject &jsonProp)
         setType = BuiltInType::Void.outbound;
     }
 
-    auto propNotifySignal = QString(propQtName).append("Changed()");
+    auto propNotifySignal = QString(propQtName).append("Changed");
+    if (const QJsonValue jsonNotify = qt["notify"]; jsonNotify.isString())
+        propNotifySignal = jsonNotify.toString();
+    propNotifySignal.append("()");
     if (const QJsonValue flag = dotNet["isNotifiable"]; !flag.isBool() || flag.toBool())
         propDef.setNotifySignal(typeDef->addSignal(propNotifySignal.toUtf8()));
 

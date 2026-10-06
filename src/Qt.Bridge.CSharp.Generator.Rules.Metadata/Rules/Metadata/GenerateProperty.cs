@@ -61,8 +61,11 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
             {
                 Sorted = false,
                 Separator = ",",
+                // QML names as in source code exports, so QML code works with either export.
                 Content = [
-                    $@"""type"": ""{exportType.MFn(Ns | Name | Arg)}"""
+                    $@"""name"": ""{prop.MFn()}""",
+                    $@"""type"": ""{exportType.MFn(Ns | Name | Arg)}""",
+                    prop.IsNotifiable() ? $@"""notify"": ""{prop.MFn(Signal)}""" : string.Empty
                 ]
             }]}
 }}";
