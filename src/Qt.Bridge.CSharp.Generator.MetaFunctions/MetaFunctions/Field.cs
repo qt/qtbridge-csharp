@@ -8,7 +8,7 @@ namespace Qt.Bridge.CodeGeneration.MetaFunctions
 {
     using static Traits;
 
-    public class Field : CppMetaFunction
+    public class Field : CppMemberMetaFunction
     {
         protected override string Eval(object src, Enum traits) => src switch
         {

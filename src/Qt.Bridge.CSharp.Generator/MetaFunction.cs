@@ -13,6 +13,8 @@ namespace Qt.Bridge.CodeGeneration
         public virtual int Priority => 0;
         protected virtual string Sanitize(string evalResult) => evalResult;
 
+        protected virtual bool IsSanitized(Enum traits) => true;
+
         private ConcurrentSet<string> Exceptions { get; } = new();
 
         protected string Unsafe(string value)
@@ -43,7 +45,7 @@ namespace Qt.Bridge.CodeGeneration
             foreach (var mFn in MetaFunctions) {
                 if (mFn.Eval(src, traits) is not { } value)
                     continue;
-                if (!mFn.Exceptions.Contains(value))
+                if (!mFn.Exceptions.Contains(value) && mFn.IsSanitized(traits))
                     value = mFn.Sanitize(value);
                 Cache.TryAdd((src, traits), value);
                 return value;
