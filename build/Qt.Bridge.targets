@@ -425,6 +425,34 @@ namespace Qt.Qml
 
     <Message Importance="high" Text="Qt Bridge: Building native code..." />
 
+    <!-- The reason the build entered the native path, as recorded by the generator. -->
+    <PropertyGroup>
+      <_QtNl>$([System.Environment]::NewLine)</_QtNl>
+      <QtNativeBuildReason></QtNativeBuildReason>
+      <QtNativeBuildReason Condition="Exists('$(ProjectQtNativeRootDir)/native_build_reason.txt')"
+        >$([System.IO.File]::ReadAllText('$(ProjectQtNativeRootDir)/native_build_reason.txt'))</QtNativeBuildReason>
+      <QtNativeBuildReason>$(QtNativeBuildReason.TrimEnd())</QtNativeBuildReason>
+      <!-- Stale intermediates can leave source_code_status.txt without a reason file. -->
+      <QtNativeBuildReason Condition="'$(QtNativeBuildReason)' == ''"
+        >- generated native build state is present</QtNativeBuildReason>
+      <_QtNativeBuildHint>Install or configure CMake and a compatible C++ toolchain, or avoid </_QtNativeBuildHint>
+      <_QtNativeBuildHint>$(_QtNativeBuildHint)native compilation by exporting all types as metadata (QtExportAs=metadata) </_QtNativeBuildHint>
+      <_QtNativeBuildHint>$(_QtNativeBuildHint)and using non-linked resource packaging (QtResourcePackaging=Auto or External).</_QtNativeBuildHint>
+    </PropertyGroup>
+
+    <!-- The native host template is native code by definition, whatever the export mode. -->
+    <PropertyGroup Condition="'$(QtBridgeIsNativeHostTemplate)' == 'true'">
+      <QtNativeBuildReason>- this project builds the native host template</QtNativeBuildReason>
+      <_QtNativeBuildHint>Install or configure CMake and a compatible C++ toolchain to build the native host.</_QtNativeBuildHint>
+    </PropertyGroup>
+
+    <Exec Command="&quot;$(QtCMakeExecutable)&quot; --version" ConsoleToMsBuild="true"
+      StandardOutputImportance="low" IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="QtCMakeProbeResult" />
+    </Exec>
+    <Error Condition="'$(QtCMakeProbeResult)' != '0'"
+      Text="CMake could not be run from '$(QtCMakeExecutable)'.$(_QtNl)Native compilation is required because:$(_QtNl)$(QtNativeBuildReason)$(_QtNl)$(_QtNativeBuildHint)" />
+
     <PropertyGroup Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' == ''">
       <VsWhereCmd>"$(VsWhereExe)"</VsWhereCmd>
       <VsWhereCmd>$(VsWhereCmd) -latest</VsWhereCmd>
@@ -451,24 +479,26 @@ namespace Qt.Qml
     <MakeDir Directories="$(QtNativeBinDir)" />
 
     <PropertyGroup>
-      <QtCMakeConfigureCmd Condition="'$(QtHostIsWindows)' == 'true'">$(QtVcVarsCmd)set "CMAKE_PREFIX_PATH=$(QtDir);%CMAKE_PREFIX_PATH%" &amp;&amp; cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G Ninja -DCMAKE_BUILD_TYPE=$(QtBuildConfig)</QtCMakeConfigureCmd>
-      <QtCMakeConfigureCmd Condition="'$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true'">CMAKE_PREFIX_PATH=&quot;$(QtDir):$CMAKE_PREFIX_PATH&quot; cmake ../source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G Ninja -DCMAKE_BUILD_TYPE=$(QtBuildConfig)</QtCMakeConfigureCmd>
+      <QtCMakeConfigureCmd Condition="'$(QtHostIsWindows)' == 'true'">$(QtVcVarsCmd)set "CMAKE_PREFIX_PATH=$(QtDir);%CMAKE_PREFIX_PATH%" &amp;&amp; &quot;$(QtCMakeExecutable)&quot; ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G Ninja -DCMAKE_BUILD_TYPE=$(QtBuildConfig)</QtCMakeConfigureCmd>
+      <QtCMakeConfigureCmd Condition="'$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true'">CMAKE_PREFIX_PATH=&quot;$(QtDir):$CMAKE_PREFIX_PATH&quot; &quot;$(QtCMakeExecutable)&quot; ../source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G Ninja -DCMAKE_BUILD_TYPE=$(QtBuildConfig)</QtCMakeConfigureCmd>
     </PropertyGroup>
     <Exec Command="$(QtCMakeConfigureCmd)" WorkingDirectory="$(QtNativeBuildDir)" EchoOff="true" IgnoreExitCode="true">
       <Output TaskParameter="ExitCode" PropertyName="CMakeResult" />
     </Exec>
-    <Error Condition="'$(CMakeResult)' != '0'" Text="Error configuring native code!" />
+    <Error Condition="'$(CMakeResult)' != '0'"
+      Text="Qt Bridge: native build is required because:$(_QtNl)$(QtNativeBuildReason)$(_QtNl)Native configuration failed; see the CMake output above for details." />
 
     <PropertyGroup>
       <QtCMakeBuildParallelArgs>--parallel</QtCMakeBuildParallelArgs>
       <QtCMakeBuildParallelArgs Condition="'$(QtBuildParallelism)' != ''"
         >--parallel $(QtBuildParallelism)</QtCMakeBuildParallelArgs>
     </PropertyGroup>
-    <Exec Command="$(QtVcVarsCmd)cmake --build . $(QtCMakeBuildParallelArgs)"
+    <Exec Command="$(QtVcVarsCmd)&quot;$(QtCMakeExecutable)&quot; --build . $(QtCMakeBuildParallelArgs)"
       WorkingDirectory="$(QtNativeBuildDir)" EchoOff="true" IgnoreExitCode="true">
       <Output TaskParameter="ExitCode" PropertyName="CMakeResult" />
     </Exec>
-    <Error Condition="'$(CMakeResult)' != '0'" Text="Error building native code!" />
+    <Error Condition="'$(CMakeResult)' != '0'"
+      Text="Qt Bridge: native build is required because:$(_QtNl)$(QtNativeBuildReason)$(_QtNl)Native build failed; see the build output above for details." />
 
     <PropertyGroup>
       <QtNativeHostPath Condition="'$(QtHostIsWindows)' == 'true' and Exists('$(QtNativeBinDir)/$(AssemblyName).exe')">$(QtNativeBinDir)/$(AssemblyName).exe</QtNativeHostPath>
@@ -873,7 +903,7 @@ namespace Qt.Qml
     -->
     <PropertyGroup>
       <_QtNativeDeployDir
-        >$([System.IO.Path]::GetFullPath('$(QtNativeBuildDir)/deploy'))</_QtNativeDeployDir>
+        >$([MSBuild]::NormalizePath('$(_QtProjectNativeBuildDir)', 'deploy'))</_QtNativeDeployDir>
       <_QtNativeDeployHostName
         >$([System.IO.Path]::GetFileName('$(QtNativeHostPath)'))</_QtNativeDeployHostName>
     </PropertyGroup>
@@ -882,8 +912,8 @@ namespace Qt.Qml
 
     <Message Importance="high"
       Text="Qt Bridge: deploying runtime dependencies via CMake install." />
-    <Exec Command="cmake --install . --prefix &quot;$(_QtNativeDeployDir)&quot;"
-      WorkingDirectory="$(QtNativeBuildDir)" IgnoreExitCode="true">
+    <Exec Command="&quot;$(QtCMakeExecutable)&quot; --install . --prefix &quot;$(_QtNativeDeployDir)&quot;"
+      WorkingDirectory="$(_QtProjectNativeBuildDir)" IgnoreExitCode="true">
       <Output TaskParameter="ExitCode" PropertyName="DeployResult" />
     </Exec>
     <Error Condition="'$(DeployResult)' != '0'"

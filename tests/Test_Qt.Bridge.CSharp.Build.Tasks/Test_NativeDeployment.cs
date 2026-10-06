@@ -109,9 +109,9 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             if (OperatingSystem.IsWindows()) {
                 File.WriteAllText(Path.Combine(directory, "cmake.cmd"), """
                     @echo off
-                    mkdir "%4\plugins"
-                    > "%4\TargetTestApp" echo unpatched native host
-                    > "%4\plugins\platforms.txt" echo deployed runtime
+                    mkdir "%~4\plugins"
+                    > "%~4\TargetTestApp" echo unpatched native host
+                    > "%~4\plugins\platforms.txt" echo deployed runtime
                     """);
                 return;
             }

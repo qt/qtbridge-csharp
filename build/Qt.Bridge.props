@@ -84,6 +84,7 @@
     <QtBridgeResourcePackFileName Condition="'$(QtBridgeResourcePackFileName)' == ''"
       >qt_bridge_resources.rcc</QtBridgeResourcePackFileName>
 
+    <QtCMakeExecutable Condition="'$(QtCMakeExecutable)' == ''">cmake</QtCMakeExecutable>
     <QtResourcePackaging Condition="'$(QtResourcePackaging)' == ''">Auto</QtResourcePackaging>
     <QtBuildConfig Condition="'$(QtBuildConfig)' == ''">Release</QtBuildConfig>
 
