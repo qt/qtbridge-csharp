@@ -211,15 +211,17 @@ namespace Qt.Bridge.CodeGeneration.Extensions
         {
             if (type is not { IsEnum: true })
                 return null;
-            if (type.GetEnumNames() is not { Length: > 0 } names)
+
+            // Read each name with its own value. Under a MetadataLoadContext, the arrays
+            // returned by GetEnumNames() and GetEnumValuesAsUnderlyingType() are not sorted
+            // equal, so pairing them by index mixes up names and values.
+            const BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.Static;
+            if (type.GetFields(bindingFlags) is not { Length: > 0 } fields)
                 return null;
-            if (type.GetEnumValuesAsUnderlyingType() is not { Length: > 0 } values)
-                return null;
-            if (names.Length != values.Length)
-                return null;
+
             try {
-                return [.. names
-                    .Select((x, i) => (Name: x, Value: values.GetValue(i)) switch
+                return [.. fields
+                    .Select(field => (Name: field.Name, Value: field.GetRawConstantValue()) switch
                     {
                         (_, sbyte or byte or short or ushort or int) e => e,
                         (_, uint value) e when value <= int.MaxValue => e,

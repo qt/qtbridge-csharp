@@ -21,12 +21,6 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Enum
             if (src is not Type { IsEnum: true } type)
                 return Error();
 
-            if (type.GetEnumNames() is not { Length: > 0 } names)
-                return Error();
-            if (type.GetEnumValuesAsUnderlyingType() is not { Length: > 0 } values)
-                return Error();
-            if (names.Length != values.Length)
-                return Error();
             if (type.EnumValues() is not { Count: > 0 } enumValues)
                 return Error();
             if (type.GetEnumUnderlyingType() is not { } valuesType)
