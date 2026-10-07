@@ -16,7 +16,7 @@ namespace Test_Qt.Bridge.Project.Shared
     enum ExitCode
     {
         Ok = 0,
-        QTestFailure = 1,   // QTest will return 1 on test failure
+        QTestFailure = 1,   // QTest returns the number of failed test functions, at most 127
 
         LocateAssemblyFailed = 101,
         WaitForReadyExitedEarly = 102,
@@ -29,12 +29,23 @@ namespace Test_Qt.Bridge.Project.Shared
     internal static class ExitCodeHelper
     {
         /// <summary>
-        /// Returns a friendly description for bridge-specific exit codes (>= 100).
+        /// Returns a friendly description for bridge-specific exit codes (>= 100), for the
+        /// number of failed QTest functions, and for crashes.
         /// </summary>
         public static string ToString(int exitCode)
         {
-            if (!Enum.IsDefined(typeof(ExitCode), exitCode))
-                return $"Failed with unknown error, exit({exitCode})";
+            // The bridge-specific codes overlap with the QTest failure counts; they take
+            // precedence, since no test runs that many failing test functions.
+            if (!Enum.IsDefined(typeof(ExitCode), exitCode)) {
+                return exitCode switch {
+                    > 1 and <= 127 => $"{exitCode} test functions failed",
+                    // A Windows crash exits with an NTSTATUS code, e.g. 0xC0000005.
+                    < 0 => $"Crashed with exception code 0x{exitCode:X8}",
+                    // On Unix, .NET reports a process killed by a signal as 128 + signal.
+                    > 128 and < 128 + 64 => $"Terminated by signal {exitCode - 128}",
+                    _ => $"Failed with unknown error, exit({exitCode})"
+                };
+            }
 
             var code = (ExitCode)exitCode;
             if (code is ExitCode.Ok or ExitCode.QTestFailure)
