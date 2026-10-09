@@ -5,7 +5,7 @@ with the bridge package, so the build must be pointed at a compatible Qt 6 insta
 
 ## Requirements
 
-* Linux x64
+* Linux x64 or arm64
 * .NET SDK 8+
 * CMake and Ninja available on `PATH`
 * A C++ toolchain such as `build-essential`
@@ -46,10 +46,14 @@ item templates, see [Project Templates](templates-and-examples.md).
 
 ## Add Qt Bridge for C# to an existing project
 
-For an existing Linux x64 project, add the Linux package:
+For an existing Linux project, add the package that matches your architecture:
 
 ```bash
+# Linux x64
 dotnet add package QtGroup.Qt.Bridge.CSharp.linux-x64 --version 0.4.*-*
+
+# Linux arm64
+dotnet add package QtGroup.Qt.Bridge.CSharp.linux-arm64 --version 0.4.*-*
 ```
 
 The package is platform-specific because the bridge includes native build/runtime pieces for the
@@ -81,4 +85,4 @@ If the project does not build or run, check these areas first:
 * Required Linux build packages are missing
 * `QtDir` points to the wrong directory
 * Qt cannot be found by CMake
-* The selected package or runtime does not match Linux x64
+* The selected package or runtime does not match your Linux architecture (x64 or arm64)

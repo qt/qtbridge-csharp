@@ -45,7 +45,7 @@ All workflows require:
   to write CMake files or C++ code for a template project.
 </p>
 
-Windows workflows target Windows x64 or arm64. Linux workflows target Linux x64, and macOS
+Windows workflows target Windows x64 or arm64. Linux workflows target Linux x64 or arm64, and macOS
 workflows target macOS x64 or arm64; both require a Qt 6 installation that contains
 `lib/cmake/Qt6/Qt6Config.cmake`.
 

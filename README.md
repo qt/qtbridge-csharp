@@ -45,14 +45,14 @@ The currently supported workflow is:
 - **Windows x64 with .NET 8+** using the bundled Qt runtime or an external Qt installation.
 - **Windows arm64 with .NET 8+** using an external Qt installation, matching the Linux/macOS
   packaging policy (Qt is not bundled).
-- **Linux x64 with .NET 8+** using an external Qt installation from or compatible with the target
-  Linux distribution.
+- **Linux x64 or arm64 with .NET 8+** using an external Qt installation from or compatible with
+  the target Linux distribution.
 - **macOS x64 or arm64 with .NET 8+** using an external Qt installation, matching the Linux
   packaging policy (Qt is not bundled).
 
 ## Requirements
 
-- Windows 11 (`x64` or `arm64`), Ubuntu/WSL (`x64`), or macOS (`x64` or `arm64`)
+- Windows 11 (`x64` or `arm64`), Ubuntu/WSL (`x64` or `arm64`), or macOS (`x64` or `arm64`)
 - **.NET SDK 8+** (`dotnet --version`)
 - **Git**
 - **CMake** & **Ninja**
@@ -95,6 +95,9 @@ dotnet add package QtGroup.Qt.Bridge.CSharp.win-arm64 --version 0.4.*-*
 
 # Linux x64 (Ubuntu / WSL)
 dotnet add package QtGroup.Qt.Bridge.CSharp.linux-x64 --version 0.4.*-*
+
+# Linux arm64
+dotnet add package QtGroup.Qt.Bridge.CSharp.linux-arm64 --version 0.4.*-*
 
 # macOS x64
 dotnet add package QtGroup.Qt.Bridge.CSharp.osx-x64 --version 0.4.*-*
@@ -272,8 +275,8 @@ dotnet build -c Release
 On Windows x64, setting `QtInstallRoot` before the build lets the local `win-x64` package include
 the Qt payload.
 
-On Windows arm64, Linux, and macOS, the local `win-arm64`/`linux-x64`/`osx-x64`/`osx-arm64`
-packages do not include Qt by default, even when `QtInstallRoot` points to a valid Qt
+On Windows arm64, Linux, and macOS, the local `win-arm64`/`linux-x64`/`linux-arm64`/`osx-x64`/
+`osx-arm64` packages do not include Qt by default, even when `QtInstallRoot` points to a valid Qt
 installation. Projects that consume the package must select a compatible Qt by setting `QtDir`.
 
 To build a win-arm64, Linux, or macOS package with a bundled Qt payload for local testing, opt in
