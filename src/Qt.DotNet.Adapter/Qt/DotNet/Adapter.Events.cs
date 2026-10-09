@@ -29,11 +29,16 @@ namespace Qt.DotNet
             var eventInfo = objRef.Target.GetType().GetEvent(eventName)
                 ?? throw new ArgumentException($"Event '{eventName}' not found", nameof(eventName));
 
-            if (Events.TryGetValue((objRef, eventName, context), out var eventRelay)) {
+            var key = new EventKey(objRef, eventName, context);
+            if (Events.TryGetValue(key, out var eventRelay)) {
                 eventRelay.Handler = eventHandler;
             } else {
                 eventRelay = new EventRelay(objRef.Target, eventInfo, context, eventHandler);
-                Events.TryAdd((objRef, eventName, context), eventRelay);
+                Events.TryAdd(key, eventRelay);
+                lock (IndexLock) {
+                    AddEventKey(EventKeysBySource, objRef, key);
+                    AddEventKey(EventKeysByContext, context, key);
+                }
             }
         }
 
@@ -64,8 +69,36 @@ namespace Qt.DotNet
             string eventName,
             IntPtr context)
         {
-            if (Events.TryRemove((objRef, eventName, context), out var evRelay))
-                evRelay.Enabled = false;
+            var key = new EventKey(objRef, eventName, context);
+            if (!Events.TryRemove(key, out var evRelay))
+                return;
+            evRelay.Enabled = false;
+            lock (IndexLock) {
+                RemoveEventKey(EventKeysBySource, objRef, key);
+                RemoveEventKey(EventKeysByContext, context, key);
+            }
+        }
+
+        private static void AddEventKey<TIndex>(
+            Dictionary<TIndex, HashSet<EventKey>> index, TIndex indexKey, EventKey key)
+        {
+            if (!index.TryGetValue(indexKey, out var keys))
+                index[indexKey] = keys = [];
+            keys.Add(key);
+        }
+
+        private static void RemoveEventKey<TIndex>(
+            Dictionary<TIndex, HashSet<EventKey>> index, TIndex indexKey, EventKey key)
+        {
+            if (index.TryGetValue(indexKey, out var keys) && keys.Remove(key) && keys.Count == 0)
+                index.Remove(indexKey);
+        }
+
+        private static List<EventKey> EventKeysOf<TIndex>(
+            Dictionary<TIndex, HashSet<EventKey>> index, TIndex indexKey)
+        {
+            lock (IndexLock)
+                return index.TryGetValue(indexKey, out var keys) ? [.. keys] : [];
         }
 
 
@@ -79,16 +112,14 @@ namespace Qt.DotNet
             // Compile-time signature check of delegate vs. method
             _ = new Delegates.RemoveAllEventHandlersByContext(RemoveAllEventHandlersByContext);
 #endif
-            var evHandlers = Events.Where(x => x.Key.Context == context);
-            foreach (var evHandler in evHandlers)
-                RemoveEventHandler(evHandler.Key.Source, evHandler.Key.Name, evHandler.Key.Context);
+            foreach (var key in EventKeysOf(EventKeysByContext, context))
+                RemoveEventHandler(key.Source, key.Name, key.Context);
         }
 
         private static void RemoveAllEventHandlers(ObjectRef objRef)
         {
-            var evHandlers = Events.Where(x => x.Key.Source == objRef);
-            foreach (var evHandler in evHandlers)
-                RemoveEventHandler(objRef, evHandler.Key.Name, evHandler.Key.Context);
+            foreach (var key in EventKeysOf(EventKeysBySource, objRef))
+                RemoveEventHandler(key.Source, key.Name, key.Context);
         }
     }
 }

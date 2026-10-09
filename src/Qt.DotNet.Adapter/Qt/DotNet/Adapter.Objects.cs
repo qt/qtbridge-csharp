@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Qt.DotNet
@@ -14,7 +15,38 @@ namespace Qt.DotNet
             var objHandle = GCHandle.Alloc(obj, weakRef ? GCHandleType.Weak : GCHandleType.Normal);
             var objRefPtr = GCHandle.ToIntPtr(objHandle);
             ObjectRefs.TryAdd(objRefPtr, new ObjectRef(objHandle));
+            if (obj != null) {
+                lock (IndexLock)
+                    ++RefCounts.GetValue(obj, _ => new StrongBox<int>()).Value;
+            }
             return objRefPtr;
+        }
+
+        // Drops one reference to the target. Returns 'true' if that was the last one.
+        private static bool ReleaseTarget(object target)
+        {
+            lock (IndexLock) {
+                if (!RefCounts.TryGetValue(target, out var count))
+                    return true;
+                if (--count.Value > 0)
+                    return false;
+                RefCounts.Remove(target);
+                return true;
+            }
+        }
+
+        // Frees all delegates bound to the target, such as its instance methods.
+        private static void FreeDelegatesOf(object target)
+        {
+            HashSet<DelegateKey> keys;
+            lock (IndexLock) {
+                if (!DelegateKeysByTarget.Remove(target, out keys))
+                    return;
+            }
+            foreach (var key in keys) {
+                if (DelegatesByMember.TryGetValue(key, out var delegateRef))
+                    FreeDelegateRef(delegateRef.FuncPtr);
+            }
         }
 
         internal static ObjectRef GetObjectRefFromPtr(IntPtr objRefPtr)
@@ -44,12 +76,7 @@ namespace Qt.DotNet
             var objRef = GetObjectRefFromPtr(objRefPtr);
             if (objRef == null)
                 throw new ArgumentException("Invalid object reference", nameof(objRefPtr));
-            var obj = objRef.Target;
-            var objHandle = GCHandle.Alloc(
-                obj, weakRef ? GCHandleType.Weak : GCHandleType.Normal);
-            var newObjRefPtr = GCHandle.ToIntPtr(objHandle);
-            ObjectRefs.TryAdd(newObjRefPtr, new ObjectRef(objHandle));
-            return newObjRefPtr;
+            return GetRefPtrToObject(objRef.Target, weakRef);
         }
 
         /// <summary>
@@ -71,15 +98,9 @@ ADAPTER::FreeObjectRef: WARNING Invalid object reference: 0x{objRefPtr:x16}");
             }
             RemoveAllEventHandlers(objRef);
 
-            var isLive = objRef.Target != null
-                && ObjectRefs.Values.Any(x => x?.Target?.Equals(objRef.Target) == true);
-            if (!isLive) {
-                var deadMethods = DelegatesByMember
-                    .Where(x => x.Key.Target.Equals(objRef.Target))
-                    .Select(x => x.Value.FuncPtr)
-                    .ToList();
-                deadMethods.ForEach(FreeDelegateRef);
-            }
+            // Delegates bound to the target stay valid until its last reference is freed.
+            if (objRef.Target is { } target && ReleaseTarget(target))
+                FreeDelegatesOf(target);
 
             objRef.Handle.Free();
         }
@@ -99,16 +120,12 @@ ADAPTER::FreeObjectRef: WARNING Invalid object reference: 0x{objRefPtr:x16}");
                 ?? throw new ArgumentException($"Type '{typeName}' not found", nameof(typeName));
 
             var typeRefs = ObjectRefs
-                .Where(x => x.Value.Target.Equals(type))
+                .Where(x => ReferenceEquals(x.Value.Target, type))
                 .ToList();
             foreach (var typeRef in typeRefs)
                 FreeObjectRef(typeRef.Key);
 
-            var deadMethods = DelegatesByMember
-                .Where(x => x.Key.Target.Equals(type))
-                .Select(x => x.Value.FuncPtr)
-                .ToList();
-            deadMethods.ForEach(FreeDelegateRef);
+            FreeDelegatesOf(type);
         }
 
         public static void FreeDelegateRef(IntPtr delRefPtr)
@@ -124,18 +141,21 @@ ADAPTER::FreeObjectRef: WARNING Invalid object reference: 0x{objRefPtr:x16}");
             }
             if (!DelegateRefs.TryRemove(delRefPtr, out var delegateRef))
                 return;
-            DelegatesByMember
-                .Where(x => x.Key.Target == delegateRef.Target
-                    && x.Key.Member == delegateRef.Member)
-                .ToList()
-                .ForEach(x => DelegatesByMember.TryRemove(x));
+
+            var key = new DelegateKey(delegateRef.Target, delegateRef.Member, delegateRef.Access);
+            DelegatesByMember.TryRemove(KeyValuePair.Create(key, delegateRef.Ref));
+            lock (IndexLock) {
+                if (DelegateKeysByTarget.TryGetValue(delegateRef.Target, out var keys)) {
+                    if (keys.Remove(key) && keys.Count == 0)
+                        DelegateKeysByTarget.Remove(delegateRef.Target);
+                }
+            }
             delegateRef.Ref.Handle.Free();
 
-            if (SafeMethodsByUnsafePtr.TryRemove(delRefPtr, out var safeDelegateRef)) {
-                SafeMethodsBySafePtr.TryRemove(safeDelegateRef.FuncPtr, out _);
-                safeDelegateRef.Handle.Free();
+            if (!SafeMethodsByUnsafePtr.TryRemove(delRefPtr, out var safeDelegateRef))
                 return;
-            }
+            SafeMethodsBySafePtr.TryRemove(safeDelegateRef.FuncPtr, out _);
+            safeDelegateRef.Handle.Free();
         }
 
         public static string GetStableAssemblyQualifiedName(IntPtr typeRefPtr)

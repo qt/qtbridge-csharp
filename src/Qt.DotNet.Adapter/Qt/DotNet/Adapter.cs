@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using static Qt.DotNet.Adapter;
@@ -153,10 +154,16 @@ namespace Qt.DotNet
             // Compile-time signature check of delegate vs. method
             _ = new Delegates.Reset(Reset);
 #endif
-            ObjectRefs.Clear();
-            DelegateRefs.Clear();
-            DelegatesByMember.Clear();
-            Events.Clear();
+            lock (IndexLock) {
+                ObjectRefs.Clear();
+                RefCounts.Clear();
+                DelegateRefs.Clear();
+                DelegatesByMember.Clear();
+                DelegateKeysByTarget.Clear();
+                Events.Clear();
+                EventKeysBySource.Clear();
+                EventKeysByContext.Clear();
+            }
         }
 
         internal class DelegateRef
@@ -191,21 +198,49 @@ namespace Qt.DotNet
             FieldSet = -MemberTypes.Field
         }
 
+        // Identifies a cached delegate. Delegates are bound to a specific target instance, so the
+        // target is compared by identity, never by Equals().
+        private readonly record struct DelegateKey(
+            object Target, MemberInfo Member, MemberAccess Access)
+        {
+            public bool Equals(DelegateKey other) => ReferenceEquals(Target, other.Target)
+                && Equals(Member, other.Member) && Access == other.Access;
+
+            public override int GetHashCode()
+                => HashCode.Combine(RuntimeHelpers.GetHashCode(Target), Member, Access);
+        }
+
+        private readonly record struct EventKey(ObjectRef Source, string Name, IntPtr Context);
+
+        // Guards the secondary indexes below, which are plain collections.
+        private static readonly object IndexLock = new();
+
         private static ConcurrentDictionary
             <IntPtr, ObjectRef> ObjectRefs
         { get; } = new();
+
+        // Number of object references per target object, by identity. The keys are weak, so
+        // counting a reference never keeps its target alive.
+        private static ConditionalWeakTable<object, StrongBox<int>> RefCounts { get; } = new();
 
         private static ConcurrentDictionary
             <IntPtr, (object Target, MemberInfo Member, MemberAccess Access, DelegateRef Ref)>
             DelegateRefs
         { get; } = new();
 
-        private static ConcurrentDictionary
-            <(object Target, MemberInfo Member, MemberAccess Access), DelegateRef> DelegatesByMember
+        private static ConcurrentDictionary<DelegateKey, DelegateRef> DelegatesByMember
         { get; } = new();
 
-        private static ConcurrentDictionary
-            <(ObjectRef Source, string Name, IntPtr Context), EventRelay> Events
+        private static Dictionary<object, HashSet<DelegateKey>> DelegateKeysByTarget
+        { get; } = new(ReferenceEqualityComparer.Instance);
+
+        private static ConcurrentDictionary<EventKey, EventRelay> Events
+        { get; } = new();
+
+        private static Dictionary<ObjectRef, HashSet<EventKey>> EventKeysBySource
+        { get; } = new();
+
+        private static Dictionary<IntPtr, HashSet<EventKey>> EventKeysByContext
         { get; } = new();
 
         private static ConcurrentDictionary
@@ -218,14 +253,21 @@ namespace Qt.DotNet
         private static void AddDelegateToCache(
             IntPtr ptr, object obj, MemberInfo member, MemberAccess access, DelegateRef delegateRef)
         {
+            var key = new DelegateKey(obj, member, access);
             DelegateRefs.TryAdd(ptr, (obj, member, access, delegateRef));
-            DelegatesByMember.TryAdd((obj, member, access), delegateRef);
+            DelegatesByMember.TryAdd(key, delegateRef);
+            lock (IndexLock) {
+                if (!DelegateKeysByTarget.TryGetValue(obj, out var keys))
+                    DelegateKeysByTarget[obj] = keys = [];
+                keys.Add(key);
+            }
         }
 
         private static bool TryGetDelegate(
             object obj, MemberInfo member, MemberAccess access, out DelegateRef delegateRef)
         {
-            return DelegatesByMember.TryGetValue((obj, member, access), out delegateRef);
+            return DelegatesByMember.TryGetValue(
+                new DelegateKey(obj, member, access), out delegateRef);
         }
 
         private static void AddMethodDelegateToCache(
