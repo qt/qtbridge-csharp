@@ -102,5 +102,19 @@ stylesheet on every build. Add CSS rules there to override the default DocFX mod
 
 ## Publishing
 
+### GitHub Pages
+
+The [`docs.yml`](../.github/workflows/docs.yml) workflow builds the site and deploys it to GitHub
+Pages. It runs on every push to `dev` that touches `docs/`, the API project, or the workflow itself,
+and can also be started manually from the repository's *Actions* tab.
+
+The workflow only runs on the GitHub repository. The runner builds on Linux, where file names are
+case-sensitive. Links and image references in the Markdown files must match the exact case of the
+files on disk.
+
+The site is then served at `https://qt.github.io/qtbridge-csharp/`.
+
+### Other hosts
+
 Copy the contents of `docs/_site/` to your doc server. The folder is self-contained -
 no server-side processing is required, any static file host works.
