@@ -66,7 +66,7 @@ dotnet add package __PACKAGE_ID__ --version __PACKAGE_VERSION__
 ## Platforms & requirements
 
 - **Runtime:** .NET 8 or newer.
-- **OS:** Windows (x64, arm64), Linux (x64, arm64), and macOS (x64, arm64).
+- **OS:** Windows (x64, arm64), Linux (x64, arm64), and macOS (arm64).
 - **Qt:** The `win-x64` package includes Qt. The `win-arm64`, Linux, and macOS packages require a
   Qt 6 installation from the target system or a Qt installation compatible with that system.
 - **Tooling:** `dotnet` SDK 8+, a C++ toolchain for native build steps is required.

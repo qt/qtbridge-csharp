@@ -35,7 +35,6 @@
                     or '$(QtBridgeTemplateRid)' == 'win-arm64'
                     or '$(QtBridgeTemplateRid)' == 'linux-x64'
                     or '$(QtBridgeTemplateRid)' == 'linux-arm64'
-                    or '$(QtBridgeTemplateRid)' == 'osx-x64'
                     or '$(QtBridgeTemplateRid)' == 'osx-arm64'">
     <PackageReference Include="$(QtBridgePackageId)" Version="__QT_BRIDGE_PACKAGE_VERSION__" />
   </ItemGroup>
@@ -45,9 +44,8 @@
                   and '$(QtBridgeTemplateRid)' != 'win-arm64'
                   and '$(QtBridgeTemplateRid)' != 'linux-x64'
                   and '$(QtBridgeTemplateRid)' != 'linux-arm64'
-                  and '$(QtBridgeTemplateRid)' != 'osx-x64'
                   and '$(QtBridgeTemplateRid)' != 'osx-arm64'">
-    <Error Text="Qt Bridge for C# currently supports win-x64, win-arm64, linux-x64, linux-arm64, osx-x64, and osx-arm64. Selected RID: '$(QtBridgeTemplateRid)'." />
+    <Error Text="Qt Bridge for C# currently supports win-x64, win-arm64, linux-x64, linux-arm64, and osx-arm64. Selected RID: '$(QtBridgeTemplateRid)'." />
   </Target>
 
   <ItemGroup>

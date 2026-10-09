@@ -24,7 +24,6 @@
     <QtBridgePackBundledQt Condition="'$(QtBridgePackBundledQt)' == '' AND '$(QtRid)' == 'linux-x64'">false</QtBridgePackBundledQt>
     <QtBridgePackBundledQt Condition="'$(QtBridgePackBundledQt)' == '' AND '$(QtRid)' == 'linux-arm64'">false</QtBridgePackBundledQt>
     <QtBridgePackBundledQt Condition="'$(QtBridgePackBundledQt)' == '' AND '$(QtRid)' == 'win-arm64'">false</QtBridgePackBundledQt>
-    <QtBridgePackBundledQt Condition="'$(QtBridgePackBundledQt)' == '' AND '$(QtRid)' == 'osx-x64'">false</QtBridgePackBundledQt>
     <QtBridgePackBundledQt Condition="'$(QtBridgePackBundledQt)' == '' AND '$(QtRid)' == 'osx-arm64'">false</QtBridgePackBundledQt>
     <QtBridgePackBundledQt Condition="'$(QtBridgePackBundledQt)' == ''">true</QtBridgePackBundledQt>
   </PropertyGroup>

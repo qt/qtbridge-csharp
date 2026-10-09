@@ -12,7 +12,7 @@ If you are starting from scratch, see [Getting Started](getting-started.md),
 Before you add the bridge to an existing project, confirm that the project meets these requirements:
 
 * .NET SDK 8+
-* Windows (x64 or arm64), Linux (x64 or arm64), or macOS (x64 or arm64)
+* Windows (x64 or arm64), Linux (x64 or arm64), or macOS arm64
 * CMake and Ninja available on `PATH`
 * A C++ toolchain (Visual Studio Build Tools on Windows, `build-essential` on Linux, Xcode command
   line tools on macOS)
@@ -37,7 +37,6 @@ matches your target platform:
 * `QtGroup.Qt.Bridge.CSharp.win-arm64` for Windows arm64
 * `QtGroup.Qt.Bridge.CSharp.linux-x64` for Linux x64
 * `QtGroup.Qt.Bridge.CSharp.linux-arm64` for Linux arm64
-* `QtGroup.Qt.Bridge.CSharp.osx-x64` for macOS x64
 * `QtGroup.Qt.Bridge.CSharp.osx-arm64` for macOS arm64 (Apple Silicon)
 
 ### .NET CLI
@@ -56,9 +55,6 @@ dotnet add package QtGroup.Qt.Bridge.CSharp.linux-x64 --version 0.4.*-*
 
 # Linux arm64
 dotnet add package QtGroup.Qt.Bridge.CSharp.linux-arm64 --version 0.4.*-*
-
-# macOS x64
-dotnet add package QtGroup.Qt.Bridge.CSharp.osx-x64 --version 0.4.*-*
 
 # macOS arm64
 dotnet add package QtGroup.Qt.Bridge.CSharp.osx-arm64 --version 0.4.*-*

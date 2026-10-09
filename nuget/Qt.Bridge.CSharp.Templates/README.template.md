@@ -104,7 +104,7 @@ dotnet new uninstall __PACKAGE_ID__
 ## Platforms & requirements
 
 - **Runtime:** .NET 8 or newer.
-- **OS:** Windows (x64, arm64), Linux (x64, arm64), and macOS (x64, arm64).
+- **OS:** Windows (x64, arm64), Linux (x64, arm64), and macOS (arm64).
 - **Qt:** The `win-x64` package includes Qt. The `win-arm64`, Linux, and macOS packages require an
   external Qt 6 installation selected with `QtDir`.
 - **Tooling:** `dotnet` SDK 8+, a C++ toolchain for native build steps is required.
