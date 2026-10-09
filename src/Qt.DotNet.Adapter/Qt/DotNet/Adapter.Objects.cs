@@ -98,8 +98,11 @@ ADAPTER::FreeObjectRef: WARNING Invalid object reference: 0x{objRefPtr:x16}");
             }
             RemoveAllEventHandlers(objRef);
 
-            // Delegates bound to the target stay valid until its last reference is freed.
-            if (objRef.Target is { } target && ReleaseTarget(target))
+            // Delegates bound to the target stay valid until its last reference is freed. Types
+            // are the targets of static methods and constructors, whose function pointers native
+            // code caches without holding a reference to the type, so only FreeTypeRef() frees
+            // those.
+            if (objRef.Target is { } target && ReleaseTarget(target) && target is not Type)
                 FreeDelegatesOf(target);
 
             objRef.Handle.Free();

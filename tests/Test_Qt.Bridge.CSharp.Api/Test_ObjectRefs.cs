@@ -133,5 +133,28 @@ namespace Test_Qt.Bridge.CSharp.Api
             Adapter.FreeObjectRef(objRef);
             Assert.AreEqual(events, EventCount());
         }
+
+        public static string StaticName() => "static";
+
+        [TestMethod]
+        public void FreeObjectRef_KeepsStaticDelegatesOfTheType()
+        {
+            var staticName = Adapter.ResolveStaticMethod(
+                typeof(Test_ObjectRefs).AssemblyQualifiedName, nameof(StaticName), 1,
+                FuncParams(typeof(string)));
+            var delegates = DelegateCount();
+
+            // Native code caches static function pointers, so a short-lived reference to the
+            // type must not take them along when it is freed.
+            var typeRef = Adapter.GetRefPtrToObject(typeof(Test_ObjectRefs));
+            Adapter.FreeObjectRef(typeRef);
+            Assert.AreEqual(delegates, DelegateCount());
+            Assert.AreEqual(staticName, Adapter.ResolveStaticMethod(
+                typeof(Test_ObjectRefs).AssemblyQualifiedName, nameof(StaticName), 1,
+                FuncParams(typeof(string))));
+
+            Adapter.FreeTypeRef(typeof(Test_ObjectRefs).AssemblyQualifiedName);
+            Assert.AreEqual(delegates - 1, DelegateCount());
+        }
     }
 }
