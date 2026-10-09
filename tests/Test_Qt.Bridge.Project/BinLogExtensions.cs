@@ -31,16 +31,5 @@ namespace Test_Qt.Bridge.Project
         {
             return target.GetMessages().Any(msg => pattern.Match(msg).Success);
         }
-
-        public static IEnumerable<BuildTask> GetTasks(this Target target, string taskName)
-        {
-            return target.FindChildrenRecursive<BuildTask>(t => t.Name == taskName);
-        }
-
-        public static IEnumerable<Item> GetParamItems(this BuildTask task, string paramName)
-        {
-            return task.FindChildrenRecursive<Parameter>(p => p.Name == paramName)
-                .SelectMany(p => p.FindChildrenRecursive<Item>());
-        }
     }
 }

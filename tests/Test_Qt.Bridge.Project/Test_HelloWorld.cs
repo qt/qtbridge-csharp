@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
 using System;
-using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Test_Qt.Bridge.Project
@@ -40,15 +38,9 @@ namespace HelloWorld
             Assert.Contains("Hello World!", run.StdOut);
         }
 
-        [TestMethod
-            , DataRow("msbuild")
-            , DataRow("ninja")
-        ]
-        public async Task HelloWorld_NullCodeGen(string buildSystem)
+        [TestMethod]
+        public async Task HelloWorld_NullCodeGen()
         {
-            if (!OperatingSystem.IsWindows() && buildSystem == "msbuild")
-                Assert.Inconclusive("'msbuild' generator validation is Windows-specific.");
-
             using var temp = new TempProject();
             temp.Create(new()
             {
@@ -56,12 +48,8 @@ namespace HelloWorld
             });
             temp.AddFile("Program.cs", Source);
 
-            var build = await temp.BuildAsync(new()
-            {
-                BinaryLog = true,
-                Properties = [("QtBuildSystem", buildSystem)]
-            });
-            temp.SaveLog(buildSystem);
+            var build = await temp.BuildAsync(new() { BinaryLog = true });
+            temp.SaveLog();
             Assert.IsTrue(build.Ok, build.Output);
 
             Assert.IsTrue(temp.Log.TryFindTarget("QtBridgeBuild", out var qtDotNetBuild));
@@ -70,22 +58,13 @@ namespace HelloWorld
                 "object_dispatch.cpp",
                 "typecast.cpp"
             ];
-            if (buildSystem == "ninja") {
-                var msgs = qtDotNetBuild.GetMessages();
-                foreach (var cppFile in cppFiles)
-                    Assert.Contains(m => Regex.IsMatch(m, @"\bBuilding CXX .*\b" + cppFile), msgs);
-            } else {
-                var clSourceFilenames = qtDotNetBuild.GetTasks("CL")
-                    .SelectMany(cl => cl.GetParamItems("Sources"))
-                    .Select(src => Path.GetFileName(src.Text));
-                foreach (var cppFile in cppFiles)
-                    Assert.Contains(cppFile, clSourceFilenames);
-            }
+            var msgs = qtDotNetBuild.GetMessages();
+            foreach (var cppFile in cppFiles)
+                Assert.Contains(m => Regex.IsMatch(m, @"\bBuilding CXX .*\b" + cppFile), msgs);
 
             var run = await temp.RunAsync();
             Assert.IsTrue(run.ExitCode == 0,
-                $"buildSystem={buildSystem}{Environment.NewLine}"
-                + $"stdout:{Environment.NewLine}{run.StdOut}{Environment.NewLine}"
+                $"stdout:{Environment.NewLine}{run.StdOut}{Environment.NewLine}"
                 + $"stderr:{Environment.NewLine}{run.StdErr}");
             Assert.Contains("Hello World!", run.StdOut);
         }

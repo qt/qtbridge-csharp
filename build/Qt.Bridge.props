@@ -84,7 +84,6 @@
     <QtBridgeResourcePackFileName Condition="'$(QtBridgeResourcePackFileName)' == ''"
       >qt_bridge_resources.rcc</QtBridgeResourcePackFileName>
 
-    <QtBuildSystem Condition="'$(QtBuildSystem)' == ''">ninja</QtBuildSystem>
     <QtResourcePackaging Condition="'$(QtResourcePackaging)' == ''">Auto</QtResourcePackaging>
     <QtBuildConfig Condition="'$(QtBuildConfig)' == ''">Release</QtBuildConfig>
 

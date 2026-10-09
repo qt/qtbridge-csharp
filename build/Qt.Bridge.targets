@@ -439,48 +439,20 @@ namespace Qt.Qml
     <PropertyGroup Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' == ''">
       <VsInstallRoot Condition="Exists('%(VsWhereOutput.Identity)')">%(VsWhereOutput.Identity)</VsInstallRoot>
     </PropertyGroup>
-    <Warning Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' == '' and '$(QtBuildSystem)' != 'ninja'"
-             Text="Visual Studio installation not found; falling back to Ninja generator." />
-    <Exec Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' != '' and '$(QtBuildSystem)' != 'ninja' and Exists('$(VsWhereExe)')"
-          Command="&quot;$(VsWhereExe)&quot; -path &quot;$(VsInstallRoot)&quot; -property catalog_productLineVersion"
-          ConsoleToMsBuild="true" IgnoreExitCode="true">
-      <Output TaskParameter="ConsoleOutput" PropertyName="VsMajorVersion" />
-    </Exec>
-    <Exec Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' != '' and '$(QtBuildSystem)' != 'ninja'"
-          Command="cmake --help" ConsoleToMsBuild="true" IgnoreExitCode="true">
-      <Output TaskParameter="ConsoleOutput" PropertyName="CMakeGeneratorHelp" />
-    </Exec>
-    <PropertyGroup Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' != '' and '$(QtBuildSystem)' != 'ninja'">
-      <!-- The generator must match the selected VS instance and be supported by this CMake. -->
-      <QtCMakeGenerator Condition="'$(VsMajorVersion)' == '17' AND
-                        $([System.String]::Copy('$(CMakeGeneratorHelp)').Contains('Visual Studio 17 2022'))">Visual Studio 17 2022</QtCMakeGenerator>
-      <QtCMakeGenerator Condition="'$(VsMajorVersion)' == '18' AND
-                        $([System.String]::Copy('$(CMakeGeneratorHelp)').Contains('Visual Studio 18 2026'))">Visual Studio 18 2026</QtCMakeGenerator>
-      <QtCMakeGenerator Condition="'$(QtCMakeGenerator)' == ''">Ninja</QtCMakeGenerator>
-    </PropertyGroup>
-    <Warning Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' != '' and '$(QtBuildSystem)' != 'ninja' and '$(QtCMakeGenerator)' == 'Ninja'"
-             Text="CMake does not support a generator for the selected Visual Studio installation; falling back to Ninja." />
     <PropertyGroup>
       <!-- Native arch-specific vcvars script: vcvarsarm64.bat for arm64, vcvars64.bat otherwise -->
       <QtVcVarsScript Condition="'$(QtArch)' == 'arm64'">vcvarsarm64.bat</QtVcVarsScript>
       <QtVcVarsScript Condition="'$(QtVcVarsScript)' == ''">vcvars64.bat</QtVcVarsScript>
       <QtVcVarsCmd Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' != '' and Exists('$(VsInstallRoot)\VC\Auxiliary\Build\$(QtVcVarsScript)')"
         >CALL "$(VsInstallRoot)\VC\Auxiliary\Build\$(QtVcVarsScript)" &gt; NUL &amp;&amp; </QtVcVarsCmd>
-      <QtCMakeGenerator Condition="'$(QtCMakeGenerator)' == ''">Ninja</QtCMakeGenerator>
-      <QtCMakeExtraArgs Condition="'$(QtCMakeGenerator)' == 'Ninja'">-DCMAKE_BUILD_TYPE=$(QtBuildConfig)</QtCMakeExtraArgs>
-      <!-- MSBuild-generator (Visual Studio) CMake configs need an explicit target architecture -->
-      <QtCMakeMSBuildPlatform Condition="'$(QtCMakeGenerator)' != 'Ninja' and '$(QtArch)' == 'arm64'">ARM64</QtCMakeMSBuildPlatform>
-      <QtCMakeMSBuildPlatform Condition="'$(QtCMakeGenerator)' != 'Ninja' and '$(QtArch)' == 'x86'">Win32</QtCMakeMSBuildPlatform>
-      <QtCMakeMSBuildPlatform Condition="'$(QtCMakeGenerator)' != 'Ninja' and '$(QtCMakeMSBuildPlatform)' == ''">x64</QtCMakeMSBuildPlatform>
-      <QtCMakeExtraArgs Condition="'$(QtCMakeGenerator)' != 'Ninja'">$(QtCMakeExtraArgs) -A $(QtCMakeMSBuildPlatform)</QtCMakeExtraArgs>
     </PropertyGroup>
 
     <MakeDir Directories="$(QtNativeBuildDir)" />
     <MakeDir Directories="$(QtNativeBinDir)" />
 
     <PropertyGroup>
-      <QtCMakeConfigureCmd Condition="'$(QtHostIsWindows)' == 'true'">$(QtVcVarsCmd)set "CMAKE_PREFIX_PATH=$(QtDir);%CMAKE_PREFIX_PATH%" &amp;&amp; cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G &quot;$(QtCMakeGenerator)&quot; $(QtCMakeExtraArgs)</QtCMakeConfigureCmd>
-      <QtCMakeConfigureCmd Condition="'$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true'">CMAKE_PREFIX_PATH=&quot;$(QtDir):$CMAKE_PREFIX_PATH&quot; cmake ../source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G &quot;$(QtCMakeGenerator)&quot; $(QtCMakeExtraArgs)</QtCMakeConfigureCmd>
+      <QtCMakeConfigureCmd Condition="'$(QtHostIsWindows)' == 'true'">$(QtVcVarsCmd)set "CMAKE_PREFIX_PATH=$(QtDir);%CMAKE_PREFIX_PATH%" &amp;&amp; cmake ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G Ninja -DCMAKE_BUILD_TYPE=$(QtBuildConfig)</QtCMakeConfigureCmd>
+      <QtCMakeConfigureCmd Condition="'$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true'">CMAKE_PREFIX_PATH=&quot;$(QtDir):$CMAKE_PREFIX_PATH&quot; cmake ../source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G Ninja -DCMAKE_BUILD_TYPE=$(QtBuildConfig)</QtCMakeConfigureCmd>
     </PropertyGroup>
     <Exec Command="$(QtCMakeConfigureCmd)" WorkingDirectory="$(QtNativeBuildDir)" EchoOff="true" IgnoreExitCode="true">
       <Output TaskParameter="ExitCode" PropertyName="CMakeResult" />
@@ -488,42 +460,15 @@ namespace Qt.Qml
     <Error Condition="'$(CMakeResult)' != '0'" Text="Error configuring native code!" />
 
     <PropertyGroup>
-      <QtUseMsBuildGenerator Condition="'$(QtHostIsWindows)' == 'true' and '$(QtCMakeGenerator)' != 'Ninja'">true</QtUseMsBuildGenerator>
-      <QtUseMsBuildGenerator Condition="'$(QtUseMsBuildGenerator)' == ''">false</QtUseMsBuildGenerator>
-    </PropertyGroup>
-    <ItemGroup Condition="'$(QtUseMsBuildGenerator)' == 'true'">
-      <!-- Newer CMake/VS generate .slnx (XML solution format) instead of .sln -->
-      <NativeSln Include="$(QtNativeBuildDir)\*.sln;$(QtNativeBuildDir)\*.slnx" />
-    </ItemGroup>
-    <PropertyGroup Condition="'$(QtUseMsBuildGenerator)' == 'true'">
-      <NativeApp>%(NativeSln.RelativeDir)%(NativeSln.Filename)</NativeApp>
-      <QtNativeBuildProperties
-        >Platform=$(QtCMakeMSBuildPlatform);Configuration=$(QtBuildConfig);CL_MP=true</QtNativeBuildProperties>
-      <QtNativeBuildProperties Condition="'$(QtBuildParallelism)' != ''"
-        >$(QtNativeBuildProperties);CL_MPCount=$(QtBuildParallelism)</QtNativeBuildProperties>
-    </PropertyGroup>
-    <ItemGroup Condition="'$(QtUseMsBuildGenerator)' == 'true'">
-      <NativeProject Include="$(NativeApp)_tooling.vcxproj;
-                              $(NativeApp)_qmlimportscan.vcxproj;
-                              $(NativeApp)_autogen.vcxproj;
-                              $(NativeApp)_automoc_json_extraction.vcxproj;
-                              $(NativeApp).vcxproj" />
-      <NativeProject Remove="@(NativeProject)" Condition="!Exists('%(NativeProject.FullPath)')" />
-    </ItemGroup>
-    <MSBuild Condition="'$(QtUseMsBuildGenerator)' == 'true'"
-      Projects="@(NativeProject)" BuildInParallel="false" StopOnFirstFailure="true"
-      Properties="$(QtNativeBuildProperties)" Targets="Build" />
-    <PropertyGroup Condition="'$(QtUseMsBuildGenerator)' != 'true'">
       <QtCMakeBuildParallelArgs>--parallel</QtCMakeBuildParallelArgs>
       <QtCMakeBuildParallelArgs Condition="'$(QtBuildParallelism)' != ''"
         >--parallel $(QtBuildParallelism)</QtCMakeBuildParallelArgs>
     </PropertyGroup>
-    <Exec Condition="'$(QtUseMsBuildGenerator)' != 'true'"
-      Command="$(QtVcVarsCmd)cmake --build . $(QtCMakeBuildParallelArgs)"
+    <Exec Command="$(QtVcVarsCmd)cmake --build . $(QtCMakeBuildParallelArgs)"
       WorkingDirectory="$(QtNativeBuildDir)" EchoOff="true" IgnoreExitCode="true">
       <Output TaskParameter="ExitCode" PropertyName="CMakeResult" />
     </Exec>
-    <Error Condition="'$(QtUseMsBuildGenerator)' != 'true' and '$(CMakeResult)' != '0'" Text="Error building native code!" />
+    <Error Condition="'$(CMakeResult)' != '0'" Text="Error building native code!" />
 
     <PropertyGroup>
       <QtNativeHostPath Condition="'$(QtHostIsWindows)' == 'true' and Exists('$(QtNativeBinDir)/$(AssemblyName).exe')">$(QtNativeBinDir)/$(AssemblyName).exe</QtNativeHostPath>
