@@ -124,6 +124,19 @@ private slots:
         runInbound(fnInboundObject);
     }
 
+    // Native code also passes strings to the adapter itself, for example the type and method
+    // names when it resolves a method. The adapter must free them on every call.
+    void loopAdapterStrings()
+    {
+        const QList<QDotNetParameter> parameters{ QDotNetInbound<void>::Parameter };
+        for (int i = 0; i < iterations; ++i) {
+            QDotNetFunction<void> fnResolved = QDotNetAdapter::instance().resolveStaticMethod(
+                TYPE_NAME, "InboundVoid", parameters);
+            fnResolved();
+        }
+        checkCorrelation();
+    }
+
     void cleanupTestCase() { unloadHost(); }
 };
 

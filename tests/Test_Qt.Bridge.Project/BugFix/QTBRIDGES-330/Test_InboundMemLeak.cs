@@ -67,14 +67,22 @@ namespace Test_Qt.Bridge.Project.BugFix
 
         [TestMethod, DynamicData(nameof(TestCases))]
         [WorkItem(330), Description("https://qt-project.atlassian.net/browse/QTBRIDGES-330")]
-        public async Task Inbound_DoesNotLeak(string typeName, int loopCount)
+        public Task Inbound_DoesNotLeak(string typeName, int loopCount)
+            => RunLoopAsync($"loopInbound{typeName}", loopCount);
+
+        // Strings that native code passes to the adapter itself, such as type and method names.
+        [TestMethod]
+        [WorkItem(330), Description("https://qt-project.atlassian.net/browse/QTBRIDGES-330")]
+        public Task AdapterStrings_DoNotLeak()
+            => RunLoopAsync("loopAdapterStrings", Loops.First());
+
+        private static async Task RunLoopAsync(string testFunction, int loopCount)
         {
             if (!AssemblyMetadata.Settings.RunInboundMemoryLeak) {
                 Assert.Inconclusive("Skipping inbound memory-leak test because "
                     + "TestRunInboundMemoryLeak is false.");
             }
 
-            var testFunction = $"loopInbound{typeName}";
             var run = await sharedProject.RunAsync(new()
             {
                 Args = [testFunction],

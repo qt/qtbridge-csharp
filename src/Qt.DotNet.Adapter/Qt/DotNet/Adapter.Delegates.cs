@@ -17,14 +17,17 @@ namespace Qt.DotNet
             [return: MarshalAs(UnmanagedType.CustomMarshaler,
                 MarshalTypeRef = typeof(ObjectMarshaler))]
             public delegate Assembly LoadAssembly(
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string assemblyName);
 
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             public delegate IntPtr ResolveStaticMethod(
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string targetType,
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string methodName,
                 [In] int parameterCount,
                 [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
@@ -39,7 +42,8 @@ namespace Qt.DotNet
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             public delegate IntPtr ResolveInstanceMethod(
                 [In] IntPtr objRefPtr,
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string methodName,
                 [In] int parameterCount,
                 [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
@@ -47,9 +51,11 @@ namespace Qt.DotNet
 
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             public delegate IntPtr ResolveStaticFieldGet(
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string typeName,
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string fieldName,
                 [In] int parameterCount,
                 [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
@@ -57,9 +63,11 @@ namespace Qt.DotNet
 
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             public delegate IntPtr ResolveStaticFieldSet(
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string typeName,
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string fieldName,
                 [In] int parameterCount,
                 [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
@@ -68,7 +76,8 @@ namespace Qt.DotNet
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             public delegate IntPtr ResolveInstanceFieldGet(
                 [In] IntPtr objRefPtr,
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string fieldName,
                 [In] int parameterCount,
                 [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
@@ -77,7 +86,8 @@ namespace Qt.DotNet
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             public delegate IntPtr ResolveInstanceFieldSet(
                 [In] IntPtr objRefPtr,
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string fieldName,
                 [In] int parameterCount,
                 [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
@@ -105,7 +115,8 @@ namespace Qt.DotNet
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             public delegate void AddEventHandler(
                 [In] IntPtr objRefPtr,
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string eventName,
                 [In] IntPtr context,
                 [In] NativeEventHandler eventHandler);
@@ -113,7 +124,8 @@ namespace Qt.DotNet
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             public delegate void RemoveEventHandler(
                 [In] IntPtr objRefPtr,
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string eventName,
                 [In] IntPtr context);
 
@@ -136,18 +148,21 @@ namespace Qt.DotNet
 
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             public delegate void FreeTypeRef(
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string typeName);
 
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-            [return: MarshalAs(UnmanagedType.LPWStr)]
+            [return: MarshalAs(UnmanagedType.CustomMarshaler,
+                MarshalTypeRef = typeof(StringMarshaler))]
             public delegate string GetStableAssemblyQualifiedName([In] IntPtr typeRefPtr);
 
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             [return: MarshalAs(UnmanagedType.CustomMarshaler,
                 MarshalTypeRef = typeof(ObjectMarshaler))]
             public delegate InterfaceProxy AddInterfaceProxy(
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string interfaceName,
                 [In] IntPtr data,
                 [In] IntPtr cleanUp);
@@ -156,7 +171,8 @@ namespace Qt.DotNet
             [return: MarshalAs(UnmanagedType.CustomMarshaler,
                 MarshalTypeRef = typeof(ObjectMarshaler))]
             public delegate Delegate AddDelegateProxy(
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string delegateTypeName,
                 [In] int parameterCount,
                 [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]
@@ -173,7 +189,8 @@ namespace Qt.DotNet
                 [MarshalAs(UnmanagedType.CustomMarshaler,
                     MarshalTypeRef = typeof(ObjectMarshaler))]
                 [In] InterfaceProxy proxy,
-                [MarshalAs(UnmanagedType.LPWStr)]
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
                 [In] string methodName,
                 [In] int parameterCount,
                 [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)]
@@ -183,8 +200,11 @@ namespace Qt.DotNet
                 [In] IntPtr context);
 
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-            public delegate IntPtr GetObject
-                ([In] IntPtr objRefPtr, [MarshalAs(UnmanagedType.LPWStr)][In] string path);
+            public delegate IntPtr GetObject(
+                [In] IntPtr objRefPtr,
+                [MarshalAs(UnmanagedType.CustomMarshaler,
+                    MarshalTypeRef = typeof(StringMarshaler))]
+                [In] string path);
 
             [UnmanagedFunctionPointer(CallingConvention.Winapi)]
             public delegate void Reset();
