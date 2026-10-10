@@ -166,6 +166,11 @@ namespace Test_QtQuickTest
         public void ClearPeople() => People.Clear();
 
         public MetadataScriptedPeople Scripted { get; } = [];
+
+        public ObservableCollection<Person> Items { get; } = [];
+
+        public void Add(string name) => Items.Add(new(name, Items.Count));
+        public void RemoveFirst() => Items.RemoveAt(0);
     }
 
     // Raises collection changes the way custom INotifyCollectionChanged implementations may:

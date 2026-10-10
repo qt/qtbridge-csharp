@@ -5,6 +5,8 @@
 
 #include "qdotnetadapter.h"
 
+#include <utility>
+
 class QDotNetRef
 {
 public:
@@ -16,12 +18,11 @@ public:
     template<typename T, std::enable_if_t<QDotNetIsRef_v<T>, bool> = true>
     T cast(bool copy = false)
     {
-        T newObj(nullptr);
+        // Construct the result with its reference in place: its constructor may already need
+        // it, for example to subscribe to the .NET events of the object.
         if (copy)
-            newObj.copyFrom(*this);
-        else
-            newObj.moveFrom(*this);
-        return newObj;
+            return T(isValid() ? adapter().addObjectRef(*this) : nullptr);
+        return T(std::exchange(objectRef, nullptr));
     }
 
     QDotNetRef(const void *objectRef = nullptr)

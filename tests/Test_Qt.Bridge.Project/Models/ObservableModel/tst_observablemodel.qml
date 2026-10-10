@@ -19,6 +19,12 @@ Item {
         id: sourceItems
     }
 
+    Instantiator {
+        id: metadataView
+        model: metadataItems.items
+        delegate: QtObject {}
+    }
+
     property int sourceScriptedCount: sourceItems.scripted.count
     property int metadataScriptedCount: metadataItems.scripted.count
 
@@ -121,6 +127,16 @@ Item {
         function test_metadata_collection_scripted_changes() {
             checkScriptedChanges(metadataItems.scripted, metadataScriptedView,
                                  () => root.metadataScriptedCount)
+        }
+
+        // The collection reaches QML through a member of a metadata type.
+        function test_metadata_changes_reach_the_view() {
+            for (let i = 0; i < 3; ++i)
+                metadataItems.add("item" + i)
+            compare(metadataView.count, 3)
+
+            metadataItems.removeFirst()
+            compare(metadataView.count, 2)
         }
     }
 }
