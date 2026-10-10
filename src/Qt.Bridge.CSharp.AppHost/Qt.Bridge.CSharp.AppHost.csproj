@@ -21,10 +21,6 @@
     <RootNamespace>Qt.Bridge</RootNamespace>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <QtDotNetProfiler>enable</QtDotNetProfiler>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Qt.DotNet.Adapter\Qt.DotNet.Adapter.csproj" />
     <ProjectReference Include="..\Qt.Bridge.CSharp.Build.Tasks\Qt.Bridge.CSharp.Build.Tasks.csproj" />
