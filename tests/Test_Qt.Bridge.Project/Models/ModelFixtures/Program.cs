@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -148,6 +149,83 @@ namespace Test_QtQuickTest
             blocks.ForEach(Marshal.FreeHGlobal);
             blocks.Clear();
         }
+    }
+
+    [Qt.Export(Options = Qt.ExportAs.Metadata)]
+    public sealed class MetadataPersonCollection : ObservableCollection<Person>
+    { }
+
+    [QmlElement]
+    [Qt.Export(Options = Qt.ExportAs.Metadata)]
+    public sealed class MetadataObservable
+    {
+        public MetadataPersonCollection People { get; } = [];
+
+        public void AddPerson(string name) => People.Add(new(name, People.Count));
+        public void RemoveFirstPerson() => People.RemoveAt(0);
+        public void ClearPeople() => People.Clear();
+
+        public MetadataScriptedPeople Scripted { get; } = [];
+    }
+
+    // Raises collection changes the way custom INotifyCollectionChanged implementations may:
+    // without a position, at a position out of range, or with arguments of a type of their own.
+    public abstract class ScriptedPeople : ObservableCollection<Person>
+    {
+        public void AddUnpositioned(string name)
+        {
+            var person = new Person(name, Count);
+            Items.Add(person);
+            OnCollectionChanged(new(NotifyCollectionChangedAction.Add, person));
+        }
+
+        public void AddOutOfRange(string name)
+        {
+            var person = new Person(name, Count);
+            Items.Add(person);
+            OnCollectionChanged(new(NotifyCollectionChangedAction.Add, person, Count + 5));
+        }
+
+        public void AddWithCustomArgs(string name)
+        {
+            var person = new Person(name, Count);
+            Items.Add(person);
+            OnCollectionChanged(new CustomCollectionChangedEventArgs(person, Count - 1));
+        }
+
+        public void ReplaceFirstUnpositioned(string name)
+        {
+            var replaced = Items[0];
+            var person = new Person(name, 0);
+            Items[0] = person;
+            OnCollectionChanged(new(NotifyCollectionChangedAction.Replace, person, replaced));
+        }
+
+        public void RemoveFirstUnpositioned()
+        {
+            var person = Items[0];
+            Items.RemoveAt(0);
+            OnCollectionChanged(new(NotifyCollectionChangedAction.Remove, person));
+        }
+
+        public void MoveFirstToLast() => Move(0, Count - 1);
+    }
+
+    public sealed class CustomCollectionChangedEventArgs(object item, int index)
+        : NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, index);
+
+    [Qt.Export(Options = Qt.ExportAs.Metadata)]
+    public sealed class MetadataScriptedPeople : ScriptedPeople
+    { }
+
+    [Qt.Export(Options = Qt.ExportAs.SourceCode)]
+    public sealed class SourceScriptedPeople : ScriptedPeople
+    { }
+
+    [Qt.Export(Options = Qt.ExportAs.SourceCode)]
+    public sealed class SourceObservable
+    {
+        public SourceScriptedPeople Scripted { get; } = [];
     }
 
     internal class Program

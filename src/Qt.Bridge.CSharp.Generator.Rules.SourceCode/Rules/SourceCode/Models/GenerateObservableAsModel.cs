@@ -49,24 +49,30 @@ QObject::connect(q, &{type.MFn(Ns | Name)}::collectionChanged,
             if (type.GetPlaceholder(MethodDeclarations) is not { } methodDeclarations)
                 return Error();
             methodDeclarations += "void handleCollectionChanged(QObject* qEvArgs);";
+            methodDeclarations += "bool applyCollectionChange(QObject* qEvArgs);";
 
             if (type.GetPlaceholder(MethodsImplementation) is not { } methodsImplementation)
                 return Error();
             methodsImplementation += $@"
-// Connect .NET collection deltas (emitted as collectionChanged) to a local
-// slot that translates them into the corresponding QAbstractItemModel operations.
+// Translates a collection change into the corresponding model delta, as generated source
+// models do. The collection has already changed when the event arrives, so a change that
+// cannot be mapped, for example because its position is unknown, resets the model.
 void {type.MFn(Ns | Name)}::handleCollectionChanged(QObject* qEvArgs)
 {{
-    // Translates NotifyCollectionChangedEventArgs to QAbstractItemModel delta calls.
-    // IMPORTANT:
-    //   For Remove we temporarily override rowCount() to the pre-removal value,
-    //   because .NET has already mutated the collection when the event arrives.
-    //   This keeps Qt invariants satisfied and avoids assertions in beginRemoveRows().
-
     using Args = System::Collections::Specialized::NotifyCollectionChangedEventArgs;
-    auto *args = qobject_cast<Args*>(qEvArgs);
-    if (!args)
+    if (auto *args = qobject_cast<Args*>(qEvArgs); args && applyCollectionChange(args))
         return;
+    beginResetModel();
+    endResetModel();
+    Q_EMIT countChanged();
+}}
+
+// Applies a collection change as a model delta. Returns false if the change does not map to
+// one, positions are checked against the row count from before the change.
+bool {type.MFn(Ns | Name)}::applyCollectionChange(QObject* qEvArgs)
+{{
+    using Args = System::Collections::Specialized::NotifyCollectionChangedEventArgs;
+    auto *args = static_cast<Args*>(qEvArgs);
 
     auto countItems = [](const System::Collections::IList* l) -> int {{
         if (!l || !l->isValid())
@@ -75,69 +81,68 @@ void {type.MFn(Ns | Name)}::handleCollectionChanged(QObject* qEvArgs)
         return self.method<qint32>(QStringLiteral(""get_Count"")).invoke(self);
     }};
 
+    const int count = this->count();
     switch (args->action()) {{
     case System::Collections::Specialized::NotifyCollectionChangedAction::Add: {{
-        const int index = args->newStartingIndex();
-        const auto *newItems = args->newItems();
-        const int added = newItems ? countItems(newItems) : 0;
-        if (added > 0) {{
-            beginInsertRows(QModelIndex(), index, index + added - 1);
-            endInsertRows();
-            Q_EMIT countChanged();
-        }}
-        break;
+        const int first = args->newStartingIndex();
+        const int added = countItems(args->newItems());
+        if (added == 0)
+            return true;
+        if (first < 0 || first > count - added)
+            return false;
+        beginInsertRows(QModelIndex(), first, first + added - 1);
+        endInsertRows();
+        Q_EMIT countChanged();
+        return true;
     }}
     case System::Collections::Specialized::NotifyCollectionChangedAction::Remove: {{
-        const int index = args->oldStartingIndex();
-        const auto *oldItems = args->oldItems();
-        const int removed = oldItems ? countItems(oldItems) : 0;
-        if (removed > 0) {{
-            // .NET has already decremented Count when raising the event.
-            // Qt expects the model to still report the PRE-REMOVAL row count
-            // between beginRemoveRows() and endRemoveRows(). We therefore
-            // (temporarily) override rowCount() to return the old count.
-            // See GenerateListAsModel.cs for a longer rationale on rowCountOverride.
-            d->rowCountOverride = count() + removed;
-            beginRemoveRows(QModelIndex(), index, index + removed - 1);
-            endRemoveRows();
-            d->rowCountOverride = -1;
-            Q_EMIT countChanged();
-        }}
-        break;
+        const int first = args->oldStartingIndex();
+        const int removed = countItems(args->oldItems());
+        if (removed == 0)
+            return true;
+        const int before = count + removed;
+        if (first < 0 || first + removed > before)
+            return false;
+        // Qt expects the model to report the row count from before the removal until
+        // endRemoveRows(). See GenerateListAsModel.cs for a longer rationale.
+        d->rowCountOverride = before;
+        beginRemoveRows(QModelIndex(), first, first + removed - 1);
+        endRemoveRows();
+        d->rowCountOverride = -1;
+        Q_EMIT countChanged();
+        return true;
     }}
     case System::Collections::Specialized::NotifyCollectionChangedAction::Replace: {{
-        const int index = args->newStartingIndex();
-        const auto *newItems = args->newItems();
-        const int replaced = newItems ? countItems(newItems) : 0;
-        if (replaced > 0) {{
-            Q_EMIT dataChanged(createIndex(index, 0), createIndex(index + replaced - 1, 0), {{}} );
-        }}
-        break;
+        const int first = args->newStartingIndex();
+        const int replaced = countItems(args->newItems());
+        if (replaced != countItems(args->oldItems()))
+            return false;
+        if (replaced == 0)
+            return true;
+        if (first < 0 || first + replaced > count)
+            return false;
+        Q_EMIT dataChanged(createIndex(first, 0), createIndex(first + replaced - 1, 0), {{}});
+        return true;
     }}
     case System::Collections::Specialized::NotifyCollectionChangedAction::Move: {{
-        const int oldIndex = args->oldStartingIndex();
-        int newIndex = args->newStartingIndex();
-        const auto *items = args->newItems();
-        const int moved = items ? countItems(items) : 0;
-        if (moved > 0) {{
-            // Qt requires the destination index to refer to the position AFTER removing
-            // the source block. If the destination lies behind the source block, the
-            // insertion point shifts by the block size.
-            // See QAbstractItemModel::beginMoveRows() docs for the exact contract.
-            const int dest = (newIndex > oldIndex) ? (newIndex + moved) : newIndex;
-            beginMoveRows(QModelIndex(), oldIndex, oldIndex + moved - 1, QModelIndex(), dest);
-            endMoveRows();
-        }}
-        break;
+        const int first = args->oldStartingIndex();
+        const int target = args->newStartingIndex();
+        const int moved = countItems(args->newItems());
+        if (moved == 0 || (first == target && first >= 0))
+            return true;
+        if (first < 0 || target < 0 || first + moved > count || target + moved > count)
+            return false;
+        // Qt expects the destination as it was before the move, so a block that moves down
+        // lands behind the items it passes.
+        const int destination = target > first ? target + moved : target;
+        if (!beginMoveRows(QModelIndex(), first, first + moved - 1, QModelIndex(), destination))
+            return false;
+        endMoveRows();
+        return true;
     }}
     case System::Collections::Specialized::NotifyCollectionChangedAction::Reset:
     default:
-        // Full model reset. This invalidates selection and current index, which is expected
-        // for Reset. Use sparingly; granular deltas above keep selection when possible.
-        beginResetModel();
-        endResetModel();
-        Q_EMIT countChanged();
-        break;
+        return false;
     }}
 }}
 {Blank}";

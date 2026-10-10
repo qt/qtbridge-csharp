@@ -1104,7 +1104,13 @@ private:
                     qDynObj->onModelDataChanged(modelChanged);
                     args = modelChanged.cast<QDotNetObject>();
                 } else if (name == "CollectionChanged") {
-                    qDynObj->onCollectionChanged();
+                    if (args.type().isAssignableTo<QDotNetCollectionEvent>()) {
+                        auto collectionChanged = args.cast<QDotNetCollectionEvent>();
+                        qDynObj->handleCollectionChanged(&collectionChanged);
+                        args = collectionChanged.cast<QDotNetObject>();
+                    } else {
+                        qDynObj->handleCollectionChanged(nullptr);
+                    }
                 }
 
                 QObject *qEvArgs = QDotNetConvert::objectDispatch(args);
@@ -1142,18 +1148,97 @@ private:
         notifySignal.invoke(this);
     }
 
-    void onCollectionChanged()
+    // Translates a collection change into the corresponding model delta, as generated source
+    // models do. The collection has already changed when the event arrives, so a change that
+    // cannot be mapped, for example because its position is unknown, resets the model.
+    void handleCollectionChanged(const QDotNetCollectionEvent *event)
     {
         Q_DOTNET_PROFILE_FUNC();
 
-        // TODO: Translate NotifyCollectionChangedEventArgs actions into the corresponding Qt
-        // model deltas, as the source-code exporter does. Until then, reset conservatively: the
-        // event is raised after the managed collection has changed, and this avoids violating
-        // Qt's begin/end model-operation invariants for every INotifyCollectionChanged source.
         if (!model || !model->collectionModel.isValid() || !model->collectionModel.isObservable)
+            return;
+        if (event && applyCollectionChange(*event))
             return;
         beginResetModel();
         endResetModel();
+        countChanged();
+    }
+
+    // Applies a collection change as a model delta. Returns false if the change does not map to
+    // one, positions are checked against the row count from before the change.
+    bool applyCollectionChange(const QDotNetCollectionEvent &event)
+    {
+        const int count = rowCount();
+        switch (event.action()) {
+        case CollectionAdd: {
+            const int first = event.newStartingIndex();
+            const int added = event.newItemCount();
+            if (added == 0)
+                return true;
+            if (first < 0 || first > count - added)
+                return false;
+            beginInsertRows(QModelIndex(), first, first + added - 1);
+            endInsertRows();
+            countChanged();
+            return true;
+        }
+        case CollectionRemove: {
+            const int first = event.oldStartingIndex();
+            const int removed = event.oldItemCount();
+            if (removed == 0)
+                return true;
+            const int before = count + removed;
+            if (first < 0 || first + removed > before)
+                return false;
+            // Qt expects the model to report the row count from before the removal until
+            // endRemoveRows().
+            model->rowCountOverride = before;
+            beginRemoveRows(QModelIndex(), first, first + removed - 1);
+            endRemoveRows();
+            model->rowCountOverride = -1;
+            countChanged();
+            return true;
+        }
+        case CollectionReplace: {
+            const int first = event.newStartingIndex();
+            const int replaced = event.newItemCount();
+            if (replaced != event.oldItemCount())
+                return false;
+            if (replaced == 0)
+                return true;
+            if (first < 0 || first + replaced > count)
+                return false;
+            Q_EMIT dataChanged(createIndex(first, 0), createIndex(first + replaced - 1, 0));
+            return true;
+        }
+        case CollectionMove: {
+            const int first = event.oldStartingIndex();
+            const int target = event.newStartingIndex();
+            const int moved = event.newItemCount();
+            if (moved == 0 || (first == target && first >= 0))
+                return true;
+            if (first < 0 || target < 0 || first + moved > count || target + moved > count)
+                return false;
+            // Qt expects the destination as it was before the move, so a block that moves down
+            // lands behind the items it passes.
+            const int destination = target > first ? target + moved : target;
+            if (!beginMoveRows(QModelIndex(), first, first + moved - 1, QModelIndex(), destination))
+                return false;
+            endMoveRows();
+            return true;
+        }
+        case CollectionReset:
+        default:
+            return false;
+        }
+    }
+
+    // ObservableCollection<T> raises PropertyChanged for its count, but implements that event
+    // explicitly, so the subscription by name never receives it. Update the count after every
+    // change as the source code exporter does
+    void countChanged()
+    {
+        onPropertyChanged(QStringLiteral("Count"));
     }
 
     //// END Event handling
@@ -1177,8 +1262,13 @@ private:
 
         if (!model)
             return {};
-        if (model->collectionModel.isValid())
-            return parent.isValid() ? 0 : method<int>(model->collectionModel.countMethod)();
+        if (model->collectionModel.isValid()) {
+            if (parent.isValid())
+                return 0;
+            if (model->rowCountOverride >= 0)
+                return model->rowCountOverride;
+            return method<int>(model->collectionModel.countMethod)();
+        }
         if (!model->fnRowCount.isValid())
             return {};
         return model->fnRowCount(parent);
@@ -1623,6 +1713,7 @@ private:
     {
         CollectionModel collectionModel;
         QDotNetBoxedMethod collectionItemMethod;
+        int rowCountOverride = -1;
         QHash<int, QByteArray> roleNamesByIndex;
         QDotNetFunction<int, QModelIndex> fnRowCount = nullptr;
         QDotNetFunction<int, QModelIndex> fnColumnCount = nullptr;

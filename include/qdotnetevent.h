@@ -37,6 +37,56 @@ private:
     mutable QDotNetSafeMethod<QString> fnPropertyName;
 };
 
+Q_DOTNET_ENUM(QDotNetCollectionAction,
+    "System.Collections.Specialized.NotifyCollectionChangedAction, System.ObjectModel", int)
+{
+    CollectionAdd = 0,
+    CollectionRemove = 1,
+    CollectionReplace = 2,
+    CollectionMove = 3,
+    CollectionReset = 4
+};
+
+class QDotNetCollectionEvent : public QDotNetObject
+{
+public:
+    Q_DOTNET_OBJECT_INLINE(QDotNetCollectionEvent,
+        "System.Collections.Specialized.NotifyCollectionChangedEventArgs, System.ObjectModel");
+
+    QDotNetCollectionAction action() const
+    {
+        return method("get_Action", fnGetAction).invoke(*this);
+    }
+
+    qint32 newStartingIndex() const
+    {
+        return method("get_NewStartingIndex", fnGetNewStartingIndex).invoke(*this);
+    }
+
+    qint32 oldStartingIndex() const
+    {
+        return method("get_OldStartingIndex", fnGetOldStartingIndex).invoke(*this);
+    }
+
+    qint32 newItemCount() const { return itemCount("get_NewItems", fnGetNewItems); }
+    qint32 oldItemCount() const { return itemCount("get_OldItems", fnGetOldItems); }
+
+private:
+    qint32 itemCount(const QString &listGetter, QDotNetFunction<QDotNetObject> &fnGetList) const
+    {
+        const QDotNetObject list = method(listGetter, fnGetList).invoke(*this);
+        if (!list.isValid())
+            return 0;
+        return list.method<qint32>(QStringLiteral("get_Count")).invoke(list);
+    }
+
+    mutable QDotNetFunction<QDotNetCollectionAction> fnGetAction = nullptr;
+    mutable QDotNetFunction<qint32> fnGetNewStartingIndex = nullptr;
+    mutable QDotNetFunction<qint32> fnGetOldStartingIndex = nullptr;
+    mutable QDotNetFunction<QDotNetObject> fnGetNewItems = nullptr;
+    mutable QDotNetFunction<QDotNetObject> fnGetOldItems = nullptr;
+};
+
 Q_DOTNET_ENUM(QDotNetModelAction, "Qt.Bridge.Models.Model+EventAction, Qt.Bridge.CSharp.Api", int)
 {
     NoAction = 0,
