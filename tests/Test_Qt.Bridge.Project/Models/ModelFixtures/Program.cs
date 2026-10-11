@@ -3,7 +3,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Qt.Bridge.Models;
 using Qt.DotNet;
 using Qt.Quick;
@@ -96,6 +99,55 @@ namespace Test_QtQuickTest
     public sealed class PlainElement
     {
         public int Value() => 42;
+    }
+
+    [Qt.Export(Options = Qt.ExportAs.SourceCode)]
+    public sealed class NotifyingCollection : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        // Notifies its property changes, so its generated wrapper caches the collection it returns.
+        public ObservableCollection<Person> Items { get; } = [new("Ada", 36), new("Grace", 85)];
+    }
+
+    [Qt.Export(Options = Qt.ExportAs.SourceCode)]
+    public sealed class AdapterReferences
+    {
+        // Object references the adapter holds on behalf of native code.
+        public int ObjectRefCount()
+        {
+            Adapter.Stats(out var objectCount, out _, out _);
+            return objectCount;
+        }
+    }
+
+    [Qt.Export(Options = Qt.ExportAs.SourceCode)]
+    public sealed class FreedMemory
+    {
+        private readonly List<nint> blocks = [];
+
+        // Overwrite recently freed native memory, so the use of a deleted object no longer goes
+        // unnoticed by chance. The heap hands out free blocks in no particular order, so this
+        // takes many blocks of each small size, and keeps them until Release(), as freeing them
+        // would write heap bookkeeping into them again.
+        public void Overwrite()
+        {
+            var filler = new byte[512];
+            Array.Fill(filler, (byte)0xA5);
+            for (var size = 16; size <= filler.Length; size += 8) {
+                for (var i = 0; i < 2048; ++i) {
+                    var block = Marshal.AllocHGlobal(size);
+                    Marshal.Copy(filler, 0, block, size);
+                    blocks.Add(block);
+                }
+            }
+        }
+
+        public void Release()
+        {
+            blocks.ForEach(Marshal.FreeHGlobal);
+            blocks.Clear();
+        }
     }
 
     internal class Program

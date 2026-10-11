@@ -164,6 +164,9 @@
     <Content Include="Models\TableModelRemoveRanges\tst_modelremoveranges.qml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Models\CachedProperty\tst_cachedproperty.qml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Models\ModelFixtures\main.cpp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

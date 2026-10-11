@@ -28,6 +28,12 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
             var type = src.ReflectedType;
             var propType = prop.PropertyType;
             var cacheType = propType.IsValue() ? TypeOf<object>() : propType;
+            // A cached wrapper may belong to the JavaScript engine, which deletes it once QML no
+            // longer references it. QPointer notices the deltion and on the next read fetches a
+            // new wrapper instead of returning the deleted one.
+            var cacheDecl = cacheType.Is<object>()
+                ? cacheType.MFn(Ns | Name | Arg)
+                : $"QPointer<{cacheType.MFn(Ns | Name)}>";
             var isDelegateProp = propType.IsAssignableTo(TypeOf<Delegate>());
             var delegateInvoke = isDelegateProp ? propType.GetMethod("Invoke") : null;
             var delegateReturnType = delegateInvoke?.ReturnType;
@@ -79,6 +85,7 @@ PROPERTY_{prop.MFn(Src)} Q_SIGNAL void {prop.MFn(Signal)}();
                 return Error();
             privateIncludes += "#include <QThread>";
             privateIncludes += "#include <QMetaMethod>";
+            privateIncludes += "#include <QPointer>";
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //
@@ -90,7 +97,7 @@ mutable QDotNetFunction<{propType.MFn(Ns | Name)}> {prop.MFn(Get | Func)} = null
 {(!prop.CanWrite ? Wrap : $@"{Wrap}
 mutable QDotNetFunction<void, {propType.MFn(Ns | Name)}> {prop.MFn(Set | Func)} = nullptr;")}
 {(!prop.CanRead || !propType.IsObject() || isDelegateProp ? Wrap
-: $@"mutable {cacheType.MFn(Ns | Name | Arg)} cached{prop.MFn(Src)} {Wrap}
+: $@"mutable {cacheDecl} cached{prop.MFn(Src)} {Wrap}
     = QDotNetConvert::Object<{cacheType.MFn(Ns | Name)}>::null();")}";
 
             ////////////////////////////////////////////////////////////////////////////////////////

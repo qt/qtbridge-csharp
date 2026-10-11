@@ -28,6 +28,7 @@ namespace Test_Qt.Bridge.Project.Models.ModelFixtures
                     CopyQml(project, "TreeModel", "tst_treemodel.qml");
                     CopyQml(project, "CollectionModel", "tst_collectionmodel.qml");
                     CopyQml(project, "TableModelRemoveRanges", "tst_modelremoveranges.qml");
+                    CopyQml(project, "CachedProperty", "tst_cachedproperty.qml");
                 });
             } catch {
                 sharedProject.Dispose();
@@ -58,6 +59,10 @@ namespace Test_Qt.Bridge.Project.Models.ModelFixtures
         [TestMethod]
         public Task ModelRemoveRanges()
             => RunQmlTestAsync("tst_modelremoveranges.qml");
+
+        [TestMethod]
+        public Task CachedCollectionProperty_Survives_Garbage_Collection()
+            => RunQmlTestAsync("tst_cachedproperty.qml");
 
         private static void CopyQml(TempProject project, string fixture, string fileName)
         {
