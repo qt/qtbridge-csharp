@@ -156,13 +156,12 @@ namespace Qt.DotNet
             if (delegateInfo.Member is not MethodInfo unsafeMethod)
                 throw new ArgumentException("Invalid function pointer", nameof(funcPtr));
 
-            if (SafeDelegateRefs.TryGetValue(unsafeMethod, out var safeDelegateRef))
+            var (safeMethod, delegateType) =
+                CodeGenerator.ResolveSafeMethod(unsafeMethod, parameters);
+
+            var key = (unsafeMethod, delegateType);
+            if (SafeDelegateRefs.TryGetValue(key, out var safeDelegateRef))
                 return safeDelegateRef.FuncPtr;
-
-            var safeMethod = CodeGenerator.CreateSafeMethod(unsafeMethod);
-
-            var delegateType = CodeGenerator.CreateDelegateTypeForMethod(safeMethod, parameters)
-                ?? throw new Exception("Error getting safe method delegate type");
 
             var safeDelegate = Delegate.CreateDelegate(delegateType, safeMethod)
                 ?? throw new Exception("Error getting safe method delegate");
@@ -170,7 +169,10 @@ namespace Qt.DotNet
             var methodHandle = GCHandle.Alloc(safeDelegate);
             var methodFuncPtr = Marshal.GetFunctionPointerForDelegate(safeDelegate);
             safeDelegateRef = new DelegateRef(methodHandle, methodFuncPtr);
-            SafeDelegateRefs.TryAdd(unsafeMethod, safeDelegateRef);
+            if (SafeDelegateRefs.TryAdd(key, safeDelegateRef))
+                return safeDelegateRef.FuncPtr;
+            methodHandle.Free();
+            safeDelegateRef = SafeDelegateRefs[key];
             return safeDelegateRef.FuncPtr;
         }
     }

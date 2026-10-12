@@ -66,6 +66,43 @@ private slots:
         QCOMPARE(exceptionTypeName, "System.ArgumentOutOfRangeException");
     }
 
+    void safeValueCallAfterException()
+    {
+        const auto convert = QDotNetType::typeOf("System.Convert");
+        QDotNetSafeMethod<int, QString> toInt;
+        convert.staticMethod("ToInt32", toInt);
+
+        bool caught = false;
+        try {
+            std::ignore = toInt.invoke(nullptr, "invalid");
+        } catch (const QDotNetException &ex) {
+            caught = true;
+            QCOMPARE(ex.type().cast<QDotNetType>().fullName(), "System.FormatException");
+        }
+        QVERIFY(caught);
+        QCOMPARE(toInt.invoke(nullptr, "42"), 42);
+    }
+
+    void safeVoidCallAfterException()
+    {
+        const auto newStringBuilder = QDotNetObject::constructor("System.Text.StringBuilder");
+        const auto stringBuilder = newStringBuilder();
+        QDotNetSafeMethod<void, int> setLength;
+        stringBuilder.method("set_Length", setLength);
+
+        bool caught = false;
+        try {
+            setLength.invoke(stringBuilder, -1);
+        } catch (const QDotNetException &ex) {
+            caught = true;
+            QCOMPARE(ex.type().cast<QDotNetType>().fullName(),
+                "System.ArgumentOutOfRangeException");
+        }
+        QVERIFY(caught);
+        setLength.invoke(stringBuilder, 3);
+        QCOMPARE(stringBuilder.method<int>("get_Length").invoke(stringBuilder), 3);
+    }
+
     void cleanupTestCase()
     {
         unloadHost();

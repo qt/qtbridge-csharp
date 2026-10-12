@@ -19,13 +19,17 @@
 #   pragma GCC diagnostic pop
 #endif
 
+// Calls a .NET method through a generated wrapper that catches its exceptions.
+// The wrapper returns the result directly. The last argument is the address of
+// a local exception handle initialized to nullptr. A caught exception's handle
+// is written to that address; successful calls leave the handle unchanged.
 template<typename T, typename... TArg>
 class QDotNetSafeMethod
 {
     Q_DOTNET_PROFILE_SCOPE(QDotNetSafeMethod);
 
     using FuncType = QDotNetFunction<T, TArg...>;
-    using SafeFuncType = QDotNetFunction<QDotNetRef, QDotNetRef, TArg...>;
+    using SafeFuncType = QDotNetFunction<T, QDotNetRef, TArg..., void *>;
 
 public:
     QDotNetSafeMethod() = default;
@@ -43,77 +47,38 @@ public:
 
         const QList<QDotNetParameter> parameters
         {
-            QDotNetInbound<QDotNetRef>::Parameter,
+            QDotNetInbound<T>::Parameter,
             QDotNetOutbound<QDotNetRef>::Parameter,
-            QDotNetOutbound<TArg>::Parameter...
+            QDotNetOutbound<TArg>::Parameter...,
+            QDotNetOutbound<void *>::Parameter
         };
         safeFunc = QDotNetAdapter::instance().resolveSafeMethod(func.ptr(), parameters);
     }
 
     bool isValid() const { return func.isValid(); }
 
-    class SafeReturn : public QDotNetRef
-    {
-    public:
-        SafeReturn(const void *objectRef = nullptr)
-            : QDotNetRef(objectRef)
-        {}
-
-        SafeReturn(const SafeReturn &cpySrc)
-            : QDotNetRef(cpySrc)
-        {}
-
-        SafeReturn(SafeReturn &&movSrc) noexcept
-            : QDotNetRef(std::move(movSrc))
-        {}
-
-        T value() const
-        {
-            Q_DOTNET_PROFILE_FUNC();
-
-            if (!fnValue.isValid()) {
-                fnValue = adapter().resolveInstanceMethod(
-                    *this, "get_Value", { QDotNetInbound<T>::Parameter });
-            }
-            return fnValue();
-        }
-        QDotNetException exception() const
-        {
-            Q_DOTNET_PROFILE_FUNC();
-
-            if (!fnException.isValid()) {
-                fnException = adapter().resolveInstanceMethod(
-                    *this, "get_Exception", { QDotNetInbound<QDotNetException>::Parameter });
-            }
-            return fnException();
-        }
-    private:
-        mutable QDotNetFunction<T> fnValue = nullptr;
-        mutable QDotNetFunction<QDotNetException> fnException = nullptr;
-    };
-
     typename QDotNetInbound<T>::TargetType invoke(QDotNetOutbound<QDotNetRef>::SourceType obj,
         typename QDotNetOutbound<TArg>::SourceType... arg) const
     {
         Q_DOTNET_PROFILE_FUNC();
 
-        SafeReturn safeReturn = safeFunc(obj, arg...).template cast<SafeReturn>();
-        QDotNetException exception = safeReturn.exception();
-        if (!exception.isValid())
-            return safeReturn.value();
-        throw exception;
+        const void *exceptionHandle = nullptr;
+        auto result = safeFunc(obj, arg..., &exceptionHandle);
+        if (exceptionHandle)
+            throw QDotNetException(exceptionHandle);
+        return result;
     }
 
-    typename QDotNetInbound<T>::TargetType invoke(nullptr_t nullObj,
+    typename QDotNetInbound<T>::TargetType invoke(nullptr_t,
         typename QDotNetOutbound<TArg>::SourceType... arg) const
     {
         Q_DOTNET_PROFILE_FUNC();
 
-        SafeReturn safeReturn = safeFunc(nullObj, arg...).template cast<SafeReturn>();
-        QDotNetException exception = safeReturn.exception();
-        if (!exception.isValid())
-            return safeReturn.value();
-        throw exception;
+        const void *exceptionHandle = nullptr;
+        auto result = safeFunc(nullptr, arg..., &exceptionHandle);
+        if (exceptionHandle)
+            throw QDotNetException(exceptionHandle);
+        return result;
     }
 
 private:
@@ -125,7 +90,7 @@ template<typename... TArg>
 class QDotNetSafeMethod<void, TArg...>
 {
     using FuncType = QDotNetFunction<void, TArg...>;
-    using SafeFuncType = QDotNetFunction<QDotNetRef, QDotNetRef, TArg...>;
+    using SafeFuncType = QDotNetFunction<void, QDotNetRef, TArg..., void *>;
 
 public:
     QDotNetSafeMethod() = default;
@@ -143,63 +108,35 @@ public:
 
         const QList<QDotNetParameter> parameters
         {
-            QDotNetInbound<QDotNetRef>::Parameter,
+            QDotNetInbound<void>::Parameter,
             QDotNetOutbound<QDotNetRef>::Parameter,
-            QDotNetOutbound<TArg>::Parameter...
+            QDotNetOutbound<TArg>::Parameter...,
+            QDotNetOutbound<void *>::Parameter
         };
         safeFunc = QDotNetAdapter::instance().resolveSafeMethod(func.ptr(), parameters);
     }
 
     bool isValid() const { return func.isValid(); }
 
-    class SafeReturn : public QDotNetRef
-    {
-    public:
-        SafeReturn(const void *objectRef = nullptr)
-            : QDotNetRef(objectRef)
-        {}
-
-        SafeReturn(const SafeReturn &cpySrc)
-            : QDotNetRef(cpySrc)
-        {}
-
-        SafeReturn(SafeReturn &&movSrc) noexcept
-            : QDotNetRef(std::move(movSrc))
-        {}
-
-        QDotNetException exception() const
-        {
-            Q_DOTNET_PROFILE_FUNC();
-
-            if (!fnException.isValid()) {
-                fnException = QDotNetAdapter::instance().resolveInstanceMethod(
-                    *this, "get_Exception", { QDotNetInbound<QDotNetException>::Parameter });
-            }
-            return fnException();
-        }
-    private:
-        mutable QDotNetFunction<QDotNetException> fnException = nullptr;
-    };
-
     void invoke(QDotNetOutbound<QDotNetRef>::SourceType obj,
         typename QDotNetOutbound<TArg>::SourceType... arg) const
     {
         Q_DOTNET_PROFILE_FUNC();
 
-        SafeReturn safeReturn = safeFunc(obj, arg...).template cast<SafeReturn>();
-        QDotNetException exception = safeReturn.exception();
-        if (exception.isValid())
-            throw exception;
+        const void *exceptionHandle = nullptr;
+        safeFunc(obj, arg..., &exceptionHandle);
+        if (exceptionHandle)
+            throw QDotNetException(exceptionHandle);
     }
 
-    void invoke(nullptr_t nullObj, typename QDotNetOutbound<TArg>::SourceType... arg) const
+    void invoke(nullptr_t, typename QDotNetOutbound<TArg>::SourceType... arg) const
     {
         Q_DOTNET_PROFILE_FUNC();
 
-        SafeReturn safeReturn = safeFunc(nullObj, arg...).template cast<SafeReturn>();
-        QDotNetException exception = safeReturn.exception();
-        if (exception.isValid())
-            throw exception;
+        const void *exceptionHandle = nullptr;
+        safeFunc(nullptr, arg..., &exceptionHandle);
+        if (exceptionHandle)
+            throw QDotNetException(exceptionHandle);
     }
 
 private:

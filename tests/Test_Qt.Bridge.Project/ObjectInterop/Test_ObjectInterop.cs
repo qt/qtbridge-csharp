@@ -31,6 +31,8 @@ namespace Test_Qt.Bridge.Project.ObjectInterop
             Assert.Contains("PASS   : Test_ObjectInterop::createObject()", run.StdOut);
             Assert.Contains("PASS   : Test_ObjectInterop::callInstanceMethod()", run.StdOut);
             Assert.Contains("PASS   : Test_ObjectInterop::handleException()", run.StdOut);
+            Assert.Contains("PASS   : Test_ObjectInterop::safeValueCallAfterException()", run.StdOut);
+            Assert.Contains("PASS   : Test_ObjectInterop::safeVoidCallAfterException()", run.StdOut);
             Assert.Contains("PASS   : Test_ObjectInterop::cleanupTestCase()", run.StdOut);
         }
     }

@@ -17,12 +17,6 @@ namespace Qt.DotNet
     using ProxyIndex = ConcurrentDictionary<(MemberInfo, Parameter[]), MethodInfo>;
     using IIndexer = IEqualityComparer<(MemberInfo member, Parameter[] parameters)>;
 
-    public class SafeReturn<T>
-    {
-        public T Value { get; init; } = default;
-        public Exception Exception { get; init; }
-    }
-
     /// <summary>
     /// Functions that generate code at run-time, needed to support native interop.
     /// </summary>
@@ -79,7 +73,17 @@ namespace Qt.DotNet
             return null;
         }
 
-        public static MethodInfo CreateSafeMethod(MethodInfo unsafeMethod)
+        public static (MethodInfo Method, Type DelegateType) ResolveSafeMethod(
+            MethodInfo unsafeMethod, Parameter[] parameters)
+        {
+            ArgumentNullException.ThrowIfNull(unsafeMethod);
+            var safeMethod = SafeMethodsByMethod.GetOrAdd(unsafeMethod, CreateSafeMethod);
+            var delegateType = CreateDelegateTypeForMethod(safeMethod, parameters)
+                ?? throw new Exception("Error getting safe method delegate type");
+            return (safeMethod, delegateType);
+        }
+
+        private static MethodInfo CreateSafeMethod(MethodInfo unsafeMethod)
         {
             ArgumentNullException.ThrowIfNull(unsafeMethod);
 
@@ -91,36 +95,26 @@ namespace Qt.DotNet
                 TypeAttributes.Public, typeof(object));
             var returnType = unsafeMethod.ReturnType;
             var returnTypeIsVoid = returnType == typeof(void);
+            // SafeInvoke(object target, [args...], IntPtr exceptionHandleAddress)
             var paramTypes = unsafeMethod.GetParameters()
                 .Select(x => x.ParameterType)
                 .Prepend(typeof(object))
+                .Append(typeof(IntPtr))
                 .ToArray();
+            var exceptionHandleAddressIdx = paramTypes.Length - 1;
 
-            Type safeReturnType = returnTypeIsVoid
-                ? typeof(SafeReturn<bool>)
-                : typeof(SafeReturn<>).MakeGenericType(returnType);
-
-            var safeReturnCtor = safeReturnType.GetConstructor(Array.Empty<Type>());
-            var safeReturnSetValue = safeReturnType.GetMethod("set_Value");
-            var safeReturnSetException = safeReturnType.GetMethod("set_Exception");
-
-            Debug.Assert(safeReturnCtor != null, nameof(safeReturnCtor) + " is null");
-            Debug.Assert(safeReturnSetValue != null, nameof(safeReturnSetValue) + " is null");
-            Debug.Assert(safeReturnSetException != null,
-                nameof(safeReturnSetException) + " is null");
+            var setException =
+                typeof(SafeMethodHelpers).GetMethod(nameof(SafeMethodHelpers.SetException));
+            Debug.Assert(setException != null, nameof(setException) + " is null");
 
             var safeMethod = typeGen.DefineMethod("SafeInvoke",
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Static,
-                safeReturnType, paramTypes);
+                returnType, paramTypes);
             var code = safeMethod.GetILGenerator();
 
-            code.DeclareLocal(safeReturnType);
-            code.DeclareLocal(returnTypeIsVoid ? typeof(bool) : returnType);
-            code.DeclareLocal(typeof(Exception));
-
-            // {0} = new SafeReturn<T>();
-            code.Emit(OpCodes.Newobj, safeReturnCtor);
-            code.Emit(OpCodes.Stloc_0);
+            // {0} = result, default if the call throws
+            if (!returnTypeIsVoid)
+                code.DeclareLocal(returnType);
 
             //try
             code.BeginExceptionBlock();
@@ -135,43 +129,31 @@ namespace Qt.DotNet
                 }
 
                 // Load arguments into stack
-                for (int paramIdx = 1; paramIdx < paramTypes.Length; ++paramIdx)
+                for (int paramIdx = 1; paramIdx < exceptionHandleAddressIdx; ++paramIdx)
                     code.EmitLdarg(paramIdx);
 
-                // Invoke method
-                if (!returnTypeIsVoid) {
-                    // {1} = unsafeMethod([...]);
-                    if (unsafeMethod.IsVirtual && !targetIsValueType)
-                        code.Emit(OpCodes.Callvirt, unsafeMethod);
-                    else
-                        code.Emit(OpCodes.Call, unsafeMethod);
-                    code.Emit(OpCodes.Stloc_1);
-                    // {0}.Value = {1};
-                    code.Emit(OpCodes.Ldloc_0);
-                    code.Emit(OpCodes.Ldloc_1);
-                    code.Emit(OpCodes.Call, safeReturnSetValue);
-                } else {
-                    // unsafeMethod([...]);
-                    if (unsafeMethod.IsVirtual && !targetIsValueType)
-                        code.Emit(OpCodes.Callvirt, unsafeMethod);
-                    else
-                        code.Emit(OpCodes.Call, unsafeMethod);
-                }
+                // [{0} =] unsafeMethod([...]);
+                if (unsafeMethod.IsVirtual && !targetIsValueType)
+                    code.Emit(OpCodes.Callvirt, unsafeMethod);
+                else
+                    code.Emit(OpCodes.Call, unsafeMethod);
+                if (!returnTypeIsVoid)
+                    code.Emit(OpCodes.Stloc_0);
             }
-            // ... } catch (Exception [0]) { ...
+            // } catch (Exception e) { SafeMethodHelpers.SetException(exceptionHandleAddress, e); }
             code.BeginCatchBlock(typeof(Exception));
             {
-                // {2} = [0];
-                code.Emit(OpCodes.Stloc_2);
-                code.Emit(OpCodes.Ldloc_0);
-                code.Emit(OpCodes.Ldloc_2);
-                code.Emit(OpCodes.Call, safeReturnSetException);
+                var exception = code.DeclareLocal(typeof(Exception));
+                code.Emit(OpCodes.Stloc, exception);
+                code.EmitLdarg(exceptionHandleAddressIdx);
+                code.Emit(OpCodes.Ldloc, exception);
+                code.Emit(OpCodes.Call, setException);
             }
-            // ... }
             code.EndExceptionBlock();
 
-            // Return [0]
-            code.Emit(OpCodes.Ldloc_0);
+            // return {0};
+            if (!returnTypeIsVoid)
+                code.Emit(OpCodes.Ldloc_0);
             code.Emit(OpCodes.Ret);
 
             var safeInvokeType = typeGen.CreateType()
@@ -358,17 +340,7 @@ namespace Qt.DotNet
         {
             Debug.Assert(method.GetParameters().Length == parameters.Length - 1);
             Debug.Assert(method.DeclaringType != null, "method.DeclaringType is null");
-            var returnTypeCompatible = parameters[0].GetParameterType().BindsTo(method.ReturnType)
-                || (parameters[0].MarshalAs == Parameter.ObjectRef
-                    && method.ReturnType.IsGenericType
-                    && method.ReturnType.GetGenericTypeDefinition() == typeof(SafeReturn<>))
-                // Safe calls preserve reference returns in SafeReturn<object>. The native
-                // signature retains the requested reference type for its marshaler.
-                || (method.Name == $"get_{nameof(SafeReturn<object>.Value)}"
-                    && method.ReturnType == typeof(object)
-                    && method.DeclaringType?.IsGenericType == true
-                    && method.DeclaringType.GetGenericTypeDefinition() == typeof(SafeReturn<>)
-                    && !parameters[0].GetParameterType().IsValueType);
+            var returnTypeCompatible = parameters[0].GetParameterType().BindsTo(method.ReturnType);
             Debug.Assert(returnTypeCompatible);
             Debug.Assert(method.GetParameters()
                 .Select((param, idx) => (Formal: param.ParameterType, Actual: parameters[idx + 1]))
@@ -767,6 +739,9 @@ namespace Qt.DotNet
         /// Delegate type cache.
         /// </summary>
         private static DelegateIndex DelegateTypes { get; } = new(new Indexer());
+
+        private static ConcurrentDictionary<MethodInfo, MethodInfo> SafeMethodsByMethod
+        { get; } = new();
 
         /// <summary>
         /// Proxy method cache.

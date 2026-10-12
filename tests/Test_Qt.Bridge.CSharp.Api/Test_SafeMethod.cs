@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -27,6 +28,13 @@ namespace Test_Qt.Bridge.CSharp.Api
         public static int SumOf(int a, int b, int c, int d) => a + b + c + d;
     }
 
+    public class SafeMethodEcho
+    {
+        public string Echo(object value) => value?.ToString();
+        public string Text() => "safe return";
+        public string OtherText() => "safe return";
+    }
+
     [TestClass]
     public class Test_SafeMethod
     {
@@ -35,10 +43,18 @@ namespace Test_Qt.Bridge.CSharp.Api
             return [.. types.Select(t => new Parameter(t))];
         }
 
+        // Safe methods return what the method returns, take the target as first argument, and
+        // the address of the native caller's exception-handle variable as last argument.
         private Parameter[] SafeFuncParams(params Type[] types)
         {
-            return [new(typeof(object)), new(typeof(object)),
-                .. types.Select(t => new Parameter(t)).Skip(1)];
+            return [new(types[0]), new(typeof(object)),
+                .. types.Select(t => new Parameter(t)).Skip(1), new(typeof(nint))];
+        }
+
+        // Resolves the caught exception from its GCHandle, or null if no handle was returned.
+        private static Exception CaughtException(nint exceptionHandle)
+        {
+            return exceptionHandle == nint.Zero ? null : FromPtr<Exception>(exceptionHandle);
         }
 
         private static Parameter Param<T>()
@@ -95,15 +111,17 @@ namespace Test_Qt.Bridge.CSharp.Api
             try {
                 var method = Adapter.ResolveInstanceMethod(objectRef, $"{contract}::get_Count",
                     0, [Param<int>()]);
-                var safe = Adapter.ResolveSafeMethod(method, 0, [Param<object>(), Param<object>()]);
-                var invoke = (delegate* unmanaged[Stdcall]<nint, nint>)safe;
-                var resultRef = invoke(objectRef);
+                var safe = Adapter.ResolveSafeMethod(method, 0,
+                    [Param<int>(), Param<object>(), Param<nint>()]);
+                var invoke = (delegate* unmanaged[Stdcall]<nint, nint, int>)safe;
+                nint exceptionHandle = 0;
                 try {
-                    var result = FromPtr<SafeReturn<int>>(resultRef);
-                    Assert.IsNull(result.Exception);
-                    Assert.AreEqual(42, result.Value);
+                    var result = invoke(objectRef, (nint)(&exceptionHandle));
+                    Assert.IsNull(CaughtException(exceptionHandle));
+                    Assert.AreEqual(42, result);
                 } finally {
-                    Adapter.FreeObjectRef(resultRef);
+                    if (exceptionHandle != 0)
+                        Adapter.FreeObjectRef(exceptionHandle);
                 }
             } finally {
                 Adapter.FreeObjectRef(objectRef);
@@ -131,14 +149,16 @@ namespace Test_Qt.Bridge.CSharp.Api
             Assert.AreNotEqual(nint.Zero, ptrSumOf);
 
             var ptrSafe = Adapter.ResolveSafeMethod(ptrSumOf, 0,
-                [Param<object>(), Param<object>(),
-                 Param<int>(), Param<int>(), Param<int>(), Param<int>()]);
+                [Param<int>(), Param<object>(),
+                 Param<int>(), Param<int>(), Param<int>(), Param<int>(), Param<nint>()]);
             Assert.AreNotEqual(nint.Zero, ptrSafe);
 
-            var fnSumOf = (delegate* unmanaged[Stdcall]<nint, int, int, int, int, nint>)ptrSafe;
-            var result = FromPtr<SafeReturn<int>>(fnSumOf(nint.Zero, 1, 2, 3, 4));
-            Assert.IsNull(result.Exception);
-            Assert.AreEqual(10, result.Value);
+            var fnSumOf =
+                (delegate* unmanaged[Stdcall]<nint, int, int, int, int, nint, int>)ptrSafe;
+            nint exception = 0;
+            var result = fnSumOf(nint.Zero, 1, 2, 3, 4, (nint)(&exception));
+            Assert.IsNull(CaughtException(exception));
+            Assert.AreEqual(10, result);
         }
 
         [TestMethod]
@@ -149,23 +169,17 @@ namespace Test_Qt.Bridge.CSharp.Api
             Assert.AreNotEqual(nint.Zero, ptrToInt32);
 
             var ptrSafe = Adapter.ResolveSafeMethod(ptrToInt32, 0,
-                [Param<object>(), Param<object>(), Param<string>()]);
+                [Param<int>(), Param<object>(), Param<string>(), Param<nint>()]);
             Assert.AreNotEqual(nint.Zero, ptrSafe);
 
-            var fnToInt32 = (delegate* unmanaged[Stdcall]<nint, nint, nint>)ptrSafe;
-            var ptrResult = fnToInt32(nint.Zero, ToPtr("42"));
-            Assert.AreNotEqual(nint.Zero, ptrResult);
+            var fnToInt32 = (delegate* unmanaged[Stdcall]<nint, nint, nint, int>)ptrSafe;
+            nint exception = 0;
+            var result = fnToInt32(nint.Zero, ToPtr("42"), (nint)(&exception));
+            Assert.IsNull(CaughtException(exception));
+            Assert.AreEqual(42, result);
 
-            var result = FromPtr<SafeReturn<int>>(ptrResult);
-            Assert.IsNull(result.Exception);
-            Assert.AreEqual(42, result.Value);
-
-            ptrResult = fnToInt32(nint.Zero, ToPtr("Foo"));
-            Assert.AreNotEqual(nint.Zero, ptrResult);
-
-            result = FromPtr<SafeReturn<int>>(ptrResult);
-            Assert.IsNotNull(result.Exception);
-            Assert.IsInstanceOfType<FormatException>(result.Exception);
+            fnToInt32(nint.Zero, ToPtr("Foo"), (nint)(&exception));
+            Assert.IsInstanceOfType<FormatException>(CaughtException(exception));
         }
 
         [TestMethod]
@@ -183,21 +197,25 @@ namespace Test_Qt.Bridge.CSharp.Api
                 : Adapter.ResolveInstanceMethod(ToPtr(counter), method, 0, [Param<int>()]);
             Assert.AreNotEqual(nint.Zero, ptrMethod, $"ResolveInstanceMethod('{method}') failed");
 
-            var ptr = Adapter.ResolveSafeMethod(ptrMethod, 0, [Param<object>(), Param<object>()]);
-            Assert.AreNotEqual(nint.Zero, ptr, "ResolveSafeMethod failed");
-
-            var fnSafe = (delegate* unmanaged[Stdcall]<nint, nint>)ptr;
-            var ptrResult = fnSafe(ToPtr(counter));
-            Assert.AreNotEqual(nint.Zero, ptrResult);
-
+            nint exception = 0;
             if (overridden) {
-                var result = FromPtr<SafeReturn<string>>(ptrResult);
-                Assert.IsNull(result.Exception);
-                Assert.AreEqual("Value=42", result.Value);
+                var ptr = Adapter.ResolveSafeMethod(ptrMethod, 0,
+                    [Param<string>(), Param<object>(), Param<nint>()]);
+                Assert.AreNotEqual(nint.Zero, ptr, "ResolveSafeMethod failed");
+
+                var fnSafe = (delegate* unmanaged[Stdcall]<nint, nint, nint>)ptr;
+                var ptrResult = fnSafe(ToPtr(counter), (nint)(&exception));
+                Assert.IsNull(CaughtException(exception));
+                Assert.AreEqual("Value=42", FromPtr<string>(ptrResult));
             } else {
-                var result = FromPtr<SafeReturn<int>>(ptrResult);
-                Assert.IsNull(result.Exception);
-                Assert.AreEqual(42, result.Value);
+                var ptr = Adapter.ResolveSafeMethod(ptrMethod, 0,
+                    [Param<int>(), Param<object>(), Param<nint>()]);
+                Assert.AreNotEqual(nint.Zero, ptr, "ResolveSafeMethod failed");
+
+                var fnSafe = (delegate* unmanaged[Stdcall]<nint, nint, int>)ptr;
+                var result = fnSafe(ToPtr(counter), (nint)(&exception));
+                Assert.IsNull(CaughtException(exception));
+                Assert.AreEqual(42, result);
             }
         }
 
@@ -211,24 +229,23 @@ namespace Test_Qt.Bridge.CSharp.Api
             Assert.AreNotEqual(nint.Zero, ptrAppendFormat);
 
             var ptrSafe = Adapter.ResolveSafeMethod(ptrAppendFormat, 0,
-                [Param<object>(), Param<object>(), Param<string>(), Param<object>()]);
+                [Param<object>(), Param<object>(), Param<string>(), Param<object>(),
+                 Param<nint>()]);
             Assert.AreNotEqual(nint.Zero, ptrSafe);
 
-            var fnAppendFormat = (delegate* unmanaged[Stdcall]<nint, nint, nint, nint>)ptrSafe;
-            var ptrResult = fnAppendFormat(ToPtr(obj), ToPtr("{0}"), ToPtr((object)42));
-            Assert.AreNotEqual(nint.Zero, ptrResult);
-
-            var result = FromPtr<SafeReturn<StringBuilder>>(ptrResult);
-            Assert.IsNull(result.Exception);
-            Assert.AreEqual(obj, result.Value);
+            var fnAppendFormat =
+                (delegate* unmanaged[Stdcall]<nint, nint, nint, nint, nint>)ptrSafe;
+            nint exception = 0;
+            var ptrResult = fnAppendFormat(ToPtr(obj), ToPtr("{0}"), ToPtr((object)42),
+                (nint)(&exception));
+            Assert.IsNull(CaughtException(exception));
+            Assert.AreEqual(obj, FromPtr<StringBuilder>(ptrResult));
             Assert.AreEqual("42", obj.ToString());
 
-            ptrResult = fnAppendFormat(ToPtr(obj), ToPtr("{1}"), ToPtr((object)42));
-            Assert.AreNotEqual(nint.Zero, ptrResult);
-
-            result = FromPtr<SafeReturn<StringBuilder>>(ptrResult);
-            Assert.IsNotNull(result.Exception);
-            Assert.IsInstanceOfType<FormatException>(result.Exception);
+            ptrResult = fnAppendFormat(ToPtr(obj), ToPtr("{1}"), ToPtr((object)42),
+                (nint)(&exception));
+            Assert.AreEqual(nint.Zero, ptrResult);
+            Assert.IsInstanceOfType<FormatException>(CaughtException(exception));
         }
 
         [TestMethod]
@@ -240,22 +257,18 @@ namespace Test_Qt.Bridge.CSharp.Api
             Assert.AreNotEqual(nint.Zero, ptrThrowIfNull);
 
             var ptrSafe = Adapter.ResolveSafeMethod(ptrThrowIfNull, 0,
-                [Param<object>(), Param<object>(), Param<object>(), Param<string>()]);
+                [Parameter.Void, Param<object>(), Param<object>(), Param<string>(),
+                 Param<nint>()]);
             Assert.AreNotEqual(nint.Zero, ptrSafe);
 
-            var fnThrowIfNull = (delegate* unmanaged[Stdcall]<nint, nint, nint, nint>)ptrSafe;
-            var ptrResult = fnThrowIfNull(nint.Zero, ToPtr((object)"foo"), ToPtr("bar"));
-            Assert.AreNotEqual(nint.Zero, ptrResult);
+            var fnThrowIfNull =
+                (delegate* unmanaged[Stdcall]<nint, nint, nint, nint, void>)ptrSafe;
+            nint exception = 0;
+            fnThrowIfNull(nint.Zero, ToPtr((object)"foo"), ToPtr("bar"), (nint)(&exception));
+            Assert.IsNull(CaughtException(exception));
 
-            var result = FromPtr<SafeReturn<bool>>(ptrResult);
-            Assert.IsNull(result.Exception);
-
-            ptrResult = fnThrowIfNull(nint.Zero, nint.Zero, ToPtr("bar"));
-            Assert.AreNotEqual(nint.Zero, ptrResult);
-
-            result = FromPtr<SafeReturn<bool>>(ptrResult);
-            Assert.IsNotNull(result.Exception);
-            Assert.IsInstanceOfType<ArgumentNullException>(result.Exception);
+            fnThrowIfNull(nint.Zero, nint.Zero, ToPtr("bar"), (nint)(&exception));
+            Assert.IsInstanceOfType<ArgumentNullException>(CaughtException(exception));
         }
 
         [TestMethod]
@@ -268,17 +281,16 @@ namespace Test_Qt.Bridge.CSharp.Api
             Assert.AreNotEqual(nint.Zero, ptrData);
 
             var ptrSafe = Adapter.ResolveSafeMethod(ptrData, 0,
-                [Param<object>(), Param<object>(), Param<ModelIndex>(), Param<int>()]);
+                [Param<object>(), Param<object>(), Param<ModelIndex>(), Param<int>(),
+                 Param<nint>()]);
             Assert.AreNotEqual(nint.Zero, ptrSafe);
 
-            var fnData = (delegate* unmanaged[Stdcall]<nint, nint, int, nint>)ptrSafe;
-            var ptrResult = fnData(ToPtr(obj), ToPtr(new ModelIndex(42, 0)), 256);
-            Assert.AreNotEqual(nint.Zero, ptrResult);
-
-            var result = FromPtr<SafeReturn<object>>(ptrResult);
-            Assert.IsNull(result.Exception);
-            Assert.IsNotNull(result.Value);
-            Assert.AreEqual(191, ((Prime)result.Value).Value);
+            var fnData = (delegate* unmanaged[Stdcall]<nint, nint, int, nint, nint>)ptrSafe;
+            nint exception = 0;
+            var ptrResult = fnData(ToPtr(obj), ToPtr(new ModelIndex(42, 0)), 256,
+                (nint)(&exception));
+            Assert.IsNull(CaughtException(exception));
+            Assert.AreEqual(191, FromPtr<Prime>(ptrResult).Value);
         }
 
         [TestMethod]
@@ -294,17 +306,16 @@ namespace Test_Qt.Bridge.CSharp.Api
             Assert.AreNotEqual(nint.Zero, ptrGetValue);
 
             var ptrSafe = Adapter.ResolveSafeMethod(ptrGetValue, 0,
-                [Param<object>(), Param<object>(), Param<object>(), index]);
+                [Param<object>(), Param<object>(), Param<object>(), index, Param<nint>()]);
             Assert.AreNotEqual(nint.Zero, ptrSafe);
 
-            var fnGetValue = (delegate* unmanaged[Stdcall]<nint, nint, nint, nint>)ptrSafe;
-            var ptrResult = fnGetValue(ToPtr(obj), ToPtr(MethodInfo.GetCurrentMethod()), nint.Zero);
-            Assert.AreNotEqual(nint.Zero, ptrResult);
-
-            var result = FromPtr<SafeReturn<object>>(ptrResult);
-            Assert.IsNull(result.Exception);
-            Assert.IsNotNull(result.Value);
-            Assert.AreEqual(nameof(HiddenMethod), (string)result.Value);
+            var fnGetValue =
+                (delegate* unmanaged[Stdcall]<nint, nint, nint, nint, nint>)ptrSafe;
+            nint exception = 0;
+            var ptrResult = fnGetValue(ToPtr(obj), ToPtr(MethodInfo.GetCurrentMethod()),
+                nint.Zero, (nint)(&exception));
+            Assert.IsNull(CaughtException(exception));
+            Assert.AreEqual(nameof(HiddenMethod), (string)FromPtr<object>(ptrResult));
         }
 
         [TestMethod]
@@ -324,11 +335,12 @@ namespace Test_Qt.Bridge.CSharp.Api
             Assert.AreNotEqual(ptrSet_A, ptrSet_B);
 
             var ptrSafe_A = Adapter.ResolveSafeMethod(ptrSet_A, 0,
-                [Param<object>(), Param<object>(), Param<int>(), Param<string>()]);
+                [Parameter.Void, Param<object>(), Param<int>(), Param<string>(), Param<nint>()]);
             Assert.AreNotEqual(nint.Zero, ptrSafe_A);
 
             var ptrSafe_B = Adapter.ResolveSafeMethod(ptrSet_B, 0,
-                [Param<object>(), Param<object>(), Param<int>(), Param<StringBuilder>()]);
+                [Parameter.Void, Param<object>(), Param<int>(), Param<StringBuilder>(),
+                 Param<nint>()]);
             Assert.AreNotEqual(nint.Zero, ptrSafe_B);
 
             Assert.AreNotEqual(ptrSafe_A, ptrSafe_B);
@@ -345,9 +357,88 @@ namespace Test_Qt.Bridge.CSharp.Api
             var safeDelegateRefs = (IDictionary)typeof(Adapter)
                 .GetProperty("SafeDelegateRefs", BindingFlags.NonPublic | BindingFlags.Static)
                 .GetValue(null);
-            var safeDelegateRef = safeDelegateRefs[unsafeMethod];
+            // This test resolves one delegate type per method.
+            var key = safeDelegateRefs.Keys.Cast<ITuple>()
+                .Single(key => Equals(key[0], unsafeMethod));
+            var safeDelegateRef = safeDelegateRefs[key];
             return (GCHandle)safeDelegateRef
                 .GetType().GetProperty("Handle").GetValue(safeDelegateRef);
+        }
+
+        [TestMethod]
+        [DataRow(false)]
+        [DataRow(true)]
+        public unsafe void ResolveSafeMethod_SeparatesReturnMarshaling(bool objectFirst)
+        {
+            var target = ToPtr(new SafeMethodEcho());
+            nint objectResult = 0;
+            nint exception = 0;
+            try {
+                var method = Adapter.ResolveInstanceMethod(target,
+                    objectFirst ? nameof(SafeMethodEcho.Text) : nameof(SafeMethodEcho.OtherText), 0,
+                    [Param<string>()]);
+                Parameter[] objectParams = [Param<object>(), Param<object>(), Param<nint>()];
+                Parameter[] stringParams = [Param<string>(), Param<object>(), Param<nint>()];
+                var first = Adapter.ResolveSafeMethod(method, 0,
+                    objectFirst ? objectParams : stringParams);
+                var second = Adapter.ResolveSafeMethod(method, 0,
+                    objectFirst ? stringParams : objectParams);
+                Assert.AreNotEqual(first, second);
+                Assert.AreEqual(first, Adapter.ResolveSafeMethod(method, 0,
+                    objectFirst ? objectParams : stringParams));
+
+                var objectFunc = (delegate* unmanaged[Stdcall]<nint, nint, nint>)
+                    (objectFirst ? first : second);
+                var stringFunc = (delegate* unmanaged[Stdcall]<nint, nint, nint>)
+                    (objectFirst ? second : first);
+                objectResult = objectFunc(target, (nint)(&exception));
+                Assert.IsNull(CaughtException(exception));
+                Assert.AreEqual("safe return", FromPtr<object>(objectResult));
+                var stringResult = stringFunc(target, (nint)(&exception));
+                Assert.IsNull(CaughtException(exception));
+                Assert.AreEqual("safe return", FromPtr<string>(stringResult));
+            } finally {
+                if (exception != 0)
+                    Adapter.FreeObjectRef(exception);
+                if (objectResult != 0)
+                    Adapter.FreeObjectRef(objectResult);
+                Adapter.FreeObjectRef(target);
+            }
+        }
+
+        [TestMethod]
+        public unsafe void ResolveSafeMethod_SeparatesArgumentMarshaling()
+        {
+            var aPtr = ToPtr(new SafeMethodEcho());
+            var bPtr = ToPtr(new SafeMethodEcho());
+            var value = ToPtr((object)"object argument");
+            nint exception = 0;
+            try {
+                var aFn = Adapter.ResolveInstanceMethod(aPtr, nameof(SafeMethodEcho.Echo), 0,
+                    [Param<string>(), Param<string>()]);
+                var bFn = Adapter.ResolveInstanceMethod(bPtr, nameof(SafeMethodEcho.Echo), 0,
+                    [Param<string>(), Param<object>()]);
+                var aSafe = Adapter.ResolveSafeMethod(aFn, 0,
+                    [Param<string>(), Param<object>(), Param<string>(), Param<nint>()]);
+                var bSafe = Adapter.ResolveSafeMethod(bFn, 0,
+                    [Param<string>(), Param<object>(), Param<object>(), Param<nint>()]);
+                Assert.AreNotEqual(aSafe, bSafe);
+
+                var aEcho = (delegate* unmanaged[Stdcall]<nint, nint, nint, nint>)aSafe;
+                var bEcho = (delegate* unmanaged[Stdcall]<nint, nint, nint, nint>)bSafe;
+                var aResult = aEcho(aPtr, ToPtr("string argument"), (nint)(&exception));
+                Assert.IsNull(CaughtException(exception));
+                Assert.AreEqual("string argument", FromPtr<string>(aResult));
+                var bResult = bEcho(bPtr, value, (nint)(&exception));
+                Assert.IsNull(CaughtException(exception));
+                Assert.AreEqual("object argument", FromPtr<string>(bResult));
+            } finally {
+                if (exception != 0)
+                    Adapter.FreeObjectRef(exception);
+                Adapter.FreeObjectRef(value);
+                Adapter.FreeObjectRef(aPtr);
+                Adapter.FreeObjectRef(bPtr);
+            }
         }
 
         [TestMethod]
@@ -362,7 +453,8 @@ namespace Test_Qt.Bridge.CSharp.Api
                 .Select(objRef => {
                     var fn = Adapter.ResolveInstanceMethod(objRef, "ToString", 0,
                         [Param<string>()]);
-                    Adapter.ResolveSafeMethod(fn, 0, [Param<object>(), Param<object>()]);
+                    Adapter.ResolveSafeMethod(fn, 0,
+                        [Param<string>(), Param<object>(), Param<nint>()]);
                     return SafeDelegateHandle(fn);
                 })
                 .ToArray();
@@ -400,37 +492,29 @@ namespace Test_Qt.Bridge.CSharp.Api
             Assert.AreNotEqual(ptrAppend_A, ptrAppend_B);
 
             var ptrSafe = Adapter.ResolveSafeMethod(ptrAppend_A, 0,
-                [Param<object>(), Param<object>(), Param<int>()]);
+                [Param<object>(), Param<object>(), Param<int>(), Param<nint>()]);
             var ptrSafe_Dup = Adapter.ResolveSafeMethod(ptrAppend_B, 0,
-                [Param<object>(), Param<object>(), Param<int>()]);
+                [Param<object>(), Param<object>(), Param<int>(), Param<nint>()]);
             Assert.AreNotEqual(nint.Zero, ptrSafe);
             Assert.AreEqual(ptrSafe, ptrSafe_Dup);
 
-            var fnAppend = (delegate* unmanaged[Stdcall]<nint, int, nint>)ptrSafe;
-            var ptrResult = fnAppend(ToPtr(objA), 42);
-            Assert.AreNotEqual(nint.Zero, ptrResult);
-
-            var result = FromPtr<SafeReturn<StringBuilder>>(ptrResult);
-            Assert.IsNull(result.Exception);
-            Assert.AreEqual(objA, result.Value);
+            var fnAppend = (delegate* unmanaged[Stdcall]<nint, int, nint, nint>)ptrSafe;
+            nint exception = 0;
+            var ptrResult = fnAppend(ToPtr(objA), 42, (nint)(&exception));
+            Assert.IsNull(CaughtException(exception));
+            Assert.AreEqual(objA, FromPtr<StringBuilder>(ptrResult));
             Assert.AreEqual("42", objA.ToString());
 
-            ptrResult = fnAppend(ToPtr(objB), 99);
-            Assert.AreNotEqual(nint.Zero, ptrResult);
-
-            result = FromPtr<SafeReturn<StringBuilder>>(ptrResult);
-            Assert.IsNull(result.Exception);
-            Assert.AreEqual(objB, result.Value);
+            ptrResult = fnAppend(ToPtr(objB), 99, (nint)(&exception));
+            Assert.IsNull(CaughtException(exception));
+            Assert.AreEqual(objB, FromPtr<StringBuilder>(ptrResult));
             Assert.AreEqual("99", objB.ToString());
 
             Adapter.FreeObjectRef(objRefB);
 
-            ptrResult = fnAppend(ToPtr(objA), 42);
-            Assert.AreNotEqual(nint.Zero, ptrResult);
-
-            result = FromPtr<SafeReturn<StringBuilder>>(ptrResult);
-            Assert.IsNull(result.Exception);
-            Assert.AreEqual(objA, result.Value);
+            ptrResult = fnAppend(ToPtr(objA), 42, (nint)(&exception));
+            Assert.IsNull(CaughtException(exception));
+            Assert.AreEqual(objA, FromPtr<StringBuilder>(ptrResult));
             Assert.AreEqual("4242", objA.ToString());
 
             Adapter.FreeObjectRef(objRefA);

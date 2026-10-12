@@ -243,8 +243,8 @@ namespace Qt.DotNet
         private static Dictionary<IntPtr, HashSet<EventKey>> EventKeysByContext
         { get; } = new();
 
-        private static ConcurrentDictionary<MethodInfo, DelegateRef> SafeDelegateRefs
-        { get; } = new();
+        private static ConcurrentDictionary<(MethodInfo Method, Type DelegateType), DelegateRef>
+            SafeDelegateRefs { get; } = new();
 
         private static void AddDelegateToCache(
             IntPtr ptr, object obj, MemberInfo member, MemberAccess access, DelegateRef delegateRef)
