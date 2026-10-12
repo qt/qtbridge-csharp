@@ -161,7 +161,7 @@ public:
     }
 
     static bool addMethod(QMetaObjectBuilder *typeDef, const QString &methodName, int token,
-                          const QMetaMethodBuilder &methodDef, QList<QDotNetParameter> params)
+                          QMetaMethodBuilder &methodDef, QList<QDotNetParameter> params)
     {
         Q_DOTNET_PROFILE_FUNC();
 
@@ -179,8 +179,8 @@ public:
             return false;
         }
         auto *type = *itDynamicType;
-        auto *method = new DynamicMethod();
-        type->methods[methodDef.index()] = method;
+        methodDef.setTag("QT_DOTNET_METHOD_" + QByteArray::number(type->methodsByTag.count()));
+        auto *method = type->methodsByTag[methodDef.tag()] = new DynamicMethod();
         method->declaringType = type;
         method->name = methodName;
         method->token = token;
@@ -318,12 +318,15 @@ public:
         }
         auto *type = *itDynamicType;
 
-        addMethod(typeDef, "ToString", 0, typeDef->addMethod("toString()", "QString"),
-                  { { QDotNetInbound<QString>::Parameter } });
-        addMethod(typeDef, "Equals", 0, typeDef->addMethod("equals(QVariant)", "bool"),
+        auto toString = typeDef->addMethod("toString()", "QString");
+        addMethod(typeDef, "ToString", 0, toString, { { QDotNetInbound<QString>::Parameter } });
+
+        auto equals = typeDef->addMethod("equals(QVariant)", "bool");
+        addMethod(typeDef, "Equals", 0, equals,
                   { { QDotNetInbound<bool>::Parameter, QDotNetOutbound<QDotNetRef>::Parameter } });
+
         auto asDotNetObject = typeDef->addMethod("asDotNetObject()", "const QDotNetObject *");
-        type->idxAsDotNetObject = asDotNetObject.index();
+        asDotNetObject.setTag("QT_DOTNET_METHOD_AS_OBJECT");
 
         const auto *metaObject = typeDef->toMetaObject();
         type->metaObject = metaObject;
@@ -334,6 +337,27 @@ public:
             ? QmlMetaType<QObject>::list()
             : QmlMetaType<QDotNetDynamicObject>::list();
         typeDefs[metaObject] = typeDef;
+
+        for (int i = metaObject->methodOffset(); i < metaObject->methodCount(); ++i) {
+            const auto method = metaObject->method(i);
+
+            if (!method.isValid() || method.methodType() != QMetaMethod::Method)
+                continue;
+
+            QByteArray methodTag(method.tag());
+            if (methodTag.isNull() || methodTag.isEmpty())
+                continue;
+
+            if (methodTag == "QT_DOTNET_METHOD_AS_OBJECT") {
+                type->idxAsDotNetObject = method.methodIndex() - metaObject->methodOffset();
+                continue;
+            }
+
+            const auto &itMethod = type->methodsByTag.find(methodTag);
+            if (itMethod != type->methodsByTag.end())
+                type->methodsByIndex[method.methodIndex() - metaObject->methodOffset()] = *itMethod;
+        }
+        type->methodsByTag.clear();
 
         if (qmlName.isEmpty())
             return metaObject;
@@ -835,8 +859,8 @@ private:
                 return;
             }
 
-            const auto &itMethod = type->methods.find(id);
-            if (itMethod != type->methods.end())
+            const auto &itMethod = type->methodsByIndex.find(id);
+            if (itMethod != type->methodsByIndex.end())
                 return invokeMetaMethod(dynObj, *itMethod, args);
 
             return QMetaObject::activate(dynObj, type->metaObject->methodOffset() + id, args);
@@ -1554,13 +1578,18 @@ private:
         CollectionModel collectionModel;
         bool isEnum = false;
         bool isQmlElement = false;
-        QMap<int, DynamicMethod *> methods = {};
+        QMap<int, DynamicMethod *> methodsByIndex = {};
         QMap<int, DynamicProperty *> properties = {};
         QMap<QString, DynamicProperty *> propertiesByName = {};
         QList<DynamicEvent *> events = {};
         const QMetaObject *metaObject = nullptr;
         int idxAsDotNetObject = -1;
         int idxNestedQmlElements = -1;
+
+        // Use tags to cross-reference DynamicMethod's and meta-methods in the type building phase.
+        // This is the sole purpose of this mapping. It is cleared during buildType(), given that
+        // meta-object indices will afterwards be used instead of tags to reference DynamicMethods.
+        QHash<QByteArray, DynamicMethod *> methodsByTag = {};
     };
 
     struct DynamicMember

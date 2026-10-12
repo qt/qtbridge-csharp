@@ -33,6 +33,7 @@
     <Compile Remove="FunctionCalls\Program.cs" />
     <Compile Remove="HostLifecycle\Program.cs" />
     <Compile Remove="Models\ModelFixtures\Program.cs" />
+    <Compile Remove="QMetaObjectBuilder\Program.cs" />
     <Compile Remove="ObjectInterop\Program.cs" />
     <Compile Remove="QmlToManagedDelegates\Program.cs" />
     <Compile Remove="QtQuickTest\Program.cs" />
@@ -51,6 +52,7 @@
     <None Remove="HostLifecycle\main.cpp" />
     <None Remove="ObjectInterop\main.cpp" />
     <None Remove="Models\ModelFixtures\main.cpp" />
+    <None Remove="QMetaObjectBuilder\main.cpp" />
     <None Remove="QmlToManagedDelegates\main.cpp" />
     <None Remove="QtQuickTest\main.cpp" />
     <None Remove="QtTest\main.cpp" />
@@ -123,6 +125,15 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Models\CollectionModel\tst_collectionmodel.qml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="QMetaObjectBuilder\main.cpp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="QMetaObjectBuilder\Program.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="QMetaObjectBuilder\tst_qmetaobjectbuilder.qml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Models\TableModelRemoveRanges\tst_modelremoveranges.qml">
