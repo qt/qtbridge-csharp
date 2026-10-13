@@ -19,7 +19,7 @@ here through the DI container.
 ExtensionEntrypoint (DI root)
   │
   |- IExtensionLog / ExtensionLog       <- dual-output logging (TraceSource + output pane)
-  |- INotificationService / NotificationService  <- rate-limited VS InfoBar messages
+  |- Notifications/IInfoBarNotificationService <- rate-limited VS InfoBar messages
   |- Settings/QmlLanguageServer/LoggingContributions <- VS settings contributions + observer
   |- Settings/QmlLanguageServer/ILoggingSettingsProvider <- version-adaptive settings access
   │    |- ExtensibilityLoggingSettingsProvider  (VS 2026+: wraps generated observer)
@@ -31,7 +31,7 @@ ExtensionEntrypoint (DI root)
   |- QmlLanguageServer/
   │    |- QmlLanguageServerProvider    <- LanguageServerProvider (VS SDK)
   │    │    |- IExtensionLog           <- all provider diagnostics
-  │    │    |- INotificationService    <- install / launch / metadata errors
+  │    │    |- IInfoBarNotificationService <- install / launch / metadata errors
   │    │    |- IProjectContextService  <- active doc, project, config
   │    │    |- IQtBridgeProjectService <- Qt Bridge project detection
   │    │    |- IQmlMetadataReader      <- reads qtbridge-qml.ide.json
@@ -180,7 +180,7 @@ hosting cannot satisfy either dependency.
 The extension entry point. Subclasses `Microsoft.VisualStudio.Extensibility.Extension` and
 overrides `InitializeServices` to register all services as singletons. This is the only place
 where concrete types are bound to their interfaces. The registration order reflects the
-dependency graph: `IExtensionLog` and `INotificationService` are registered first as they are
+dependency graph: `IExtensionLog` and `IInfoBarNotificationService` are registered first as they are
 consumed by several other services, including the extension-layer `QmlMetadataWatcher`.
 
 At startup, `InitializeServices` checks whether the host supports the newer Visual Studio
@@ -237,10 +237,10 @@ Exception details are appended to the message string in both outputs when presen
 
 ---
 
-### `INotificationService` / `NotificationService`
+### `IInfoBarNotificationService` / `InfoBarNotificationService`
 
 A rate-limited InfoBar notification service. `ShowInfoAsync`, `ShowWarningAsync` and
-`ShowErrorAsync` each accept a string `key` and a message. `NotificationService` maintains
+`ShowErrorAsync` each accept a string `key` and a message. `InfoBarNotificationService` maintains
 a `HashSet<string>` of previously shown keys; if the same key is presented a second time,
 the InfoBar is not shown again for the lifetime of the extension session. This prevents the
 same error (e.g. a missing asset or a failed installation) from spawning repeated InfoBar
@@ -384,7 +384,7 @@ Called by the VS SDK when `Enabled` is `true`. The sequence is:
 
 1. Ensure qmlls is installed via `IQmlLanguageServerInstaller`. A
    `QmlLanguageServerInstallException` is caught, logged with its typed `Error` kind, and
-   a per-error-kind InfoBar error is shown via `INotificationService` (keyed so the same
+   a per-error-kind InfoBar error is shown via `IInfoBarNotificationService` (keyed so the same
    failure is not re-shown on restart). The method returns `null` on any install failure.
 2. Collect import paths from three sources across all loaded Qt Bridge projects, deduplicated:
    - **Configured Qt**: `QtBridgeQtDirResolver` (Core) resolves the project's `QtDir` property,
