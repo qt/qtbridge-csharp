@@ -1,0 +1,9 @@
+module Weather.Controls
+
+singleton Primitives 1.0 Primitives.qml
+singleton Theme 1.0 Theme.qml
+singleton Spacing 1.0 Spacing.qml
+singleton Typography 1.0 Typography.qml
+
+Icon 1.0 Icon.qml
+Toggle 1.0 Toggle.qml

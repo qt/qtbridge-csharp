@@ -6,6 +6,8 @@
 
 VisualStudioVersion = 17.13.35828.75
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Weather", "Weather\Weather.csproj", "{006EB51A-AA31-C00B-EB60-A96F77C0469A}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tutorial", "Tutorial\Tutorial.csproj", "{A0AC7F1D-2072-6FE3-752C-528B16BC9E90}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CityTemperatures", "CityTemperatures\CityTemperatures.csproj", "{516E99AF-0497-3922-BD96-F22C4E15E260}"
@@ -24,6 +26,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{006EB51A-AA31-C00B-EB60-A96F77C0469A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{006EB51A-AA31-C00B-EB60-A96F77C0469A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{006EB51A-AA31-C00B-EB60-A96F77C0469A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{006EB51A-AA31-C00B-EB60-A96F77C0469A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A0AC7F1D-2072-6FE3-752C-528B16BC9E90}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A0AC7F1D-2072-6FE3-752C-528B16BC9E90}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A0AC7F1D-2072-6FE3-752C-528B16BC9E90}.Release|Any CPU.ActiveCfg = Release|Any CPU

@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
+-->
+
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_version.props))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_rid.props))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove(qt_bridge_package.props))" />
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>WeatherApp</AssemblyName>
+    <RootNamespace>Weather</RootNamespace>
+    <QtQmlRootModule>Weather</QtQmlRootModule>
+    <QtExportAs>metadata</QtExportAs>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenMeteo.dotnet" Version="2.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(SolutionName)' != 'qtbridge-csharp'">
+    <PackageReference Include="$(QtBridgePackageId)" Version="$(SelectedVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(SolutionName)' == 'qtbridge-csharp'">
+    <ProjectReference Include="..\..\src\Qt.Bridge.CSharp.Api\Qt.Bridge.CSharp.Api.csproj" />
+    <ProjectReference Include="..\..\src\Qt.Bridge.CSharp.AppHost\Qt.Bridge.CSharp.AppHost.csproj">
+      <ReferenceOutputAssembly>False</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+
+  <!--
+    Qt Bridge's qmldir auto-generation (folder -> module, one line per .qml
+    file) has no concept of QML-defined singletons: it never emits the
+    "singleton" keyword, so every pragma-Singleton type in this app
+    (WeatherManager, FontSetup, the design tokens) would otherwise be
+    instantiated as a plain type wherever it's referenced instead of
+    resolving to the shared instance. See
+    https://doc.qt.io/qt-6/qml-singleton.html, which requires both the
+    pragma AND the qmldir "singleton" line. These hand-written qmldir files
+    add just that keyword; their file list is otherwise identical to what
+    the auto-generator already produces for these two modules.
+  -->
+  <ItemGroup>
+    <QtResource Include="Frontend/qmldir">
+      <Alias>qt/qml/Weather/qmldir</Alias>
+    </QtResource>
+    <QtResource Include="Frontend/Controls/qmldir">
+      <Alias>qt/qml/Weather/Controls/qmldir</Alias>
+    </QtResource>
+  </ItemGroup>
+
+  <!--
+    Non-.qml assets are packaged under qrc:/qt/qml/Weather/assets/... and
+    loose-deployed by Qt Bridge using their project-relative paths. QML refers
+    to them with Qt.resolvedUrl() so the same relative URL works in both cases.
+  -->
+  <ItemGroup>
+    <QtResource Include="Frontend/assets/**/*">
+      <Alias>qt/qml/Weather/assets/$([System.String]::Copy('%(RecursiveDir)')
+        .Replace('\', '/'))%(Filename)%(Extension)</Alias>
+    </QtResource>
+  </ItemGroup>
+
+  <!--
+    Map `Frontend` project sub-folder to default `Weather` QML module
+  -->
+  <Target Name="WeatherAdjustQmlModule" Returns="@(Qml);@(QmlModule)"
+    BeforeTargets="QtBridgeAddQmlFiles" DependsOnTargets="QtBridgeSetupQml">
+    <ItemGroup>
+      <Qml Condition="$([System.String]::Copy('%(Uri)').StartsWith('Frontend'))">
+        <IsRoot>true</IsRoot>
+        <SourceDir>$([System.String]::Copy('%(RelativeDir)')
+          .Replace('Frontend', 'Weather'))</SourceDir>
+        <JsonResourceUrl>$([System.String]::Copy('%(JsonResourceUrl)')
+          .Replace('Frontend', 'Weather'))</JsonResourceUrl>
+        <Uri>$([System.String]::Copy('%(Uri)')
+          .Replace('Frontend', 'Weather'))</Uri>
+        <JsonModulePath>$([System.String]::Copy('%(JsonModulePath)')
+          .Replace('Frontend', 'Weather'))</JsonModulePath>
+      </Qml>
+      <QmlModule Remove="%(Identity)"
+        Condition="$([System.String]::Copy('%(SourceDir)').StartsWith('Frontend'))" />
+    </ItemGroup>
+  </Target>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <Import
+    Condition="'$(SolutionName)' == 'qtbridge-csharp'" Project="..\..\build\Qt.Bridge.targets" />
+
+</Project>

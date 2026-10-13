@@ -40,6 +40,7 @@ dotnet run --project Primes/Primes.csproj -c Release
 | [SpreadsheetSandbox](SpreadsheetSandbox) | Shows how to build a two-dimensional spreadsheet-like data model in C# and expose it to a QML table view. |
 | [Tutorial](Tutorial) | A minimal introductory example that demonstrates the recommended project structure and the basic pattern for connecting a C# model to a QML view. |
 | [UserView](UserView) | A multi-project example split into a shared library (`UserViewLib`), a console front-end (`UserViewCli`), and a QML front-end (`UserViewQml`), showing how to reuse a C# model across different application types. |
+| [Weather](Weather) | Weather forecast for the current location. C++ compiler is not required. |
 
 ## Contributing
 

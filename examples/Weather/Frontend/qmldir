@@ -1,0 +1,11 @@
+module Weather
+
+Main 1.0 Main.qml
+Weather 1.0 Weather.qml
+WeatherImage 1.0 WeatherImage.qml
+
+singleton FontSetup 1.0 FontSetup.qml
+
+# WeatherManager is NOT declared here: it's a native C# class (see
+# WeatherManager.cs), registered into this same "Weather" module at
+# build time by Qt Bridge's [QmlElement(Singleton = true)] attribute.

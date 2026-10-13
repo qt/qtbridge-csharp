@@ -6,6 +6,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 
 VisualStudioVersion = 17.4.33403.182
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Weather", "examples\Weather\Weather.csproj", "{10D8A736-60D0-5CAA-0B49-C37BEE59EB64}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "include", "include", "{63F4FEA7-5B8B-4496-988E-B84410C50D42}"
 	ProjectSection(SolutionItems) = preProject
 		include\iqqmlengine.h = include\iqqmlengine.h
@@ -237,6 +239,14 @@ Global
 		Release|ARM64 = Release|ARM64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{10D8A736-60D0-5CAA-0B49-C37BEE59EB64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{10D8A736-60D0-5CAA-0B49-C37BEE59EB64}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{10D8A736-60D0-5CAA-0B49-C37BEE59EB64}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{10D8A736-60D0-5CAA-0B49-C37BEE59EB64}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{10D8A736-60D0-5CAA-0B49-C37BEE59EB64}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{10D8A736-60D0-5CAA-0B49-C37BEE59EB64}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{10D8A736-60D0-5CAA-0B49-C37BEE59EB64}.Release|x64.ActiveCfg = Release|Any CPU
+		{10D8A736-60D0-5CAA-0B49-C37BEE59EB64}.Release|x86.ActiveCfg = Release|Any CPU
 		{3863807C-2F87-4E27-A9C9-8675645A8DA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3863807C-2F87-4E27-A9C9-8675645A8DA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3863807C-2F87-4E27-A9C9-8675645A8DA5}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -764,6 +774,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{10D8A736-60D0-5CAA-0B49-C37BEE59EB64} = {436DDD81-054F-492E-8F7A-B9445413E3B2}
 		{63F4FEA7-5B8B-4496-988E-B84410C50D42} = {41193496-02AE-44FA-9A63-28E7A168A3AC}
 		{41193496-02AE-44FA-9A63-28E7A168A3AC} = {A35F15F5-A9B1-42B7-813D-EB616C250F74}
 		{3863807C-2F87-4E27-A9C9-8675645A8DA5} = {41193496-02AE-44FA-9A63-28E7A168A3AC}
