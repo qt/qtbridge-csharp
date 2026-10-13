@@ -446,13 +446,6 @@ namespace Qt.Qml
       <_QtNativeBuildHint>Install or configure CMake and a compatible C++ toolchain to build the native host.</_QtNativeBuildHint>
     </PropertyGroup>
 
-    <Exec Command="&quot;$(QtCMakeExecutable)&quot; --version" ConsoleToMsBuild="true"
-      StandardOutputImportance="low" IgnoreExitCode="true">
-      <Output TaskParameter="ExitCode" PropertyName="QtCMakeProbeResult" />
-    </Exec>
-    <Error Condition="'$(QtCMakeProbeResult)' != '0'"
-      Text="CMake could not be run from '$(QtCMakeExecutable)'.$(_QtNl)Native compilation is required because:$(_QtNl)$(QtNativeBuildReason)$(_QtNl)$(_QtNativeBuildHint)" />
-
     <PropertyGroup Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' == ''">
       <VsWhereCmd>"$(VsWhereExe)"</VsWhereCmd>
       <VsWhereCmd>$(VsWhereCmd) -latest</VsWhereCmd>
@@ -474,6 +467,14 @@ namespace Qt.Qml
       <QtVcVarsCmd Condition="'$(QtHostIsWindows)' == 'true' and '$(VsInstallRoot)' != '' and Exists('$(VsInstallRoot)\VC\Auxiliary\Build\$(QtVcVarsScript)')"
         >CALL "$(VsInstallRoot)\VC\Auxiliary\Build\$(QtVcVarsScript)" &gt; NUL &amp;&amp; </QtVcVarsCmd>
     </PropertyGroup>
+
+    <!-- Probe in the same environment as the CMake calls below; vcvars puts the VS CMake on PATH. -->
+    <Exec Command="$(QtVcVarsCmd)&quot;$(QtCMakeExecutable)&quot; --version" ConsoleToMsBuild="true"
+      StandardOutputImportance="low" IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="QtCMakeProbeResult" />
+    </Exec>
+    <Error Condition="'$(QtCMakeProbeResult)' != '0'"
+      Text="CMake could not be run from '$(QtCMakeExecutable)'.$(_QtNl)Native compilation is required because:$(_QtNl)$(QtNativeBuildReason)$(_QtNl)$(_QtNativeBuildHint)" />
 
     <MakeDir Directories="$(QtNativeBuildDir)" />
     <MakeDir Directories="$(QtNativeBinDir)" />
