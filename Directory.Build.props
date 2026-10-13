@@ -10,4 +10,11 @@
     -->
     <RollForward>Major</RollForward>
   </PropertyGroup>
+
+  <!--
+    Optional, git-ignored user settings, such as QtDir, QtDotNetProfiler, QtDotNetSafeMethod
+    or QtExportAs etc.
+  -->
+  <Import Project="Directory.Build.props.user"
+    Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.props.user')" />
 </Project>
