@@ -4,6 +4,7 @@
 using System;
 using System.ComponentModel;
 using System.Linq;
+using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Qt.DotNet;
 
@@ -132,6 +133,20 @@ namespace Test_Qt.Bridge.CSharp.Api
 
             Adapter.FreeObjectRef(objRef);
             Assert.AreEqual(events, EventCount());
+        }
+
+        [TestMethod]
+        public void ResolveConstructor_ReusesTheDelegate()
+        {
+            var parameters = FuncParams(typeof(StringBuilder), typeof(string));
+            var ctor = Adapter.ResolveConstructor(2, parameters);
+            Assert.AreNotEqual(nint.Zero, ctor);
+
+            var delegates = DelegateCount();
+            Assert.AreEqual(1, delegates);
+
+            Assert.AreEqual(ctor, Adapter.ResolveConstructor(2, parameters));
+            Assert.AreEqual(delegates, DelegateCount());
         }
 
         public static string StaticName() => "static";

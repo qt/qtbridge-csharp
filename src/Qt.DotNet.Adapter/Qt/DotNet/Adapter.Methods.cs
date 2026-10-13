@@ -80,6 +80,9 @@ namespace Qt.DotNet
             var ctorProxy = CodeGenerator.CreateProxyMethodForCtor(ctor, parameters)
                 ?? throw new ArgumentException("Error getting ctor delegate", nameof(parameters));
 
+            if (TryGetDelegateForCtor(type, ctorProxy, out var ctorMethod))
+                return ctorMethod.FuncPtr;
+
             var delegateType = CodeGenerator.CreateDelegateTypeForMethod(ctorProxy, parameters)
                 ?? throw new ArgumentException("Error getting ctor delegate", nameof(parameters));
 
@@ -90,7 +93,7 @@ namespace Qt.DotNet
             var methodFuncPtr = Marshal.GetFunctionPointerForDelegate(methodDelegate);
 
             var delegateRef = new DelegateRef(methodHandle, methodFuncPtr);
-            AddCtorDelegateToCache(methodFuncPtr, type, ctor, delegateRef);
+            AddCtorDelegateToCache(methodFuncPtr, type, ctorProxy, delegateRef);
             return methodFuncPtr;
         }
 

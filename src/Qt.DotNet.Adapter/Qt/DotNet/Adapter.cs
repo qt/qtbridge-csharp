@@ -283,15 +283,15 @@ namespace Qt.DotNet
         }
 
         private static void AddCtorDelegateToCache(
-            IntPtr ptr, object obj, ConstructorInfo ctor, DelegateRef delegateRef)
+            IntPtr ptr, object obj, MethodInfo ctorProxy, DelegateRef delegateRef)
         {
-            AddDelegateToCache(ptr, obj, ctor, MemberAccess.Constructor, delegateRef);
+            AddDelegateToCache(ptr, obj, ctorProxy, MemberAccess.Constructor, delegateRef);
         }
 
         private static bool TryGetDelegateForCtor(
-            object obj, ConstructorInfo ctor, out DelegateRef delegateRef)
+            object obj, MethodInfo ctorProxy, out DelegateRef delegateRef)
         {
-            return TryGetDelegate(obj, ctor, MemberAccess.Constructor, out delegateRef);
+            return TryGetDelegate(obj, ctorProxy, MemberAccess.Constructor, out delegateRef);
         }
 
         private static void AddSafeMethodToCache(nint ptr, DelegateRef delegateRef)
