@@ -394,9 +394,20 @@ namespace Qt.Qml
   <Target Name="QtBridgeValidateQt" BeforeTargets="QtBridgeBuild"
     Condition="'$(DesignTimeBuild)' != 'true'">
     <Error Condition="'$(QtDir)' == ''"
-      Text="Qt Bridge for C# could not find Qt. Set QtDir to a Qt 6 installation prefix containing lib/cmake/Qt6/Qt6Config.cmake. QtInstallRoot is also accepted as a compatibility alias." />
+      Text="Qt Bridge for C# could not find Qt. Set QtDir to a Qt 6 installation prefix containing lib/cmake/Qt6/Qt6Config.cmake." />
     <Error Condition="'$(QtDir)' != '' AND !Exists('$(QtDir)/lib/cmake/Qt6/Qt6Config.cmake')"
       Text="Qt Bridge for C# could not find Qt at '$(QtDir)'. Set QtDir to a Qt 6 installation prefix containing lib/cmake/Qt6/Qt6Config.cmake." />
+
+    <PropertyGroup>
+      <_QtBridgeUsesPackageQt>false</_QtBridgeUsesPackageQt>
+      <_QtBridgeUsesPackageQt Condition="'$(QtPackageRoot)' != '' AND
+        '$([MSBuild]::NormalizeDirectory($(QtDir)))' == '$([MSBuild]::NormalizeDirectory($(QtPackageRoot)))'"
+        >true</_QtBridgeUsesPackageQt>
+    </PropertyGroup>
+    <Message Importance="high" Condition="'$(_QtBridgeUsesPackageQt)' != 'true'"
+      Text="Qt Bridge for C#: Using Qt at '$(QtDir)'. Set QtDir to use a different Qt installation." />
+    <Message Importance="high" Condition="'$(_QtBridgeUsesPackageQt)' == 'true'"
+      Text="Qt Bridge for C#: Using the Qt bundled with the NuGet package. Set QtDir to use a different Qt installation." />
   </Target>
   <!-- END QtBridgeValidateQt -->
 
