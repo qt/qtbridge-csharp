@@ -60,23 +60,13 @@ public:
         return fnObjectDispatch(dotnetObj, context);
     }
 
-    static QDotNetType &type()
-    {
-        Q_DOTNET_PROFILE_FUNC();
-
-        static QDotNetType convertType;
-        if (!convertType.isValid())
-            convertType = QDotNetType::typeOf(TypeName);
-        return convertType;
-    }
-
     static QDotNetRef fromBoolean(bool value)
     {
         Q_DOTNET_PROFILE_FUNC();
 
         static QDotNetFunction<QDotNetRef, bool> fn;
         if (!fn.isValid())
-            type().staticMethod("FromBoolean", fn);
+            QDotNetType::staticMethod(TypeName, "FromBoolean", fn);
         return fn(value);
     }
 
@@ -86,7 +76,7 @@ public:
 
         static QDotNetFunction<QDotNetRef, qint8> fn;
         if (!fn.isValid())
-            type().staticMethod("FromSByte", fn);
+            QDotNetType::staticMethod(TypeName, "FromSByte", fn);
         return fn(value);
     }
 
@@ -96,7 +86,7 @@ public:
 
         static QDotNetFunction<QDotNetRef, quint8> fn;
         if (!fn.isValid())
-            type().staticMethod("FromByte", fn);
+            QDotNetType::staticMethod(TypeName, "FromByte", fn);
         return fn(value);
     }
 
@@ -106,7 +96,7 @@ public:
 
         static QDotNetFunction<QDotNetRef, qint16> fn;
         if (!fn.isValid())
-            type().staticMethod("FromInt16", fn);
+            QDotNetType::staticMethod(TypeName, "FromInt16", fn);
         return fn(value);
     }
 
@@ -116,7 +106,7 @@ public:
 
         static QDotNetFunction<QDotNetRef, quint16> fn;
         if (!fn.isValid())
-            type().staticMethod("FromUInt16", fn);
+            QDotNetType::staticMethod(TypeName, "FromUInt16", fn);
         return fn(value);
     }
 
@@ -126,7 +116,7 @@ public:
 
         static QDotNetFunction<QDotNetRef, qint32> fn;
         if (!fn.isValid())
-            type().staticMethod("FromInt32", fn);
+            QDotNetType::staticMethod(TypeName, "FromInt32", fn);
         return fn(value);
     }
 
@@ -136,7 +126,7 @@ public:
 
         static QDotNetFunction<QDotNetRef, quint32> fn;
         if (!fn.isValid())
-            type().staticMethod("FromUInt32", fn);
+            QDotNetType::staticMethod(TypeName, "FromUInt32", fn);
         return fn(value);
     }
 
@@ -146,7 +136,7 @@ public:
 
         static QDotNetFunction<QDotNetRef, qint64> fn;
         if (!fn.isValid())
-            type().staticMethod("FromInt64", fn);
+            QDotNetType::staticMethod(TypeName, "FromInt64", fn);
         return fn(value);
     }
 
@@ -156,7 +146,7 @@ public:
 
         static QDotNetFunction<QDotNetRef, quint64> fn;
         if (!fn.isValid())
-            type().staticMethod("FromUInt64", fn);
+            QDotNetType::staticMethod(TypeName, "FromUInt64", fn);
         return fn(value);
     }
 
@@ -166,7 +156,7 @@ public:
 
         static QDotNetFunction<QDotNetRef, float> fn;
         if (!fn.isValid())
-            type().staticMethod("FromSingle", fn);
+            QDotNetType::staticMethod(TypeName, "FromSingle", fn);
         return fn(value);
     }
 
@@ -176,7 +166,7 @@ public:
 
         static QDotNetFunction<QDotNetRef, double> fn;
         if (!fn.isValid())
-            type().staticMethod("FromDouble", fn);
+            QDotNetType::staticMethod(TypeName, "FromDouble", fn);
         return fn(value);
     }
 
@@ -186,7 +176,7 @@ public:
 
         static QDotNetFunction<QDotNetRef, QDateTime> fn;
         if (!fn.isValid())
-            type().staticMethod("FromDateTime", fn);
+            QDotNetType::staticMethod(TypeName, "FromDateTime", fn);
         return fn(value);
     }
 
@@ -196,7 +186,7 @@ public:
 
         static QDotNetFunction<QDotNetRef, QUrl> fn;
         if (!fn.isValid())
-            type().staticMethod("FromUri", fn);
+            QDotNetType::staticMethod(TypeName, "FromUri", fn);
         return fn(value);
     }
 
@@ -206,7 +196,7 @@ public:
 
         static QDotNetFunction<QDotNetRef, QModelIndex> fn;
         if (!fn.isValid())
-            type().staticMethod("FromModelIndex", fn);
+            QDotNetType::staticMethod(TypeName, "FromModelIndex", fn);
         return fn(value);
     }
 
@@ -216,7 +206,7 @@ public:
 
         static QDotNetFunction<QDotNetRef, QChar> fn;
         if (!fn.isValid())
-            type().staticMethod("FromChar", fn);
+            QDotNetType::staticMethod(TypeName, "FromChar", fn);
         return fn(value);
     }
 
@@ -226,7 +216,7 @@ public:
 
         static QDotNetFunction<QDotNetRef, QString> fn;
         if (!fn.isValid())
-            type().staticMethod("FromString", fn);
+            QDotNetType::staticMethod(TypeName, "FromString", fn);
         return fn(value);
     }
 
@@ -236,7 +226,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsBoolean", fn);
+            QDotNetType::staticMethod(TypeName, "IsBoolean", fn);
         return fn(obj);
     }
 
@@ -246,7 +236,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsSByte", fn);
+            QDotNetType::staticMethod(TypeName, "IsSByte", fn);
         return fn(obj);
     }
 
@@ -256,7 +246,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsByte", fn);
+            QDotNetType::staticMethod(TypeName, "IsByte", fn);
         return fn(obj);
     }
 
@@ -266,7 +256,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsInt16", fn);
+            QDotNetType::staticMethod(TypeName, "IsInt16", fn);
         return fn(obj);
     }
 
@@ -276,7 +266,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsUInt16", fn);
+            QDotNetType::staticMethod(TypeName, "IsUInt16", fn);
         return fn(obj);
     }
 
@@ -286,7 +276,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsInt32", fn);
+            QDotNetType::staticMethod(TypeName, "IsInt32", fn);
         return fn(obj);
     }
 
@@ -296,7 +286,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsUInt32", fn);
+            QDotNetType::staticMethod(TypeName, "IsUInt32", fn);
         return fn(obj);
     }
 
@@ -306,7 +296,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsInt64", fn);
+            QDotNetType::staticMethod(TypeName, "IsInt64", fn);
         return fn(obj);
     }
 
@@ -316,7 +306,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsUInt64", fn);
+            QDotNetType::staticMethod(TypeName, "IsUInt64", fn);
         return fn(obj);
     }
 
@@ -326,7 +316,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsSingle", fn);
+            QDotNetType::staticMethod(TypeName, "IsSingle", fn);
         return fn(obj);
     }
 
@@ -336,7 +326,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsDouble", fn);
+            QDotNetType::staticMethod(TypeName, "IsDouble", fn);
         return fn(obj);
     }
 
@@ -346,7 +336,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsDateTime", fn);
+            QDotNetType::staticMethod(TypeName, "IsDateTime", fn);
         return fn(obj);
     }
 
@@ -356,7 +346,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsUri", fn);
+            QDotNetType::staticMethod(TypeName, "IsUri", fn);
         return fn(obj);
     }
 
@@ -366,7 +356,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsModelIndex", fn);
+            QDotNetType::staticMethod(TypeName, "IsModelIndex", fn);
         return fn(obj);
     }
 
@@ -376,7 +366,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsChar", fn);
+            QDotNetType::staticMethod(TypeName, "IsChar", fn);
         return fn(obj);
     }
 
@@ -386,7 +376,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsString", fn);
+            QDotNetType::staticMethod(TypeName, "IsString", fn);
         return fn(obj);
     }
 
@@ -396,7 +386,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToBoolean", fn);
+            QDotNetType::staticMethod(TypeName, "ToBoolean", fn);
         return fn(obj);
     }
 
@@ -406,7 +396,7 @@ public:
 
         static QDotNetFunction<qint8, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToSByte", fn);
+            QDotNetType::staticMethod(TypeName, "ToSByte", fn);
         return fn(obj);
     }
 
@@ -416,7 +406,7 @@ public:
 
         static QDotNetFunction<quint8, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToByte", fn);
+            QDotNetType::staticMethod(TypeName, "ToByte", fn);
         return fn(obj);
     }
 
@@ -426,7 +416,7 @@ public:
 
         static QDotNetFunction<qint16, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToInt16", fn);
+            QDotNetType::staticMethod(TypeName, "ToInt16", fn);
         return fn(obj);
     }
 
@@ -436,7 +426,7 @@ public:
 
         static QDotNetFunction<quint16, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToUInt16", fn);
+            QDotNetType::staticMethod(TypeName, "ToUInt16", fn);
         return fn(obj);
     }
 
@@ -446,7 +436,7 @@ public:
 
         static QDotNetFunction<qint32, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToInt32", fn);
+            QDotNetType::staticMethod(TypeName, "ToInt32", fn);
         return fn(obj);
     }
 
@@ -456,7 +446,7 @@ public:
 
         static QDotNetFunction<quint32, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToUInt32", fn);
+            QDotNetType::staticMethod(TypeName, "ToUInt32", fn);
         return fn(obj);
     }
 
@@ -466,7 +456,7 @@ public:
 
         static QDotNetFunction<qint64, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToInt64", fn);
+            QDotNetType::staticMethod(TypeName, "ToInt64", fn);
         return fn(obj);
     }
 
@@ -476,7 +466,7 @@ public:
 
         static QDotNetFunction<quint64, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToUInt64", fn);
+            QDotNetType::staticMethod(TypeName, "ToUInt64", fn);
         return fn(obj);
     }
 
@@ -486,7 +476,7 @@ public:
 
         static QDotNetFunction<float, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToSingle", fn);
+            QDotNetType::staticMethod(TypeName, "ToSingle", fn);
         return fn(obj);
     }
 
@@ -496,7 +486,7 @@ public:
 
         static QDotNetFunction<double, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToDouble", fn);
+            QDotNetType::staticMethod(TypeName, "ToDouble", fn);
         return fn(obj);
     }
 
@@ -506,7 +496,7 @@ public:
 
         static QDotNetFunction<QDateTime, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToDateTime", fn);
+            QDotNetType::staticMethod(TypeName, "ToDateTime", fn);
         return fn(obj);
     }
 
@@ -516,7 +506,7 @@ public:
 
         static QDotNetFunction<QUrl, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToUri", fn);
+            QDotNetType::staticMethod(TypeName, "ToUri", fn);
         return fn(obj);
     }
 
@@ -526,7 +516,7 @@ public:
 
         static QDotNetFunction<QModelIndex, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToModelIndex", fn);
+            QDotNetType::staticMethod(TypeName, "ToModelIndex", fn);
         return fn(obj);
     }
 
@@ -536,7 +526,7 @@ public:
 
         static QDotNetFunction<QChar, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToChar", fn);
+            QDotNetType::staticMethod(TypeName, "ToChar", fn);
         return fn(obj);
     }
 
@@ -546,7 +536,7 @@ public:
 
         static QDotNetFunction<QString, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToString", fn);
+            QDotNetType::staticMethod(TypeName, "ToString", fn);
         return fn(obj);
     }
 
@@ -556,7 +546,7 @@ public:
 
         static QDotNetFunction<bool, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("IsConvertible", fn);
+            QDotNetType::staticMethod(TypeName, "IsConvertible", fn);
         return fn(t);
     }
 
@@ -566,7 +556,7 @@ public:
 
         static QDotNetFunction<QDotNetArray<QDotNetRef>, QDotNetRef> fn;
         if (!fn.isValid())
-            type().staticMethod("ToArray", fn);
+            QDotNetType::staticMethod(TypeName, "ToArray", fn);
         return fn(obj);
     }
 
