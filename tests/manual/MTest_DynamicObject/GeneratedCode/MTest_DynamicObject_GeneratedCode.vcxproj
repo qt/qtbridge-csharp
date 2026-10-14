@@ -21,14 +21,16 @@
     <ReadOnlyProject>true</ReadOnlyProject>
     <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
     <QtDir Condition="'$(QtDir)' == ''">$(QtInstallRoot)</QtDir>
-    <IncludePath
->$(QtDir)\include;
-;$([System.String]::Join('%3B',$([System.IO.Directory]::GetDirectories($(QtDir)\include))));
-;$([System.IO.Directory]::GetDirectories($(QtDir)\include\QtCore,'6.*')[0]);
-;$([System.IO.Directory]::GetDirectories($(QtDir)\include\QtCore,'6.*')[0])\QtCore;
-;..\..\..\..\include;
-;..\obj\Debug\net8.0\qt\native\source\hpp;
-;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(QtDir)' != '' and Exists('$(QtDir)\include\QtCore')">
+    <QtModuleIncludePaths>$([System.String]::Join(';',$([System.IO.Directory]::GetDirectories('$(QtDir)\include'))))</QtModuleIncludePaths>
+    <QtCoreVersionDirectories>$([System.String]::Join(';',$([System.IO.Directory]::GetDirectories('$(QtDir)\include\QtCore','6.*'))))</QtCoreVersionDirectories>
+    <QtCoreVersionPath Condition="'$(QtCoreVersionDirectories)' != ''">$([System.String]::Copy('$(QtCoreVersionDirectories)').Split(';')[0])</QtCoreVersionPath>
+    <QtCoreIncludePaths Condition="'$(QtCoreVersionPath)' != ''">$(QtCoreVersionPath);$(QtCoreVersionPath)\QtCore</QtCoreIncludePaths>
+    <QtIncludePaths>$(QtDir)\include;$(QtModuleIncludePaths);$(QtCoreIncludePaths)</QtIncludePaths>
+  </PropertyGroup>
+  <PropertyGroup>
+    <IncludePath>$(QtIncludePaths);..\..\..\..\include;..\obj\Debug\net8.0\qt\native\source\hpp;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <Import
     Condition="Exists('$(VCTargetsPath)\Microsoft.Cpp.props')"

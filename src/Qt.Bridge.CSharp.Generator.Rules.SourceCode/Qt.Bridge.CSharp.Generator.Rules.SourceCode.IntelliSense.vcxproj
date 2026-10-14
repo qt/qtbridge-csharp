@@ -39,10 +39,19 @@
     <ConfigurationType>Utility</ConfigurationType>
     <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
     <QtDir Condition="'$(QtDir)' == ''">$(QtInstallRoot)</QtDir>
-    <QtModuleIncludePaths>$([System.String]::Join(';',$([System.IO.Directory]::GetDirectories($(QtDir)\include))))</QtModuleIncludePaths>
-    <QtCoreVersionPath>$([System.IO.Directory]::GetDirectories($(QtDir)\include\QtCore,'6.*')[0])</QtCoreVersionPath>
     <QtBridgeIntelliSenseIncludes>$(MSBuildThisFileDirectory)IntelliSense\include;$(MSBuildThisFileDirectory)Static\hpp;$(MSBuildThisFileDirectory)..\..\include</QtBridgeIntelliSenseIncludes>
-    <IncludePath>$(QtDir)\include;$(QtModuleIncludePaths);$(QtCoreVersionPath);$(QtCoreVersionPath)\QtCore;$(QtBridgeIntelliSenseIncludes);$(IncludePath)</IncludePath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(QtDir)' != '' and Exists('$(QtDir)\include\QtCore')">
+    <QtModuleIncludePaths>$([System.String]::Join(';',$([System.IO.Directory]::GetDirectories('$(QtDir)\include'))))</QtModuleIncludePaths>
+    <QtCoreVersionDirectories>$([System.String]::Join(';',$([System.IO.Directory]::GetDirectories('$(QtDir)\include\QtCore','6.*'))))</QtCoreVersionDirectories>
+    <QtCoreVersionPath Condition="'$(QtCoreVersionDirectories)' != ''">$([System.String]::Copy('$(QtCoreVersionDirectories)').Split(';')[0])</QtCoreVersionPath>
+    <QtCoreIncludePaths Condition="'$(QtCoreVersionPath)' != ''">$(QtCoreVersionPath);$(QtCoreVersionPath)\QtCore</QtCoreIncludePaths>
+    <QtIncludePaths>$(QtDir)\include;$(QtModuleIncludePaths);$(QtCoreIncludePaths)</QtIncludePaths>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <IncludePath>$(QtIncludePaths);$(QtBridgeIntelliSenseIncludes);$(IncludePath)</IncludePath>
   </PropertyGroup>
 
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />

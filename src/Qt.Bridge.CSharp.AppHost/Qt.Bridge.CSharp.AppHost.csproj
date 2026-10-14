@@ -55,8 +55,9 @@
     output is the template every other project patches, so it must never be
     patched itself.
   -->
-  <Target Name="_CreateAppHost">
-    <Copy SkipUnchangedFiles="true"
-      SourceFiles="$(AppHostSourcePath)" DestinationFiles="$(AppHostIntermediatePath)" />
+  <Target Name="_CreateAppHost" DependsOnTargets="_GetAppHostPaths">
+    <Copy Condition="'$(AppHostSourcePath)' != '' and '$(AppHostIntermediatePath)' != ''"
+          SkipUnchangedFiles="true"
+          SourceFiles="$(AppHostSourcePath)" DestinationFiles="$(AppHostIntermediatePath)" />
   </Target>
 </Project>
