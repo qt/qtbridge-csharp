@@ -32,6 +32,8 @@ namespace Test_Qt.Bridge.Project.FunctionCalls
             Assert.Contains("PASS   : Test_FunctionCalls::resolveFunction()", run.StdOut);
             Assert.Contains("PASS   : Test_FunctionCalls::callFunction()", run.StdOut);
             Assert.Contains("PASS   : Test_FunctionCalls::callDefaultEntryPoint()", run.StdOut);
+            Assert.Contains(
+                "PASS   : Test_FunctionCalls::parameterKeepsTypeNameFromCString()", run.StdOut);
             Assert.Contains("PASS   : Test_FunctionCalls::cleanupTestCase()", run.StdOut);
         }
     }

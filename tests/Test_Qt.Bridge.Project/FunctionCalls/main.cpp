@@ -5,6 +5,7 @@
 #include <QTest>
 
 #include <qdotnethost.h>
+#include <qdotnetparameter.h>
 
 #include "QtTestSetupBase.h"
 
@@ -68,6 +69,25 @@ private slots:
             fortyTwo.data(), static_cast<qint32>(fortyTwo.length()));
 
         QCOMPARE(returnValue, 42);
+    }
+
+    // Parameters only store a pointer to their type name, so a name given as a C string must
+    // stay valid after the constructor returns, even when the string it came from is gone.
+    void parameterKeepsTypeNameFromCString()
+    {
+        QList<QDotNetParameter> parameters;
+        for (int i = 0; i < 64; ++i) {
+            const QByteArray typeName = "FunctionCalls.Type" + QByteArray::number(i);
+            parameters.append(QDotNetParameter(typeName.constData(), UnmanagedType::I4));
+        }
+
+        // Reuse memory that the constructors may have released.
+        QList<QString> filler;
+        for (int i = 0; i < 4096; ++i)
+            filler.append(QString(20, u'#'));
+
+        for (int i = 0; i < parameters.size(); ++i)
+            QCOMPARE(QString(parameters[i].typeName), QString("FunctionCalls.Type%1").arg(i));
     }
 
     void cleanupTestCase()

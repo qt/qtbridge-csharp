@@ -10,6 +10,8 @@
 #   pragma GCC diagnostic ignored "-Wconversion"
 #endif
 #include <QChar>
+#include <QMutex>
+#include <QSet>
 #include <QString>
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop
@@ -58,8 +60,10 @@ struct QDotNetParameter
     };
 
     QDotNetParameter(const char *typeName, Template paramTemplate)
-        : QDotNetParameter(QString(typeName), paramTemplate)
-    {}
+        : QDotNetParameter(QString(), paramTemplate)
+    {
+        this->typeName = persistentTypeName(typeName);
+    }
 
     QDotNetParameter(const QString &typeName, Template paramTemplate)
         : QDotNetParameter(typeName)
@@ -77,9 +81,11 @@ struct QDotNetParameter
     QDotNetParameter(const char *typeName, UnmanagedType unmanagedType = UnmanagedType::ObjectRef,
             bool isIn = false, bool isOut = false, bool isArray = false,
             bool isFixedLength = false, qint32 arrayLength = 0, bool isWeakRef = false)
-        : QDotNetParameter(QString(typeName),
+        : QDotNetParameter(QString(),
             unmanagedType, isIn, isOut, isArray, isFixedLength, arrayLength, isWeakRef)
-    {}
+    {
+        this->typeName = persistentTypeName(typeName);
+    }
 
     QDotNetParameter(const QString &typeName,
         UnmanagedType unmanagedType = UnmanagedType::ObjectRef, bool isIn = false,
@@ -102,6 +108,18 @@ struct QDotNetParameter
     }
 
     static const QDotNetParameter &String;
+
+private:
+    // A parameter only stores a pointer to its type name, which a string converted from a C
+    // string would not outlive. Keep such names for the lifetime of the app; there are only
+    // as many as there are distinct type names.
+    static const QChar *persistentTypeName(const char *typeName)
+    {
+        static QMutex mutex;
+        static QSet<QString> typeNames;
+        const QMutexLocker lock(&mutex);
+        return typeNames.insert(QString::fromUtf8(typeName))->constData();
+    }
 };
 
 inline const QDotNetParameter &QDotNetParameter::String = QDotNetParameter(
