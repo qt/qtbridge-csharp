@@ -1,5 +1,5 @@
 // Copyright (C) 2026 The Qt Company Ltd.
-// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 // Helpers for language features used by C# records and source-generated code that are not
 // present in the .NET Framework 4.7.2 base class library.

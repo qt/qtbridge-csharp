@@ -1,3 +1,6 @@
+# Copyright (C) 2025 The Qt Company Ltd.
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Remove the line below if you want to inherit .editorconfig settings from higher directories
 root = true
 
