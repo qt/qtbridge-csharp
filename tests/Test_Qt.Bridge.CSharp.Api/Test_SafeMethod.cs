@@ -20,6 +20,13 @@ namespace Test_Qt.Bridge.CSharp.Api
         public override readonly string ToString() => $"Value={Value}";
     }
 
+    public sealed class FiveValues
+    {
+        public FiveValues(int a, int b, int c, int d, int e) => Sum = a + b + c + d + e;
+        public int Sum { get; }
+        public static int SumOf(int a, int b, int c, int d) => a + b + c + d;
+    }
+
     [TestClass]
     public class Test_SafeMethod
     {
@@ -73,6 +80,37 @@ namespace Test_Qt.Bridge.CSharp.Api
             if (typeof(T) == typeof(ModelIndex))
                 return ModelIndexMarshaler.GetInstance("").MarshalManagedToNative(obj);
             return ObjectMarshaler.GetInstance("").MarshalManagedToNative(obj);
+        }
+
+        [TestMethod]
+        public unsafe void ConstructorWithManyArguments()
+        {
+            var ptrCtor = Adapter.ResolveConstructor(0,
+                [new(typeof(FiveValues).AssemblyQualifiedName, (ulong)Parameter.ObjectRef),
+                 Param<int>(), Param<int>(), Param<int>(), Param<int>(), Param<int>()]);
+            Assert.AreNotEqual(nint.Zero, ptrCtor);
+
+            var fnCtor = (delegate* unmanaged[Stdcall]<int, int, int, int, int, nint>)ptrCtor;
+            Assert.AreEqual(15, FromPtr<FiveValues>(fnCtor(1, 2, 3, 4, 5)).Sum);
+        }
+
+        [TestMethod]
+        public unsafe void SafeMethodWithManyArguments()
+        {
+            var ptrSumOf = Adapter.ResolveStaticMethod(typeof(FiveValues).AssemblyQualifiedName,
+                nameof(FiveValues.SumOf), 0, FuncParams(typeof(int),
+                    typeof(int), typeof(int), typeof(int), typeof(int)));
+            Assert.AreNotEqual(nint.Zero, ptrSumOf);
+
+            var ptrSafe = Adapter.ResolveSafeMethod(ptrSumOf, 0,
+                [Param<object>(), Param<object>(),
+                 Param<int>(), Param<int>(), Param<int>(), Param<int>()]);
+            Assert.AreNotEqual(nint.Zero, ptrSafe);
+
+            var fnSumOf = (delegate* unmanaged[Stdcall]<nint, int, int, int, int, nint>)ptrSafe;
+            var result = FromPtr<SafeReturn<int>>(fnSumOf(nint.Zero, 1, 2, 3, 4));
+            Assert.IsNull(result.Exception);
+            Assert.AreEqual(10, result.Value);
         }
 
         [TestMethod]

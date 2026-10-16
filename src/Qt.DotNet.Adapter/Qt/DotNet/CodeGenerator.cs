@@ -28,6 +28,23 @@ namespace Qt.DotNet
     /// </summary>
     internal static partial class CodeGenerator
     {
+        // Loads the argument at the given index, with the shortest form of ldarg.
+        private static void EmitLdarg(this ILGenerator code, int index)
+        {
+            switch (index) {
+            case 0: code.Emit(OpCodes.Ldarg_0); break;
+            case 1: code.Emit(OpCodes.Ldarg_1); break;
+            case 2: code.Emit(OpCodes.Ldarg_2); break;
+            case 3: code.Emit(OpCodes.Ldarg_3); break;
+            default:
+                if (index <= byte.MaxValue)
+                    code.Emit(OpCodes.Ldarg_S, (byte)index);
+                else
+                    code.Emit(OpCodes.Ldarg, (short)index);
+                break;
+            }
+        }
+
         private static MethodInfo GetVisibleMethod(this MethodInfo @this, Type type)
         {
             ArgumentNullException.ThrowIfNull(@this);
@@ -118,16 +135,8 @@ namespace Qt.DotNet
                 }
 
                 // Load arguments into stack
-                for (int paramIdx = 1; paramIdx < paramTypes.Length; ++paramIdx) {
-                    if (paramIdx == 1)
-                        code.Emit(OpCodes.Ldarg_1);
-                    else if (paramIdx == 2)
-                        code.Emit(OpCodes.Ldarg_2);
-                    else if (paramIdx == 3)
-                        code.Emit(OpCodes.Ldarg_3);
-                    else
-                        code.Emit(OpCodes.Ldarg_S, paramIdx + 1);
-                }
+                for (int paramIdx = 1; paramIdx < paramTypes.Length; ++paramIdx)
+                    code.EmitLdarg(paramIdx);
 
                 // Invoke method
                 if (!returnTypeIsVoid) {
@@ -273,16 +282,8 @@ namespace Qt.DotNet
                     code.Emit(OpCodes.Ldarg_0);
                     code.Emit(OpCodes.Ldfld, fieldData);
                     // Load method call arguments into stack
-                    for (int paramIdx = 0; paramIdx < paramTypes.Length; ++paramIdx) {
-                        if (paramIdx == 0)
-                            code.Emit(OpCodes.Ldarg_1);
-                        else if (paramIdx == 1)
-                            code.Emit(OpCodes.Ldarg_2);
-                        else if (paramIdx == 2)
-                            code.Emit(OpCodes.Ldarg_3);
-                        else
-                            code.Emit(OpCodes.Ldarg_S, paramIdx + 1);
-                    }
+                    for (int paramIdx = 0; paramIdx < paramTypes.Length; ++paramIdx)
+                        code.EmitLdarg(paramIdx + 1);
                     //  ); //NativeCallback.Invoke
                     code.Emit(OpCodes.Callvirt, callbackInvoke);
 
@@ -564,18 +565,8 @@ namespace Qt.DotNet
             var code = proxyGen.GetILGenerator();
 
             // Load arguments into stack
-            for (int paramIdx = 0; paramIdx < paramTypes.Length; ++paramIdx) {
-                if (paramIdx == 0)
-                    code.Emit(OpCodes.Ldarg_0);
-                else if (paramIdx == 1)
-                    code.Emit(OpCodes.Ldarg_1);
-                else if (paramIdx == 2)
-                    code.Emit(OpCodes.Ldarg_2);
-                else if (paramIdx == 3)
-                    code.Emit(OpCodes.Ldarg_3);
-                else
-                    code.Emit(OpCodes.Ldarg_S, paramIdx);
-            }
+            for (int paramIdx = 0; paramIdx < paramTypes.Length; ++paramIdx)
+                code.EmitLdarg(paramIdx);
 
             // Invoke encapsulated constructor
             code.Emit(OpCodes.Newobj, ctor);

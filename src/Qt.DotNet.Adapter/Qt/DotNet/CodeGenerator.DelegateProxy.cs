@@ -139,22 +139,8 @@ namespace Qt.DotNet
             const string nameOf = nameof(InterfaceProxy.DataPtr);
             code.Emit(OpCodes.Ldfld, typeof(InterfaceProxy).GetField(nameOf));
 
-            for (var paramIdx = 0; paramIdx < paramTypes.Length; ++paramIdx) {
-                switch (paramIdx) {
-                case 0:
-                    code.Emit(OpCodes.Ldarg_1);
-                    break;
-                case 1:
-                    code.Emit(OpCodes.Ldarg_2);
-                    break;
-                case 2:
-                    code.Emit(OpCodes.Ldarg_3);
-                    break;
-                default:
-                    code.Emit(OpCodes.Ldarg_S, paramIdx + 1);
-                    break;
-                }
-            }
+            for (var paramIdx = 0; paramIdx < paramTypes.Length; ++paramIdx)
+                code.EmitLdarg(paramIdx + 1);
 
             code.Emit(OpCodes.Callvirt, callbackInvoke);
 
