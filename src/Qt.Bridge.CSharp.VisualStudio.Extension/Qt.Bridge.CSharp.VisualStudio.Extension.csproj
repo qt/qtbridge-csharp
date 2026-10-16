@@ -70,13 +70,12 @@
   </Choose>
 
   <ItemGroup>
-    <None Remove="GPL-3.0-only.txt" />
     <None Remove=".vsextension\string-resources.json" />
     <None Remove="Templates.pkgdef" />
     <None Remove="qt.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="GPL-3.0-only.txt">
+    <Content Include="..\..\nuget\Qt.Bridge.CSharp.Package\LICENSE.txt" Link="LICENSE.txt">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
     <Content Include="qt.ico">

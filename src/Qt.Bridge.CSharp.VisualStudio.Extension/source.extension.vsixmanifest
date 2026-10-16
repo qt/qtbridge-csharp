@@ -16,7 +16,7 @@
     <DisplayName>Qt Bridge for C#</DisplayName>
     <Description
       xml:space="preserve">QML editor support for Qt Bridge for C# projects in Visual Studio.</Description>
-    <License>GPL-3.0-only.txt</License>
+    <License>LICENSE.txt</License>
     <MoreInfoUrl>https://doc-snapshots.qt.io/qtbridges-dev/qtbridges-csharp-index.html</MoreInfoUrl>
     <GettingStartedGuide>https://doc-snapshots.qt.io/qtbridges-dev/qtbridges-csharp-getting-started.html</GettingStartedGuide>
     <ReleaseNotes>https://raw.githubusercontent.com/qt/qtbridge-csharp/dev/CHANGELOG.md</ReleaseNotes>
