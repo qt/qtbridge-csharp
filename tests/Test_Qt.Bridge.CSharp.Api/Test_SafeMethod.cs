@@ -13,6 +13,13 @@ using Qt.DotNet;
 
 namespace Test_Qt.Bridge.CSharp.Api
 {
+    public struct SafeMethodCounter
+    {
+        public int Value;
+        public readonly int Get() => Value;
+        public override readonly string ToString() => $"Value={Value}";
+    }
+
     [TestClass]
     public class Test_SafeMethod
     {
@@ -93,6 +100,39 @@ namespace Test_Qt.Bridge.CSharp.Api
             result = FromPtr<SafeReturn<int>>(ptrResult);
             Assert.IsNotNull(result.Exception);
             Assert.IsInstanceOfType<FormatException>(result.Exception);
+        }
+
+        [TestMethod]
+        [DataRow(false, DisplayName = "Non-virtual method (ValueType::Get)")]
+        [DataRow(true, DisplayName = "Overridden virtual method (ValueType::ToString)")]
+        public unsafe void InstanceMethod_ReceivesPointerToUnboxedValueAsThis(bool overridden)
+        {
+            // Hold the value type in an 'object' so it is boxed, like it would
+            // be when passed across a native boundary.
+            object counter = new SafeMethodCounter { Value = 42 };
+
+            var method = overridden ? "ToString" : "Get";
+            var ptrMethod = overridden
+                ? Adapter.ResolveInstanceMethod(ToPtr(counter), method, 0, [Param<string>()])
+                : Adapter.ResolveInstanceMethod(ToPtr(counter), method, 0, [Param<int>()]);
+            Assert.AreNotEqual(nint.Zero, ptrMethod, $"ResolveInstanceMethod('{method}') failed");
+
+            var ptr = Adapter.ResolveSafeMethod(ptrMethod, 0, [Param<object>(), Param<object>()]);
+            Assert.AreNotEqual(nint.Zero, ptr, "ResolveSafeMethod failed");
+
+            var fnSafe = (delegate* unmanaged[Stdcall]<nint, nint>)ptr;
+            var ptrResult = fnSafe(ToPtr(counter));
+            Assert.AreNotEqual(nint.Zero, ptrResult);
+
+            if (overridden) {
+                var result = FromPtr<SafeReturn<string>>(ptrResult);
+                Assert.IsNull(result.Exception);
+                Assert.AreEqual("Value=42", result.Value);
+            } else {
+                var result = FromPtr<SafeReturn<int>>(ptrResult);
+                Assert.IsNull(result.Exception);
+                Assert.AreEqual(42, result.Value);
+            }
         }
 
         [TestMethod]

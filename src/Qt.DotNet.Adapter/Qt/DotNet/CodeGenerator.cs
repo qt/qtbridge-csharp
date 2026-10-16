@@ -109,9 +109,12 @@ namespace Qt.DotNet
             code.BeginExceptionBlock();
             {
                 // this = arg0
+                var targetIsValueType = unsafeMethod.DeclaringType.IsValueType;
                 if (!unsafeMethod.IsStatic) {
                     code.Emit(OpCodes.Ldarg_0);
-                    code.Emit(OpCodes.Castclass, unsafeMethod.DeclaringType);
+                    code.Emit(targetIsValueType
+                        ? OpCodes.Unbox
+                        : OpCodes.Castclass, unsafeMethod.DeclaringType);
                 }
 
                 // Load arguments into stack
@@ -129,7 +132,7 @@ namespace Qt.DotNet
                 // Invoke method
                 if (!returnTypeIsVoid) {
                     // {1} = unsafeMethod([...]);
-                    if (unsafeMethod.IsVirtual)
+                    if (unsafeMethod.IsVirtual && !targetIsValueType)
                         code.Emit(OpCodes.Callvirt, unsafeMethod);
                     else
                         code.Emit(OpCodes.Call, unsafeMethod);
@@ -140,7 +143,7 @@ namespace Qt.DotNet
                     code.Emit(OpCodes.Call, safeReturnSetValue);
                 } else {
                     // unsafeMethod([...]);
-                    if (unsafeMethod.IsVirtual)
+                    if (unsafeMethod.IsVirtual && !targetIsValueType)
                         code.Emit(OpCodes.Callvirt, unsafeMethod);
                     else
                         code.Emit(OpCodes.Call, unsafeMethod);
