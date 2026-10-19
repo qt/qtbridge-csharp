@@ -74,18 +74,20 @@ bool {type.MFn(Ns | Name)}::applyCollectionChange(QObject* qEvArgs)
     using Args = System::Collections::Specialized::NotifyCollectionChangedEventArgs;
     auto *args = static_cast<Args*>(qEvArgs);
 
-    auto countItems = [](const System::Collections::IList* l) -> int {{
-        if (!l || !l->isValid())
+    // Counts the items in the NewItems or OldItems list of the event. The list is only read
+    // here, so a reference on the stack suffices; a wrapper object would outlive the event.
+    auto countItems = [args](const QString &listGetter) -> int {{
+        const auto list = args->method<QDotNetObject>(listGetter).invoke(*args);
+        if (!list.isValid())
             return 0;
-        auto &self = *const_cast<System::Collections::IList*>(l);
-        return self.method<qint32>(QStringLiteral(""get_Count"")).invoke(self);
+        return list.method<qint32>(QStringLiteral(""get_Count"")).invoke(list);
     }};
 
     const int count = this->count();
     switch (args->action()) {{
     case System::Collections::Specialized::NotifyCollectionChangedAction::Add: {{
         const int first = args->newStartingIndex();
-        const int added = countItems(args->newItems());
+        const int added = countItems(QStringLiteral(""get_NewItems""));
         if (added == 0)
             return true;
         if (first < 0 || first > count - added)
@@ -97,7 +99,7 @@ bool {type.MFn(Ns | Name)}::applyCollectionChange(QObject* qEvArgs)
     }}
     case System::Collections::Specialized::NotifyCollectionChangedAction::Remove: {{
         const int first = args->oldStartingIndex();
-        const int removed = countItems(args->oldItems());
+        const int removed = countItems(QStringLiteral(""get_OldItems""));
         if (removed == 0)
             return true;
         const int before = count + removed;
@@ -114,8 +116,8 @@ bool {type.MFn(Ns | Name)}::applyCollectionChange(QObject* qEvArgs)
     }}
     case System::Collections::Specialized::NotifyCollectionChangedAction::Replace: {{
         const int first = args->newStartingIndex();
-        const int replaced = countItems(args->newItems());
-        if (replaced != countItems(args->oldItems()))
+        const int replaced = countItems(QStringLiteral(""get_NewItems""));
+        if (replaced != countItems(QStringLiteral(""get_OldItems"")))
             return false;
         if (replaced == 0)
             return true;
@@ -127,7 +129,7 @@ bool {type.MFn(Ns | Name)}::applyCollectionChange(QObject* qEvArgs)
     case System::Collections::Specialized::NotifyCollectionChangedAction::Move: {{
         const int first = args->oldStartingIndex();
         const int target = args->newStartingIndex();
-        const int moved = countItems(args->newItems());
+        const int moved = countItems(QStringLiteral(""get_NewItems""));
         if (moved == 0 || (first == target && first >= 0))
             return true;
         if (first < 0 || target < 0 || first + moved > count || target + moved > count)
