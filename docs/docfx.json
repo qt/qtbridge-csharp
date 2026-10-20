@@ -32,6 +32,7 @@
           "existing-csharp-projects.md",
           "resources.md",
           "templates-and-examples.md",
+          "metadata-based-exports.md",
           "visual-studio-workflow.md",
           "troubleshooting.md",
           "release-status.md"

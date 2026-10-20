@@ -23,6 +23,8 @@ dotnet new qt -n MyQtApp
 * `--Framework` selects the target framework, for example `net9.0`. The default is `net8.0`.
 * `--SampleCode` adds a small counter sample that wires a C# object to a QML button and label, so
   you have something running and bound end to end before you write your own code.
+* `--ExportAsMetadata` enables the experimental metadata-based export mode. See
+  [Metadata-based Exports](metadata-based-exports.md) before using it in an existing application.
 
 ```bash
 dotnet new qt -n MyQtApp --Framework net9.0 --SampleCode

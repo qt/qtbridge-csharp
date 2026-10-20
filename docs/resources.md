@@ -78,10 +78,11 @@ Set `QtResourcePackaging` to select how Qt resources are packaged:
 | `Linked` | Compiles resources into the native host. When there are resources to link, this requires a native C++ build. |
 | `External` | Builds and deploys a separate `qt_bridge_resources.rcc` resource pack. Creating the resource pack uses Qt's resource compiler, but does not by itself require C++ compilation. |
 
-`External` does not avoid a native build when the project has types exported as source code; those
-types still require generated C++ wrappers. A metadata-only project can create an external resource
-pack without a C++ toolchain. At runtime, resources in an external resource pack use the same
-`qrc:/` URLs as linked resources.
+`External` does not avoid a native build when the project has types using
+[source-code export](metadata-based-exports.md#avoiding-c-compilation); those types still require
+generated C++ wrappers. A [metadata-only project](metadata-based-exports.md) can create an external
+resource pack without a C++ toolchain. At runtime, resources in an external resource pack use the
+same `qrc:/` URLs as linked resources.
 
 ## Use resources from QML
 

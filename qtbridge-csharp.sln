@@ -192,6 +192,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docfx", "docfx", "{09802621
 		docs\getting-started.md = docs\getting-started.md
 		docs\index.md = docs\index.md
 		docs\introduction.md = docs\introduction.md
+		docs\metadata-based-exports.md = docs\metadata-based-exports.md
 		docs\README.md = docs\README.md
 		docs\release-status.md = docs\release-status.md
 		docs\resources.md = docs\resources.md

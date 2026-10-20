@@ -15,6 +15,8 @@
   href: csharp-and-qml.md
 - name: Project Templates
   href: templates-and-examples.md
+- name: Metadata-based Exports (Experimental)
+  href: metadata-based-exports.md
 - name: Adding QML to Existing C# Projects
   href: existing-csharp-projects.md
   items:
