@@ -29,12 +29,10 @@ output directly.
 Use this workflow if you are evaluating Qt Bridge for C# on Linux or WSL. Linux requires an external
 Qt installation selected during build.
 
-### macOS with .NET CLI
+### [macOS with .NET CLI](getting-started-macos.md)
 
-macOS arm64 (Apple Silicon) is also supported, following the same CLI workflow as Linux: install
-the templates, then build against an external Qt installation selected with `QtDir`. Use the
-`QtGroup.Qt.Bridge.CSharp.osx-arm64` package — see
-[Adding QML to Existing C# Projects](existing-csharp-projects.md) for package selection details.
+Use this workflow if you are evaluating Qt Bridge for C# on macOS arm64 (Apple Silicon). macOS
+requires an external Qt installation selected during build.
 
 ## Common requirements
 

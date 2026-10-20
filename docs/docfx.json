@@ -28,6 +28,7 @@
           "getting-started-vscode.md",
           "getting-started-windows-cli-vscode.md",
           "getting-started-linux.md",
+          "getting-started-macos.md",
           "csharp-and-qml.md",
           "tutorial-csharp-qml-app.md",
           "existing-csharp-projects.md",

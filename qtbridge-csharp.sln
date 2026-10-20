@@ -187,6 +187,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docfx", "docfx", "{09802621
 		docs\csharp-and-qml.md = docs\csharp-and-qml.md
 		docs\existing-csharp-projects.md = docs\existing-csharp-projects.md
 		docs\getting-started-linux.md = docs\getting-started-linux.md
+		docs\getting-started-macos.md = docs\getting-started-macos.md
 		docs\getting-started-vscode.md = docs\getting-started-vscode.md
 		docs\getting-started-windows-cli-vscode.md = docs\getting-started-windows-cli-vscode.md
 		docs\getting-started-windows-visual-studio.md = docs\getting-started-windows-visual-studio.md

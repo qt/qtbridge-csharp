@@ -13,6 +13,8 @@
     href: getting-started-windows-cli-vscode.md
   - name: Linux with .NET CLI
     href: getting-started-linux.md
+  - name: macOS with .NET CLI
+    href: getting-started-macos.md
 - name: C# and QML
   href: csharp-and-qml.md
 - name: Project Templates

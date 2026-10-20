@@ -73,6 +73,11 @@ Does not own:
 * No screenshot.
 * Use code blocks.
 
+### macOS with .NET CLI
+
+* No screenshot.
+* Use code blocks.
+
 ### C# and QML
 
 * Add a short side-by-side example.
