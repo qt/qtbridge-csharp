@@ -74,6 +74,38 @@ and use it for the bridge, Qt, and .NET runtime:
 
 Do not combine the x64 bridge with the ARM64 runtime, or the ARM64 bridge with the x64 runtime.
 
+### `hostfxr_initialize_for_dotnet_command_line` fails
+
+If the native host reports:
+
+```text
+Error calling function: hostfxr_initialize_for_dotnet_command_line
+```
+
+then `hostfxr` was loaded successfully, but rejected the application argument it received. That
+argument must be the managed application DLL, for example `MyApplication.dll`; it must not be the
+native executable or its output directory.
+
+Make the output visible first, then enable the .NET host's CoreHost tracing. The trace reports the
+exact application argument and commonly includes a message such as *"Application
+'.../bin/Debug/net8.0' is not a managed executable."* when a directory was passed instead of the
+DLL. Run the smallest reproducer with tracing enabled:
+
+```powershell
+$env:COREHOST_TRACE = '1'
+$env:COREHOST_TRACEFILE = (Join-Path $PWD 'corehost.trace')
+dotnet test <project> --filter "FullyQualifiedName~<test-name>"
+```
+
+On Linux or macOS, use the equivalent environment variables before the command:
+
+```sh
+COREHOST_TRACE=1 COREHOST_TRACEFILE="$PWD/corehost.trace" \
+  dotnet test <project> --filter 'FullyQualifiedName~<test-name>'
+```
+
+Set `COREHOST_TRACE=2` for more detail. Remove the variables after the investigation.
+
 ## Smart App Control blocks a build
 
 If `dotnet build` reports *"An Application Control policy has blocked this file"* followed by
