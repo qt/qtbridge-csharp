@@ -198,6 +198,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docfx", "docfx", "{09802621
 		docs\resources.md = docs\resources.md
 		docs\templates-and-examples.md = docs\templates-and-examples.md
 		docs\troubleshooting.md = docs\troubleshooting.md
+		docs\tutorial-csharp-qml-app.md = docs\tutorial-csharp-qml-app.md
 		docs\visual-content-plan.md = docs\visual-content-plan.md
 		docs\visual-studio-workflow.md = docs\visual-studio-workflow.md
 	EndProjectSection
