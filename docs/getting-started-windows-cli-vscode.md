@@ -1,8 +1,14 @@
-# Windows with .NET CLI or VS Code
+# Windows with .NET CLI
 
-Use this workflow if you prefer command-line project creation, work in Visual Studio Code, or want
-to inspect the template output directly. The same `dotnet` commands work from a terminal, from VS
-Code's integrated terminal, or from any editor that opens the generated project folder.
+Use this workflow if you prefer command-line project creation or want to inspect the template
+output directly. The same `dotnet` commands work from a terminal, from the integrated terminal of
+an editor, or from any editor that opens the generated project folder.
+
+<p class="docs-hint">
+  If you work in VS Code, the Qt Extension for VS Code creates projects, selects the Qt installation,
+  and provides QML editing, preview, and debugging. See
+  <a href="getting-started-vscode.md">VS Code on Windows, Linux, and macOS</a>.
+</p>
 
 ## Requirements
 

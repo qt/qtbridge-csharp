@@ -4,21 +4,25 @@ Choose the workflow that matches your operating system and development environme
 to Qt/QML, start with a template project, build it once, and inspect how the C# code and QML files
 relate to each other.
 
-Use the Visual Studio workflow for the most integrated experience on Windows. Use the CLI workflow
-if you prefer Visual Studio Code, another editor, or a terminal-first workflow.
+For an integrated experience, use VS Code on Windows, Linux, and macOS, or Visual Studio on Windows.
+Use the CLI workflow if you prefer another editor or a terminal-first workflow.
 
 ## Choose your workflow
 
+### [VS Code on Windows, Linux, and macOS](getting-started-vscode.md)
+
+Use this workflow if you work in VS Code. The Qt Extension for VS Code creates projects, helps you
+select the Qt installation, and provides QML editing, QML Preview, and QML debugging.
+
 ### [Windows and Visual Studio](getting-started-windows-visual-studio.md)
 
-Use this workflow if you work in Visual Studio on Windows and want the most integrated experience.
-The extension provides project and item templates, plus bridge-aware QML editor support after the
-first build.
+Use this workflow if you work in Visual Studio on Windows. The extension provides project and item
+templates, plus bridge-aware QML editor support after the first build.
 
-### [Windows with .NET CLI or VS Code](getting-started-windows-cli-vscode.md)
+### [Windows with .NET CLI](getting-started-windows-cli-vscode.md)
 
-Use this workflow if you prefer command-line project creation, work in Visual Studio Code, or want
-to inspect the template output directly.
+Use this workflow if you prefer command-line project creation or want to inspect the template
+output directly.
 
 ### [Linux with .NET CLI](getting-started-linux.md)
 
@@ -58,7 +62,7 @@ It:
 * Runs the native and managed build steps needed by the bridge
 * Prepares the bridge information and native support used by the QML side
 * Makes exposed C# types available to QML
-* Enables bridge-aware QML editor support when using Visual Studio
+* Enables bridge-aware QML editor support in VS Code and Visual Studio
 
 Basic QML syntax highlighting and completion are available when you open a QML file. The first
 build gives the editor the project information it needs to understand QML-facing C# types and

@@ -51,6 +51,11 @@ Does not own:
 * Add one screenshot of the running template app so users know what `dotnet run` should open.
 * Keep it as a chooser page.
 
+### VS Code on Windows, Linux, and macOS
+
+* Add one screenshot.
+* Show the Qt new project wizard with **Qt Bridge for C# application** selected.
+
 ### Windows and Visual Studio
 
 * Add one screenshot.
@@ -58,7 +63,7 @@ Does not own:
 * Use one consistent IDE theme.
 * Prefer dark theme unless someone requests light theme for readability.
 
-### Windows with .NET CLI or VS Code
+### Windows with .NET CLI
 
 * No screenshot.
 * Use code blocks.
@@ -85,7 +90,13 @@ Does not own:
   * After: package reference, QML file, startup calls such as `Qml.Load(...)` and `Qml.WaitForExit(...)`
 * Use a screenshot only if showing the NuGet Package Manager flow is important.
 
-### Editing QML in Visual Studio
+### Working in VS Code
+
+* Add one screenshot.
+* Show QML Preview next to the QML editor, ideally while a saved change appears in the preview.
+* Purpose: show the editing and preview loop on all platforms.
+
+### Working in Visual Studio
 
 * Add one screenshot.
 * Show QML completion or diagnostics in Visual Studio.

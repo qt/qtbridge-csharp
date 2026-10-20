@@ -1,10 +1,10 @@
 # Windows and Visual Studio
 
-Use this workflow if you are on Windows and want the most integrated Qt Bridge for C# experience.
-The Visual Studio extension adds project and item templates, and it can provide QML diagnostics,
-completion, semantic editor support, and project-aware imports. Basic QML syntax highlighting and
-completion are available when you open a QML file. The first build gives the editor the project
-information it needs to understand QML-facing C# types and imports.
+Use this workflow if you work in Visual Studio on Windows. The Visual Studio extension adds project
+and item templates, and it can provide QML diagnostics, completion, semantic editor support, and
+project-aware imports. Basic QML syntax highlighting and completion are available when you open a
+QML file. The first build gives the editor the project information it needs to understand
+QML-facing C# types and imports.
 
 ## Requirements
 
@@ -53,7 +53,7 @@ After the first build, check that:
 * QML diagnostics and completion include QML-facing C# types after the first build
 
 For the diagnostics, completion, semantic editor support, and project-aware imports the extension
-provides, see [Editing QML in Visual Studio](visual-studio-workflow.md).
+provides, see [Working in Visual Studio](visual-studio-workflow.md).
 
 ## Common first issues
 

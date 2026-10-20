@@ -187,6 +187,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docfx", "docfx", "{09802621
 		docs\csharp-and-qml.md = docs\csharp-and-qml.md
 		docs\existing-csharp-projects.md = docs\existing-csharp-projects.md
 		docs\getting-started-linux.md = docs\getting-started-linux.md
+		docs\getting-started-vscode.md = docs\getting-started-vscode.md
 		docs\getting-started-windows-cli-vscode.md = docs\getting-started-windows-cli-vscode.md
 		docs\getting-started-windows-visual-studio.md = docs\getting-started-windows-visual-studio.md
 		docs\getting-started.md = docs\getting-started.md
@@ -201,6 +202,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docfx", "docfx", "{09802621
 		docs\tutorial-csharp-qml-app.md = docs\tutorial-csharp-qml-app.md
 		docs\visual-content-plan.md = docs\visual-content-plan.md
 		docs\visual-studio-workflow.md = docs\visual-studio-workflow.md
+		docs\vscode-workflow.md = docs\vscode-workflow.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Qt.Bridge.CSharp.Build.Tasks", "src\Qt.Bridge.CSharp.Build.Tasks\Qt.Bridge.CSharp.Build.Tasks.csproj", "{45B99DAF-18F9-4CCE-97BB-15558BBA5F3E}"

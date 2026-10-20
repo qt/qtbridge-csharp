@@ -9,9 +9,10 @@ documentation are all subject to change as feedback comes in from early adopters
   CLI behavior may be renamed, restructured, or replaced between releases while the design settles.
 * **Documentation is focused but incomplete.** Pages cover the workflows and APIs that exist today
   rather than every possible scenario. Expect gaps, especially around less common use cases.
-* **Some workflows are smoother than others.** The Windows and Visual Studio workflow is the most
-  mature, on both x64 and arm64. Linux and macOS support is newer and still evolving, and packaging
-  or editor integrations there may need more iteration before they feel as integrated.
+* **Some workflows are smoother than others.** Windows support is the most mature, on both x64 and
+  arm64. Linux and macOS support is newer and still evolving. The Qt Extension for VS Code brings
+  QML editing, QML Preview, and QML debugging to all three platforms; like the bridge itself, its
+  Qt Bridge for C# support is a preview.
 * **Feedback drives what gets polished next.** Early-adopter reports about workflow gaps, missing
   guidance, and unclear behavior directly shape which workflows and docs improve first.
 

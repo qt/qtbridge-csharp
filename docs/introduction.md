@@ -30,7 +30,7 @@ The current release is especially relevant if you are:
 * Evaluating Qt Bridge for C# as an early adopter
 * Building desktop applications with .NET
 * Exploring QML for the first time
-* Using Visual Studio and want QML editor support in the same workflow
+* Using VS Code or Visual Studio and want QML editor support in the same workflow
 * Looking for examples that show how C# models connect to QML views
 
 ## How it fits together
@@ -63,9 +63,9 @@ A Qt Bridge for C# application has two main sides:
 * C# contains the application logic, data models, bridge attributes, and resources.
 
 When you build your application, Qt Bridge for C# produces the bridge information and native
-support needed for the QML side to understand the C# types you expose. The Visual Studio
-extension can provide QML diagnostics, completion, semantic editor support, and project-aware
-imports.
+support needed for the QML side to understand the C# types you expose. The Qt Extension for
+VS Code and the Visual Studio extension use this information to provide QML diagnostics,
+completion, and project-aware imports. In VS Code, you can also preview and debug the QML code.
 
 ## What is included?
 

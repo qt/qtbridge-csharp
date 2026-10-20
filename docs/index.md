@@ -7,7 +7,8 @@
     </p>
     <p>
       Start with Introduction and Getting Started, then explore C# and QML, project templates, and
-      existing-project workflows. Use Visual Studio editing support and the API reference as you go.
+      existing-project workflows. Use the editing support of VS Code or Visual Studio and the API
+      reference as you go.
     </p>
   </section>
 
@@ -40,8 +41,12 @@
         <h3>Adding QML to Existing C# Projects</h3>
         <p>Add Qt Bridge for C# to an existing app and expose your current objects and models to QML.</p>
       </a>
+      <a class="doc-card" href="vscode-workflow.md">
+        <h3>Working in VS Code</h3>
+        <p>Edit, preview, profile, and debug QML on Windows, Linux, and macOS.</p>
+      </a>
       <a class="doc-card" href="visual-studio-workflow.md">
-        <h3>Editing QML in Visual Studio</h3>
+        <h3>Working in Visual Studio</h3>
         <p>Use Visual Studio diagnostics, completion, semantic support, and project-aware QML imports.</p>
       </a>
     </div>

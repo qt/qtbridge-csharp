@@ -1,4 +1,4 @@
-# Editing QML in Visual Studio
+# Working in Visual Studio
 
 The Qt Bridge for C# Visual Studio extension recognizes Qt Bridge for C# projects and starts a
 QML language server for `.qml` files in those projects. This page covers the editing experience

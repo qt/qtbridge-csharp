@@ -25,6 +25,7 @@
           "introduction.md",
           "getting-started.md",
           "getting-started-windows-visual-studio.md",
+          "getting-started-vscode.md",
           "getting-started-windows-cli-vscode.md",
           "getting-started-linux.md",
           "csharp-and-qml.md",
@@ -34,6 +35,7 @@
           "templates-and-examples.md",
           "metadata-based-exports.md",
           "visual-studio-workflow.md",
+          "vscode-workflow.md",
           "troubleshooting.md",
           "release-status.md"
         ]

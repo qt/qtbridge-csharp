@@ -5,9 +5,11 @@
 - name: Getting Started
   href: getting-started.md
   items:
+  - name: VS Code on Windows, Linux, and macOS
+    href: getting-started-vscode.md
   - name: Windows and Visual Studio
     href: getting-started-windows-visual-studio.md
-  - name: Windows with .NET CLI or VS Code
+  - name: Windows with .NET CLI
     href: getting-started-windows-cli-vscode.md
   - name: Linux with .NET CLI
     href: getting-started-linux.md
@@ -22,7 +24,9 @@
   items:
   - name: Application Resources
     href: resources.md
-- name: Editing QML in Visual Studio
+- name: Working in VS Code
+  href: vscode-workflow.md
+- name: Working in Visual Studio
   href: visual-studio-workflow.md
 - name: Troubleshooting
   href: troubleshooting.md

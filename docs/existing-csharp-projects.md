@@ -309,8 +309,9 @@ If the build fails or the window does not appear, check these areas first:
 
 * See [C# and QML](csharp-and-qml.md) for a deeper look at the mental model behind how C# and
   QML connect.
-* See [Editing QML in Visual Studio](visual-studio-workflow.md) for QML diagnostics, completion,
-  and semantic editor support after your first build.
+* See [Working in VS Code](vscode-workflow.md) or
+  [Working in Visual Studio](visual-studio-workflow.md) for QML diagnostics, completion, and
+  other editor support after your first build.
 * See [Application Resources](resources.md) for resource packaging, `qrc:/` URLs, and the
   [`Qt.Resources`](api/Qt.Resources.yml) API.
 * See the [API Reference](api-reference.md) for the complete attribute, model base type, and

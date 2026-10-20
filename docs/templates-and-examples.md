@@ -6,7 +6,7 @@ as the project grows.
 
 ## Create a project
 
-The .NET CLI, Visual Studio, and editor workflows all use the same underlying templates, so the
+The .NET CLI, VS Code, and Visual Studio workflows all use the same underlying templates, so the
 generated project looks the same no matter which one you choose.
 
 ### From the .NET CLI
@@ -38,6 +38,14 @@ dotnet new qml -n MainPage
 
 The item template now takes the requested name from `-n`/`--name` and creates `MainPage.qml`
 directly.
+
+### From VS Code
+
+The Qt Extension for VS Code includes the same templates, so you do not need to install them with
+`dotnet new install`. Run **Qt: Create a new project or file** from the Command Palette and select
+**Qt Bridge for C# application** to create a project, or **Qt Bridge for C# QML file** to add a
+QML file. The wizard offers the same framework and sample-code options. See
+[VS Code on Windows, Linux, and macOS](getting-started-vscode.md).
 
 ### From Visual Studio
 
