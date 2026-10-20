@@ -90,19 +90,19 @@ Qt 6 installation prefix before building.
 
 ```bash
 # Windows x64
-dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.4.*-*
+dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.5.*
 
 # Windows arm64
-dotnet add package QtGroup.Qt.Bridge.CSharp.win-arm64 --version 0.4.*-*
+dotnet add package QtGroup.Qt.Bridge.CSharp.win-arm64 --version 0.5.*
 
 # Linux x64 (Ubuntu / WSL)
-dotnet add package QtGroup.Qt.Bridge.CSharp.linux-x64 --version 0.4.*-*
+dotnet add package QtGroup.Qt.Bridge.CSharp.linux-x64 --version 0.5.*
 
 # Linux arm64
-dotnet add package QtGroup.Qt.Bridge.CSharp.linux-arm64 --version 0.4.*-*
+dotnet add package QtGroup.Qt.Bridge.CSharp.linux-arm64 --version 0.5.*
 
 # macOS arm64 (Apple Silicon)
-dotnet add package QtGroup.Qt.Bridge.CSharp.osx-arm64 --version 0.4.*-*
+dotnet add package QtGroup.Qt.Bridge.CSharp.osx-arm64 --version 0.5.*
 ```
 
 Linux/macOS example:
@@ -170,10 +170,9 @@ CLI users and for Linux/WSL development.
 
 #### Using an existing Qt installation
 
-If you already have a Qt 6 installation that includes `qtbase`, `qtsvg`, `qtshadertools`,
-`qtdeclarative`, `qtquick3d`, `qtquick3dphysics`, and `qtquicktimeline`, you can skip building Qt
-from source. Set `QtDir` to the Qt installation prefix (the folder that contains `bin`, `lib`, and
-`include`), then continue with **Build the Qt Bridge for C#**.
+If you already have a Qt 6 installation that includes `qtbase`, `qtsvg`, `qtshadertools` and
+`qtdeclarative`,  can skip building Qt from source. Set `QtDir` to the Qt installation prefix (the
+folder that contains `bin`, `lib`, and `include`) then continue with **Build the Qt Bridge for C#**.
 
 Windows (`cmd` / Native Tools Prompt):
 ```bat
@@ -209,11 +208,11 @@ git clone https://code.qt.io/qt/qt5.git qt6-source
 
 :: Initialize only the modules we need
 cd qt6-source
-init-repository --module-subset=qtbase,qtsvg,qtshadertools,qtdeclarative,qtquick3d,qtquick3dphysics,qtquicktimeline
+init-repository --module-subset=qtbase,qtsvg,qtshadertools,qtdeclarative
 
 :: Configure out-of-source build
 cd ..\qt6-build
-..\qt6-source\configure -prefix ..\qt6-install -release -opensource -confirm-license -submodules qtbase,qtsvg,qtshadertools,qtdeclarative,qtquick3d,qtquick3dphysics,qtquicktimeline -- -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF
+..\qt6-source\configure -prefix ..\qt6-install -release -opensource -confirm-license -submodules qtbase,qtsvg,qtshadertools,qtdeclarative -- -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF
 
 :: Build and install
 cmake --build .
@@ -256,7 +255,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-8.0
 
     git clone https://code.qt.io/qt/qt5.git qt6-source
     cd qt6-source
-    ./init-repository --module-subset=qtbase,qtsvg,qtshadertools,qtdeclarative,qtquick3d,qtquick3dphysics,qtquicktimeline
+    ./init-repository --module-subset=qtbase,qtsvg,qtshadertools,qtdeclarative
     ```
 
 3. **Configure an out-of-source build**
@@ -271,7 +270,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-8.0
       -release \
       -opensource \
       -confirm-license \
-      -submodules qtbase,qtsvg,qtshadertools,qtdeclarative,qtquick3d,qtquick3dphysics,qtquicktimeline \
+      -submodules qtbase,qtsvg,qtshadertools,qtdeclarative \
       -- -DQT_BUILD_TESTS=OFF -DQT_BUILD_EXAMPLES=OFF
     ```
 
@@ -352,7 +351,7 @@ This clears every cached package, so the next restore obtains them again.
 
 **The version changed but was not picked up.** A restore reuses `obj/project.assets.json` from the
 previous run, so a newly published version is not seen — which matters most with a floating version
-reference such as `0.3.*-*`. Force the resolution:
+reference such as `0.5.*`. Force the resolution:
 
 ```bash
 dotnet restore --force

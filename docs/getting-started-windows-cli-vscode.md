@@ -54,14 +54,14 @@ For an existing Windows project, add the package matching your architecture:
 
 ```bash
 # Windows x64
-dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.4.*-*
+dotnet add package QtGroup.Qt.Bridge.CSharp.win-x64 --version 0.5.*
 
 # Windows arm64
-dotnet add package QtGroup.Qt.Bridge.CSharp.win-arm64 --version 0.4.*-*
+dotnet add package QtGroup.Qt.Bridge.CSharp.win-arm64 --version 0.5.*
 ```
 
 The package is platform-specific because the bridge includes native runtime pieces for the target
-platform. The `0.4.*-*` version range stays on the 0.4 pre-release train.
+platform. The `0.5.*` version range stays on the 0.5 release train.
 
 Then build and run from the command line or your editor:
 

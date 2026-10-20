@@ -93,14 +93,14 @@ For an existing Linux project, add the package that matches your architecture:
 
 ```bash
 # Linux x64
-dotnet add package QtGroup.Qt.Bridge.CSharp.linux-x64 --version 0.4.*-*
+dotnet add package QtGroup.Qt.Bridge.CSharp.linux-x64 --version 0.5.*
 
 # Linux arm64
-dotnet add package QtGroup.Qt.Bridge.CSharp.linux-arm64 --version 0.4.*-*
+dotnet add package QtGroup.Qt.Bridge.CSharp.linux-arm64 --version 0.5.*
 ```
 
 The package is platform-specific because the bridge includes native build/runtime pieces for the
-target platform. The `0.4.*-*` version range stays on the 0.4 pre-release train.
+target platform. The `0.5.*` version range stays on the 0.5 release train.
 
 Then build and run with `QtDir` set, as described above:
 
