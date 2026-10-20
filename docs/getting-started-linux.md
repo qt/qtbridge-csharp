@@ -16,8 +16,18 @@ with the bridge package, so the build must be pointed at a compatible Qt 6 insta
   need to write CMake files or C++ code for a template project.
 </p>
 
-The selected Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`. On Linux, install Qt 6 from
-your distribution packages or the Qt online installer, then point `QtDir` at that Qt prefix.
+The selected Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`. The Qt online installer
+installs Qt with this layout, for example in `~/Qt/6.11.0/gcc_64`. Qt from distribution packages
+often keeps its CMake files elsewhere, such as `/usr/lib/x86_64-linux-gnu/cmake/Qt6`, and then
+cannot be used as `QtDir`.
+
+Every build needs `QtDir`, including the build that `dotnet run` starts. Set it as an environment
+variable in your shell, for example in your shell profile, so that you do not have to pass it to
+every command:
+
+```bash
+export QtDir=/path/to/qt-prefix
+```
 
 ## Create a project from templates
 
@@ -34,11 +44,19 @@ dotnet new qt -n MyQtApp
 cd MyQtApp
 ```
 
-Build with `QtDir` pointing to your Qt installation:
+Build and run the project with `QtDir` set:
+
+```bash
+dotnet build
+dotnet run
+```
+
+If you do not set `QtDir` in the environment, pass it to both commands, because `dotnet run`
+builds the project again:
 
 ```bash
 dotnet build -p:QtDir=/path/to/qt-prefix
-dotnet run
+dotnet run -p:QtDir=/path/to/qt-prefix
 ```
 
 For template options such as `--Framework` and `--SampleCode`, generated project structure, and QML
@@ -59,10 +77,11 @@ dotnet add package QtGroup.Qt.Bridge.CSharp.linux-arm64 --version 0.4.*-*
 The package is platform-specific because the bridge includes native build/runtime pieces for the
 target platform. The `0.4.*-*` version range stays on the 0.4 pre-release train.
 
-Then build with `QtDir`:
+Then build and run with `QtDir` set, as described above:
 
 ```bash
-dotnet build -p:QtDir=/path/to/qt-prefix
+dotnet build
+dotnet run
 ```
 
 For the full migration workflow, including QML files, startup calls, and exposing your existing
@@ -83,6 +102,6 @@ If the project does not build or run, check these areas first:
 
 * The .NET SDK is missing or older than .NET 8
 * Required Linux build packages are missing
-* `QtDir` points to the wrong directory
+* `QtDir` points to the wrong directory, or is not set for `dotnet run`
 * Qt cannot be found by CMake
 * The selected package or runtime does not match your Linux architecture (x64 or arm64)
