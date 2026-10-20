@@ -1,5 +1,33 @@
 # Change Log
 
+## Version 0.5.0
+
+### Features
+
+* Add Linux arm64 support and extend the platform-specific package and build integration.
+
+* Extend metadata-based exports with collection change events, configurable metadata files,
+  checksum validation, and improved type registration and object loading.
+
+* Add configurable resource packaging, including native-host manifest data and validation for
+  external resource packages.
+
+* Improve the Visual Studio QML Language Server integration with local build settings, updated
+  QML build metadata, and support for passing the configured Qt QML directory before the first
+  build.
+
+* Add a tutorial for creating a C# and QML application and improve the profiling tools.
+
+### Fixes and compatibility improvements
+
+* Improve safe-method handling, cached constructors, managed exception handling, and native/managed
+  interop reliability.
+
+* Improve cross-platform path handling, redirected process output, test isolation, build
+  diagnostics, and incremental native builds.
+
+* Update CI dependencies to Qt 6.12.0 and the current major installed .NET version.
+
 ## Version 0.4.0 &ndash; Beta
 
 ### Features
