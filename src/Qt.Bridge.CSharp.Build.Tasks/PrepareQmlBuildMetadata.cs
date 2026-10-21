@@ -25,6 +25,8 @@ namespace Qt.Bridge.CSharp.Build.Tasks
 
         public ITaskItem[] GeneratedImportPaths { get; set; } = [];
 
+        public bool MetadataOnlyBuild { get; set; }
+
         [Output]
         public string BuildIniPath { get; set; } = "";
 
@@ -46,6 +48,9 @@ namespace Qt.Bridge.CSharp.Build.Tasks
                 if (!ValidateInputs())
                     return false;
 
+                if (MetadataOnlyBuild)
+                    return WriteProjectSourcesQrc();
+
                 BuildReadyMarker.Invalidate(BuildDirectory);
                 BuildIniPath = Path.Combine(BuildDirectory, ".qt", QmllsBuildIniPatcher.FileName);
                 if (!File.Exists(BuildIniPath)) {
@@ -54,18 +59,8 @@ namespace Qt.Bridge.CSharp.Build.Tasks
                     return false;
                 }
 
-                var (qmlFiles, qmlFilesValid) = CreateQmlFileInfos();
-                if (!qmlFilesValid)
+                if (!WriteProjectSourcesQrc())
                     return false;
-
-                var qrcWriteResult = ProjectSourcesQrcWriter.Write(BuildDirectory, qmlFiles);
-                ProjectSourcesQrcPath = qrcWriteResult.Path;
-                ProjectSourcesQrcChanged = qrcWriteResult.Changed;
-                foreach (var collision in qrcWriteResult.Collisions) {
-                    var paths = string.Join("', '", collision.SourcePaths);
-                    Log.LogWarning("Qt Bridge omitted colliding QML files from qmlls metadata: "
-                        + $"'{paths}' map to the same resource path '{collision.ResourcePath}'.");
-                }
 
                 var importPaths = PrependDistinctPath(
                     BuildDirectory,
@@ -111,6 +106,23 @@ namespace Qt.Bridge.CSharp.Build.Tasks
                 Log.LogWarningFromException(exception, showStackTrace: false);
                 return false;
             }
+        }
+
+        private bool WriteProjectSourcesQrc()
+        {
+            var (qmlFiles, qmlFilesValid) = CreateQmlFileInfos();
+            if (!qmlFilesValid)
+                return false;
+
+            var qrcWriteResult = ProjectSourcesQrcWriter.Write(BuildDirectory, qmlFiles);
+            ProjectSourcesQrcPath = qrcWriteResult.Path;
+            ProjectSourcesQrcChanged = qrcWriteResult.Changed;
+            foreach (var collision in qrcWriteResult.Collisions) {
+                var paths = string.Join("', '", collision.SourcePaths);
+                Log.LogWarning("Qt Bridge omitted colliding QML files from qmlls metadata: "
+                    + $"'{paths}' map to the same resource path '{collision.ResourcePath}'.");
+            }
+            return true;
         }
 
         private bool ValidateInputs()

@@ -216,6 +216,34 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
         }
 
         [TestMethod]
+        public void Execute_MetadataOnlyBuildWritesQrcWithoutIni()
+        {
+            var paths = CreatePaths();
+            var buildEngine = new TestBuildEngine();
+            var task = CreateTask(paths, buildEngine);
+            task.MetadataOnlyBuild = true;
+            task.QmlFiles =
+            [
+                CreateQmlItem(
+                    Path.Combine(paths.ProjectSourceDirectory, "Main.qml"),
+                    "Application",
+                    "Main")
+            ];
+
+            var result = task.Execute();
+
+            Assert.IsTrue(result);
+            Assert.HasCount(0, buildEngine.Warnings);
+            Assert.IsTrue(task.ProjectSourcesQrcChanged);
+            Assert.IsNotNull(task.ProjectSourcesQrcPath);
+            var qrc = File.ReadAllText(task.ProjectSourcesQrcPath);
+            Assert.Contains("prefix=\"/qt/qml/Application\"", qrc);
+            Assert.Contains("Main.qml", qrc);
+            Assert.IsFalse(File.Exists(paths.IniPath));
+            Assert.AreEqual("", task.ReadyMarkerPath);
+        }
+
+        [TestMethod]
         public void Execute_WarnsAndFiltersResourceIdentityCollision()
         {
             var paths = CreatePaths();

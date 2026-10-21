@@ -33,6 +33,24 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
         }
 
         [TestMethod]
+        public void MetadataOnlyBuild_WritesProjectSourcesQrc()
+        {
+            var projectPath = WriteProject(generatedWorkspaceExists: true);
+
+            var result = RunMsBuild(
+                projectPath,
+                "QtBridgeFinalizeMetadataOnlyBuild",
+                "QtGenSourceCode=false");
+
+            Assert.AreEqual(0, result.ExitCode, result.Output);
+            var qtDirectory = Path.Combine(TempDirectory, "native", "build", ".qt");
+            var qrc = File.ReadAllText(Path.Combine(qtDirectory, ProjectSourcesQrcWriter.FileName));
+            Assert.Contains("prefix=\"/qt/qml/Views\"", qrc);
+            Assert.Contains("Details.qml", qrc);
+            Assert.IsTrue(File.Exists(Path.Combine(qtDirectory, BuildReadyMarker.FileName)));
+        }
+
+        [TestMethod]
         public void QtBridgeBuild_ReportsTaskDiagnosticWithoutPublishingReadyMarker()
         {
             var projectPath = WriteProject(generatedWorkspaceExists: false);
@@ -418,7 +436,8 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
 
         private static BuildResult RunMsBuild(
             string projectPath,
-            string target = "QtBridgeBuild")
+            string target = "QtBridgeBuild",
+            params string[] properties)
         {
             var startInfo = new ProcessStartInfo("dotnet")
             {
@@ -431,6 +450,8 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             startInfo.ArgumentList.Add("/t:" + target);
             startInfo.ArgumentList.Add("/nologo");
             startInfo.ArgumentList.Add("/v:minimal");
+            foreach (var property in properties)
+                startInfo.ArgumentList.Add("/p:" + property);
 
             using var process = Process.Start(startInfo)
                 ?? throw new InvalidOperationException("Failed to start dotnet msbuild.");

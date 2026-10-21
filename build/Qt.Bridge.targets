@@ -1034,17 +1034,35 @@ namespace Qt.Qml
   // In a "metadata-only" build, the QtBridgeBuild target does not run, which can leave certain
   // post-conditions unsatisfied, such as up-to-date output files required for incremental build.
   //
+  // The project sources resource file maps the resource paths of the QML files to their sources,
+  // so that tools such as QML Preview find the sources of the QML files that the application
+  // loads.
+  //
   // TO-DO: Generate meaningful content for QML-LS configuration files.
   //
   -->
   <Target Name="QtBridgeFinalizeMetadataOnlyBuild" AfterTargets="QtBridgeDeployResources"
+    DependsOnTargets="QtBridgeSetupQml"
     Condition="'$(DesignTimeBuild)' != 'true' AND '$(QtGenSourceCode)' != 'true'">
     <ItemGroup>
+      <_QtProjectSourcesQml Include="@(Qml)">
+        <SourcePath>%(FullPath)</SourcePath>
+        <ModulePath>%(SourceDir)</ModulePath>
+        <TypeName>%(TypeName)</TypeName>
+      </_QtProjectSourcesQml>
       <QtBridgeFiles Include="$(_QtProjectNativeBuildDir)/.qt/.qmlls.build.ini" />
       <QtBridgeFiles Include="$(_QtProjectNativeBuildDir)/.qt/qtbridge_project_sources.qrc" />
       <QtBridgeFiles Include="$(_QtProjectNativeBuildDir)/.qt/qtbridge-build.ready" />
     </ItemGroup>
     <MakeDir Directories="@(QtBridgeFiles->DirectoryName()->Distinct())" />
+    <PrepareQmlBuildMetadata
+      ContinueOnError="WarnAndContinue"
+      MetadataOnlyBuild="true"
+      BuildDirectory="$(_QtProjectNativeBuildDir)"
+      GeneratedSourceDirectory="$(_QtProjectNativeSourceDir)"
+      ProjectSourceDirectory="$(MSBuildProjectDirectory)"
+      QmlFiles="@(_QtProjectSourcesQml)" />
+    <!-- Touch the files after writing them; their times are outputs of the up-to-date check. -->
     <Touch Files="@(QtBridgeFiles)" AlwaysCreate="true" />
   </Target>
   <!-- END QtBridgeFinalizeMetadataOnlyBuild -->

@@ -134,6 +134,7 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             Directory.CreateDirectory(TempDirectory);
             var props = Path.Combine(FindRepositoryRoot(), "build", "Qt.Bridge.props");
             var targets = Path.Combine(FindRepositoryRoot(), "build", "Qt.Bridge.targets");
+            var taskAssembly = typeof(PrepareQmlBuildMetadata).Assembly.Location;
             var project = Path.Combine(TempDirectory, "QmlDeployment.proj");
             File.WriteAllText(project, $"""
                 <Project>
@@ -149,6 +150,7 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
                     <BaseIntermediateOutputPath>{XmlEscape(intermediateOutputPath)}</BaseIntermediateOutputPath>
                     <IntermediateOutputPath>{XmlEscape(intermediateOutputPath)}</IntermediateOutputPath>
                     <TargetDir>$(MSBuildProjectDirectory)/output/</TargetDir>
+                    <QtBridgeBuildTasks>{XmlEscape(taskAssembly)}</QtBridgeBuildTasks>
                   </PropertyGroup>
                   <Import Project="{XmlEscape(targets)}" />
                   <Target Name="AddFixtureQml" BeforeTargets="QtBridgeSetupQml">
