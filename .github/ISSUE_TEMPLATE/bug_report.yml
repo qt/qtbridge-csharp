@@ -1,0 +1,87 @@
+name: Bug report
+description: Report a problem with Qt Bridge for C#.
+labels: [ bug ]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem. Issues reported here are triaged
+        and moved to the [Qt bug tracker](https://qt-project.atlassian.net/browse/QTBRIDGES),
+        where they are tracked and fixed. You can also report directly there.
+
+        For questions and general help, use the
+        [Qt Bridges category](https://forum.qt.io/category/78/qt-bridges) on the Qt Forum.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What went wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: A minimal project or code snippet helps a lot.
+      placeholder: |
+        1. Create a project with `dotnet new ...`
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include error messages and stack traces, if any.
+    validations:
+      required: true
+  - type: input
+    id: bridge-version
+    attributes:
+      label: Qt Bridge for C# version
+      placeholder: e.g. 1.0.0
+    validations:
+      required: true
+  - type: input
+    id: qt-version
+    attributes:
+      label: Qt version
+      placeholder: e.g. 6.12.0
+    validations:
+      required: true
+  - type: input
+    id: dotnet-version
+    attributes:
+      label: .NET SDK version
+      description: Output of `dotnet --version`.
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and architecture
+      placeholder: e.g. Windows 11 arm64, Ubuntu 24.04 x64
+    validations:
+      required: true
+  - type: dropdown
+    id: tooling
+    attributes:
+      label: Tooling
+      multiple: true
+      options:
+        - Visual Studio
+        - VS Code
+        - .NET CLI
+        - Other
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Build or runtime output. It is formatted as code automatically.
+      render: shell

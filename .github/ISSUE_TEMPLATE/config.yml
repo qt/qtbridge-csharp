@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Qt bug tracker
+    url: https://qt-project.atlassian.net/browse/QTBRIDGES
+    about: Report bugs and request features directly in the Qt bug tracker.
+  - name: Qt Forum
+    url: https://forum.qt.io/category/78/qt-bridges
+    about: Ask questions and discuss Qt Bridges with the community.
