@@ -36,7 +36,9 @@ and dotnet CLI templates that demonstrate the recommended project structure, how
 and logic in C#, and how to connect those models to QML views.
 
 Detailed documentation can be found
-[here](https://doc-snapshots.qt.io/qtbridges-dev/qtbridges-csharp-index.html).
+[here](https://doc-snapshots.qt.io/qtbridge-csharp/index.html). For the most recent
+documentation, built from the `dev` branch on every change, see
+[GitHub Pages](https://qt.github.io/qtbridge-csharp/).
 
 ## Supported platforms
 
