@@ -35,3 +35,30 @@ instructions:
     maxTimeBetweenOutput: 2000
     userMessageOnFailure: >
       Failed to run test for release target.
+
+  - type: MakeDirectory
+    directory: "{{.AgentWorkingDir}}\\artifacts"
+  - type: ExecuteCommand
+    command: ["cmd.exe", "/C", "copy",  "{{.AgentWorkingDir}}\\qt\\qtbridge-csharp\\nuget\\Qt.Bridge.CSharp.Package\\bin\\Release\\*.nupkg", "{{.AgentWorkingDir}}\\artifacts"]
+    maxTimeInSeconds: 6000
+    maxTimeBetweenOutput: 2000
+    userMessageOnFailure: >
+      Failed to copy release nupkg package.
+  - type: ExecuteCommand
+    command: ["cmd.exe", "/C", "copy",  "{{.AgentWorkingDir}}\\qt\\qtbridge-csharp\\nuget\\Qt.Bridge.CSharp.Templates\\bin\\Release\\*.nupkg", "{{.AgentWorkingDir}}\\artifacts"]
+    maxTimeInSeconds: 6000
+    maxTimeBetweenOutput: 2000
+    userMessageOnFailure: >
+      Failed to copy release nupkg template.
+  - type: ExecuteCommand
+    command: ["cmd.exe", "/C", "copy", "{{.AgentWorkingDir}}\\qt\\qtbridge-csharp\\src\\Qt.Bridge.CSharp.VisualStudio.Extension\\bin\\Release\\net472\\Qt.Bridge.CSharp.vsix", "{{.AgentWorkingDir}}\\artifacts"]
+    maxTimeInSeconds: 6000
+    maxTimeBetweenOutput: 2000
+    userMessageOnFailure: >
+      Failed to copy vsxi.
+
+  - type: UploadArtifact
+    archiveDirectory: "{{.AgentWorkingDir}}\\artifacts"
+    transferType: UploadModuleBuildArtifact
+    maxTimeInSeconds: 1200
+    maxTimeBetweenOutput: 1200
