@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Xml.Linq;
 
 namespace Test_Qt.Bridge.CSharp.Build.Tasks
@@ -189,7 +190,17 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             var qtDir = Environment.GetEnvironmentVariable("QtDir");
             var rcc = Environment.GetEnvironmentVariable("QtRccExecutable");
             if (string.IsNullOrEmpty(rcc) && !string.IsNullOrEmpty(qtDir)) {
-                rcc = new[] { "bin/rcc.exe", "libexec/rcc", "bin/rcc" }
+                // Same order as QtBridgeResolveResourcePack: distribution packages keep the
+                // Qt 6 rcc under <libdir>/qt6, and bin/rcc may be the Qt 5 one there.
+                var multiarch = RuntimeInformation.OSArchitecture == Architecture.Arm64
+                    ? "aarch64-linux-gnu"
+                    : "x86_64-linux-gnu";
+                rcc = new[]
+                    {
+                        "bin/rcc.exe", "libexec/rcc", "lib64/qt6/libexec/rcc",
+                        $"lib/{multiarch}/qt6/libexec/rcc", "lib/qt6/libexec/rcc", "lib/qt6/rcc",
+                        "bin/rcc"
+                    }
                     .Select(path => Path.Combine(qtDir, path)).FirstOrDefault(File.Exists);
             }
             if (string.IsNullOrEmpty(rcc) || !File.Exists(rcc))
