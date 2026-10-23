@@ -257,12 +257,16 @@ namespace Test_Qt.Bridge.CSharp.Api
         public unsafe void HiddenMethod()
         {
             var obj = MethodInfo.GetCurrentMethod().GetType().GetProperty("Name");
+            // Arrays pass as object references, as QDotNetArray does. The default marshaling of
+            // object[] is a COM SAFEARRAY, which only exists on Windows.
+            var index = new Parameter(typeof(object[]).AssemblyQualifiedName,
+                (ulong)Parameter.ObjectRef);
             var ptrGetValue = Adapter.ResolveInstanceMethod(ToPtr(obj), "GetValue", 0,
-                [Param<object>(), Param<object>(), Param<object[]>()]);
+                [Param<object>(), Param<object>(), index]);
             Assert.AreNotEqual(nint.Zero, ptrGetValue);
 
             var ptrSafe = Adapter.ResolveSafeMethod(ptrGetValue, 0,
-                [Param<object>(), Param<object>(), Param<object>(), Param<object[]>()]);
+                [Param<object>(), Param<object>(), Param<object>(), index]);
             Assert.AreNotEqual(nint.Zero, ptrSafe);
 
             var fnGetValue = (delegate* unmanaged[Stdcall]<nint, nint, nint, nint>)ptrSafe;
