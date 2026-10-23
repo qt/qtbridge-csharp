@@ -20,7 +20,8 @@
     <AssemblyName>WeatherApp</AssemblyName>
     <RootNamespace>Weather</RootNamespace>
     <QtQmlRootModule>Weather</QtQmlRootModule>
-    <QtExportAs>metadata</QtExportAs>
+    <QtExportAs Condition="'$(QtExportAs)' == '' AND $([MSBuild]::IsOSPlatform('Windows'))"
+      >metadata</QtExportAs>
   </PropertyGroup>
 
   <ItemGroup>
