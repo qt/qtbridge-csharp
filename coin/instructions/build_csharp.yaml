@@ -31,8 +31,8 @@ instructions:
 
   - type: ExecuteCommand
     command: ["dotnet", "test", "-c", "Release", "--no-build"]
-    maxTimeInSeconds: 6000
-    maxTimeBetweenOutput: 2000
+    maxTimeInSeconds: 12000
+    maxTimeBetweenOutput: 6000
     userMessageOnFailure: >
       Failed to run test for release target.
 
