@@ -17,12 +17,34 @@ with the bridge package, so the build must be pointed at a compatible Qt 6 insta
   need to write CMake files or C++ code for a template project.
 </p>
 
-The selected Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`. Distribution packages with a
-different library directory are also accepted: `lib64/cmake/Qt6/Qt6Config.cmake` on Fedora and
-openSUSE, and `lib/<multiarch>/cmake/Qt6/Qt6Config.cmake` (for example `lib/x86_64-linux-gnu`) on
-Debian and Ubuntu. Install Qt 6 from your distribution packages or the Qt online installer, then
-point `QtDir` at that Qt prefix: `/usr` for distribution packages, or for example
-`~/Qt/6.11.0/gcc_64` for the Qt online installer.
+`QtDir` is the Qt installation prefix. The bridge looks for `Qt6Config.cmake` in three layouts
+below it:
+
+| Layout | Used by | Example `QtDir` |
+|---|---|---|
+| `lib/cmake/Qt6` | Qt online installer, Qt built from source, Arch Linux | `~/Qt/6.11.0/gcc_64` |
+| `lib64/cmake/Qt6` | Fedora, openSUSE | `/usr` |
+| `lib/<multiarch triplet>/cmake/Qt6` | Debian, Ubuntu | `/usr` |
+
+`QtDir` can also name the directory that contains `Qt6Config.cmake`. The build then derives the
+prefix from it and reports the prefix it uses. For Ubuntu's Qt packages, `Qt6Config.cmake` is in
+`/usr/lib/<multiarch triplet>/cmake/Qt6`, for example `/usr/lib/x86_64-linux-gnu/cmake/Qt6` on x64
+or `/usr/lib/aarch64-linux-gnu/cmake/Qt6` on arm64, so `QtDir=/usr` and `QtDir` set to that
+directory are equivalent.
+
+### Qt from Debian or Ubuntu packages
+
+Besides `qt6-base-dev` and `qt6-declarative-dev`, install the Qt private headers and `patchelf`:
+
+```bash
+sudo apt install -y qt6-base-private-dev patchelf
+```
+
+Both are needed when types are exported as source code, which is the default. The bridge then
+compiles generated C++ code against `Qt6::CorePrivate`, and Qt's deploy step uses `patchelf` to set
+an RPATH on the Qt plugins it copies to the output directory. With
+[metadata-based exports](metadata-based-exports.md) (`<QtExportAs>metadata</QtExportAs>`), no
+native build runs and neither package is required.
 
 Every build needs `QtDir`, including the build that `dotnet run` starts. Set it as an environment
 variable in your shell, for example in your shell profile, so that you do not have to pass it to
@@ -98,7 +120,7 @@ After the first build, check that:
 * The application launches
 * QML files are present in the project folder
 * `QtDir` points to a Qt prefix containing `lib/cmake/Qt6/Qt6Config.cmake` (or
-  `lib64/cmake/...`, or `lib/<multiarch>/cmake/...`)
+  `lib64/cmake/...`, or `lib/<multiarch triplet>/cmake/...`)
 
 ## Common first issues
 
@@ -109,3 +131,6 @@ If the project does not build or run, check these areas first:
 * `QtDir` points to the wrong directory, or is not set for `dotnet run`
 * Qt cannot be found by CMake
 * The selected package or runtime does not match your Linux architecture (x64 or arm64)
+
+For specific build error messages, see
+[Linux build errors with distribution Qt](troubleshooting.md#linux-build-errors-with-distribution-qt).

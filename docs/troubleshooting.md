@@ -106,6 +106,42 @@ COREHOST_TRACE=1 COREHOST_TRACEFILE="$PWD/corehost.trace" \
 
 Set `COREHOST_TRACE=2` for more detail. Remove the variables after the investigation.
 
+## Linux build errors with distribution Qt
+
+These errors appear when building against Qt from Debian or Ubuntu packages. The last two occur
+only when types are exported as source code, which starts a native CMake build; with
+`<QtExportAs>metadata</QtExportAs>` they do not occur.
+
+| Message | Cause and fix |
+|---|---|
+| `Qt Bridge for C# found Qt6Config.cmake in '...', but could not derive the Qt installation prefix from it` | `QtDir` names a Qt CMake package directory in a layout other than `lib/cmake/Qt6`, `lib64/cmake/Qt6`, or `lib/<multiarch triplet>/cmake/Qt6`. Set `QtDir` to the Qt prefix, such as `/usr`. |
+| `Imported target "Qt6::CorePrivate" includes non-existent path "/usr/include/<triplet>/qt6/QtCore/6.x.y"` | Qt private headers are missing: `sudo apt install qt6-base-private-dev`. If another `*Private` module is reported next, install its package, such as `qt6-declarative-private-dev`. |
+| `file RPATH_SET could not write new RPATH ... No valid ELF RPATH or RUNPATH entry exists in the file` | Distribution Qt binaries have no RPATH, and CMake can only replace an existing one. Install `patchelf`: `sudo apt install patchelf`. |
+
+If `QtDir` still has an old value after you change it in the project, check for a `-p:QtDir=...`
+on the command line, which overrides the project. If the project sets `QtDir` only when it is empty
+(`Condition="'$(QtDir)' == ''"`), an exported environment variable wins; check `echo $QtDir`.
+
+During the native build, CMake also prints many warnings of the form *"The qml plugin '...' is a
+dependency of '...', but the link target ... does not exist"*. With a shared Qt such as the
+distribution packages they are harmless: the plugins are loaded at run time instead of being
+linked.
+
+## The native build fails after switching to a different Qt
+
+The native CMake build keeps its configuration, including the Qt it found, in a CMake cache under
+`obj/<configuration>/<framework>/qt/native/build`. When `QtDir` changes, the build resets that
+cache automatically and reports *"Qt Bridge: Qt installation changed, resetting the CMake cache."*
+
+If the native build still fails with CMake errors and *"Configuring incomplete, errors occurred!"*
+after a Qt change, for example because the Qt installation was replaced in place under the same
+path, run `dotnet clean` once, then build again:
+
+```bash
+dotnet clean
+dotnet build
+```
+
 ## Smart App Control blocks a build
 
 If `dotnet build` reports *"An Application Control policy has blocked this file"* followed by

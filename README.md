@@ -109,13 +109,36 @@ dotnet add package QtGroup.Qt.Bridge.CSharp.osx-arm64 --version 0.4.*-*
 Linux/macOS example:
 
 ```bash
+# Qt built from source or installed with the Qt online installer
+dotnet build -p:QtDir=~/work/qt6-install
+
+# Qt from Debian / Ubuntu packages (qt6-base-dev, qt6-declarative-dev, ...)
 dotnet build -p:QtDir=/usr
 ```
 
-The selected Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`. Distribution packages
-with a different library directory are also accepted: `lib64/cmake/Qt6/Qt6Config.cmake` on Fedora
-and openSUSE, and `lib/<multiarch>/cmake/Qt6/Qt6Config.cmake` (for example
-`lib/x86_64-linux-gnu`) on Debian and Ubuntu. For distribution packages, the prefix is `/usr`.
+The selected Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`,
+`lib64/cmake/Qt6/Qt6Config.cmake` (Fedora, openSUSE), or
+`lib/<multiarch triplet>/cmake/Qt6/Qt6Config.cmake` (Debian, Ubuntu). `QtDir` can also name
+the directory that contains `Qt6Config.cmake`; the build then derives the prefix from it. For
+Ubuntu's Qt, `QtDir=/usr` and `QtDir=/usr/lib/<multiarch triplet>/cmake/Qt6`, for example
+`/usr/lib/x86_64-linux-gnu/cmake/Qt6`, are equivalent.
+
+#### Using Qt from Debian / Ubuntu packages
+
+In addition to `qt6-base-dev` and `qt6-declarative-dev`, a distribution Qt needs these packages
+when types are exported as source code (the default, `QtExportAs` not set to `metadata`), because
+that triggers a native CMake build and Qt deployment:
+
+```bash
+sudo apt install -y qt6-base-private-dev patchelf
+```
+
+- `qt6-base-private-dev`: the generated native code uses `Qt6::CorePrivate`.
+- `patchelf`: Qt's deploy step sets an RPATH on the copied plugins. Distribution Qt binaries have
+  no RPATH entry, and CMake's built-in `file(RPATH_SET)` can only replace an existing one.
+
+With `<QtExportAs>metadata</QtExportAs>`, no native build is needed and neither package is
+required.
 
 ### Using the Visual Studio extension
 
@@ -480,6 +503,32 @@ See [Resources in Qt Bridge for C# apps](HOW-TO%20resources.md) for the resource
   - Windows: `set QTBRIDGE_TEST_ROOT=C:\temp`
   - Ubuntu / WSL: `export QTBRIDGE_TEST_ROOT=/tmp`
 - **WSL GUI**: Make sure GUI forwarding is available (WSLg or X server).
+- **"Qt Bridge for C# found Qt6Config.cmake in '...', but could not derive the Qt installation
+  prefix from it"**:
+  - `QtDir` names a Qt CMake package directory in a layout other than `lib/cmake/Qt6`,
+    `lib64/cmake/Qt6`, or `lib/<multiarch triplet>/cmake/Qt6`. Set `QtDir` to the Qt prefix
+    instead.
+- **`QtDir` keeps an old value after changing it in the project**:
+  - A `-p:QtDir=...` on the command line overrides the project.
+  - If the project sets it only when empty (`Condition="'$(QtDir)' == ''"`), an exported
+    environment variable wins; check `echo $QtDir`.
+- **CMake: "Imported target "Qt6::CorePrivate" includes non-existent path
+  .../qt6/QtCore/6.x.y"**:
+  - The Qt private headers are missing: `sudo apt install -y qt6-base-private-dev`
+  - If CMake then reports another missing `*Private` module (e.g. Qml or Quick), install the
+    matching package, e.g. `qt6-declarative-private-dev`.
+  - Only happens with a native build (source-code export); `QtExportAs=metadata` avoids it.
+- **"file RPATH_SET could not write new RPATH ... No valid ELF RPATH or RUNPATH entry exists"**
+  during "Error deploying Qt binaries with CMake install":
+  - Install patchelf: `sudo apt install -y patchelf`
+- **Many CMake warnings "The qml plugin '...' is a dependency of '...', but the link target ...
+  does not exist"**: harmless with a shared (non-static) Qt such as the distribution packages; the
+  plugins are loaded at run time instead of being linked.
+- **Native build fails with "Configuring incomplete, errors occurred!" after switching Qt**:
+  - The build resets the CMake cache under `obj/<configuration>/<framework>/qt/native/build`
+    automatically when `QtDir` changes. If the Qt installation was replaced under the same path,
+    the cache can still refer to the old one.
+  - Run `dotnet clean` once, then build again.
 - **Build fails with "An Application Control policy has blocked this file"**: See
   [Smart App Control blocks a build](docs/troubleshooting.md#smart-app-control-blocks-a-build).
 
