@@ -68,6 +68,43 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             Assert.DoesNotContain("CMake could not be run", result.Output);
         }
 
+        [TestMethod]
+        public async Task ChangedQtDirResetsTheCMakeCache()
+        {
+            var project = WriteProject(WriteFakeCMake(), reason: Reason);
+            var buildDir = WriteCMakeCache(Path.Combine(TempDirectory, "old-qt"));
+
+            var result = await BuildAsync(project);
+
+            Assert.Contains("Qt installation changed, resetting the CMake cache.", result.Output);
+            Assert.IsFalse(File.Exists(Path.Combine(buildDir, "CMakeCache.txt")));
+            Assert.IsFalse(Directory.Exists(Path.Combine(buildDir, "CMakeFiles")));
+        }
+
+        [TestMethod]
+        public async Task UnchangedQtDirKeepsTheCMakeCache()
+        {
+            var project = WriteProject(WriteFakeCMake(), reason: Reason);
+            var buildDir = WriteCMakeCache(Path.Combine(TempDirectory, "qt"));
+
+            var result = await BuildAsync(project);
+
+            Assert.DoesNotContain("Qt installation changed", result.Output);
+            Assert.IsTrue(File.Exists(Path.Combine(buildDir, "CMakeCache.txt")));
+        }
+
+        // Simulates a previous configure against the Qt in qtDir.
+        private string WriteCMakeCache(string qtDir)
+        {
+            var buildDir = Path.Combine(TempDirectory, "native", "build");
+            Directory.CreateDirectory(Path.Combine(buildDir, "CMakeFiles"));
+            File.WriteAllText(Path.Combine(buildDir, "CMakeCache.txt"), "");
+            File.WriteAllText(Path.Combine(buildDir, "qt_bridge_qtdir.txt"),
+                Path.TrimEndingDirectorySeparator(Path.GetFullPath(qtDir))
+                + Path.DirectorySeparatorChar);
+            return buildDir;
+        }
+
         // Succeeds for --version, so the probe passes, and fails for anything else.
         private string WriteFakeCMake()
         {

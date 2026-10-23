@@ -565,6 +565,28 @@ namespace Qt.Qml
     <MakeDir Directories="$(QtNativeBuildDir)" />
     <MakeDir Directories="$(QtNativeBinDir)" />
 
+    <!--
+      The CMake cache records the Qt found by the previous configure. If QtDir has changed since,
+      remove the cache so that CMake configures against the new Qt instead of the old one.
+    -->
+    <PropertyGroup>
+      <_QtBridgeQtDirStamp>$(_QtProjectNativeBuildDir)/qt_bridge_qtdir.txt</_QtBridgeQtDirStamp>
+      <_QtBridgeQtDirCurrent>$([MSBuild]::NormalizeDirectory('$(QtDir)'))</_QtBridgeQtDirCurrent>
+      <_QtBridgeQtDirPrevious></_QtBridgeQtDirPrevious>
+      <_QtBridgeQtDirPrevious Condition="Exists('$(_QtBridgeQtDirStamp)')"
+        >$([System.IO.File]::ReadAllText('$(_QtBridgeQtDirStamp)').Trim())</_QtBridgeQtDirPrevious>
+      <_QtBridgeResetCMakeCache>false</_QtBridgeResetCMakeCache>
+      <_QtBridgeResetCMakeCache Condition="Exists('$(_QtProjectNativeBuildDir)/CMakeCache.txt')
+          AND '$(_QtBridgeQtDirPrevious)' != '$(_QtBridgeQtDirCurrent)'">true</_QtBridgeResetCMakeCache>
+    </PropertyGroup>
+    <Message Importance="high" Condition="'$(_QtBridgeResetCMakeCache)' == 'true'"
+      Text="Qt Bridge: Qt installation changed, resetting the CMake cache." />
+    <!-- Like a fresh CMake configure (the fresh option), which also removes CMakeFiles/. -->
+    <Delete Condition="'$(_QtBridgeResetCMakeCache)' == 'true'"
+      Files="$(_QtProjectNativeBuildDir)/CMakeCache.txt" />
+    <RemoveDir Condition="'$(_QtBridgeResetCMakeCache)' == 'true'"
+      Directories="$(_QtProjectNativeBuildDir)/CMakeFiles" />
+
     <PropertyGroup>
       <QtCMakeConfigureCmd Condition="'$(QtHostIsWindows)' == 'true'">$(QtVcVarsCmd)set "CMAKE_PREFIX_PATH=$(QtDir);%CMAKE_PREFIX_PATH%" &amp;&amp; &quot;$(QtCMakeExecutable)&quot; ..\source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G Ninja -DCMAKE_BUILD_TYPE=$(QtBuildConfig)</QtCMakeConfigureCmd>
       <QtCMakeConfigureCmd Condition="'$(QtHostIsLinux)' == 'true' OR '$(QtHostIsMacOS)' == 'true'">CMAKE_PREFIX_PATH=&quot;$(QtDir):$CMAKE_PREFIX_PATH&quot; &quot;$(QtCMakeExecutable)&quot; ../source -DCMAKE_PROJECT_INCLUDE=qtdotnet.cmake -G Ninja -DCMAKE_BUILD_TYPE=$(QtBuildConfig)</QtCMakeConfigureCmd>
@@ -574,6 +596,9 @@ namespace Qt.Qml
     </Exec>
     <Error Condition="'$(CMakeResult)' != '0'"
       Text="Qt Bridge: native build is required because:$(_QtNl)$(QtNativeBuildReason)$(_QtNl)Native configuration failed; see the CMake output above for details." />
+    <!-- Only after a successful configure: if it failed, the next build resets the cache again. -->
+    <WriteLinesToFile File="$(_QtBridgeQtDirStamp)" Lines="$(_QtBridgeQtDirCurrent)"
+      Overwrite="true" WriteOnlyWhenDifferent="true" />
 
     <PropertyGroup>
       <QtCMakeBuildParallelArgs>--parallel</QtCMakeBuildParallelArgs>
