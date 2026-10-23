@@ -27,7 +27,7 @@ as an error.
 
 **Interface-driven composition.**
 Every non-trivial component is hidden behind an interface (`IQtBridgeProjectFileLocator`,
-`IQtBridgeProjectDetector`, `IQtBridgeProjectService`). Concrete types are `sealed`. This
+`IQtBridgeProjectStaticDetector`, `IQtBridgeProjectService`). Concrete types are `sealed`. This
 keeps the seam clean for dependency injection and makes the components independently testable
 without spinning up a Visual Studio process.
 
@@ -66,7 +66,7 @@ match.
 
 ---
 
-### `IQtBridgeProjectDetector` / `QtBridgeProjectDetector`
+### `IQtBridgeProjectStaticDetector` / `QtBridgeProjectStaticDetector`
 
 Answers: **"Is this `.csproj` a Qt Bridge project?"**
 
@@ -111,13 +111,13 @@ A simple enum with two members:
 
 ### `IQtBridgeProjectService` / `QtBridgeProjectService`
 
-The top-level entry point for extension code. It composes the locator and the detector into a
-single async method:
+The top-level entry point for extension code. It composes the locator and the static project
+detector into a single async method:
 
 ```
 TryGetMetadataForPathAsync(path)
   -> locator.FindNearestProjectFile(path)   // locate the .csproj
-  -> detector.DetectAsync(projectFilePath)  // analyse it
+  -> detector.DetectAsync(projectFilePath)  // static project analysis
   -> QtBridgeProjectMetadata?               // null when no project file found
 ```
 
@@ -143,7 +143,7 @@ IQtBridgeProjectService.TryGetMetadataForPathAsync(documentPath)
   |- IQtBridgeProjectFileLocator.FindNearestProjectFile(documentPath)
   │    Search parent directories -> returns path to .csproj, or null
   │
-  |- IQtBridgeProjectDetector.DetectAsync(projectFilePath)
+  |- IQtBridgeProjectStaticDetector.DetectAsync(projectFilePath)
        Parse XML -> check PackageReference / Import / PropertyGroup
        -> QtBridgeProjectMetadata
 ```

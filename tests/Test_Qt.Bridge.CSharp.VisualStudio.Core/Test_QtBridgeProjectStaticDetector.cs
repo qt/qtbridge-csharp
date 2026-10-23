@@ -6,7 +6,7 @@ using Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem;
 namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
 {
     [TestClass]
-    public class Test_QtBridgeProjectDetector
+    public class Test_QtBridgeProjectStaticDetector
     {
         public TestContext TestContext { get; set; }
 
@@ -30,7 +30,7 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
             """;
             await File.WriteAllTextAsync(projectPath, contents, cancellationToken);
 
-            var detector = new QtBridgeProjectDetector();
+            var detector = new QtBridgeProjectStaticDetector();
             var metadata = await detector.DetectAsync(projectPath, cancellationToken);
 
             Assert.IsTrue(metadata.IsQtBridgeProject);
@@ -56,7 +56,7 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
                 </Project>
                 """, cancellationToken);
 
-            var detector = new QtBridgeProjectDetector();
+            var detector = new QtBridgeProjectStaticDetector();
             var metadata = await detector.DetectAsync(projectPath, cancellationToken);
 
             Assert.IsTrue(metadata.IsQtBridgeProject);
@@ -81,7 +81,7 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
             </Project>
             """, cancellationToken);
 
-            var detector = new QtBridgeProjectDetector();
+            var detector = new QtBridgeProjectStaticDetector();
             var metadata = await detector.DetectAsync(projectPath, cancellationToken);
 
             Assert.IsTrue(metadata.IsQtBridgeProject);
@@ -106,7 +106,7 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
             </Project>
             """, cancellationToken);
 
-            var detector = new QtBridgeProjectDetector();
+            var detector = new QtBridgeProjectStaticDetector();
             var metadata = await detector.DetectAsync(projectPath, cancellationToken);
 
             Assert.IsTrue(metadata.IsQtBridgeProject);
@@ -134,7 +134,7 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
                 </Project>
                 """, cancellationToken);
 
-            var detector = new QtBridgeProjectDetector();
+            var detector = new QtBridgeProjectStaticDetector();
             var metadata = await detector.DetectAsync(projectPath, cancellationToken);
 
             Assert.IsTrue(metadata.IsQtBridgeProject);
@@ -161,7 +161,7 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
                 </Project>
                 """, cancellationToken);
 
-            var detector = new QtBridgeProjectDetector();
+            var detector = new QtBridgeProjectStaticDetector();
             var metadata = await detector.DetectAsync(projectPath, cancellationToken);
 
             Assert.IsFalse(metadata.IsQtBridgeProject);

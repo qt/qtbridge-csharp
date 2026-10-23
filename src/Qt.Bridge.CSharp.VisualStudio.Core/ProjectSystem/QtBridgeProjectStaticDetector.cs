@@ -11,7 +11,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem
     /// Detects whether a <c>.csproj</c> file represents a Qt Bridge project by static XML
     /// analysis of package references, imported files, and well-known MSBuild properties.
     /// </summary>
-    public sealed class QtBridgeProjectDetector : IQtBridgeProjectDetector
+    public sealed class QtBridgeProjectStaticDetector : IQtBridgeProjectStaticDetector
     {
         public Task<QtBridgeProjectMetadata> DetectAsync(
             string projectFilePath,

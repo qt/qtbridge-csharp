@@ -4,7 +4,7 @@
 namespace Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem
 {
     /// <summary> Analyzes a project file to determine whether it is a Qt Bridge project. </summary>
-    public interface IQtBridgeProjectDetector
+    public interface IQtBridgeProjectStaticDetector
     {
         /// <summary>
         /// Reads and analyzes <paramref name="projectFilePath"/> and returns the detection result.

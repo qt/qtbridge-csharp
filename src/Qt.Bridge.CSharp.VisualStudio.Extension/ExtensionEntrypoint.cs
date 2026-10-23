@@ -39,7 +39,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             serviceCollection.AddSingleton<IQmlBuildNotificationSettings,
                 QmlBuildNotificationSettings>();
 
-            serviceCollection.AddSingleton<IQtBridgeProjectDetector, QtBridgeProjectDetector>();
+            serviceCollection.AddSingleton<IQtBridgeProjectStaticDetector,
+                QtBridgeProjectStaticDetector>();
             serviceCollection.AddSingleton<IQtBridgeProjectFileLocator,
                 QtBridgeProjectFileLocator>();
             serviceCollection.AddSingleton<IQtBridgeProjectService, QtBridgeProjectService>();
