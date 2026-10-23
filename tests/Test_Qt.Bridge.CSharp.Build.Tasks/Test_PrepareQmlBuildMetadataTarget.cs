@@ -218,6 +218,44 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
         }
 
         [TestMethod]
+        [DataRow("lib")]
+        [DataRow("lib64")]
+        [DataRow("lib/x86_64-linux-gnu")]
+        public void QtLayout_DerivesPrefixFromCMakePackageDirectory(string qtLibDirName)
+        {
+            var projectPath = WriteProject(
+                generatedWorkspaceExists: true,
+                qtLibDirName: qtLibDirName,
+                qtDirIsCMakeDirectory: true);
+
+            var result = RunMsBuild(projectPath, "DumpQtLayout");
+
+            Assert.AreEqual(0, result.ExitCode, result.Output);
+            var qtDirectory = Path.Combine(TempDirectory, "qt");
+            var layout = File.ReadAllLines(Path.Combine(TempDirectory, "qt-layout.txt"));
+            Assert.AreEqual(
+                NormalizeHostPath(Path.Combine(qtDirectory, qtLibDirName)),
+                NormalizeHostPath(layout[0]));
+            Assert.AreEqual(
+                NormalizeHostPath(qtDirectory),
+                Path.TrimEndingDirectorySeparator(NormalizeHostPath(layout[3])));
+        }
+
+        [TestMethod]
+        public void QtValidation_RejectsCMakePackageDirectoryInUnknownLayout()
+        {
+            var projectPath = WriteProject(
+                generatedWorkspaceExists: true,
+                qtLibDirName: "share",
+                qtDirIsCMakeDirectory: true);
+
+            var result = RunMsBuild(projectPath, "QtBridgeValidateQt");
+
+            Assert.AreNotEqual(0, result.ExitCode);
+            Assert.Contains("could not derive the Qt installation prefix", result.Output);
+        }
+
+        [TestMethod]
         public void QtValidationFailure_InvalidatesReadyMarker()
         {
             var projectPath = WriteProject(
@@ -379,7 +417,8 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             bool includeQmlTypes = true,
             bool validQt = true,
             string qtLibDirName = "lib",
-            string[]? qtFiles = null)
+            string[]? qtFiles = null,
+            bool qtDirIsCMakeDirectory = false)
         {
             Directory.CreateDirectory(TempDirectory);
             if (includeQml) {
@@ -401,7 +440,9 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
                     File.WriteAllText(qtFilePath, "");
                 }
             }
-            var qtPath = validQt ? qtDirectory : Path.Combine(TempDirectory, "missing-qt");
+            var qtPath = !validQt ? Path.Combine(TempDirectory, "missing-qt")
+                : qtDirIsCMakeDirectory ? Path.Combine(qtDirectory, qtLibDirName, "cmake", "Qt6")
+                : qtDirectory;
             var sourceExpression = generatedWorkspaceExists
                 ? "$(_QtFixtureSourceDir)"
                 : "$(_QtFixtureSourceDir)/missing";
@@ -431,7 +472,7 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
                   <Target Name="DumpQtLayout" DependsOnTargets="QtBridgeResolveResourcePack">
                     <WriteLinesToFile
                       File="$(MSBuildProjectDirectory)/qt-layout.txt"
-                      Lines="$(QtLibDir);$(QtQmlDir);$(QtRccExecutable)"
+                      Lines="$(QtLibDir);$(QtQmlDir);$(QtRccExecutable);$(QtDir)"
                       Overwrite="true" />
                   </Target>
                   <Target Name="QtBridgeBuild">
