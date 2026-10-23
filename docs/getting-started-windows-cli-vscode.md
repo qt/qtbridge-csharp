@@ -44,8 +44,8 @@ For template options such as `--Framework` and `--SampleCode`, generated project
 item templates, see [Project Templates](templates-and-examples.md).
 
 <p class="docs-hint">
-  On Windows arm64, the package does not bundle Qt (unlike win-x64), so point <code>QtDir</code>
-  at a Qt 6 installation: <code>dotnet build -p:QtDir=D:\Qt\6.11.0\msvc2022_arm64</code>.
+  The win-x64 and win-arm64 packages bundle Qt. To use a different Qt installation, set
+  <code>QtDir</code> to its Qt 6 prefix before building.
 </p>
 
 ## Add Qt Bridge for C# to an existing project
@@ -70,7 +70,7 @@ dotnet build
 dotnet run
 ```
 
-On Windows arm64, the package does not bundle Qt, so point `QtDir` at a Qt 6 installation instead:
+The win-arm64 package bundles Qt. To use a different Qt 6 installation, set `QtDir` explicitly:
 
 ```bash
 dotnet build -p:QtDir=D:\Qt\6.11.0\msvc2022_arm64

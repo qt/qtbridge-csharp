@@ -45,8 +45,7 @@ documentation, built from the `dev` branch on every change, see
 The currently supported workflow is:
 
 - **Windows x64 with .NET 8+** using the bundled Qt runtime or an external Qt installation.
-- **Windows arm64 with .NET 8+** using an external Qt installation, matching the Linux/macOS
-  packaging policy (Qt is not bundled).
+- **Windows arm64 with .NET 8+** using the bundled Qt runtime or an external Qt installation.
 - **Linux x64 or arm64 with .NET 8+** using an external Qt installation from or compatible with
   the target Linux distribution.
 - **macOS arm64 with .NET 8+** using an external Qt installation, matching the Linux
@@ -85,8 +84,8 @@ consume local packages from this repository.
 
 #### Add via dotnet CLI
 
-Choose the package that matches your RID (runtime identifier). The `win-x64` package includes a
-minimal Qt runtime. The `win-arm64`, Linux, and macOS packages do not include Qt; set `QtDir` to a
+Choose the package that matches your RID (runtime identifier). The `win-x64` and `win-arm64`
+packages include a minimal Qt runtime. Linux and macOS packages do not include Qt; set `QtDir` to a
 Qt 6 installation prefix before building.
 
 ```bash
@@ -298,15 +297,14 @@ After Qt is available, run from this repository root:
 dotnet build -c Release
 ```
 
-On Windows x64, setting `QtInstallRoot` before the build lets the local `win-x64` package include
-the Qt payload.
+On Windows x64 or arm64, setting `QtInstallRoot` before the build lets the local package include
+the matching Qt payload.
 
-On Windows arm64, Linux, and macOS, the local `win-arm64`/`linux-x64`/`linux-arm64`/`osx-arm64`
-packages do not include Qt by default, even when `QtInstallRoot` points to a valid Qt
-installation. Projects that consume the package must select a compatible Qt by setting `QtDir`.
+The local Linux and macOS packages do not include Qt by default, even when `QtInstallRoot` points to
+a valid Qt installation. Projects that consume these packages must select a compatible Qt by
+setting `QtDir`.
 
-To build a win-arm64, Linux, or macOS package with a bundled Qt payload for local testing, opt in
-explicitly:
+To build a Linux or macOS package with a bundled Qt payload for local testing, opt in explicitly:
 
 ```bash
 dotnet build -c Release \
@@ -540,10 +538,10 @@ The NuGet contains:
 - **Generator** (discovers your types and emits interop glue)
 - **Filtering rules** (Include/Ignore/Exclude attributes)
 - **C++ include headers** for the native bridge
-- On the `win-x64` package, a **minimal open-source Qt Quick runtime subset** sufficient to run QML
+- On the `win-x64` and `win-arm64` packages, a **minimal open-source Qt Quick runtime subset**
+  sufficient to run QML
 
-The `win-arm64`, Linux, and macOS packages do not contain Qt. They use the Qt installation
-selected with `QtDir`.
+The Linux and macOS packages do not contain Qt. They use the Qt installation selected with `QtDir`.
 
 ## Clean up
 

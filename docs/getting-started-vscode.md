@@ -19,7 +19,7 @@ understand QML-facing C# types and imports.
 * .NET SDK 8+
 * CMake and Ninja available on `PATH`
 * A C++ toolchain
-* A Qt 6 installation, except on Windows x64, where the package bundles Qt
+* A Qt 6 installation on Linux and macOS; the Windows x64 and arm64 packages bundle Qt
 * VS Code with the **Qt Bridge C#** extension. It needs the **Qt Core** extension, and the
   **Qt QML** extension provides the QML tools. The **Qt Extension Pack** installs all of them.
 * Optionally, the **C# Dev Kit** extension for editing and debugging C# code
@@ -48,7 +48,7 @@ The generated project matches what `dotnet new qt` creates. See
 ## Select the Qt installation
 
 Building a Qt Bridge for C# project needs a Qt installation, which the build reads from `QtDir`.
-Only the Windows x64 package bundles Qt. On Windows arm64, Linux, and macOS, `QtDir` is required.
+The Windows x64 and arm64 packages bundle Qt. On Linux and macOS, `QtDir` is required.
 The selected Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`.
 
 When you open a project whose build would not find Qt, the extension asks you to select one. To

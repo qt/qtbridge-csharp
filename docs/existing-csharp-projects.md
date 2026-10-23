@@ -119,15 +119,15 @@ ApplicationWindow {
 
 ## Build
 
-On Windows x64, build with:
+On Windows, build with:
 
 ```bash
 dotnet build
 dotnet run
 ```
 
-On Windows arm64, Linux, or macOS, point `QtDir` at your Qt installation (the `win-arm64` package
-does not bundle Qt, unlike `win-x64`):
+On Windows, the package selects its bundled Qt automatically. On Linux or macOS, point `QtDir` at
+your Qt installation:
 
 ```bash
 dotnet build -p:QtDir=/path/to/qt-prefix
@@ -300,7 +300,7 @@ If the build fails or the window does not appear, check these areas first:
 * The .NET SDK version is older than .NET 8
 * The C++ toolchain is not installed or not on `PATH`
 * CMake or Ninja is missing
-* On Windows arm64, Linux, or macOS, `QtDir` is not set or points to the wrong prefix
+* On Linux or macOS, `QtDir` is not set or points to the wrong prefix
 * The `.qml` file is outside the project directory and not picked up by the build
 * The name passed to `LoadFromRootModule` does not match the `.qml` file name
 * The first build has not completed yet; QML-facing C# types and editor support require a

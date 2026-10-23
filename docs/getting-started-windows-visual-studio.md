@@ -35,9 +35,8 @@ QML-facing C# types and imports.
 </p>
 
 <p class="docs-hint">
-  On Windows arm64, the package does not bundle Qt (unlike win-x64), so set the
-  <code>QtDir</code> MSBuild property to a Qt 6 installation prefix before building, for example
-  in the project's properties or a <code>Directory.Build.props</code> file.
+  The win-x64 and win-arm64 packages bundle Qt. Set the <code>QtDir</code> MSBuild property to a
+  different Qt 6 installation prefix only when you want to override the bundled version.
 </p>
 
 For generated project structure, template options, and QML item templates, see

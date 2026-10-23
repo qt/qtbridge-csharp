@@ -64,9 +64,9 @@ Architecture mismatches can occur on any platform. A common Windows case is an x
 application on **Windows on ARM**, including a Windows VM on Apple Silicon. Choose one architecture
 and use it for the bridge, Qt, and .NET runtime:
 
-* **ARM64 natively (recommended):** Reference `QtGroup.Qt.Bridge.CSharp.win-arm64`, use an ARM64 Qt
-  installation, and set `QtDir` to its prefix. The normal ARM64 .NET runtime then supplies the
-  matching `hostfxr.dll`.
+* **ARM64 natively (recommended):** Reference `QtGroup.Qt.Bridge.CSharp.win-arm64`, which includes
+  a minimal ARM64 Qt runtime. Set `QtDir` only to use a different Qt. The normal ARM64 .NET runtime
+  supplies the matching `hostfxr.dll`.
 * **x64 under emulation:** Reference `QtGroup.Qt.Bridge.CSharp.win-x64` and install the x64 .NET
   runtime. It is installed beside the ARM64 runtime in `C:\Program Files\dotnet\x64`; put that
   directory ahead of `C:\Program Files\dotnet` on `PATH` for the process. In Visual Studio, set it

@@ -18,10 +18,10 @@ Bring **QML/Qt Quick** to **C#/.NET** with a single package. This package ships:
 - **Filtering rules** (`[Qt.Include]`, `[Qt.Ignore]`, `[Qt.IgnoreType]`) to control what becomes
   visible to QML.
 - **C++ include headers** used by the native side of the bridge.
-- On the `win-x64` package, a **minimal, open-source Qt Quick runtime subset** sufficient to load
-  and run QML.
+- On the `win-x64` and `win-arm64` packages, a **minimal, open-source Qt Quick runtime subset**
+  sufficient to load and run QML.
 
-> Target framework: **.NET 8+**. The `win-x64` package includes Qt. The `win-arm64`, Linux, and
+> Target framework: **.NET 8+**. The `win-x64` and `win-arm64` packages include Qt. Linux and
   macOS packages require an external Qt installation selected with `QtDir`.
 
 ## Why use this package?
@@ -32,8 +32,8 @@ Bring **QML/Qt Quick** to **C#/.NET** with a single package. This package ships:
   automatically.
 - **Precise surface control.** Attribute-based filters let you decide exactly which types/members
   are exposed to QML.
-- **Windows x64 runtime included.** Comes with the native headers and a minimal Qt Quick runtime so
-  you can start quickly.
+- **Windows x64 and arm64 runtimes included.** Both packages come with the native headers and a
+  minimal Qt Quick runtime so you can start quickly.
 
 ## Install
 
@@ -45,7 +45,7 @@ dotnet add package __PACKAGE_ID__ --version __PACKAGE_VERSION__
 ## Quick start
 
 1. **Reference the package** in your .NET 8+ project.
-1. **On Windows arm64, Linux, and macOS, select Qt** before building:
+1. **On Linux and macOS, select Qt** before building:
 
    ```bash
    dotnet build -p:QtDir=/path/to/qt-prefix
@@ -70,7 +70,7 @@ dotnet add package __PACKAGE_ID__ --version __PACKAGE_VERSION__
 
 - **Runtime:** .NET 8 or newer.
 - **OS:** Windows (x64, arm64), Linux (x64, arm64), and macOS (arm64).
-- **Qt:** The `win-x64` package includes Qt. The `win-arm64`, Linux, and macOS packages require a
+- **Qt:** The `win-x64` and `win-arm64` packages include Qt. Linux and macOS packages require a
   Qt 6 installation from the target system or a Qt installation compatible with that system.
 - **Tooling:** `dotnet` SDK 8+, a C++ toolchain for native build steps is required.
 

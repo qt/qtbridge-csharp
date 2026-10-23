@@ -68,7 +68,8 @@ To include a small C# and QML counter sample in the generated project, pass `--S
 dotnet new qt -n MyQtApp --SampleCode
 ```
 
-On Windows arm64, Linux (x64 and arm64), and macOS, Qt is not bundled with the bridge package.
+On Linux (x64 and arm64) and macOS, Qt is not bundled with the bridge package. Windows x64 and
+arm64 packages include Qt.
 Install Qt 6 for your target system and set one of the supported Qt prefix selectors before
 building:
 
@@ -108,7 +109,7 @@ dotnet new uninstall __PACKAGE_ID__
 
 - **Runtime:** .NET 8 or newer.
 - **OS:** Windows (x64, arm64), Linux (x64, arm64), and macOS (arm64).
-- **Qt:** The `win-x64` package includes Qt. The `win-arm64`, Linux, and macOS packages require an
+- **Qt:** The `win-x64` and `win-arm64` packages include Qt. Linux and macOS packages require an
   external Qt 6 installation selected with `QtDir`.
 - **Tooling:** `dotnet` SDK 8+, a C++ toolchain for native build steps is required.
 
