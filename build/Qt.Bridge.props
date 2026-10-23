@@ -17,6 +17,14 @@
   </PropertyGroup>
 
   <!--
+    Queried by the Qt Bridge IDE extension. Also works when the package reference comes from an
+    import such as Directory.Build.props.
+  -->
+  <ItemGroup>
+    <ProjectCapability Include="QtBridgeCSharp" />
+  </ItemGroup>
+
+  <!--
     Import shared QtArch detection logic. QtArch is normally set by qt_rid.props (located via
     GetPathOfFileAbove), which is only available to repo-internal projects. For NuGet consumers,
     we detect the host architecture here, since Qt.Bridge.props is always imported. The shared

@@ -447,7 +447,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             if (assets?.Libraries == null || assets.PackageFolders == null)
                 return null;
 
-            if (string.IsNullOrWhiteSpace(packageId)) {
+            if (string.IsNullOrWhiteSpace(packageId)
+                || QtBridgeProjectConstants.IsTemplatedQtBridgePackageReference(packageId!)) {
                 var inferredPackageEntry = assets.Libraries
                     .FirstOrDefault(entry => QtBridgeProjectConstants.KnownPackageIdPrefixes.Any(
                         prefix => entry.Key.StartsWith(prefix,

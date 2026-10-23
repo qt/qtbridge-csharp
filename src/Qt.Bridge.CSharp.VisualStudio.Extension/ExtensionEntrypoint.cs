@@ -43,6 +43,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 QtBridgeProjectStaticDetector>();
             serviceCollection.AddSingleton<IQtBridgeProjectFileLocator,
                 QtBridgeProjectFileLocator>();
+
+            serviceCollection.AddSingleton<IQtBridgeProjectCapabilityDetector,
+                QtBridgeProjectCapabilityDetector>();
+
             serviceCollection.AddSingleton<IQtBridgeProjectService, QtBridgeProjectService>();
 
             serviceCollection.AddSingleton<IReleaseMetadataClient, ReleaseMetadataClient>();

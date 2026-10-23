@@ -23,6 +23,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem
             builder.AppendLine($"Detected: {metadata.IsQtBridgeProject}");
             builder.AppendLine($"Project type: {metadata.ProjectType}");
             builder.AppendLine($"Package: {metadata.MatchedPackageId ?? "<none>"}");
+            builder.AppendLine($"Detected by capability: {metadata.HasQtBridgeCapability}");
+            builder.AppendLine($"Detected by evaluated package reference: {metadata
+                .HasEvaluatedPackageReference}");
             builder.AppendLine($"Imports props: {metadata.ImportsQtBridgeProps}");
             builder.AppendLine($"Imports targets: {metadata.ImportsQtBridgeTargets}");
 

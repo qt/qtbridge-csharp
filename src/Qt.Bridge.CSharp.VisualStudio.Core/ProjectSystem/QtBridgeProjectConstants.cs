@@ -3,11 +3,12 @@
 
 namespace Qt.Bridge.CSharp.VisualStudio.Core.ProjectSystem
 {
-    /// <summary>
-    /// Well-known identifiers used to detect Qt Bridge projects by static project file analysis.
-    /// </summary>
+    /// <summary> Well-known identifiers used to detect Qt Bridge projects. </summary>
     public static class QtBridgeProjectConstants
     {
+        /// <summary> Declared by Qt.Bridge.props. </summary>
+        public const string ProjectCapability = "QtBridgeCSharp";
+
         public static readonly IReadOnlyList<string> KnownPackageIdPrefixes =
         [
             "QtGroup.Qt.Bridge.CSharp."

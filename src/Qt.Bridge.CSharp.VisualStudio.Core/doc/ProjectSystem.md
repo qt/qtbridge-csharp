@@ -5,19 +5,30 @@
 The `ProjectSystem` namespace answers one question on behalf of the Visual Studio extension:
 **"Does this `.csproj` file belong to a Qt Bridge C# project?"**
 
-It does so by reading the project file as plain XML - no MSBuild evaluation engine, no SDK
-imports, no build execution. The result is fast, side-effect-free detection that works even
-before a build has ever run.
+It does this in two steps. First it reads the project file as plain XML, without MSBuild. This
+is fast, has no side effects and works before a restore. If this finds nothing, it asks the IDE
+project system whether the evaluated project declares the `QtBridgeCSharp` capability or
+references a Qt Bridge package.
 
 ---
 
 ## Design Principles
 
-**Static XML analysis only.**
+**Static XML analysis first, evaluated project as fallback.**
 The detector parses the raw `.csproj` XML with `XDocument`. It never invokes the MSBuild
-evaluation engine or loads the project into any IDE project system. This keeps detection
-lightweight, safe to call on any thread, and free from the version-compatibility concerns
-that come with MSBuild API usage.
+evaluation engine. This keeps detection lightweight, safe to call on any thread, and free
+from the version-compatibility concerns that come with MSBuild API usage.
+
+The static analysis only sees the project file. It misses a package reference from
+`Directory.Build.props` or another import, and a `GlobalPackageReference` of central package
+management, and it cannot resolve the templated `$(QtBridgePackageId)` reference of generated
+app templates. For these projects the service asks `IQtBridgeProjectCapabilityDetector`, which
+reads the evaluated project:
+
+- The `QtBridgeCSharp` capability, declared by `Qt.Bridge.props`. It is only there after a
+  restore.
+- The Qt Bridge package reference of the active configuration. It is already there before a
+  restore, and also when the restore fails.
 
 **Conservative project file location.**
 When given an arbitrary file or directory path the locator searches up the directory tree
@@ -27,9 +38,10 @@ as an error.
 
 **Interface-driven composition.**
 Every non-trivial component is hidden behind an interface (`IQtBridgeProjectFileLocator`,
-`IQtBridgeProjectStaticDetector`, `IQtBridgeProjectService`). Concrete types are `sealed`. This
-keeps the seam clean for dependency injection and makes the components independently testable
-without spinning up a Visual Studio process.
+`IQtBridgeProjectStaticDetector`, `IQtBridgeProjectCapabilityDetector`,
+`IQtBridgeProjectService`). Concrete types are `sealed`. This keeps the seam clean for
+dependency injection and makes the components independently testable without spinning up a
+Visual Studio process.
 
 **Immutable, self-describing results.**
 `QtBridgeProjectMetadata` is a read-only record that captures every indicator examined during
@@ -46,6 +58,7 @@ A static registry of the well-known identifiers that signal a Qt Bridge project:
 
 | Category | Examples |
 |---|---|
+| Project capability | `QtBridgeCSharp` |
 | NuGet package ID prefixes | `QtGroup.Qt.Bridge.CSharp.*` |
 | Imported MSBuild files | `QtGroup.Qt.Bridge.CSharp.props`, `Qt.Bridge.targets`, … |
 | MSBuild property names | `QtDotNetPropsImported`, `QtQmlRootModule`, `QtDir`, … |
@@ -85,6 +98,18 @@ is dispatched to the thread pool via `Task.Run` so the calling thread is never b
 
 ---
 
+### `IQtBridgeProjectCapabilityDetector`
+
+Answers: **"Does the evaluated project declare the `QtBridgeCSharp` capability?"** and
+**"Which Qt Bridge package does the evaluated project reference?"**
+
+The extension implements it with the Visual Studio project query API
+(`QtBridgeProjectCapabilityDetector`). `EvaluateAsync` gets both from one query and
+returns an `EvaluationResult`. For a project that is not loaded, it returns
+`EvaluationResult.None`.
+
+---
+
 ### `QtBridgeProjectMetadata`
 
 An immutable result type returned by the detector. It records:
@@ -93,7 +118,7 @@ An immutable result type returned by the detector. It records:
 - The `QtBridgeProjectType` classification (`Unknown` or `QtBridgeCSharp`).
 - The `bool` flag `IsQtBridgeProject` for quick tests.
 - Which specific indicators matched (`MatchedPackageId`, `ImportsQtBridgeProps`,
-  `ImportsQtBridgeTargets`).
+  `ImportsQtBridgeTargets`, `HasQtBridgeCapability`, `HasEvaluatedPackageReference`).
 - The values of any known MSBuild properties found in the file (`Properties` dictionary).
 
 ---
@@ -111,14 +136,16 @@ A simple enum with two members:
 
 ### `IQtBridgeProjectService` / `QtBridgeProjectService`
 
-The top-level entry point for extension code. It composes the locator and the static project
-detector into a single async method:
+The top-level entry point for extension code. It composes the locator, the static project
+detector and the capability detector into a single async method:
 
 ```
 TryGetMetadataForPathAsync(path)
-  -> locator.FindNearestProjectFile(path)   // locate the .csproj
-  -> detector.DetectAsync(projectFilePath)  // static project analysis
-  -> QtBridgeProjectMetadata?               // null when no project file found
+  -> locator.FindEnclosingProjectFile(path)         // locate the .csproj
+  -> staticDetector.DetectAsync(projectFilePath)    // static project analysis
+  -> capabilityDetector.EvaluateAsync               // if not detected statically, or the
+                                                    // package ID is templated
+  -> QtBridgeProjectMetadata?                       // null when no project file found
 ```
 
 Any component in the extension that needs to know whether a file belongs to a Qt Bridge
@@ -140,14 +167,18 @@ Extension receives a document path (e.g. from the active editor)
   │
 IQtBridgeProjectService.TryGetMetadataForPathAsync(documentPath)
   │
-  |- IQtBridgeProjectFileLocator.FindNearestProjectFile(documentPath)
+  |- IQtBridgeProjectFileLocator.FindEnclosingProjectFile(documentPath)
   │    Search parent directories -> returns path to .csproj, or null
   │
   |- IQtBridgeProjectStaticDetector.DetectAsync(projectFilePath)
-       Parse XML -> check PackageReference / Import / PropertyGroup
-       -> QtBridgeProjectMetadata
+  │    Parse XML -> check PackageReference / Import / PropertyGroup
+  │    -> QtBridgeProjectMetadata
+  │
+  |- IQtBridgeProjectCapabilityDetector.EvaluateAsync(projectFilePath)
+       Only if the XML check found nothing or a templated package ID
+       -> query the evaluated project
 ```
 
 If `TryGetMetadataForPathAsync` returns `null`, no project file was found. If it returns a
-`QtBridgeProjectMetadata` with `IsQtBridgeProject == false`, a project file exists but does
-not carry any Qt Bridge indicator.
+`QtBridgeProjectMetadata` with `IsQtBridgeProject == false`, a project file exists but neither
+carries a Qt Bridge indicator nor declares the capability nor references a Qt Bridge package.
