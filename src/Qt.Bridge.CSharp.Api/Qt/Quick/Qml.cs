@@ -114,13 +114,20 @@ namespace Qt
             /// </summary>
             /// <param name="timeout">
             /// Maximum time to wait, in milliseconds. The default value of <c>-1</c> waits
-            /// indefinitely until the QML engine exits.
+            /// indefinitely until the QML engine exits; <c>0</c> only checks whether it has
+            /// exited, without waiting.
             /// </param>
             /// <returns>
             /// <see langword="true"/> if the QML engine has exited; <see langword="false"/> if
             /// the timeout elapsed before the engine exited.
             /// </returns>
             /// <remarks>
+            /// <para>
+            /// Call it from the thread that runs <c>Main</c>, not from code that QML calls. On the
+            /// Qt main thread it blocks the event loop, so the engine cannot quit, and a wait
+            /// without timeout never returns.
+            /// </para>
+            /// <para>
             /// A finite timeout makes it possible to interleave C# work with the event loop. A
             /// common pattern is a polling loop that modifies model data between short waits:
             /// <![CDATA[
@@ -134,6 +141,7 @@ namespace Qt
             /// }
             /// ```
             /// ]]>
+            /// </para>
             /// </remarks>
             public static bool WaitForExit(int timeout = -1)
             {
