@@ -41,6 +41,7 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
 "#include <QQmlDebuggingEnabler>",
 "#include <QThread>",
 "#include <QTimer>",
+"#include <atomic>",
 "#include <QDotNetHost>",
 "#include <QDotNetAdapter>",
 "#include <QDotNetRef>",
@@ -104,7 +105,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < argc; ++i)
         args << argv[i];
     int dotNetResult = -1;
-    bool dotNetExited = false;
+    std::atomic<bool> dotNetExited = false;
     auto *dotnetThread = QThread::create(
         [&args, &app, &dotNetHost, &assemblyPath, &dotNetResult, &dotNetExited]()
         {{
@@ -112,7 +113,10 @@ int main(int argc, char *argv[])
             dotNetHost.loadApp(assemblyPath, args);
             dotNetResult = dotNetHost.runApp();
             dotNetExited = true;
-            app.exit(dotNetResult);
+            // exit() only ends an event loop that is already running; .NET can return before
+            // app.exec() starts it. A queued call waits for the event loop and ends it then.
+            QMetaObject::invokeMethod(&app, [&app, &dotNetResult] {{ app.exit(dotNetResult); }},
+                                      Qt::QueuedConnection);
         }});
     dotnetThread->start();
 
