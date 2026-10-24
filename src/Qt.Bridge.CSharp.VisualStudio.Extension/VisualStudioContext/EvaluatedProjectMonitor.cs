@@ -12,7 +12,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
 {
     /// <summary>
     /// Tracks the <see cref="EvaluatedProject"/> data of the loaded projects with the project
-    /// query API and counts each change.
+    /// query API and reports each change.
     /// </summary>
     /// <remarks>
     /// The project system reports an update only after it has evaluated the project again, so a
@@ -39,6 +39,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
         private readonly Dictionary<string, EvaluatedProject> projectsByPath =
             new(StringComparer.OrdinalIgnoreCase);
         private bool hasProjects;
+
+        /// <summary>
+        /// Raised on a background thread when the <see cref="EvaluatedProject"/> data of a loaded
+        /// project changes.
+        /// </summary>
+        public event Action? ProjectsChanged;
 
         /// <summary>
         /// False before the start and after the tracking failed or completed.
@@ -184,8 +190,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
         {
             public void OnNext(IQueryTrackUpdates<IProjectSnapshot> value)
             {
-                if (value.Updates.Count > 0)
-                    _ = monitor.ApplyUpdates(this, value.Updates);
+                if (value.Updates.Count == 0 || !monitor.ApplyUpdates(this, value.Updates))
+                    return;
+                monitor.ProjectsChanged?.Invoke();
             }
 
             public void OnError(Exception error)

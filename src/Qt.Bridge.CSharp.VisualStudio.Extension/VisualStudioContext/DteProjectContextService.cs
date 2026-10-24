@@ -35,14 +35,19 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
     /// Project add/remove/rename: <c>Extensibility.Workspaces().QueryProjectsAsync()</c> is a
     /// stable SDK API that can replace the DTE query in
     /// <see cref="GetLoadedProjectPathsAsync"/> today. Push-based change notifications
-    /// (<c>TrackUpdatesAsync</c>) exist but are still marked
-    /// <c>VSEXTPREVIEW_PROJECTQUERY_TRACKING</c> and are not yet production-ready. Tracked in
-    /// https://github.com/microsoft/VSExtensibility/issues/392 (Backlog as of 2026-04).
+    /// (<c>TrackUpdatesAsync</c>) are still marked <c>VSEXTPREVIEW_PROJECTQUERY_TRACKING</c>.
+    /// Tracked in https://github.com/microsoft/VSExtensibility/issues/392 (Backlog as of
+    /// 2026-04). <see cref="EvaluatedProjectMonitor"/> already uses them for changes of the
+    /// evaluated projects; if that fails, only the DTE events remain.
     /// </description></item>
     /// </list>
     /// </remarks>
-    internal sealed class DteProjectContextService : IProjectContextService
+    internal sealed class DteProjectContextService(EvaluatedProjectMonitor projectMonitor)
+        : IProjectContextService
     {
+        private readonly EvaluatedProjectMonitor monitor = projectMonitor
+            ?? throw new ArgumentNullException(nameof(projectMonitor));
+
         public IDisposable SubscribeToContextChanged(Action onContextChanged)
         {
             if (onContextChanged is null)
@@ -145,14 +150,14 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
             ];
         }
 
-        private static async Task<IDisposable> SubscribeCoreAsync(Action onContextChanged)
+        private async Task<IDisposable> SubscribeCoreAsync(Action onContextChanged)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
             if (GetDte() is not { } dte)
                 return EmptyDisposable.Instance;
 
-            return new DteContextSubscription(dte, onContextChanged);
+            return new DteContextSubscription(dte, monitor, onContextChanged);
         }
 
         private static DTE2? GetDte()
@@ -187,10 +192,14 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
             private readonly DocumentEvents documentEvents;
             private readonly WindowEvents windowEvents;
             private readonly Timer debounceTimer;
+            private readonly EvaluatedProjectMonitor monitor;
             private readonly object gate = new();
             private bool disposed;
 
-            public DteContextSubscription(DTE2 dte, Action onContextChanged)
+            public DteContextSubscription(
+                DTE2 dte,
+                EvaluatedProjectMonitor projectMonitor,
+                Action onContextChanged)
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
 
@@ -208,12 +217,18 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
                 solutionEvents.ProjectRenamed += OnProjectRenamed;
                 documentEvents.DocumentOpened += OnDocumentChanged;
                 windowEvents.WindowActivated += OnWindowActivated;
+
+                monitor = projectMonitor;
+                monitor.ProjectsChanged += ScheduleContextRefresh;
+                monitor.EnsureStarted();
             }
 
             public void Dispose()
             {
                 lock (gate)
                     disposed = true;
+
+                monitor.ProjectsChanged -= ScheduleContextRefresh;
 
                 ThreadHelper.JoinableTaskFactory.Run(async delegate
                 {

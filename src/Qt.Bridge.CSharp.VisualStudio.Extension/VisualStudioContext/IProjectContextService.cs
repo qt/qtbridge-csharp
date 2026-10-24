@@ -42,8 +42,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
 
         /// <summary>
         /// Subscribes to VS project and document context changes. The callback is invoked with a
-        /// short debounce when the active project, solution, or active document changes. Dispose
-        /// the returned handle to unsubscribe.
+        /// short debounce when the active project, solution or active document changes, or when
+        /// the evaluated data of a loaded project changes. Dispose the returned handle to
+        /// unsubscribe.
         /// </summary>
         IDisposable SubscribeToContextChanged(Action onContextChanged);
     }
