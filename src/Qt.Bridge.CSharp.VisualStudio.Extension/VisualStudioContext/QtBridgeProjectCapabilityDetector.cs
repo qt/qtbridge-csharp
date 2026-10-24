@@ -22,6 +22,21 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
         IExtensionLog extensionLog)
         : IQtBridgeProjectCapabilityDetector
     {
+        /// <summary> The result of <see cref="GetEvaluatedProjectAsync"/>. </summary>
+        /// <param name="Project">The project, or <c>null</c> if it is not loaded.</param>
+        /// <param name="FromTracking">Whether the project data came from the tracked data.</param>
+        /// <param name="IsTracking">Whether project updates were tracked.</param>
+        /// <param name="Version">
+        /// <see cref="EvaluatedProjectMonitor.Version"/> at the time of the lookup.
+        /// </param>
+        /// <param name="Error">The message of a failed query.</param>
+        internal sealed record Lookup(
+            EvaluatedProject? Project,
+            bool FromTracking,
+            bool IsTracking,
+            int Version,
+            string? Error = null);
+
         private readonly VisualStudioExtensibility extensibility = vsExt
             ?? throw new ArgumentNullException(nameof(vsExt));
         private readonly EvaluatedProjectMonitor monitor = projectMonitor
@@ -33,34 +48,43 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
             string projectFilePath,
             CancellationToken cancellationToken = default)
         {
-            var project = await FindEvaluatedProjectAsync(projectFilePath, cancellationToken);
+            var project = (await GetEvaluatedProjectAsync(projectFilePath, cancellationToken))
+                .Project;
             return project == null
                 ? EvaluationResult.None
                 : new EvaluationResult(project.HasCapability, project.PackageId);
         }
 
-        private async Task<EvaluatedProject?> FindEvaluatedProjectAsync(
+        /// <summary>
+        /// Looks up the evaluated project like <see cref="EvaluateAsync"/> and returns it with the
+        /// tracking state.
+        /// </summary>
+        public async Task<Lookup> GetEvaluatedProjectAsync(
             string projectFilePath,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(projectFilePath))
-                return null;
-
             monitor.EnsureStarted();
+
+            var isTracking = monitor.IsTracking;
+            var version = monitor.Version;
+            if (string.IsNullOrWhiteSpace(projectFilePath))
+                return new(null, FromTracking: false, isTracking, version);
+
             try {
                 var fullPath = Path.GetFullPath(projectFilePath);
                 if (monitor.TryGetProject(fullPath, out var tracked))
-                    return tracked;
+                    return new(tracked, FromTracking: true, isTracking, version);
 
                 var projects = await QueryEvaluatedProjectsAsync(cancellationToken);
-                return projects.TryGetValue(fullPath, out var project) ? project : null;
+                return new(projects.TryGetValue(fullPath, out var project) ? project : null,
+                    FromTracking: false, isTracking, version);
             } catch (OperationCanceledException) {
                 throw;
             } catch (Exception ex) {
                 // Detection must not fail because of the project system; the project then
                 // counts as not detected.
                 log.Warning($"Project query failed for '{projectFilePath}': " + ex.Message);
-                return null;
+                return new(null, FromTracking: false, isTracking, version, ex.Message);
             }
         }
 

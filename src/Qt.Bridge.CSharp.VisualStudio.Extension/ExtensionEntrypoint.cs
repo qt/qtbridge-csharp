@@ -45,8 +45,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 QtBridgeProjectFileLocator>();
 
             serviceCollection.AddSingleton<EvaluatedProjectMonitor>();
-            serviceCollection.AddSingleton<IQtBridgeProjectCapabilityDetector,
-                QtBridgeProjectCapabilityDetector>();
+            serviceCollection.AddSingleton<QtBridgeProjectCapabilityDetector>();
+            serviceCollection.AddSingleton<IQtBridgeProjectCapabilityDetector>(sp =>
+                sp.GetRequiredService<QtBridgeProjectCapabilityDetector>());
 
             serviceCollection.AddSingleton<IQtBridgeProjectService, QtBridgeProjectService>();
 

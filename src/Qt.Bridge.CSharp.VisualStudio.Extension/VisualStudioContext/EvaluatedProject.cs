@@ -15,7 +15,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
         IEnumerable<string> capabilities,
         IReadOnlyList<EvaluatedProject.ActiveConfiguration> configurations)
     {
-        internal sealed record ActiveConfiguration(IReadOnlyList<string> PackageIds);
+        internal sealed record PackageReference(string Name, string? Version);
+
+        internal sealed record ActiveConfiguration(
+            string Name,
+            IReadOnlyList<PackageReference> PackageReferences);
 
         public string Path { get; } = path ?? throw new ArgumentNullException(nameof(path));
 
@@ -37,7 +41,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
         /// before a restore.
         /// </summary>
         public string? PackageId => ActiveConfigurations
-            .SelectMany(configuration => configuration.PackageIds)
+            .SelectMany(configuration => configuration.PackageReferences)
+            .Select(reference => reference.Name)
             .FirstOrDefault(QtBridgeProjectConstants.IsKnownQtBridgePackageId);
 
         /// <summary>
@@ -49,8 +54,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
             .With(project => project.Path)
             .With(project => project.Capabilities)
             .With(project => project.ActiveConfigurations
+                .With(configuration => configuration.Name)
                 .With(configuration => configuration.PackageReferences
-                    .With(reference => reference.Name)));
+                    .With(reference => reference.Name)
+                    .With(reference => reference.Version)));
 
         /// <summary>
         /// Reads a snapshot queried with <see cref="WithEvaluatedData"/>. Returns <c>null</c> for
@@ -62,8 +69,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
                 return null;
 
             var configurations = project.ActiveConfigurations
-                .Select(configuration => new ActiveConfiguration([ ..
-                    configuration.PackageReferences.Select(reference => reference.Name)
+                .Select(configuration => new ActiveConfiguration(configuration.Name, [ ..
+                    configuration.PackageReferences.Select(reference =>
+                        new PackageReference(reference.Name, reference.Version))
                 ]))
                 .ToList();
             return new EvaluatedProject(System.IO.Path.GetFullPath(project.Path),

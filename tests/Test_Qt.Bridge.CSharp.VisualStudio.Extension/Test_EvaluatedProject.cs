@@ -18,7 +18,8 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Extension
 
         private static EvaluatedProject.ActiveConfiguration Configuration(params string[] packageIds)
         {
-            return new EvaluatedProject.ActiveConfiguration(packageIds);
+            return new EvaluatedProject.ActiveConfiguration("Debug|AnyCPU",
+                [.. packageIds.Select(id => new EvaluatedProject.PackageReference(id, "0.5.0"))]);
         }
 
         [TestMethod]
