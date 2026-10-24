@@ -66,6 +66,9 @@ To debug the C# code, use the C# debugger of C# Dev Kit: right-click the project
 * **The build cannot find Qt.** Run **Qt Bridge C#: Select Qt Installation**. For builds outside
   the **Terminal** view, set `QtDir` in the environment or in the project. See
   [Select the Qt installation](getting-started-vscode.md#select-the-qt-installation).
+* **A build in the Terminal view still uses the previous Qt.** Terminals that were open when you
+  selected a different Qt keep the previous `QtDir`. Relaunch them, or open new ones. See
+  [Select the Qt installation](getting-started-vscode.md#select-the-qt-installation).
 * **QML Preview asks you to build the project.** Build it once. If you built it in several
   configurations, select the build with **Qt Bridge C#: Select QML Build Metadata**.
 * **Check the output.** The extensions log to the `qt-csharp` and `qt-qml` channels in the

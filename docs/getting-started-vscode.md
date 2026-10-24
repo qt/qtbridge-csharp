@@ -49,17 +49,29 @@ The generated project matches what `dotnet new qt` creates. See
 
 Building a Qt Bridge for C# project needs a Qt installation, which the build reads from `QtDir`.
 The Windows x64 and arm64 packages bundle Qt. On Linux and macOS, `QtDir` is required.
-The selected Qt prefix must contain `lib/cmake/Qt6/Qt6Config.cmake`.
 
 When you open a project whose build would not find Qt, the extension asks you to select one. To
 select it later, run **Qt Bridge C#: Select Qt Installation**. The command lists the Qt
 installations registered in the Qt extension that can build on your machine, or lets you browse
-for one. It stores the selection in the `qt-csharp.qtDir` setting.
+for one. Select the Qt installation prefix, or the directory that contains `Qt6Config.cmake`, such
+as `/usr/lib/x86_64-linux-gnu/cmake/Qt6` for Qt from Ubuntu packages. The extension accepts the
+same layouts as the build, see [Linux with .NET CLI](getting-started-linux.md). It stores the
+installation prefix in the `qt-csharp.qtDir` setting.
 
 The extension sets that Qt as `QtDir` in new terminals in the **Terminal** view, so `dotnet build`
 and `dotnet run` there use the same Qt as the QML tools. Builds that start outside the terminal,
 for example from C# Dev Kit, do not see the setting. For them, set `QtDir` as an environment
 variable before you start VS Code, or set the `QtDir` property in the project.
+
+The setting applies to terminals that you open after you change it. Terminals that are already
+open keep the previous `QtDir`, also the terminals that **Developer: Reload Window** restores. VS
+Code marks such terminals with a warning icon on the terminal tab: hover over it and select
+**Relaunch Terminal**, or close the terminal and open a new one. Run `echo $QtDir` to check the
+value that a terminal uses. To have **Developer: Reload Window** start new terminals, set
+`"terminal.integrated.enablePersistentSessions": false`, which also discards the output of the
+open terminals on reload. A `QtDir` that your shell profile sets, for example in `~/.bashrc`,
+overrides the setting in terminals, because the shell profile runs after VS Code sets the
+environment.
 
 ## Build and run
 
