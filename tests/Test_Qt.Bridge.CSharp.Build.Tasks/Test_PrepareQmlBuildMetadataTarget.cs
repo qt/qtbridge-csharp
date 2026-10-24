@@ -256,6 +256,21 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
         }
 
         [TestMethod]
+        [DataRow("false", "lib/cmake/Qt6.")]
+        [DataRow("true", "lib/cmake/Qt6, lib64/cmake/Qt6, or lib/x86_64-linux-gnu/cmake/Qt6.")]
+        public void QtValidation_NamesTheLayoutsOfTheHost(string hostIsLinux, string layouts)
+        {
+            var projectPath = WriteProject(generatedWorkspaceExists: true, validQt: false);
+
+            var result = RunMsBuild(
+                projectPath, "QtBridgeValidateQt", "QtHostIsLinux=" + hostIsLinux);
+
+            Assert.AreNotEqual(0, result.ExitCode);
+            Assert.Contains("that contains Qt6Config.cmake in " + layouts, result.Output);
+            Assert.DoesNotContain("QtInstallRoot", result.Output);
+        }
+
+        [TestMethod]
         public void QtValidationFailure_InvalidatesReadyMarker()
         {
             var projectPath = WriteProject(
