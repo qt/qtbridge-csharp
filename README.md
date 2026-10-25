@@ -311,6 +311,10 @@ dotnet build -c Release \
   -p:QtInstallRoot=/path/to/qt
 ```
 
+`QtInstallRoot` must be a self-contained Qt prefix, such as one from the Qt installer or a Qt built
+from source. A Qt from Linux distribution packages, such as `/usr`, cannot be bundled; select it
+with `QtDir` in the projects that consume the package instead.
+
 #### Add the local NuGet package source
 
 - In Visual Studio, select *Tools* | *Options* | *NuGet Package Manager* | *Package Sources*.
