@@ -107,9 +107,9 @@ expose them to QML the way [C# and QML](csharp-and-qml.md) describes, and refere
 
 ## Examples
 
-The repository includes a separate
-[examples overview](https://github.com/qt/qtbridge-csharp/tree/dev/examples) with runnable sample
-applications.
+The [Qt Bridge for C# examples](https://github.com/qt/qtbridge-csharp-examples/tree/main)
+repository contains runnable sample applications. They use the Qt Bridge for C# NuGet packages, so
+you do not need to build Qt Bridge for C# to try them.
 
 Use the examples after you understand the generated project shape. They go beyond the template and
 show common next steps, including C# objects exposed to QML, model/view data, resources, and larger

@@ -282,8 +282,8 @@ application display name.
   [`ResourceManager`](https://learn.microsoft.com/en-us/dotnet/api/system.resources.resourcemanager)
   for culture-specific satellite resources, and pass localized values from C# to QML when needed.
 
-The [`examples/Bookshelf`](https://github.com/qt/qtbridge-csharp/tree/dev/examples/Bookshelf)
-project demonstrates direct `QtResource` items, `.resx` file-reference discovery,
+The [Bookshelf](https://github.com/qt/qtbridge-csharp-examples/tree/main/Bookshelf) example
+demonstrates direct `QtResource` items, `.resx` file-reference discovery,
 `ManagedAndNative`, [`Qt.Resources.ReadAllText`](api/Qt.Resources.yml), and
 [`Qt.Application.SetWindowIcon`](api/Qt.Application.yml).
 
