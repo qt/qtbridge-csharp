@@ -71,10 +71,17 @@ For commercial licensing, see https://www.qt.io/licensing/.
 
 ## Terms and Conditions
 
-If you, your employer, or the legal entity you act on behalf of hold commercial license(s) with a
-Qt Group entity, Qt Bridges constitutes Pre-Release Code under the Qt License/Frame Agreement
-governing those licenses, and that agreement's terms and conditions relating to Pre-Release Code
-apply to your use of Qt Bridges as found in this repo.
+If you, your employer, or the legal entity you act on behalf of hold
+commercial license(s) with The Qt Company Ltd or its affiliates,
+Qt Bridges constitutes Pre-Release Code under the Qt License/Frame Agreement
+governing those licenses, and that agreement's terms and conditions relating
+to Pre-Release Code apply to your use of Qt Bridges as found in this repo.
+
+This Qt Bridges repo may provide links or access to third-party libraries or
+code (collectively "Third-Party Software") to implement various functions.
+Use or distribution of Third-Party Software is discretionary and in all
+respects subject to applicable license terms of applicable third-party right
+holders.
 
 .NET and C# are trademarks of Microsoft Corporation. This project is not affiliated with, or
 endorsed by Microsoft.
