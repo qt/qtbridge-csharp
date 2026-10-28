@@ -19,6 +19,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
                 return QmlLanguageServerOptions.Default;
 
             return new QmlLanguageServerOptions(
+                SemanticTokenDeltasEnabled: page.SemanticTokenDeltasEnabled,
                 Logging: LoggingOptions.Create(
                     page.QmllsLogEnabled, page.QmllsLogDirectory,
                     page.LspLogEnabled, page.LspLogDirectory));

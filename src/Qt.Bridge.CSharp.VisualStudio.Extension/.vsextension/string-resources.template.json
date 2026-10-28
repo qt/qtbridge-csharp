@@ -21,5 +21,7 @@
   "QtBridge.Settings.LspLogEnabled.Title": "Enable LSP traffic log",
   "QtBridge.Settings.LspLogEnabled.Description": "Writes every LSP message exchanged between Visual Studio and QML Language Server to qtbridge-lsp.log in the configured directory.",
   "QtBridge.Settings.LspLogDirectory.Title": "LSP log directory",
-  "QtBridge.Settings.LspLogDirectory.Description": "Directory where qtbridge-lsp.log is written. Has no effect when the LSP log is disabled."
+  "QtBridge.Settings.LspLogDirectory.Description": "Directory where qtbridge-lsp.log is written. Has no effect when the LSP log is disabled.",
+  "QtBridge.Settings.SemanticTokenDeltasEnabled.Title": "Use semantic token deltas",
+  "QtBridge.Settings.SemanticTokenDeltasEnabled.Description": "Lets Visual Studio request only the changed semantic tokens and passes the token modifiers of the QML Language Server through. This sends less data for large files, but Visual Studio can lose the QML highlighting while typing until the document is reopened."
 }

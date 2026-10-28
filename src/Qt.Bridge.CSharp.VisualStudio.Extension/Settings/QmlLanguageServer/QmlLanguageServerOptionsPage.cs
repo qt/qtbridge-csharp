@@ -8,6 +8,15 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
 {
     public sealed class QmlLanguageServerOptionsPage : DialogPage
     {
+        [Category("Semantic Highlighting")]
+        [DisplayName("Use semantic token deltas")]
+        [Description("Lets Visual Studio request only the changed semantic tokens and passes "
+            + "the token modifiers of the QML Language Server through. This sends less data for "
+            + "large files, but Visual Studio can lose the QML highlighting while typing until "
+            + "the document is reopened.")]
+        [DefaultValue(false)]
+        public bool SemanticTokenDeltasEnabled { get; set; }
+
         [Category("Server Log")]
         [DisplayName("Enable QML Language Server verbose log")]
         [Description("Passes --verbose -l <path> to QML Language Server on startup so its "

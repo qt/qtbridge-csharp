@@ -118,7 +118,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             QmlLanguageServerTransportPipe pipe;
             try {
                 pipe = LaunchQmlLanguageServer(installation.ExecutablePath, importPaths,
-                    disableCMakeCalls, options.Logging);
+                    disableCMakeCalls, options);
             } catch (QmlLanguageServerLaunchException ex) {
                 log.Error($"QML Language Server: failed to launch '{ex.ExecutablePath}'.", ex);
                 await infoBarService.ShowErrorAsync("qmls-launch-failed",
@@ -224,8 +224,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             string executablePath,
             IEnumerable<string>? importPaths,
             bool disableCMakeCalls,
-            LoggingOptions loggingOptions)
+            QmlLanguageServerOptions options)
         {
+            var loggingOptions = options.Logging;
             var qmllsLogActive = loggingOptions.QmllsLogEnabled
                 && !string.IsNullOrWhiteSpace(loggingOptions.QmllsLogFilePath);
             if (qmllsLogActive)
@@ -255,7 +256,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
                 log.Info($"QML Language Server: started process (pid {process.Id}) with: {args}");
 
-                return new QmlLanguageServerTransportPipe(process, log, loggingOptions);
+                return new QmlLanguageServerTransportPipe(process, log, options);
             } catch (QmlLanguageServerLaunchException) {
                 throw;
             } catch (Exception ex) {

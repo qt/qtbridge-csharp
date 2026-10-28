@@ -282,7 +282,9 @@ to this provider.
 This folder groups all settings-related types for the QML language server.
 
 **`QmlLanguageServerContributions`** defines the Visual Studio settings category
-"QML Language Server". It contains the settings for optional file logging:
+"QML Language Server". `semanticTokenDeltasEnabled` (default off) keeps the semantic token
+delta support and the token modifiers of qmlls; otherwise `SemanticTokenCapabilitiesFilter`
+removes them. The other settings control optional file logging:
 
 - `qmllsLogEnabled` and `qmllsLogDirectory` control the qmlls process log written by qmlls
   itself when the provider launches the process with `--verbose -l <path>`. The extension
@@ -316,9 +318,10 @@ exist:
   `IVsShell.LoadPackage` if it has not yet been initialized by VS.
 
 **`QmlLanguageServerOptions`** is the immutable per-session snapshot of the category, and
-`Default` is used when settings are unavailable. Its **`LoggingOptions`** hold the qmlls process
-logging and LSP traffic logging settings. The `Create` factory creates the configured log
-directories and resolves the full log file paths.
+`Default` is used when settings are unavailable. The pipe reads `SemanticTokenDeltasEnabled`
+from it. Its **`LoggingOptions`** hold the qmlls process logging and LSP traffic logging
+settings. The `Create` factory creates the configured log directories and resolves the full log
+file paths.
 
 **`QmlLanguageServerOptionsPage`** is a `DialogPage` that exposes the settings as
 grid-editable properties. It is hosted by `ExtensionPackage` and is used only on VS 2022.
@@ -477,13 +480,14 @@ shows up in the output pane. This is expected and not filtered on purpose.
 serialize the respective notification DTOs to JSON using `DataContractJsonSerializer`.
 The provider calls these and hands the results to `EnqueueNotification`.
 
-**`RelayFromProcessAsync`** reads qmlls stdout and forwards bytes to the VS-facing read pipe. Up
-to the server capabilities, `SemanticTokenCapabilitiesFilter` removes the semantic token delta
-support and the token modifiers, so that VS requests the full tokens on each change. With
-deltas, VS loses the highlighting while typing until the document is reopened. After the
-capabilities, bytes pass unchanged. When LSP file logging is enabled, it also parses incoming
-messages through `LspByteBuffer` and writes the method and body to the configured log file.
-Parsed method names are still written to `IExtensionLog.Verbose`.
+**`RelayFromProcessAsync`** reads qmlls stdout and forwards bytes to the VS-facing read pipe.
+Unless `semanticTokenDeltasEnabled` is set, `SemanticTokenCapabilitiesFilter` removes the
+semantic token delta support and the token modifiers from the server capabilities, so that VS
+requests the full tokens on each change. With deltas, VS loses the highlighting while typing
+until the document is reopened. After the capabilities, bytes pass unchanged. When LSP file
+logging is enabled, it also parses incoming messages through `LspByteBuffer` and writes the
+method and body to the configured log file. Parsed method names are still written to
+`IExtensionLog.Verbose`.
 
 **`RelayToProcessAsync`** reads from the VS-facing write pipe and forwards bytes to qmlls
 stdin. It signals `serverInitializedSource` when the `initialized` notification passes

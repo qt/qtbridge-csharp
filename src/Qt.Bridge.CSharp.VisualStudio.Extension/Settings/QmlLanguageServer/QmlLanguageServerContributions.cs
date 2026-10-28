@@ -59,5 +59,15 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
             {
                 Description = "%QtBridge.Settings.LspLogDirectory.Description%"
             };
+
+        [VisualStudioContribution]
+        internal static Setting.Boolean SemanticTokenDeltasEnabled { get; } =
+            new("semanticTokenDeltasEnabled",
+                "%QtBridge.Settings.SemanticTokenDeltasEnabled.Title%",
+                QmlLanguageServerCategory,
+                defaultValue: false)
+            {
+                Description = "%QtBridge.Settings.SemanticTokenDeltasEnabled.Description%"
+            };
     }
 }

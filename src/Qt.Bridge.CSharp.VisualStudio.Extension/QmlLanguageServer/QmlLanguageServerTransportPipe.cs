@@ -32,7 +32,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         public QmlLanguageServerTransportPipe(
             Process proc,
             IExtensionLog extensionLog,
-            LoggingOptions loggingOptions)
+            QmlLanguageServerOptions options)
         {
             process = proc;
             log = extensionLog;
@@ -43,14 +43,16 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             Input = vsReadPipe.Reader;
             Output = vsWritePipe.Writer;
 
-            InitializeLogging(loggingOptions);
+            InitializeLogging(options.Logging);
 
             process.EnableRaisingEvents = true;
             process.Exited += OnProcessExited;
             process.ErrorDataReceived += OnErrorDataReceived;
             process.BeginErrorReadLine();
 
-            relayFromTask = RelayFromProcessAsync(cts.Token);
+            relayFromTask = RelayFromProcessAsync(
+                options.SemanticTokenDeltasEnabled ? null : new SemanticTokenCapabilitiesFilter(),
+                cts.Token);
             relayToTask = RelayToProcessAsync(cts.Token);
         }
 
@@ -180,13 +182,14 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 log.Info($"QML Language Server (stderr): {e.Data}");
         }
 
-        private async Task RelayFromProcessAsync(CancellationToken ct)
+        private async Task RelayFromProcessAsync(
+            SemanticTokenCapabilitiesFilter? capabilitiesFilter,
+            CancellationToken ct)
         {
             log.Info("QML Language Server transport: process -> VS relay started.");
 
             Exception? fault = null;
             var logBuffer = lspLogEnabled ? new LspByteBuffer() : null;
-            var capabilitiesFilter = new SemanticTokenCapabilitiesFilter();
             try {
                 var source = process.StandardOutput.BaseStream;
                 var writer = vsReadPipe.Writer;
@@ -195,7 +198,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     var read = await source.ReadAsync(buffer, 0, buffer.Length, ct);
                     if (read == 0)
                         break;
-                    var forward = capabilitiesFilter.IsPassThrough
+                    var forward = capabilitiesFilter == null || capabilitiesFilter.IsPassThrough
                         ? buffer.AsMemory(0, read)
                         : capabilitiesFilter.Filter(buffer.AsSpan(0, read));
                     if (forward.IsEmpty)
