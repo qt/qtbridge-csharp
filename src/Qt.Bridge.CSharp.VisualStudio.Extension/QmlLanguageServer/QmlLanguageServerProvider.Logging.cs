@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using System.IO;
-using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 {
@@ -11,17 +10,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
     {
         private static readonly ConcurrentDictionary<string, bool> QmllsLogPathsReset =
             new(StringComparer.OrdinalIgnoreCase);
-
-        private async Task<LoggingOptions> ReadLoggingConfigAsync(CancellationToken ct)
-        {
-            try {
-                return await loggingSettingsProvider.GetOptionsAsync(ct);
-            } catch (Exception ex) when (ex is not OperationCanceledException) {
-                log.Warning($"QML Language Server: failed to read logging settings "
-                    + $"({ex.Message}); logging disabled for this session.");
-                return LoggingOptions.Default;
-            }
-        }
 
         private static void ResetQmlLanguageServerLogOnce(string path)
         {

@@ -6,20 +6,22 @@ using Microsoft.VisualStudio.Shell.Interop;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
 {
-    internal sealed class VsSdkLoggingSettingsProvider : ILoggingSettingsProvider
+    internal sealed class VsSdkQmlLanguageServerSettingsProvider
+        : IQmlLanguageServerSettingsProvider
     {
-        public async Task<LoggingOptions> GetOptionsAsync(CancellationToken ct)
+        public async Task<QmlLanguageServerOptions> GetOptionsAsync(CancellationToken ct)
         {
-            if (ExtensionPackage.LoggingPage == null)
+            if (ExtensionPackage.QmlLanguageServerPage == null)
                 await EnsurePackageLoadedAsync(ct);
 
-            var page = ExtensionPackage.LoggingPage;
+            var page = ExtensionPackage.QmlLanguageServerPage;
             if (page == null)
-                return LoggingOptions.Default;
+                return QmlLanguageServerOptions.Default;
 
-            return LoggingOptions.Create(
-                page.QmllsLogEnabled, page.QmllsLogDirectory,
-                page.LspLogEnabled, page.LspLogDirectory);
+            return new QmlLanguageServerOptions(
+                Logging: LoggingOptions.Create(
+                    page.QmllsLogEnabled, page.QmllsLogDirectory,
+                    page.LspLogEnabled, page.LspLogDirectory));
         }
 
         private static async Task EnsurePackageLoadedAsync(CancellationToken ct)

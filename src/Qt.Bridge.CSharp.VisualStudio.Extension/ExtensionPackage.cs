@@ -21,8 +21,8 @@ using Task = System.Threading.Tasks.Task;
 namespace Qt.Bridge.CSharp.VisualStudio.Extension
 {
     [Guid(PackageGuidString)]
-    [ProvideOptionPage(typeof(LoggingOptionsPage), "Qt Bridge for C#",
-        "Logging", 0, 0, true, SupportsProfiles = true,
+    [ProvideOptionPage(typeof(QmlLanguageServerOptionsPage), "Qt Bridge for C#",
+        "QML Language Server", 0, 0, true, SupportsProfiles = true,
         IsInUnifiedSettings = true)]
 #if WINDOWS_DESKTOP
     [ProvideOptionPage(typeof(NotificationOptionsPage), "Qt Bridge for C#",
@@ -42,7 +42,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
     {
         internal const string PackageGuidString = "D4E5F6A7-B8C9-4D2E-8F1A-3B5C7D9E1F2A";
 
-        internal static LoggingOptionsPage? LoggingPage { get; private set; }
+        internal static QmlLanguageServerOptionsPage? QmlLanguageServerPage { get; private set; }
 
         public static ExtensionPackage? Instance { get; private set; }
 
@@ -70,7 +70,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
             await base.InitializeAsync(cancellationToken, progress);
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 
-            LoggingPage = (LoggingOptionsPage)GetDialogPage(typeof(LoggingOptionsPage));
+            QmlLanguageServerPage = (QmlLanguageServerOptionsPage)GetDialogPage(
+                typeof(QmlLanguageServerOptionsPage));
             VSColorTheme.ThemeChanged += OnVsThemeChanged;
 #if WINDOWS_DESKTOP
             await InitializeToolWindowNotificationCommandsAsync(cancellationToken);

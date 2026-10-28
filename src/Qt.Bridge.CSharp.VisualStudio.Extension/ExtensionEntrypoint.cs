@@ -56,13 +56,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
 
             if (VisualStudioVersion.SupportsVisualStudioExtensibility()) {
                 // VS 2026+: use the source-generated settings observer.
-                serviceCollection.AddSingleton<ExtensibilityLoggingSettingsProvider>();
-                serviceCollection.AddSingleton<ILoggingSettingsProvider>(sp =>
-                    sp.GetRequiredService<ExtensibilityLoggingSettingsProvider>());
+                serviceCollection.AddSingleton<IQmlLanguageServerSettingsProvider,
+                    ExtensibilityQmlLanguageServerSettingsProvider>();
             } else {
                 // VS 2022: the new extensibility settings UI is not supported; use DialogPage.
-                serviceCollection.AddSingleton<ILoggingSettingsProvider,
-                    VsSdkLoggingSettingsProvider>();
+                serviceCollection.AddSingleton<IQmlLanguageServerSettingsProvider,
+                    VsSdkQmlLanguageServerSettingsProvider>();
             }
         }
     }

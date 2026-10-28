@@ -158,12 +158,12 @@
     value with the correct schema. See build\PatchSettingsRegistration.targets.
   -->
   <ItemGroup>
-    <SettingsRegistrationPatch Include="qtBridge.qtBridgeQmlLanguageServerLogging.qmllsLogDirectory">
+    <SettingsRegistrationPatch Include="qtBridge.qtBridgeQmlLanguageServer.qmllsLogDirectory">
       <Replace>true</Replace>
       <format>path</format>
       <pathKind>folder</pathKind>
     </SettingsRegistrationPatch>
-    <SettingsRegistrationPatch Include="qtBridge.qtBridgeQmlLanguageServerLogging.lspLogDirectory">
+    <SettingsRegistrationPatch Include="qtBridge.qtBridgeQmlLanguageServer.lspLogDirectory">
       <Replace>true</Replace>
       <format>path</format>
       <pathKind>folder</pathKind>

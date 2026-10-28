@@ -41,7 +41,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
                 if (Package.GetGlobalService(typeof(EnvDTE.DTE)) is EnvDTE.DTE dte)
                     dte.ExecuteCommand("Tools.Options");
             } else {
-                ExtensionPackage.Instance.ShowOptionPage(typeof(LoggingOptionsPage));
+                ExtensionPackage.Instance.ShowOptionPage(typeof(QmlLanguageServerOptionsPage));
             }
         }
 

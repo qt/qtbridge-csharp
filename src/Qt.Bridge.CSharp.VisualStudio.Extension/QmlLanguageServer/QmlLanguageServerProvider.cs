@@ -34,7 +34,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private readonly IQmlMetadataReader metadataReader;
         private readonly IQmlMetadataWatcher metadataWatcher;
         private readonly IQmlLanguageServerInstaller languageServerInstaller;
-        private readonly ILoggingSettingsProvider loggingSettingsProvider;
+        private readonly IQmlLanguageServerSettingsProvider settingsProvider;
         private readonly IQmlBuildNotificationSettings buildNotificationSettings;
         private readonly IDisposable contextSubscription;
 
@@ -51,7 +51,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             IQmlMetadataReader metadataReader,
             IQmlMetadataWatcher metadataWatcher,
             IQmlLanguageServerInstaller languageServerInstaller,
-            ILoggingSettingsProvider loggingSettingsProvider,
+            IQmlLanguageServerSettingsProvider settingsProvider,
             IQmlBuildNotificationSettings buildNotificationSettings)
             : base(container, extensibilityObject)
         {
@@ -66,8 +66,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 ?? throw new ArgumentNullException(nameof(metadataWatcher));
             this.languageServerInstaller = languageServerInstaller
                 ?? throw new ArgumentNullException(nameof(languageServerInstaller));
-            this.loggingSettingsProvider = loggingSettingsProvider
-                ?? throw new ArgumentNullException(nameof(loggingSettingsProvider));
+            this.settingsProvider = settingsProvider
+                ?? throw new ArgumentNullException(nameof(settingsProvider));
             this.buildNotificationSettings = buildNotificationSettings
                 ?? throw new ArgumentNullException(nameof(buildNotificationSettings));
 
@@ -113,12 +113,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             var (activeDir, activeFile, activeKey) =
                 await ResolveActiveProjectContextAsync(ct);
 
-            var loggingConfig = await ReadLoggingConfigAsync(ct);
+            var options = await ReadOptionsAsync(ct);
 
             QmlLanguageServerTransportPipe pipe;
             try {
                 pipe = LaunchQmlLanguageServer(installation.ExecutablePath, importPaths,
-                    disableCMakeCalls, loggingConfig);
+                    disableCMakeCalls, options.Logging);
             } catch (QmlLanguageServerLaunchException ex) {
                 log.Error($"QML Language Server: failed to launch '{ex.ExecutablePath}'.", ex);
                 await infoBarService.ShowErrorAsync("qmls-launch-failed",
@@ -206,6 +206,17 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 if (Debugger.IsAttached)
                     Debugger.Break();
 #endif
+            }
+        }
+
+        private async Task<QmlLanguageServerOptions> ReadOptionsAsync(CancellationToken ct)
+        {
+            try {
+                return await settingsProvider.GetOptionsAsync(ct);
+            } catch (Exception ex) when (ex is not OperationCanceledException) {
+                log.Warning($"QML Language Server: failed to read settings ({ex.Message}); "
+                    + "using the defaults for this session.");
+                return QmlLanguageServerOptions.Default;
             }
         }
 

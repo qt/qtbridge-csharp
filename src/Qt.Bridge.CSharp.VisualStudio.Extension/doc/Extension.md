@@ -20,13 +20,13 @@ ExtensionEntrypoint (DI root)
   │
   |- IExtensionLog / ExtensionLog       <- dual-output logging (TraceSource + output pane)
   |- Notifications/IInfoBarNotificationService <- rate-limited VS InfoBar messages
-  |- Settings/QmlLanguageServer/LoggingContributions <- VS settings contributions + observer
-  |- Settings/QmlLanguageServer/ILoggingSettingsProvider <- version-adaptive settings access
-  │    |- ExtensibilityLoggingSettingsProvider  (VS 2026+: wraps generated observer)
-  │    |- VssdkLoggingSettingsProvider          (VS 2022: reads from LoggingOptionsPage)
+  |- Settings/QmlLanguageServer/QmlLanguageServerContributions <- VS settings + observer
+  |- Settings/QmlLanguageServer/IQmlLanguageServerSettingsProvider <- version-adaptive access
+  │    |- ExtensibilityQmlLanguageServerSettingsProvider (VS 2026+: wraps generated observer)
+  │    |- VsSdkQmlLanguageServerSettingsProvider (VS 2022: QmlLanguageServerOptionsPage)
   │
   |- ExtensionPackage (AsyncPackage)    <- VSSDK package hosting the VS 2022 DialogPage
-  │    |- LoggingOptionsPage            <- Tools > Options page (VS 2022 only)
+  │    |- QmlLanguageServerOptionsPage  <- Tools > Options page (VS 2022 only)
   │
   |- QmlLanguageServer/
   │    |- QmlLanguageServerProvider    <- LanguageServerProvider (VS SDK)
@@ -37,7 +37,7 @@ ExtensionEntrypoint (DI root)
   │    │    |- IQmlMetadataReader      <- reads qtbridge-qml.ide.json
   │    │    |- IQmlMetadataWatcher     <- polls for metadata file changes
   │    │    |- IQmlLanguageServerInstaller <- download/cache qmlls binary
-  │    │    |- ILoggingSettingsProvider <- logging settings snapshot
+  │    │    |- IQmlLanguageServerSettingsProvider <- settings snapshot
   │    │
   │    |- QmlLanguageServerProvider.Logging.cs
   │    │                               <- qmlls process log configuration
@@ -80,7 +80,7 @@ infrastructure that must not leak into the Core library.
 
 **QML language server file logging is configured per qmlls session.**
 The optional qmlls process log and LSP traffic log are Visual Studio settings, not general
-extension logging. `LoggingContributions` contributes the settings UI and generates
+extension logging. `QmlLanguageServerContributions` contributes the settings UI and generates
 a settings observer. `QmlLanguageServerProvider` reads one snapshot in
 `CreateServerConnectionAsync`, resolves configured log directories to fixed file names, uses
 the qmlls file path to add `--verbose -l <path>` to the command line when process logging is
@@ -189,31 +189,33 @@ Extensibility path by reading `FileMajorPart` from the running `devenv.exe`. Ver
 extensibility path:
 
 - **VS 2026+**: `AddSettingsObservers()` is called to register the source-generated observer,
-  and `ExtensibilityLoggingSettingsProvider` is bound to `ILoggingSettingsProvider`. This
-  provider wraps the generated `QmlLanguageServerLoggingCategoryObserver`.
-- **VS 2022 and older**: `AddSettingsObservers()` is not called. `VssdkLoggingSettingsProvider`
-  is bound to `ILoggingSettingsProvider`.
-  This provider reads settings from `ExtensionPackage.LoggingPage` (the `DialogPage` hosted by
-  the companion `AsyncPackage`).
+  and `ExtensibilityQmlLanguageServerSettingsProvider` is bound to
+  `IQmlLanguageServerSettingsProvider`. This provider wraps the generated
+  `QmlLanguageServerCategoryObserver`.
+- **VS 2022 and older**: `AddSettingsObservers()` is not called.
+  `VsSdkQmlLanguageServerSettingsProvider` is bound to `IQmlLanguageServerSettingsProvider`.
+  This provider reads settings from `ExtensionPackage.QmlLanguageServerPage` (the `DialogPage`
+  hosted by the companion `AsyncPackage`).
 
 ---
 
 ### `ExtensionPackage`
 
-A VSSDK `AsyncPackage` that hosts the `LoggingOptionsPage` DialogPage for VS 2022. It is
-registered via `[PackageRegistration]` and `[ProvideOptionPage]`, both of which emit entries
+A VSSDK `AsyncPackage` that hosts the `QmlLanguageServerOptionsPage` DialogPage for VS 2022. It
+is registered via `[PackageRegistration]` and `[ProvideOptionPage]`, both of which emit entries
 into the generated `.pkgdef`. The `[ProvideOptionPage]` attribute sets `IsInUnifiedSettings =
 true` so VS 2026 treats the registration as superseded by the new extensibility settings
 contribution and suppresses the duplicate sidebar entry and migration banner.
 
-`InitializeAsync` calls `GetDialogPage` to eagerly create and cache the `LoggingOptionsPage`
-instance in the static `LoggingPage` property. `VssdkLoggingSettingsProvider` reads from this
-property; if the package has not been initialized yet when settings are first requested, it
-force-loads the package via `IVsShell.LoadPackage`.
+`InitializeAsync` calls `GetDialogPage` to eagerly create and cache the
+`QmlLanguageServerOptionsPage` instance in the static `QmlLanguageServerPage` property.
+`VsSdkQmlLanguageServerSettingsProvider` reads from this property; if the package has not been
+initialized yet when settings are first requested, it force-loads the package via
+`IVsShell.LoadPackage`.
 
 On VS 2026+ this package is still registered in the `.pkgdef` (it cannot be conditionally
-excluded from a static attribute), but `VssdkLoggingSettingsProvider` is never registered in
-DI so `LoggingPage` is never read.
+excluded from a static attribute), but `VsSdkQmlLanguageServerSettingsProvider` is never
+registered in DI so `QmlLanguageServerPage` is never read.
 
 ---
 
@@ -277,11 +279,10 @@ to this provider.
 
 ### `Settings/QmlLanguageServer/`
 
-This folder groups all settings-related types for the QML language server logging feature.
+This folder groups all settings-related types for the QML language server.
 
-**`LoggingContributions`** (formerly `QmlLanguageServerLoggingSettings`) defines the Visual
-Studio settings category for optional QML language server file logging. The category contains
-four settings:
+**`QmlLanguageServerContributions`** defines the Visual Studio settings category
+"QML Language Server". It contains the settings for optional file logging:
 
 - `qmllsLogEnabled` and `qmllsLogDirectory` control the qmlls process log written by qmlls
   itself when the provider launches the process with `--verbose -l <path>`. The extension
@@ -301,24 +302,25 @@ CMake and Copilot). `build/PatchSettingsRegistration.targets` defines an inline 
 the patch data on the calling side and the task itself generic.
 
 The category sets `GenerateObserverClass = true`, so the VS Extensibility SDK generates
-`QmlLanguageServerLoggingCategoryObserver`.
+`QmlLanguageServerCategoryObserver`.
 
-**`ILoggingSettingsProvider`** is the interface through which `QmlLanguageServerProvider`
-reads a `LoggingOptions` snapshot. The interface decouples the provider from
-the VS-version-specific settings mechanism. Two implementations exist:
+**`IQmlLanguageServerSettingsProvider`** is the interface through which
+`QmlLanguageServerProvider` reads a `QmlLanguageServerOptions` snapshot. The interface
+decouples the provider from the VS-version-specific settings mechanism. Two implementations
+exist:
 
-- **`ExtensibilityLoggingSettingsProvider`** (VS 2026+) — wraps the source-generated
-  `QmlLanguageServerLoggingCategoryObserver` and reads current values directly from its
-  properties.
-- **`VssdkLoggingSettingsProvider`** (VS 2022) — reads settings from
-  `ExtensionPackage.LoggingPage`, force-loading the `AsyncPackage` via `IVsShell.LoadPackage`
-  if it has not yet been initialized by VS.
+- **`ExtensibilityQmlLanguageServerSettingsProvider`** (VS 2026+) — wraps the source-generated
+  `QmlLanguageServerCategoryObserver` and reads current values directly from its properties.
+- **`VsSdkQmlLanguageServerSettingsProvider`** (VS 2022) — reads settings from
+  `ExtensionPackage.QmlLanguageServerPage`, force-loading the `AsyncPackage` via
+  `IVsShell.LoadPackage` if it has not yet been initialized by VS.
 
-**`LoggingOptions`** is the immutable per-session snapshot record for qmlls process logging
-and LSP traffic logging. Its `Create` factory creates the configured log directories and
-resolves the full log file paths, and `Default` is used when settings are unavailable.
+**`QmlLanguageServerOptions`** is the immutable per-session snapshot of the category, and
+`Default` is used when settings are unavailable. Its **`LoggingOptions`** hold the qmlls process
+logging and LSP traffic logging settings. The `Create` factory creates the configured log
+directories and resolves the full log file paths.
 
-**`LoggingOptionsPage`** is a `DialogPage` that exposes the four logging settings as
+**`QmlLanguageServerOptionsPage`** is a `DialogPage` that exposes the settings as
 grid-editable properties. It is hosted by `ExtensionPackage` and is used only on VS 2022.
 The `[ProvideOptionPage]` attribute on `ExtensionPackage` carries `IsInUnifiedSettings = true`
 so VS 2026 suppresses the DialogPage entry in its unified settings sidebar and does not show a
@@ -412,8 +414,10 @@ Called by the VS SDK when `Enabled` is `true`. The sequence is:
    project has readable metadata yet, the flag is passed as well, matching the metadata
    default of `true`.
 3. Resolve the active project context (directory, project file path, config key).
-4. Read a `LoggingOptions` snapshot via `ILoggingSettingsProvider.GetConfigAsync`.
-   If the settings cannot be read, logging is disabled for this server session and startup continues.
+4. Read a `QmlLanguageServerOptions` snapshot via
+   `IQmlLanguageServerSettingsProvider.GetOptionsAsync`.
+   If the settings cannot be read, the defaults are used for this server session and startup
+   continues.
 5. Launch the qmlls process with `--no-cmake-calls` (see step 2), the collected import paths,
    and, when enabled, `--verbose -l <path>` for the qmlls process log. A
    `QmlLanguageServerLaunchException` is caught, an error notification is shown, and the
@@ -444,8 +448,7 @@ If `Enabled` is already `false`, calls `RefreshEnabledStateAsync` to re-attempt 
 instead.
 
 **Logging partial.**
-`QmlLanguageServerProvider.Logging.cs` contains `ReadLoggingConfigAsync`, which delegates to
-`ILoggingSettingsProvider.GetConfigAsync`, and the process-log reset helper. Log directory
+`QmlLanguageServerProvider.Logging.cs` contains the process-log reset helper. Log directory
 creation and file path resolution live in `LoggingOptions.Create` (in
 `Settings/QmlLanguageServer/LoggingOptions.cs`). The provider resets each configured qmlls log
 file once per extension process before passing the path to qmlls, avoiding unbounded append

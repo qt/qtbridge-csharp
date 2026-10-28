@@ -3,8 +3,8 @@
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
 {
-    internal interface ILoggingSettingsProvider
+    internal interface IQmlLanguageServerSettingsProvider
     {
-        Task<LoggingOptions> GetOptionsAsync(CancellationToken ct);
+        Task<QmlLanguageServerOptions> GetOptionsAsync(CancellationToken ct);
     }
 }
