@@ -178,8 +178,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
         private void QueueLoggedTask(Func<Task> action, string operationName)
         {
-            _ = Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.RunAsync(() =>
-                RunLoggedAsync(action, operationName));
+            _ = Task.Run(() => RunLoggedAsync(action, operationName));
         }
 
         private async Task RunLoggedAsync(Func<Task> action, string operationName)
