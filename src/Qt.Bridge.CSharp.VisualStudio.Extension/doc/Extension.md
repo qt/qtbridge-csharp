@@ -474,10 +474,13 @@ shows up in the output pane. This is expected and not filtered on purpose.
 serialize the respective notification DTOs to JSON using `DataContractJsonSerializer`.
 The provider calls these and hands the results to `EnqueueNotification`.
 
-**`RelayFromProcessAsync`** reads qmlls stdout and forwards bytes unchanged to the VS-facing
-read pipe. When LSP file logging is enabled, it also parses incoming messages through
-`LspByteBuffer` and writes the method and body to the configured log file. Parsed method names
-are still written to `IExtensionLog.Verbose`.
+**`RelayFromProcessAsync`** reads qmlls stdout and forwards bytes to the VS-facing read pipe. Up
+to the server capabilities, `SemanticTokenCapabilitiesFilter` removes the semantic token delta
+support and the token modifiers, so that VS requests the full tokens on each change. With
+deltas, VS loses the highlighting while typing until the document is reopened. After the
+capabilities, bytes pass unchanged. When LSP file logging is enabled, it also parses incoming
+messages through `LspByteBuffer` and writes the method and body to the configured log file.
+Parsed method names are still written to `IExtensionLog.Verbose`.
 
 **`RelayToProcessAsync`** reads from the VS-facing write pipe and forwards bytes to qmlls
 stdin. It signals `serverInitializedSource` when the `initialized` notification passes

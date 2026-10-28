@@ -147,7 +147,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             return Encoding.UTF8.GetString(ms.ToArray());
         }
 
-        private static string FrameLspMessage(string body) =>
+        internal static string FrameLspMessage(string body) =>
             $"Content-Length: {Encoding.UTF8.GetByteCount(body)}\r\n\r\n{body}";
 
         private static string GetFolderName(string folderUri)
@@ -186,6 +186,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
             Exception? fault = null;
             var logBuffer = lspLogEnabled ? new LspByteBuffer() : null;
+            var capabilitiesFilter = new SemanticTokenCapabilitiesFilter();
             try {
                 var source = process.StandardOutput.BaseStream;
                 var writer = vsReadPipe.Writer;
@@ -194,9 +195,14 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     var read = await source.ReadAsync(buffer, 0, buffer.Length, ct);
                     if (read == 0)
                         break;
-                    var mem = writer.GetMemory(read);
-                    buffer.AsMemory(0, read).CopyTo(mem);
-                    writer.Advance(read);
+                    var forward = capabilitiesFilter.IsPassThrough
+                        ? buffer.AsMemory(0, read)
+                        : capabilitiesFilter.Filter(buffer.AsSpan(0, read));
+                    if (forward.IsEmpty)
+                        continue;
+                    var mem = writer.GetMemory(forward.Length);
+                    forward.CopyTo(mem);
+                    writer.Advance(forward.Length);
                     var result = await writer.FlushAsync(ct);
                     if (result.IsCompleted)
                         break;
@@ -205,7 +211,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                         continue;
 
                     // Parse incoming messages for optional LSP file logging only.
-                    logBuffer.Append(buffer.AsSpan(0, read));
+                    logBuffer.Append(forward.Span);
                     while (logBuffer.TryExtractMessage(out var msg)) {
                         var method = LspByteBuffer.TryExtractMethod(msg);
                         log.Verbose(method != null

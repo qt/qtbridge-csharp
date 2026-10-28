@@ -21,6 +21,14 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             data.AddRange(bytes.ToArray());
         }
 
+        /// <summary> Removes and returns the bytes of an incomplete message. </summary>
+        public byte[] TakeRemaining()
+        {
+            byte[] remaining = [..data];
+            data.Clear();
+            return remaining;
+        }
+
         public bool TryExtractMessage(out byte[] message)
         {
             message = [];
