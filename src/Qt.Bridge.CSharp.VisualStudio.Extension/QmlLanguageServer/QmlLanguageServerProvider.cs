@@ -76,6 +76,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     RefreshEnabledStateAsync,
                     "refresh QML Language Server provider state"));
 
+            settingsProvider.Changed += OnSettingsChanged;
+
             QueueLoggedTask(RefreshEnabledStateAsync, "initial QML Language Server provider state");
         }
 
@@ -180,6 +182,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         protected override void Dispose(bool disposing)
         {
             if (disposing) {
+                settingsProvider.Changed -= OnSettingsChanged;
                 contextSubscription.Dispose();
                 foreach (var entry in DisposeRegistry()) {
                     entry.Watcher.Dispose();
@@ -658,7 +661,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             log.Info($"QML Language Server: .qmlls.build.ini is ready for"
                 + $" '{Path.GetFileName(projectFilePath)}' - restarting qmlls with"
                 + " a clean build-settings cache.");
-            await RestartServerForProjectAsync(projectFilePath);
+            await RestartServerAsync(
+                $"'{Path.GetFileName(projectFilePath)}' build metadata became ready");
             return true;
         }
 
@@ -786,7 +790,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             signatures[normalizedPath] = new FileSignature(false, DateTime.MinValue, 0);
         }
 
-        private async Task RestartServerForProjectAsync(string projectFilePath)
+        private async Task RestartServerAsync(string reason)
         {
             if (!Enabled)
                 return;
@@ -796,8 +800,23 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             Enabled = false;
             await Task.Delay(500);
             Enabled = true;
-            log.Info($"QML Language Server: restarted after"
-                + $" '{Path.GetFileName(projectFilePath)}' build metadata became ready.");
+            log.Info($"QML Language Server: restarted after {reason}.");
+        }
+
+        private void OnSettingsChanged()
+        {
+            QueueLoggedTask(async () =>
+            {
+                // Without a running session, the next start reads the settings anyway.
+                if (GetActivePipe() is not { } pipe)
+                    return;
+
+                var options = await ReadOptionsAsync(CancellationToken.None);
+                if (options == pipe.Options)
+                    return;
+
+                await RestartServerAsync("a settings change");
+            }, "apply QML Language Server settings");
         }
 
         private void OnProjectMetadataChanged(string projectFilePath)

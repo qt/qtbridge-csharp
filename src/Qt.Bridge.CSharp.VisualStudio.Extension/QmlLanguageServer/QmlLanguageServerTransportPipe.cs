@@ -36,6 +36,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         {
             process = proc;
             log = extensionLog;
+            Options = options;
             cts = new CancellationTokenSource();
             vsReadPipe = new Pipe();
             vsWritePipe = new Pipe();
@@ -58,6 +59,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
         public PipeReader Input { get; }
         public PipeWriter Output { get; }
+
+        /// <summary>
+        /// The settings this qmlls session was started with.
+        /// </summary>
+        public QmlLanguageServerOptions Options { get; }
 
         /// <summary>
         /// Enqueues <paramref name="json"/> (a raw JSON notification body) for delivery to the QML

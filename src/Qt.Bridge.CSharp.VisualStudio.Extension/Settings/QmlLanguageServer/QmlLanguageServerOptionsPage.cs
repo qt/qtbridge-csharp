@@ -8,6 +8,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
 {
     public sealed class QmlLanguageServerOptionsPage : DialogPage
     {
+        // Static, so that subscribers do not depend on when VS creates the page.
+        internal static event Action? Applied;
+
         [Category("Semantic Highlighting")]
         [DisplayName("Use semantic token deltas")]
         [Description("Lets Visual Studio request only the changed semantic tokens and passes "
@@ -44,5 +47,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
             + "Has no effect when the LSP log is disabled.")]
         [DefaultValue("")]
         public string LspLogDirectory { get; set; } = string.Empty;
+
+        protected override void OnApply(PageApplyEventArgs e)
+        {
+            base.OnApply(e);
+            if (e.ApplyBehavior == ApplyKind.Apply)
+                Applied?.Invoke();
+        }
     }
 }

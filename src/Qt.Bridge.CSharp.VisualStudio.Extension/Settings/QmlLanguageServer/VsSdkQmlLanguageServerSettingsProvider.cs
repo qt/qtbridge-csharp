@@ -9,6 +9,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
     internal sealed class VsSdkQmlLanguageServerSettingsProvider
         : IQmlLanguageServerSettingsProvider
     {
+        public VsSdkQmlLanguageServerSettingsProvider()
+        {
+            QmlLanguageServerOptionsPage.Applied += () => Changed?.Invoke();
+        }
+
+        public event Action? Changed;
+
         public async Task<QmlLanguageServerOptions> GetOptionsAsync(CancellationToken ct)
         {
             if (ExtensionPackage.QmlLanguageServerPage == null)

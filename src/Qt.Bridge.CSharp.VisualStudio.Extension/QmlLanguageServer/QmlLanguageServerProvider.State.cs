@@ -217,6 +217,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 activePipe = null;
         }
 
+        private QmlLanguageServerTransportPipe? GetActivePipe()
+        {
+            lock (registryLock)
+                return activePipe;
+        }
+
         private bool TryCreateBuildSettingsMonitor(
             string projectFilePath,
             out BuildSettingsMonitor monitor)

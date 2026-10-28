@@ -5,12 +5,19 @@ using Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer.Setting
 
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
 {
-    internal sealed class ExtensibilityQmlLanguageServerSettingsProvider(
-        QmlLanguageServerCategoryObserver observer)
+    internal sealed class ExtensibilityQmlLanguageServerSettingsProvider
         : IQmlLanguageServerSettingsProvider
     {
-        private readonly QmlLanguageServerCategoryObserver observer = observer
-            ?? throw new ArgumentNullException(nameof(observer));
+        private readonly QmlLanguageServerCategoryObserver observer;
+
+        public ExtensibilityQmlLanguageServerSettingsProvider(
+            QmlLanguageServerCategoryObserver observer)
+        {
+            this.observer = observer ?? throw new ArgumentNullException(nameof(observer));
+            this.observer.Changed += OnObserverChangedAsync;
+        }
+
+        public event Action? Changed;
 
         public async Task<QmlLanguageServerOptions> GetOptionsAsync(CancellationToken ct)
         {
@@ -35,6 +42,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
             } catch (Exception ex) when (ex is not OperationCanceledException) {
                 return QmlLanguageServerOptions.Default;
             }
+        }
+
+        private Task OnObserverChangedAsync(QmlLanguageServerCategorySnapshot snapshot)
+        {
+            Changed?.Invoke();
+            return Task.CompletedTask;
         }
     }
 }

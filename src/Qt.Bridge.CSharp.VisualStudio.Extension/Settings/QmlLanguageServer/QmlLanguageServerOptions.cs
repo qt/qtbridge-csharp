@@ -4,7 +4,8 @@
 namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
 {
     /// <summary>
-    /// QML language server settings, read when qmlls starts.
+    /// Snapshot of the QML language server settings. A qmlls session keeps the snapshot it
+    /// was started with.
     /// </summary>
     /// <param name="SemanticTokenDeltasEnabled">
     /// Passes the semantic token delta support and the token modifiers of qmlls to VS.

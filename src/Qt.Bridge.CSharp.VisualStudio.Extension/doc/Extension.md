@@ -89,6 +89,12 @@ enabled, and passes the same immutable configuration snapshot to
 traffic logging is enabled. This keeps routine diagnostics behind `IExtensionLog` while
 making high-volume protocol logs an explicit opt-in.
 
+**A settings change restarts qmlls.**
+`IQmlLanguageServerSettingsProvider.Changed` fires when the settings may have changed: on VS
+2026+ from the generated observer, which also fires once on subscription, and on VS 2022 when
+`QmlLanguageServerOptionsPage` is applied. The provider reads a new snapshot and restarts qmlls
+only if it differs from `QmlLanguageServerTransportPipe.Options` of the running session.
+
 **`Enabled` is the lifecycle switch.**
 The VS Extensibility SDK activates and deactivates a `LanguageServerProvider` by reading its
 `Enabled` property. The provider sets `Enabled = true` when at least one Qt Bridge project is
@@ -148,8 +154,8 @@ the marker's signature changes.
 When the metadata watcher fires, or the ready marker changes after a successful injection, the
 provider sets `RestartWhenIniReady = true` on the project entry and calls
 `TryInjectProjectAsync` rather than restarting immediately. Once the ready marker exists,
-`TryInjectProjectAsync` detects the flag, clears it, and calls `RestartServerForProjectAsync`
-to toggle `Enabled` with a 500 ms gap. The fresh qmlls process reads the new build settings
+`TryInjectProjectAsync` detects the flag, clears it, and calls `RestartServerAsync` to toggle
+`Enabled` with a 500 ms gap. The fresh qmlls process reads the new build settings
 without any cached state. A restart is required because qmlls does not reparse documents that
 are already open when it receives new build directories.
 
@@ -434,7 +440,7 @@ Reads and validates the metadata for a registered project, then checks that the 
 `qmlLanguageServer.readyFile` exists. If the metadata has no `readyFile`, or the marker does not
 exist yet, injection is reset and the project's `BuildSettingsMonitor` retries once the marker
 appears. Once the marker exists and `RestartWhenIniReady` is set, the method clears the flag
-and calls `RestartServerForProjectAsync` instead of injecting into the current session.
+and calls `RestartServerAsync` instead of injecting into the current session.
 Otherwise it enqueues `workspace/didChangeWorkspaceFolders` and `$/addBuildDirs` on the
 active pipe.
 
