@@ -12,6 +12,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private readonly Dictionary<string, ProjectEntry> projectRegistry = [];
         private bool registryDisposed;
         private QmlLanguageServerTransportPipe? activePipe;
+        private bool serverRestartInProgress;
 
         private enum ProjectRegistrationNeed
         {
@@ -211,10 +212,50 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             }
         }
 
-        private void ClearActivePipe()
+        /// <summary>
+        /// Detaches the active pipe, disables the provider and marks a server restart as running.
+        /// </summary>
+        private bool TryBeginServerRestart(out QmlLanguageServerTransportPipe? previousPipe)
+        {
+            lock (registryLock) {
+                previousPipe = null;
+                if (!Enabled || serverRestartInProgress)
+                    return false;
+
+                serverRestartInProgress = true;
+                previousPipe = activePipe;
+                activePipe = null;
+                Enabled = false;
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Sets <c>Enabled</c> unless a server restart is running. Checked under the lock that
+        /// also guards the start of a restart, so an enable cannot reach VS while it stops the
+        /// previous session.
+        /// </summary>
+        private bool TrySetEnabled(bool enabled)
+        {
+            lock (registryLock) {
+                if (serverRestartInProgress || Enabled == enabled)
+                    return false;
+
+                Enabled = enabled;
+                return true;
+            }
+        }
+
+        private void EndServerRestart()
         {
             lock (registryLock)
-                activePipe = null;
+                serverRestartInProgress = false;
+        }
+
+        private bool IsServerRestartInProgress()
+        {
+            lock (registryLock)
+                return serverRestartInProgress;
         }
 
         private QmlLanguageServerTransportPipe? GetActivePipe()

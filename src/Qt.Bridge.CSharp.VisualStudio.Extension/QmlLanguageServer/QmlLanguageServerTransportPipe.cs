@@ -66,6 +66,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         public QmlLanguageServerOptions Options { get; }
 
         /// <summary>
+        /// Completes once the VS -> process relay has stopped, i.e. VS closed its end of the
+        /// connection or the process exited. Never faults.
+        /// </summary>
+        public Task Closed => relayToTask;
+
+        /// <summary>
         /// Enqueues <paramref name="json"/> (a raw JSON notification body) for delivery to the QML
         /// Language Server. Framing is applied automatically. The notification is sent only after
         /// the LSP <c>initialized</c> handshake has completed.

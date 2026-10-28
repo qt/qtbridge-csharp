@@ -38,6 +38,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         private readonly IQmlBuildNotificationSettings buildNotificationSettings;
         private readonly IDisposable contextSubscription;
 
+        // Closing the previous connection includes the LSP shutdown/exit handshake and can
+        // take several seconds.
+        private static readonly TimeSpan ServerStopTimeout = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan ServerStopGracePeriod = TimeSpan.FromMilliseconds(250);
+
         private static string BuildOutputNotificationKey(string projectFilePath) =>
             $"qmls-no-metadata:{projectFilePath}";
 
@@ -792,15 +797,19 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
         private async Task RestartServerAsync(string reason)
         {
-            if (!Enabled)
+            if (!TryBeginServerRestart(out var previousPipe))
                 return;
 
-            ClearActivePipe();
+            log.Info($"QML Language Server: restarting after {reason}.");
+            try {
+                await WaitForServerStopAsync(previousPipe);
+            } finally {
+                EndServerRestart();
+            }
 
-            Enabled = false;
-            await Task.Delay(500);
-            Enabled = true;
-            log.Info($"QML Language Server: restarted after {reason}.");
+            // Re-evaluate rather than enable unconditionally; context changes that arrived
+            // during the restart were deferred to this point.
+            await RefreshEnabledStateAsync();
         }
 
         private void OnSettingsChanged()
@@ -817,6 +826,27 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
                 await RestartServerAsync("a settings change");
             }, "apply QML Language Server settings");
+        }
+
+        /// <summary>
+        /// Waits until VS has closed the connection behind <paramref name="pipe"/>. An enable
+        /// that arrives earlier does not start a new session, and open documents stay without a
+        /// server until they are reopened.
+        /// </summary>
+        private async Task WaitForServerStopAsync(QmlLanguageServerTransportPipe? pipe)
+        {
+            if (pipe != null) {
+#pragma warning disable VSTHRD003 // Closed is owned by the pipe's relay task, not a foreign context
+                var completed = await Task.WhenAny(pipe.Closed, Task.Delay(ServerStopTimeout));
+                if (completed != pipe.Closed) {
+                    log.Warning("QML Language Server: previous session did not stop within"
+                        + $" {ServerStopTimeout.TotalSeconds:0} s - restarting anyway.");
+                }
+#pragma warning restore VSTHRD003
+            }
+
+            // Closed can complete shortly before VS accepts a new start.
+            await Task.Delay(ServerStopGracePeriod);
         }
 
         private void OnProjectMetadataChanged(string projectFilePath)
@@ -850,6 +880,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             var loadedPaths = await contextService.GetLoadedProjectPathsAsync(ct);
             RefreshProjectRegistry(loadedPaths);
 
+            // A running restart re-evaluates the state once the previous session has stopped.
+            if (IsServerRestartInProgress())
+                return;
+
             switch (shouldEnable) {
             case false when !contextReady:
                 log.Info("QML Language Server provider state deferred until VS project context "
@@ -869,10 +903,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 break;
             }
 
-            if (Enabled == shouldEnable)
+            if (!TrySetEnabled(shouldEnable))
                 return;
 
-            Enabled = shouldEnable;
             log.Info(shouldEnable
                 ? "Enabled QML Language Server provider for Qt Bridge context."
                 : "Disabled QML Language Server provider for Qt Bridge context.");

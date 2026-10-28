@@ -98,10 +98,14 @@ only if it differs from `QmlLanguageServerTransportPipe.Options` of the running 
 **`Enabled` is the lifecycle switch.**
 The VS Extensibility SDK activates and deactivates a `LanguageServerProvider` by reading its
 `Enabled` property. The provider sets `Enabled = true` when at least one Qt Bridge project is
-loaded, and `Enabled = false` otherwise. To restart the server (e.g., after a build produces
-new metadata), the provider briefly sets `Enabled = false`, waits 500 ms for the SDK to shut
-down the current connection, then sets `Enabled = true` again to trigger a fresh
-`CreateServerConnectionAsync` call.
+loaded, and `Enabled = false` otherwise. To restart the server (e.g., after a build produces new
+metadata), the provider sets `Enabled = false`, waits until VS has closed the current connection
+(`QmlLanguageServerTransportPipe.Closed`, at most 30 s), and then re-evaluates the enabled
+state, which sets `Enabled = true` again and triggers a fresh `CreateServerConnectionAsync`
+call. Waiting for the close matters: an enable that arrives earlier does not start a new
+session, and open documents then stay without a server until they are reopened. While a restart
+runs, `RefreshEnabledStateAsync` leaves `Enabled` alone; it checks this under the lock that also
+guards the start of a restart.
 
 **The server starts unconditionally; metadata is injected after initialization.**
 The server is launched as soon as any Qt Bridge project is detected in the solution. Metadata
@@ -155,7 +159,7 @@ When the metadata watcher fires, or the ready marker changes after a successful 
 provider sets `RestartWhenIniReady = true` on the project entry and calls
 `TryInjectProjectAsync` rather than restarting immediately. Once the ready marker exists,
 `TryInjectProjectAsync` detects the flag, clears it, and calls `RestartServerAsync` to toggle
-`Enabled` with a 500 ms gap. The fresh qmlls process reads the new build settings
+`Enabled` as described above. The fresh qmlls process reads the new build settings
 without any cached state. A restart is required because qmlls does not reparse documents that
 are already open when it receives new build directories.
 
