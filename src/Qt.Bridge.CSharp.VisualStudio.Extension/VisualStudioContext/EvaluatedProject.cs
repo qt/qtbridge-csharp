@@ -42,6 +42,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
 
         /// <summary>
         /// Adds the project data that <see cref="FromSnapshot"/> reads to a project query.
+        /// <see cref="EvaluatedProjectMonitor"/> tracks the same query, so extend it only here.
         /// </summary>
         public static IAsyncQueryable<IProjectSnapshot> WithEvaluatedData(
             IAsyncQueryable<IProjectSnapshot> projects) => projects

@@ -12,13 +12,20 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
     /// Implements <see cref="IQtBridgeProjectCapabilityDetector"/> with the Visual Studio project
     /// query API.
     /// </summary>
+    /// <remarks>
+    /// Reads the projects from the data that <see cref="EvaluatedProjectMonitor"/> tracks. Before
+    /// the first update and without tracking, it queries on each call.
+    /// </remarks>
     internal sealed class QtBridgeProjectCapabilityDetector(
         VisualStudioExtensibility vsExt,
+        EvaluatedProjectMonitor projectMonitor,
         IExtensionLog extensionLog)
         : IQtBridgeProjectCapabilityDetector
     {
         private readonly VisualStudioExtensibility extensibility = vsExt
             ?? throw new ArgumentNullException(nameof(vsExt));
+        private readonly EvaluatedProjectMonitor monitor = projectMonitor
+            ?? throw new ArgumentNullException(nameof(projectMonitor));
         private readonly IExtensionLog log = extensionLog
             ?? throw new ArgumentNullException(nameof(extensionLog));
 
@@ -39,8 +46,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
             if (string.IsNullOrWhiteSpace(projectFilePath))
                 return null;
 
+            monitor.EnsureStarted();
             try {
                 var fullPath = Path.GetFullPath(projectFilePath);
+                if (monitor.TryGetProject(fullPath, out var tracked))
+                    return tracked;
+
                 var projects = await QueryEvaluatedProjectsAsync(cancellationToken);
                 return projects.TryGetValue(fullPath, out var project) ? project : null;
             } catch (OperationCanceledException) {
