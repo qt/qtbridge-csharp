@@ -218,18 +218,19 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
                 RedirectStandardError = true,
                 UseShellExecute = false
             };
-            var arguments = new[] { "msbuild", project, "/nologo", "/v:minimal", "/t:" + target }
-                .Concat(properties);
+            var arguments = new[] { "msbuild", project, "/nologo", "/v:minimal", "/t:" + target,
+                "/nodeReuse:false" }.Concat(properties);
             foreach (var argument in arguments)
                 info.ArgumentList.Add(argument);
             using var process = Process.Start(info)!;
             var output = process.StandardOutput.ReadToEndAsync();
             var error = process.StandardError.ReadToEndAsync();
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
             try {
                 await process.WaitForExitAsync(timeout.Token);
             } catch (OperationCanceledException) {
                 process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync(CancellationToken.None);
                 throw;
             }
             return (process.ExitCode, await output + await error);

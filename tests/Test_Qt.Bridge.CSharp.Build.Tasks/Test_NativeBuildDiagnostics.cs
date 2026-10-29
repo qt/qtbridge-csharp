@@ -186,18 +186,19 @@ namespace Test_Qt.Bridge.CSharp.Build.Tasks
             };
 
             foreach (var argument in new[] { "msbuild", project, "/nologo", "/v:minimal",
-                "/t:QtBridgeBuild" }) {
+                "/t:QtBridgeBuild", "/nodeReuse:false" }) {
                 info.ArgumentList.Add(argument);
             }
 
             using var process = Process.Start(info)!;
             var output = process.StandardOutput.ReadToEndAsync();
             var error = process.StandardError.ReadToEndAsync();
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
             try {
                 await process.WaitForExitAsync(timeout.Token);
             } catch (OperationCanceledException) {
                 process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync(CancellationToken.None);
                 throw;
             }
             return (process.ExitCode, await output + await error);
