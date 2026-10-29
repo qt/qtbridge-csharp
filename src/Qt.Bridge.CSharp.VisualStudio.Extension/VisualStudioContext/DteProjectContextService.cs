@@ -63,8 +63,15 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
             if (dte.ActiveSolutionProjects is not Array activeSolutionProjects)
                 return null;
 
-            return activeSolutionProjects.Length == 0
-                ? null : (activeSolutionProjects.GetValue(0) as Project)?.FullName;
+            if (activeSolutionProjects.Length == 0)
+                return null;
+
+            try {
+                return (activeSolutionProjects.GetValue(0) as Project)?.FullName;
+            } catch (NotImplementedException) {
+                // Thrown for an unloaded project.
+                return null;
+            }
         }
 
         public async Task<string?> GetActiveDocumentPathAsync(CancellationToken cancellationToken)
