@@ -10,7 +10,8 @@ namespace Test_Qt.Bridge.Project.BugFix
 {
     using Shared;
 
-    [TestClass]
+    // Memory samples are unreliable while other tests load the machine.
+    [TestClass, DoNotParallelize]
     public class Test_InboundMemLeak : ManagedTestBase
     {
         private static TempProject sharedProject;
