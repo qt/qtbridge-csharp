@@ -42,6 +42,7 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
 "#include <QThread>",
 "#include <QTimer>",
 "#include <atomic>",
+"#include <memory>",
 "#include <QDotNetHost>",
 "#include <QDotNetAdapter>",
 "#include <QDotNetRef>",
@@ -90,62 +91,73 @@ int main(int argc, char *argv[])
         }}
     }}
 
-    QGuiApplication app(argc, argv);
+    // ExitProcess() skips destructors, so the Qt objects live in this scope and are destroyed
+    // before it. ~QGuiApplication stops the QML debug server thread; if the thread still runs
+    // at process exit, Qt fails fast.
+    int res = 0;
+    QString appDirPath;
+    {{
+        QGuiApplication app(argc, argv);
 
-    const auto appDirPath = QCoreApplication::applicationDirPath();
+        appDirPath = QCoreApplication::applicationDirPath();
 
-    auto assemblyPath = QDir(appDirPath).filePath(appName);
-    if (!QFile::exists(assemblyPath)) {{
-        qCritical() << ""App assembly not found: "" << assemblyPath;
-        return -1;
+        auto assemblyPath = QDir(appDirPath).filePath(appName);
+        if (!QFile::exists(assemblyPath)) {{
+            qCritical() << ""App assembly not found: "" << assemblyPath;
+            return -1;
+        }}
+
+        auto dotNetHost = std::make_unique<QDotNetHost>();
+        QStringList args;
+        for (int i = 0; i < argc; ++i)
+            args << argv[i];
+        int dotNetResult = -1;
+        std::atomic<bool> dotNetExited = false;
+        auto *dotnetThread = QThread::create(
+            [&args, &app, &dotNetHost, &assemblyPath, &dotNetResult, &dotNetExited]()
+            {{
+                Q_DOTNET_PROFILE(""dotnet_main_thread"");
+                dotNetHost->loadApp(assemblyPath, args);
+                dotNetResult = dotNetHost->runApp();
+                dotNetExited = true;
+                // exit() only ends an event loop that is already running; .NET can return before
+                // app.exec() starts it. A queued call waits for the event loop and ends it then.
+                QMetaObject::invokeMethod(&app, [&app, &dotNetResult] {{ app.exit(dotNetResult); }},
+                                          Qt::QueuedConnection);
+            }});
+        dotnetThread->start();
+
+        int tries = 0;
+        constexpr int maxTries = 10000; // ~1 sec total
+        while (!dotNetExited && !dotNetHost->isReady() && tries++ < maxTries)
+            QThread::usleep(100);
+        if (dotNetExited)
+            return dotNetResult;
+        if (!dotNetHost->isReady()) {{
+            qCritical() << "".NET host not ready after timeout."";
+            return -2;
+        }}
+
+        QQmlApplicationEngine qmlEngine;
+        QDotNetAdapter::instance().init(
+            QDir(appDirPath).filePath(""Qt.DotNet.Adapter.dll""),
+            ""Qt.DotNet.Adapter"", ""Qt.DotNet.Adapter"", dotNetHost.get(), &qmlEngine);
+
+        QtDotNet::call<void>(""Qt.DotNet.Adapter, Qt.DotNet.Adapter"", ""SetMainThread"");
+
+        {mainCpp[new(MainBeforeAppExec) { Sorted = false }]}
+        QObject::connect(&app, &QGuiApplication::aboutToQuit, &qmlEngine, &QQmlEngine::quit);
+
+        if (dotNetExited)
+            return dotNetResult;
+
+        res = app.exec();
+        dotnetThread->wait();
+#ifdef Q_OS_WINDOWS
+        // Not unloaded: the runtime stays loaded until ExitProcess().
+        dotNetHost.release();
+#endif
     }}
-
-    QDotNetHost dotNetHost;
-    QStringList args;
-    for (int i = 0; i < argc; ++i)
-        args << argv[i];
-    int dotNetResult = -1;
-    std::atomic<bool> dotNetExited = false;
-    auto *dotnetThread = QThread::create(
-        [&args, &app, &dotNetHost, &assemblyPath, &dotNetResult, &dotNetExited]()
-        {{
-            Q_DOTNET_PROFILE(""dotnet_main_thread"");
-            dotNetHost.loadApp(assemblyPath, args);
-            dotNetResult = dotNetHost.runApp();
-            dotNetExited = true;
-            // exit() only ends an event loop that is already running; .NET can return before
-            // app.exec() starts it. A queued call waits for the event loop and ends it then.
-            QMetaObject::invokeMethod(&app, [&app, &dotNetResult] {{ app.exit(dotNetResult); }},
-                                      Qt::QueuedConnection);
-        }});
-    dotnetThread->start();
-
-    int tries = 0;
-    constexpr int maxTries = 10000; // ~1 sec total
-    while (!dotNetExited && !dotNetHost.isReady() && tries++ < maxTries)
-        QThread::usleep(100);
-    if (dotNetExited)
-        return dotNetResult;
-    if (!dotNetHost.isReady()) {{
-        qCritical() << "".NET host not ready after timeout."";
-        return -2;
-    }}
-
-    QQmlApplicationEngine qmlEngine;
-    QDotNetAdapter::instance().init(
-        QDir(appDirPath).filePath(""Qt.DotNet.Adapter.dll""),
-        ""Qt.DotNet.Adapter"", ""Qt.DotNet.Adapter"", &dotNetHost, &qmlEngine);
-
-    QtDotNet::call<void>(""Qt.DotNet.Adapter, Qt.DotNet.Adapter"", ""SetMainThread"");
-
-    {mainCpp[new(MainBeforeAppExec) { Sorted = false }]}
-    QObject::connect(&app, &QGuiApplication::aboutToQuit, &qmlEngine, &QQmlEngine::quit);
-
-    if (dotNetExited)
-        return dotNetResult;
-
-    auto res = app.exec();
-    dotnetThread->wait();
 
     Q_DOTNET_PROFILER_STOP(main_profiler);
     Q_DOTNET_PROFILER_WRITE_LOG(QDir(appDirPath).filePath(""qt_dotnet_profiler.log""));
