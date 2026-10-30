@@ -5,12 +5,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report a problem. Issues reported here are triaged
-        and moved to the [Qt bug tracker](https://qt-project.atlassian.net/browse/QTBRIDGES),
-        where they are tracked and fixed. You can also report directly there.
+        Thanks for taking the time to report a problem. Issues reported here are triaged and moved to the [Qt bug tracker](https://qt-project.atlassian.net/browse/QTBRIDGES), where they are tracked and fixed. You can also report directly there.
 
-        For questions and general help, use the
-        [Qt Bridges category](https://forum.qt.io/category/78/qt-bridges) on the Qt Forum.
+        For questions and general help, use the [Qt Bridges category](https://forum.qt.io/category/78/qt-bridges) on the Qt Forum.
   - type: textarea
     id: description
     attributes:
@@ -52,9 +49,10 @@ body:
     id: qt-version
     attributes:
       label: Qt version
+      description: Leave empty if unknown, for example with Qt from distribution packages.
       placeholder: e.g. 6.12.0
     validations:
-      required: true
+      required: false
   - type: input
     id: dotnet-version
     attributes:
