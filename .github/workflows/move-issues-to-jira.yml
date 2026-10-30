@@ -1,0 +1,99 @@
+name: Move issues to Jira
+
+# Adding the "jira" label to a triaged issue creates a bug in the QTBRIDGES
+# project of the Qt bug tracker, links it in a comment, and closes the issue.
+# Requires the repository secrets JIRA_USER (account e-mail) and JIRA_TOKEN
+# (Atlassian API token) of an account that may create issues in QTBRIDGES.
+on:
+  issues:
+    types: [ labeled ]
+
+concurrency:
+  group: jira-export-${{ github.repository }}-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+permissions:
+  issues: write
+
+jobs:
+  move:
+    if: github.repository == 'qt/qtbridge-csharp' && github.event.label.name == 'jira'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create the Jira issue and close the GitHub issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JIRA_URL: https://qt-project.atlassian.net
+          JIRA_USER: ${{ secrets.JIRA_USER }}
+          JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+          TITLE: ${{ github.event.issue.title }}
+          BODY: ${{ github.event.issue.body }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+        run: |
+          set -euo pipefail
+          affects_version=$(awk '
+            /^### Qt Bridge for C# version$/ { in_version=1; next }
+            /^### / { if (in_version) exit }
+            in_version && NF { print; exit }
+          ' <<< "$BODY")
+
+          jira_label="github-qtbridge-csharp-${NUMBER}"
+          comments=$(gh api --paginate "repos/$REPO/issues/$NUMBER/comments" --jq '.[].body')
+          marker_key=$(printf '%s\n' "$comments" | \
+            sed -nE 's/.*<!-- jira-export-key: ([A-Z][A-Z0-9]*-[0-9]+) -->.*/\1/p' | head -n1 || true)
+
+          key=
+          if [[ -n "$marker_key" ]]; then
+            marker_issue=$(curl -sS -u "$JIRA_USER:$JIRA_TOKEN" \
+              "$JIRA_URL/rest/api/2/issue/$marker_key?fields=labels")
+            if jq -e --arg label "$jira_label" \
+              '.fields.labels | index($label) != null' <<< "$marker_issue" >/dev/null; then
+              key=$marker_key
+            fi
+          fi
+
+          if [[ -z "$key" ]]; then
+            search=$(curl -sS --fail-with-body -u "$JIRA_USER:$JIRA_TOKEN" --get \
+              --data-urlencode "jql=project = QTBRIDGES AND labels = $jira_label" \
+              --data-urlencode 'fields=key' --data-urlencode 'maxResults=1' \
+              "$JIRA_URL/rest/api/2/search/jql")
+            key=$(jq -r '.issues[0].key // empty' <<< "$search")
+          fi
+
+          description=$(printf 'Reported on GitHub by @%s: %s\n\n{noformat}\n%s\n{noformat}' \
+            "$ISSUE_AUTHOR" "$ISSUE_URL" "$BODY")
+          if [[ -z "$key" ]]; then
+            # The body can be edited after submission, so the version may be empty or
+            # unknown to Jira. Jira rejects the whole issue then, so leave the field out.
+            versions=$(curl -sS --fail-with-body -u "$JIRA_USER:$JIRA_TOKEN" \
+              "$JIRA_URL/rest/api/2/project/QTBRIDGES/versions")
+            if ! jq -e --arg version "$affects_version" \
+              'any(.[]; .name == $version)' <<< "$versions" >/dev/null; then
+              printf 'Ignoring unknown affects version: %s\n' "$affects_version" >&2
+              affects_version=
+            fi
+            payload=$(jq -n --arg summary "$TITLE" --arg description "$description" \
+              --arg affects_version "$affects_version" --arg jira_label "$jira_label" \
+              '{fields: ({project: {key: "QTBRIDGES"}, issuetype: {name: "Bug"},
+                          components: [{name: "C#"}],
+                          labels: [$jira_label],
+                          summary: $summary, description: $description}
+                         + (if $affects_version == "" then {}
+                            else {versions: [{name: $affects_version}]} end))}')
+            key=$(curl -sS --fail-with-body -u "$JIRA_USER:$JIRA_TOKEN" \
+              -H "Content-Type: application/json" -d "$payload" \
+              "$JIRA_URL/rest/api/2/issue" | jq -r .key)
+          fi
+
+          marker="<!-- jira-export-key: $key -->"
+          if ! grep -Fq "$marker" <<< "$comments"; then
+            comment=$(printf 'Thank you for the report. It is now tracked as [%s](%s/browse/%s) in the Qt bug tracker. Please follow up there.\n\n%s' \
+              "$key" "$JIRA_URL" "$key" "$marker")
+            gh issue comment "$NUMBER" --repo "$REPO" --body "$comment"
+          fi
+          if [[ "$(gh issue view "$NUMBER" --repo "$REPO" --json state --jq .state)" == OPEN ]]; then
+            gh issue close "$NUMBER" --repo "$REPO"
+          fi
