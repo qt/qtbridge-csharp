@@ -141,9 +141,23 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     activeDir,
                     activeKey,
                     ct,
-                    notifyUser: true);
+                    notifyUser: await IsActiveQmlDocumentOfProjectAsync(activeFile, ct));
 
             return pipe;
+        }
+
+        private async Task<bool> IsActiveQmlDocumentOfProjectAsync(
+            string projectFilePath,
+            CancellationToken ct)
+        {
+            var documentPath = await contextService.GetActiveDocumentPathAsync(ct) ?? "";
+            if (string.IsNullOrWhiteSpace(documentPath)
+                || !documentPath.EndsWith(".qml", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+            var projectPath = await contextService.GetOwningProjectPathAsync(documentPath, ct);
+            return projectPath != null && string.Equals(Path.GetFullPath(projectPath),
+                Path.GetFullPath(projectFilePath), StringComparison.OrdinalIgnoreCase);
         }
 
         public override Task OnServerInitializationResultAsync(
@@ -814,8 +828,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             case true:
                 // Register the active project immediately for fast first-open response.
                 var (dir, file, key) = await ResolveActiveProjectContextAsync(ct);
-                if (dir != null && file != null && key != null)
-                    await EnsureProjectRegisteredAsync(file, dir, key, ct, notifyUser: true);
+                if (dir != null && file != null && key != null) {
+                    await EnsureProjectRegisteredAsync(file, dir, key, ct,
+                        notifyUser: await IsActiveQmlDocumentOfProjectAsync(file, ct));
+                }
 
                 // Register all other loaded Qt Bridge projects so the server has full solution
                 // coverage without requiring the user to visit each project first.

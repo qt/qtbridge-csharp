@@ -185,6 +185,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
             private const int DebounceDelayMs = 250;
             private readonly SolutionEvents solutionEvents;
             private readonly DocumentEvents documentEvents;
+            private readonly WindowEvents windowEvents;
             private readonly Timer debounceTimer;
             private readonly object gate = new();
             private bool disposed;
@@ -198,6 +199,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
                     Timeout.Infinite);
                 solutionEvents = dte.Events.SolutionEvents;
                 documentEvents = dte.Events.DocumentEvents;
+                windowEvents = dte.Events.get_WindowEvents(null);
 
                 solutionEvents.Opened += OnContextChanged;
                 solutionEvents.AfterClosing += OnContextChanged;
@@ -205,6 +207,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
                 solutionEvents.ProjectRemoved += OnProjectChanged;
                 solutionEvents.ProjectRenamed += OnProjectRenamed;
                 documentEvents.DocumentOpened += OnDocumentChanged;
+                windowEvents.WindowActivated += OnWindowActivated;
             }
 
             public void Dispose()
@@ -221,6 +224,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
                     solutionEvents.ProjectRemoved -= OnProjectChanged;
                     solutionEvents.ProjectRenamed -= OnProjectRenamed;
                     documentEvents.DocumentOpened -= OnDocumentChanged;
+                    windowEvents.WindowActivated -= OnWindowActivated;
                 });
 
                 debounceTimer.Dispose();
@@ -231,6 +235,15 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.VisualStudioContext
             private void OnProjectRenamed(Project project, string oldName) =>
                 ScheduleContextRefresh();
             private void OnDocumentChanged(Document document) => ScheduleContextRefresh();
+
+            // Switching to an already open document changes the active document without a
+            // DocumentOpened event.
+            private void OnWindowActivated(Window gotFocus, Window lostFocus)
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+                if (gotFocus?.Document != null)
+                    ScheduleContextRefresh();
+            }
 
             private void ScheduleContextRefresh()
             {
