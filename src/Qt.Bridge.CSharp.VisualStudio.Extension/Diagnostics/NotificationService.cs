@@ -74,6 +74,24 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
                 state.ActiveInfoBar = null;
             }
 
+            await CloseAsync(key, infoBar, ct);
+        }
+
+        public void DismissAndReset(string key)
+        {
+            IVsInfoBarUIElement? infoBar;
+            lock (notificationsLock) {
+                if (!notifications.TryGetValue(key, out var state))
+                    return;
+                infoBar = state.ActiveInfoBar;
+                notifications.Remove(key);
+            }
+            if (infoBar != null)
+                _ = CloseAsync(key, infoBar, CancellationToken.None);
+        }
+
+        private async Task CloseAsync(string key, IVsInfoBarUIElement infoBar, CancellationToken ct)
+        {
             try {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(ct);
                 infoBar.Close();
@@ -84,18 +102,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
             }
         }
 
-        public void ClearRateLimit(string key)
-        {
-            lock (notificationsLock) {
-                if (!notifications.TryGetValue(key, out var state))
-                    return;
-
-                state.WasShown = false;
-                if (state.ActiveInfoBar == null)
-                    notifications.Remove(key);
-            }
-        }
-
         private bool TryMarkNotified(string key)
         {
             lock (notificationsLock) {
@@ -103,7 +109,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
                     state = new NotificationState();
                     notifications.Add(key, state);
                 }
-                if (state.WasShown)
+                if (state.WasShown || state.ActiveInfoBar != null)
                     return false;
 
                 state.WasShown = true;
@@ -141,12 +147,16 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
                     var events = new InfoBarEvents(log, key, RemoveActiveInfoBar);
                     uiElement.Advise(events, out var cookie);
                     events.Initialize(cookie);
+                    bool wanted;
                     lock (notificationsLock) {
-                        if (!notifications.TryGetValue(key, out var state)) {
-                            state = new NotificationState();
-                            notifications.Add(key, state);
-                        }
-                        state.ActiveInfoBar = uiElement;
+                        // The key was reset since TryMarkNotified; its bar is not wanted.
+                        wanted = notifications.TryGetValue(key, out var state);
+                        if (wanted)
+                            state!.ActiveInfoBar = uiElement;
+                    }
+                    if (!wanted) {
+                        uiElement.Unadvise(cookie);
+                        return;
                     }
                     infoBarHost.AddInfoBar(uiElement);
                 }

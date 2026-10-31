@@ -28,6 +28,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Diagnostics
 
         Task DismissAsync(string key, CancellationToken ct);
 
-        void ClearRateLimit(string key);
+        void DismissAndReset(string key);
     }
 }

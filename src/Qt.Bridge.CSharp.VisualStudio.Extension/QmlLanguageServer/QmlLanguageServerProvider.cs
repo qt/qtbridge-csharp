@@ -869,7 +869,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             }
 
             foreach (var project in removedProjects)
-                notifications.ClearRateLimit(BuildOutputNotificationKey(project.ProjectFilePath));
+                notifications.DismissAndReset(BuildOutputNotificationKey(project.ProjectFilePath));
         }
 
         /// <summary>
