@@ -38,11 +38,15 @@ body:
       description: Include error messages and stack traces, if any.
     validations:
       required: true
-  - type: input
+  - type: dropdown
     id: bridge-version
     attributes:
       label: Qt Bridge for C# version
-      placeholder: e.g. 1.0.0
+      options:
+        - TP (C#)
+        - 0.4 (C#)
+        - 0.3-beta (C#)
+        - 0.2-beta (C#)
     validations:
       required: true
   - type: input
