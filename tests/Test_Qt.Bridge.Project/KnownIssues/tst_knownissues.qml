@@ -26,6 +26,11 @@ Item {
     SignalSpy { id: eachNameSpy; target: customerEach; signalName: "nameChanged" }
     SignalSpy { id: eachRevisionSpy; target: customerEach; signalName: "revisionChanged" }
 
+    // Both properties hold a Record; Entry is declared with the interface type IRecord.
+    Archive { id: archive }
+    property string entryTitle: archive.entry.title
+    property string concreteTitle: archive.concrete.title
+
     TestCase {
         name: "KnownIssues"
 
@@ -64,6 +69,17 @@ Item {
             compare(allNameSpy.count, 1)
             compare(allRevisionSpy.count, 1)
             compare(nameOfAll, "After")
+        }
+
+        function test_controlConcreteBinding() {
+            archive.renameConcrete("After")
+            compare(concreteTitle, "After")
+        }
+
+        function test_interfaceBinding() {
+            compare(entryTitle, "Before")
+            archive.renameEntry("After")
+            compare(entryTitle, "After")
         }
     }
 }

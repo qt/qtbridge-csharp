@@ -36,6 +36,7 @@
     <Compile Remove="QMetaObjectBuilder\Program.cs" />
     <Compile Remove="ExportModeParity\Program.cs" />
     <Compile Remove="KnownIssues\Program.cs" />
+    <Compile Remove="KnownIssues\EventSignatures.cs" />
     <Compile Remove="ObjectInterop\Program.cs" />
     <Compile Remove="QmlToManagedDelegates\Program.cs" />
     <Compile Remove="Exceptions\Program.cs" />
@@ -140,6 +141,18 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="KnownIssues\tst_enumerateproperties.qml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="KnownIssues\tst_nullableproperty.qml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="KnownIssues\tst_structproperty.qml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="KnownIssues\EventSignatures.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="KnownIssues\tst_eventsignatures.qml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="ExportModeParity\main.cpp">

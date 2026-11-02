@@ -9,12 +9,21 @@ namespace Test_Qt.Bridge.Project.Shared
     {
         public const string Category = "KnownIssue";
 
-        public static void Check(bool isFixed, string issue, string actual, string fix)
+        // Whether the issue shows in the export mode of a data row. A mode without the issue
+        // must keep passing, so a failure there is a regression, not the known issue.
+        public const bool Affected = true;
+        public const bool Unaffected = false;
+
+        public static void Check(bool isFixed, string issue, string actual, string fix,
+            bool affected = Affected)
         {
             if (isFixed)
                 return;
             var nl = Environment.NewLine;
-            Assert.Inconclusive($"Known issue: {issue}{nl}Actual: {actual}{nl}To fix: {fix}");
+            var message = $"Known issue: {issue}{nl}Actual: {actual}{nl}To fix: {fix}";
+            if (!affected)
+                Assert.Fail($"Regression in an export mode without this known issue.{nl}{message}");
+            Assert.Inconclusive(message);
         }
     }
 }

@@ -76,6 +76,50 @@ namespace Test_QtQuickTest
         public int Value { get; set; } = 42;
     }
 
+    public struct Dimensions
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+    }
+
+    [QmlElement]
+    public sealed class Parcel
+    {
+        public int? Count { get; set; } = 5;
+        public Dimensions Size { get; set; } = new() { Width = 3, Height = 4 };
+    }
+
+    public interface IRecord
+    {
+        string Title { get; }
+    }
+
+    public sealed class Record : IRecord, INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public string Title { get; private set; } = "Before";
+
+        public void Rename(string title)
+        {
+            Title = title;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Title)));
+        }
+    }
+
+    [QmlElement]
+    public sealed class Archive
+    {
+        private readonly Record entry = new();
+        private readonly Record concrete = new();
+
+        public IRecord Entry => entry;
+        public Record Concrete => concrete;
+
+        public void RenameEntry(string title) => entry.Rename(title);
+        public void RenameConcrete(string title) => concrete.Rename(title);
+    }
+
     internal class Program
     {
         static int Main(string[] args)

@@ -1,6 +1,8 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
+using System;
+using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -266,6 +268,221 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 "The generator sorts the properties of a type by name (Sorted = true for the "
                 + "property placeholders in the source code and metadata rules). Keep the "
                 + "declaration order, which reflection reports as metadata token order.");
+        }
+
+        // A Qt signal has no return value, so an event with one can never reach QML; the
+        // events without one are checked by the project's Events_WithOtherSignatures_ReachQml.
+        [TestMethod]
+        [DataRow("source")]
+        [DataRow("metadata")]
+        public async Task Events_WithoutEventArgsSignature_DoNotStopGeneration(string exportAs)
+        {
+            const string source = """
+                using System;
+
+                namespace Test
+                {
+                    public class Sender
+                    {
+                        public int Value { get; set; }
+                        public event Func<int> Requested;
+                    }
+                }
+                """;
+
+            string error = null;
+            try {
+                using var result = await Generate(TestContext,
+                    exportAs == "source" ? Qt.ExportAs.SourceCode : Qt.ExportAs.Metadata, source);
+            } catch (InvalidOperationException e)
+                when (e.Message.StartsWith("Running generation rules failed")) {
+                error = e.Message;
+            }
+
+            KnownIssue.Check(error == null,
+                "An event that cannot be exported to QML, for example one of type Func<int>, "
+                + "stops the code generation instead of being left out. The build error names "
+                + "the rule and the event, but not why the event cannot be exported. "
+                + "Applications that use such events only in .NET have to mark each one with "
+                + "[Qt.Ignore].",
+                error,
+                "Leave out events that cannot be exported in DependencyGraph.AddEventAsync, as "
+                + "for other members with unsupported types; today it accepts every event whose "
+                + "handler types are accepted, and GenerateEvent of both rule sets returns "
+                + "Error() without a reason for those that are not (object, EventArgs).");
+        }
+
+        // The delegate is compatible, so that the event is exported unless the exclusion of
+        // its type applies.
+        [TestMethod]
+        [DataRow("source")]
+        [DataRow("metadata")]
+        public async Task IgnoreType_OfDelegate_LeavesOutItsEvents(string exportAs)
+        {
+            const string source = """
+                using System;
+
+                [assembly: Qt.IgnoreType(typeof(Test.NotifyHandler))]
+
+                namespace Test
+                {
+                    public delegate void NotifyHandler(object sender, EventArgs e);
+
+                    public class Sender
+                    {
+                        public int Value { get; set; }
+                        public event NotifyHandler Notified;
+                    }
+                }
+                """;
+
+            var api = exportAs == "source"
+                ? await SourceCodeApi(TestContext, source, "sender.h")
+                : await MetadataApi(TestContext, source, "Test.Sender");
+
+            Assert.IsTrue(api.Any(entry => entry.StartsWith("property value")),
+                string.Join(", ", api));
+            KnownIssue.Check(!api.Contains("signal notified"),
+                "Excluding a delegate type with [assembly: Qt.IgnoreType] does not leave out "
+                + "events of that type, as it does for properties, fields, parameters and "
+                + "return values of an excluded type. Each such event needs [Qt.Ignore].",
+                $"exported: {string.Join(", ", api.Where(entry => entry.StartsWith("signal ")))}",
+                "DependencyGraph.AddEventAsync checks only the parameter and return types of "
+                + "the handler's Invoke method. Check the event handler type itself as well, for "
+                + "example with an edge to it, and mention delegate types in the documentation "
+                + "of IgnoreTypeAttribute.");
+        }
+
+        // From a user report. The property brings in Action; the collection type brings in
+        // Action<ProblemClass> through List<T> members such as ForEach. Either alone generates
+        // fine.
+        [TestMethod]
+        public async Task SourceCode_GenericAndNonGenericDelegate_GetOwnHeaders()
+        {
+            const string source = """
+                using System;
+                using System.Collections.ObjectModel;
+
+                namespace Test
+                {
+                    public sealed class ReferencingClass
+                    {
+                        public ObservableCollection<ProblemClass> Problems { get; set; }
+                    }
+
+                    public sealed class ProblemClass
+                    {
+                        public Action ProblemProperty { get; }
+                    }
+                }
+                """;
+
+            // A build overwrites the shared header, so one delegate is missing from the output.
+            // The test's memory sink rejects the second write instead, but only in debug builds.
+            string actual = null;
+            try {
+                using var result = await Generate(TestContext, Qt.ExportAs.SourceCode, source);
+                var missing = new[] { "Action", "Action_1__ProblemClass" }
+                    .Where(name => result.Sink.Files.Values
+                        .All(text => (text?.Contains($"struct System::{name} :") is not true)))
+                    .ToArray();
+                if (missing.Length > 0)
+                    actual = $"not declared: {string.Join(", ", missing)}";
+            } catch (InvalidOperationException e) when (e.Message.Contains("already generated")) {
+                actual = e.Message;
+            }
+
+            KnownIssue.Check(actual == null,
+                "A non-generic delegate and a generic delegate of the same name, such as Action "
+                + "and Action<T>, are generated into the same header. A build writes both, the "
+                + "last one wins, and the native build fails because the other delegate is not "
+                + "declared. A class with an Action property used in an ObservableCollection<T> "
+                + "is enough to bring in both.",
+                actual,
+                "GenerateDelegateHeader names the header of a generic delegate after its generic "
+                + "definition, and the File meta function leaves out the generic arity, so "
+                + "Action and Action`1 both map to system/action.h. Include the arity in the "
+                + "file name; this applies to every such pair, for example EventHandler and "
+                + "EventHandler<T>.");
+        }
+
+        // A member function defined as App::Gui::Qt::ViewModel::f() looks names up in
+        // App::Gui::Qt first, so Qt:: there names that namespace instead of ::Qt. The same
+        // holds for App::Gui::Settings, where the lookup finds App::Gui::Qt in App::Gui.
+        [TestMethod]
+        public async Task SourceCode_QtInApplicationNamespace_DoesNotHideQt()
+        {
+            const string source = """
+                using System;
+                using System.Collections.Generic;
+                using System.ComponentModel;
+                using Qt.Bridge.Models;
+                using Qt.DotNet;
+
+                namespace App.Gui.Qt
+                {
+                    public class ViewModel : INotifyPropertyChanged
+                    {
+                        public event PropertyChangedEventHandler PropertyChanged;
+                        public event EventHandler Done;
+                        public string Title { get; set; }
+                    }
+
+                    public class ItemModel : Model
+                    {
+                        public override int RowCount(ModelIndex parent) => 0;
+                        public override int ColumnCount(ModelIndex parent) => 0;
+                        public override ModelIndex Index(int row, int column, ModelIndex parent)
+                            => default;
+                        public override ModelIndex Parent(ModelIndex index) => default;
+                        public override object Data(ModelIndex index, int role) => null;
+                        public override Dictionary<int, string> RoleNames() => new();
+                    }
+                }
+
+                namespace App.Gui
+                {
+                    public class Settings : INotifyPropertyChanged
+                    {
+                        public event PropertyChangedEventHandler PropertyChanged;
+                        public string Theme { get; set; }
+                    }
+                }
+                """;
+
+            using var result = await TestCodeGenerator.GenerateAsync([source],
+                sourceRefs:
+                [
+                    typeof(Qt.Bridge.Models.Model).Assembly,
+                    typeof(Qt.DotNet.ModelIndex).Assembly,
+                    typeof(System.ComponentModel.INotifyPropertyChanged).Assembly
+                ],
+                defaultExportOptions: Qt.ExportAs.SourceCode,
+                ct: TestContext.CancellationTokenSource.Token);
+            var files = result.Sink.Files
+                .Where(file => file.Key.StartsWith("source/hpp/app/gui/")
+                    || file.Key.StartsWith("source/cpp/app/gui/"))
+                .ToArray();
+            var unqualified = files
+                .SelectMany(file => file.Value.Split('\n')
+                    .Select(line => line.Trim())
+                    .Where(line => !line.StartsWith("//")
+                        && Regex.IsMatch(line, @"(?<![\w:])Qt::"))
+                    .Select(line => $"{Path.GetFileName(file.Key)}: {line}"))
+                .Distinct()
+                .ToArray();
+
+            Assert.HasCount(6, files, string.Join(", ", files.Select(file => file.Key)));
+            KnownIssue.Check(unqualified.Length == 0,
+                "The generated C++ code does not compile if a namespace of the application ends "
+                + "in Qt, for example AppName.Gui.Qt: in that namespace and in the namespaces "
+                + "next to it, Qt:: names the application's namespace instead of Qt's.",
+                $"unqualified uses: {string.Join(" | ", unqualified)}",
+                "Qualify names of other namespaces with a leading :: in the generated code: "
+                + "Qt's own (Qt::DirectConnection, Qt::Orientation) in GenerateEvent, "
+                + "GenerateProperty and GenerateModel, and the namespaces of wrapped .NET types "
+                + "(Qt::Bridge::Models::..., but also System::... for a namespace App.System) "
+                + "wherever the type name meta function writes them with their namespace.");
         }
     }
 }
