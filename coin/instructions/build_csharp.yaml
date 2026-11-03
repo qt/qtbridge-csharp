@@ -7,6 +7,9 @@ instructions:
   - type: EnvironmentVariable
     variableName: QtInstallRoot
     variableValue: "\\users\\qt\\work\\install"
+  - type: EnvironmentVariable
+    variableName: QTBRIDGE_TEST_ROOT
+    variableValue: "\\t"
 
   - type: ChangeDirectory
     directory: "{{.AgentWorkingDir}}/qt/qtbridge-csharp"
