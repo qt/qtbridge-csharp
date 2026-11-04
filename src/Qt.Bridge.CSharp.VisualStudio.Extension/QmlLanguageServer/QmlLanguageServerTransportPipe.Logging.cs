@@ -20,8 +20,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
         private void InitializeLogging(LoggingOptions loggingOptions)
         {
-            lspLogEnabled = loggingOptions.LspLogEnabled
-                && !string.IsNullOrWhiteSpace(loggingOptions.LspLogFilePath);
+            lspLogEnabled = loggingOptions.LspLogActive;
             lspLogFilePath = loggingOptions.LspLogFilePath;
             if (lspLogEnabled)
                 ResetLspLogOnce(lspLogFilePath);

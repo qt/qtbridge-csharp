@@ -26,6 +26,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
             LspLogEnabled: false,
             LspLogFilePath: "");
 
+        internal bool QmllsLogActive =>
+            QmllsLogEnabled && !string.IsNullOrWhiteSpace(QmllsLogFilePath);
+
+        internal bool LspLogActive =>
+            LspLogEnabled && !string.IsNullOrWhiteSpace(LspLogFilePath);
+
         internal static LoggingOptions Create(
             bool qmllsEnabled,
             string qmllsDirectory,
@@ -43,9 +49,15 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
         {
             if (string.IsNullOrWhiteSpace(directory))
                 return "";
-            var fullDirectory = Path.GetFullPath(directory);
-            Directory.CreateDirectory(fullDirectory);
-            return Path.Combine(fullDirectory, fileName);
+
+            try {
+                var fullDirectory = Path.GetFullPath(directory);
+                Directory.CreateDirectory(fullDirectory);
+                return Path.Combine(fullDirectory, fileName);
+            } catch (Exception ex) when (ex is ArgumentException or NotSupportedException
+                or IOException or UnauthorizedAccessException) {
+                return "";
+            }
         }
     }
 }

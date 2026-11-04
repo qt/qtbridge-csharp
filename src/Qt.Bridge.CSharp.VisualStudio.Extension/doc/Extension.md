@@ -303,6 +303,10 @@ removes them. The other settings control optional file logging:
   through `QmlLanguageServerTransportPipe`. The extension writes this log as
   `qtbridge-lsp.log` in the configured directory.
 
+The two logs are independent. A log whose directory is empty or cannot be created stays off;
+the provider writes a warning to the output pane at server launch and keeps all other
+settings.
+
 The directory settings use `Setting.FormattedString` with `SettingStringFormat.DirectoryPath`,
 which is the correct API per the extensibility documentation. However, the SDK source generator
 emits `"format": "directoryPath"` for this type, whereas the VS settings renderer requires

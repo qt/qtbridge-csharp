@@ -30,6 +30,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
         [Category("Server Log")]
         [DisplayName("QML Language Server log directory")]
         [Description("Directory where qtbridge-qmlls.log is written. "
+            + "Without a usable directory the log stays off. "
             + "Has no effect when the QML Language Server log is disabled.")]
         [DefaultValue("")]
         public string QmllsLogDirectory { get; set; } = string.Empty;
@@ -44,6 +45,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.Settings.QmlLanguageServer
         [Category("LSP Traffic Log")]
         [DisplayName("LSP log directory")]
         [Description("Directory where qtbridge-lsp.log is written. "
+            + "Without a usable directory the log stays off. "
             + "Has no effect when the LSP log is disabled.")]
         [DefaultValue("")]
         public string LspLogDirectory { get; set; } = string.Empty;

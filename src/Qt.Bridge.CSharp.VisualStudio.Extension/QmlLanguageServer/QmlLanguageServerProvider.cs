@@ -241,13 +241,16 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
             QmlLanguageServerOptions options)
         {
             var loggingOptions = options.Logging;
-            var qmllsLogActive = loggingOptions.QmllsLogEnabled
-                && !string.IsNullOrWhiteSpace(loggingOptions.QmllsLogFilePath);
-            if (qmllsLogActive)
+            if (loggingOptions.QmllsLogActive)
                 ResetQmlLanguageServerLogOnce(loggingOptions.QmllsLogFilePath);
+            else if (loggingOptions.QmllsLogEnabled)
+                LogMissingLogDirectory("the server log", "QML Language Server log directory");
 
-            var args = BuildStartupArguments(importPaths, disableCMakeCalls, qmllsLogActive,
-                loggingOptions.QmllsLogFilePath);
+            if (loggingOptions.LspLogEnabled && !loggingOptions.LspLogActive)
+                LogMissingLogDirectory("the LSP traffic log", "LSP log directory");
+
+            var args = BuildStartupArguments(importPaths, disableCMakeCalls,
+                loggingOptions.QmllsLogActive, loggingOptions.QmllsLogFilePath);
             var startInfo = new ProcessStartInfo
             {
                 FileName = executablePath,
@@ -288,6 +291,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 throw new QmlLanguageServerLaunchException("Exception while launching process.",
                     executablePath, ex);
             }
+        }
+
+        private void LogMissingLogDirectory(string logName, string directorySetting)
+        {
+            log.Warning($"QML Language Server: {logName} is off because '{directorySetting}'"
+                + " is empty or cannot be created.");
         }
 
         private static string BuildStartupArguments(
