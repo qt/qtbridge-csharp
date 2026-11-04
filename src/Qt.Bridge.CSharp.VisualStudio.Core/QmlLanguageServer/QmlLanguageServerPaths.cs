@@ -21,16 +21,16 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
         public static string RootDirectory =>
             Path.Combine(QtBridgeUserDataPaths.RootDirectory, ToolDirectoryName);
 
-        public static string VersionsDirectory =>
-            Path.Combine(RootDirectory, VersionsDirectoryName);
+        public static string GetVersionsDirectory(string rootDirectory) =>
+            Path.Combine(rootDirectory, VersionsDirectoryName);
 
-        public static string CurrentManifestPath =>
-            Path.Combine(RootDirectory, CurrentManifestFileName);
+        public static string GetCurrentManifestPath(string rootDirectory) =>
+            Path.Combine(rootDirectory, CurrentManifestFileName);
 
-        public static string GetInstallDirectory(string version)
+        public static string GetInstallDirectory(string rootDirectory, string version)
         {
             if (!string.IsNullOrWhiteSpace(version))
-                return Path.Combine(VersionsDirectory, version);
+                return Path.Combine(GetVersionsDirectory(rootDirectory), version);
             throw new ArgumentException("A version is required.", nameof(version));
         }
 

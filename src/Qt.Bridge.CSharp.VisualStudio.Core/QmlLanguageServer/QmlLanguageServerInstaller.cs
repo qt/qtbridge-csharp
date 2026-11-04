@@ -12,17 +12,29 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
     /// staging directory to avoid leaving a corrupt installation as the active version, and
     /// persists an installation manifest for subsequent fast-path reuse.
     /// </summary>
+    /// <remarks>
+    /// If the latest release cannot be fetched or installed, for example offline, the last
+    /// installed version is used, however old it is.
+    /// </remarks>
     public sealed class QmlLanguageServerInstaller(
         IReleaseMetadataClient releaseClient,
-        IZipArchiveExtractor archiveExtractor)
+        IZipArchiveExtractor archiveExtractor,
+        string rootDirectory)
         : IQmlLanguageServerInstaller
     {
+        public QmlLanguageServerInstaller(
+            IReleaseMetadataClient releaseClient,
+            IZipArchiveExtractor archiveExtractor)
+            : this(releaseClient, archiveExtractor, QmlLanguageServerPaths.RootDirectory)
+        {}
+
         private static readonly HttpClient HttpClient = new() {
             Timeout = TimeSpan.FromSeconds(60)
         };
 
         private readonly SemaphoreSlim installationLock = new(1, 1);
         private static readonly TimeSpan CacheMaxAge = TimeSpan.FromHours(24);
+        private static readonly TimeSpan DownloadTimeout = TimeSpan.FromMinutes(10);
 
         private readonly IReleaseMetadataClient releaseClient = releaseClient
             ?? throw new ArgumentNullException(nameof(releaseClient));
@@ -30,43 +42,62 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
         private readonly IZipArchiveExtractor archiveExtractor = archiveExtractor
             ?? throw new ArgumentNullException(nameof(archiveExtractor));
 
+        private readonly string rootDirectory = rootDirectory
+            ?? throw new ArgumentNullException(nameof(rootDirectory));
+
         public async Task<QmlLanguageServerInstallation> EnsureInstalledAsync(CancellationToken ct)
         {
             await installationLock.WaitAsync(ct);
             try {
-                if (TryGetCachedInstallation(out var cached))
+                if (TryGetCurrentInstallation(CacheMaxAge, out var cached))
                     return cached!;
 
-                QmlLanguageServerRelease latestRelease;
+                QmlLanguageServerInstallation install;
                 try {
-                    latestRelease = await releaseClient.GetLatestReleaseAsync(ct);
-                } catch (QmlLanguageServerAssetException ex) {
-                    throw new QmlLanguageServerInstallException(
-                        QmlLanguageServerInstallError.NoMatchingAsset,
-                        "No QML Language Server package found for this platform.", ex);
-                } catch (Exception ex) when (ex is not OperationCanceledException
-                    and not QmlLanguageServerInstallException) {
-                    throw new QmlLanguageServerInstallException(
-                        QmlLanguageServerInstallError.ReleaseMetadataUnavailable,
-                        "Could not fetch QML Language Server release metadata.", ex);
+                    install = await GetLatestInstallationAsync(ct);
+                } catch (QmlLanguageServerInstallException ex)
+                    when (TryGetCurrentInstallation(maxAge: null, out var previous)) {
+                    // The manifest keeps its check time, so the next start tries again.
+                    previous!.UpdateError = ex;
+                    return previous;
                 }
-
-                var installDir = QmlLanguageServerPaths.GetInstallDirectory(latestRelease.TagName);
-
-                if (TryReadMatchingInstallation(installDir, latestRelease, out var existing)) {
-                    await WriteCurrentManifestGuardedAsync(existing, ct);
-                    return existing;
+                try {
+                    await WriteCurrentManifestGuardedAsync(install, ct);
+                } catch (QmlLanguageServerInstallException) {
+                    // The installation works without the cached check; the next call checks
+                    // again.
                 }
-
-                var install = await InstallReleaseAsync(latestRelease, installDir, ct);
-                await WriteCurrentManifestGuardedAsync(install, ct);
                 return install;
             } finally {
                 installationLock.Release();
             }
         }
 
-        private static async Task WriteCurrentManifestGuardedAsync(
+        private async Task<QmlLanguageServerInstallation> GetLatestInstallationAsync(
+            CancellationToken ct)
+        {
+            QmlLanguageServerRelease latestRelease;
+            try {
+                latestRelease = await releaseClient.GetLatestReleaseAsync(ct);
+            } catch (QmlLanguageServerAssetException ex) {
+                throw new QmlLanguageServerInstallException(
+                    QmlLanguageServerInstallError.NoMatchingAsset,
+                    "No QML Language Server package found for this platform.", ex);
+            } catch (Exception ex) when (ex is not QmlLanguageServerInstallException
+                && !IsCancelledBy(ct, ex)) {
+                throw new QmlLanguageServerInstallException(
+                    QmlLanguageServerInstallError.ReleaseMetadataUnavailable,
+                    "Could not fetch QML Language Server release metadata.", ex);
+            }
+
+            var installDir = QmlLanguageServerPaths.GetInstallDirectory(rootDirectory,
+                latestRelease.TagName);
+            if (TryReadMatchingInstallation(installDir, latestRelease, out var existing))
+                return existing;
+            return await InstallReleaseAsync(latestRelease, installDir, ct);
+        }
+
+        private async Task WriteCurrentManifestGuardedAsync(
             QmlLanguageServerInstallation installation,
             CancellationToken ct)
         {
@@ -87,13 +118,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
             CancellationToken ct)
         {
             try {
-                Directory.CreateDirectory(QmlLanguageServerPaths.RootDirectory);
-                Directory.CreateDirectory(QmlLanguageServerPaths.VersionsDirectory);
+                Directory.CreateDirectory(rootDirectory);
+                Directory.CreateDirectory(QmlLanguageServerPaths.GetVersionsDirectory(rootDirectory));
             } catch (Exception ex) when (ex is not OperationCanceledException) {
                 throw new QmlLanguageServerInstallException(
                     QmlLanguageServerInstallError.InstallDirectoryAccessDenied,
                     "Cannot create the QML Language Server install directory.", ex) {
-                    InstallDirectory = QmlLanguageServerPaths.RootDirectory
+                    InstallDirectory = rootDirectory
                 };
             }
 
@@ -103,8 +134,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
             try {
                 try {
                     await DownloadArchiveAsync(release.Asset.DownloadUrl, downloadPath, ct);
-                } catch (Exception ex) when (ex is not OperationCanceledException
-                    and not QmlLanguageServerInstallException) {
+                } catch (Exception ex) when (ex is not QmlLanguageServerInstallException
+                    && !IsCancelledBy(ct, ex)) {
                     throw new QmlLanguageServerInstallException(
                         QmlLanguageServerInstallError.DownloadFailed, "Could not download the QML "
                             + $"Language Server from '{release.Asset.DownloadUrl}'.", ex) {
@@ -224,11 +255,15 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
             return true;
         }
 
+        // HttpClient.Timeout ends at the response headers here; the body has its own limit.
         private static async Task DownloadArchiveAsync(
             string downloadUrl,
             string destinationPath,
-            CancellationToken cancellationToken)
+            CancellationToken callerToken)
         {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(callerToken);
+            timeout.CancelAfter(DownloadTimeout);
+            var cancellationToken = timeout.Token;
             using var response = await HttpClient.GetAsync(
                 downloadUrl,
                 HttpCompletionOption.ResponseHeadersRead,
@@ -245,6 +280,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
                 useAsync: true);
             await responseStream.CopyToAsync(destinationStream, 81920, cancellationToken);
         }
+
+        // HttpClient reports its timeouts as cancellations too; only the caller's token is a
+        // cancellation that must not fall back to the installed version.
+        private static bool IsCancelledBy(CancellationToken ct, Exception ex) =>
+            ex is OperationCanceledException && ct.IsCancellationRequested;
 
         private static async Task VerifyArchiveDigestAsync(
             string archivePath,
@@ -316,14 +356,19 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
             }
         }
 
-        private static bool TryGetCachedInstallation(out QmlLanguageServerInstallation? install)
+        // Without maxAge, any installation whose executable still exists qualifies.
+        private bool TryGetCurrentInstallation(
+            TimeSpan? maxAge,
+            out QmlLanguageServerInstallation? install)
         {
             install = null;
-            var dto = ReadRawManifest(QmlLanguageServerPaths.CurrentManifestPath);
-            if (dto?.LastCheckedAtUtc == null)
+            var dto = ReadRawManifest(QmlLanguageServerPaths.GetCurrentManifestPath(rootDirectory));
+            if (dto == null)
                 return false;
-            if (DateTimeOffset.UtcNow - dto.LastCheckedAtUtc.Value >= CacheMaxAge)
+            if (maxAge != null && (dto.LastCheckedAtUtc == null
+                || DateTimeOffset.UtcNow - dto.LastCheckedAtUtc.Value >= maxAge)) {
                 return false;
+            }
             install = ToInstallation(dto);
             return install != null && File.Exists(install.ExecutablePath);
         }
@@ -379,12 +424,13 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
             await WriteManifestAsync(installation, manifestPath, cancellationToken);
         }
 
-        private static async Task WriteCurrentInstallationManifestAsync(
+        private async Task WriteCurrentInstallationManifestAsync(
             QmlLanguageServerInstallation installation,
             CancellationToken ct)
         {
-            Directory.CreateDirectory(QmlLanguageServerPaths.RootDirectory);
-            await WriteManifestAsync(installation, QmlLanguageServerPaths.CurrentManifestPath, ct);
+            Directory.CreateDirectory(rootDirectory);
+            await WriteManifestAsync(installation,
+                QmlLanguageServerPaths.GetCurrentManifestPath(rootDirectory), ct);
         }
 
         private static async Task WriteManifestAsync(

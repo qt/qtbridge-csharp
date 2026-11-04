@@ -23,6 +23,11 @@ Every call to `EnsureInstalledAsync` walks three decision points before touching
    ID, asset name, SHA-256), return without downloading again.
 3. Only if neither condition holds is a full download performed.
 
+If step 2 or 3 fails, for example offline, and the executable recorded in
+`current-installation.json` still exists, that installation is returned, however old it is.
+Its `UpdateError` holds the failure. The manifest keeps its check time, so the next call looks
+for a release again.
+
 This means a developer who builds multiple times a day pays the network cost at most once per
 day, and only ever downloads a new archive when a new release is actually available.
 
@@ -235,4 +240,9 @@ IQmlLanguageServerInstaller.EnsureInstalledAsync()
        WriteInstallationManifestAsync   -> versions\<tag>\installation.json
        WriteCurrentManifestAsync        -> current-installation.json
        -> QmlLanguageServerInstallation
+
+  If fetching or installing throws QmlLanguageServerInstallException:
+       executable from current-installation.json exists?
+       -> yes: return it with UpdateError set; the check time stays
+       -> no:  rethrow
 ```

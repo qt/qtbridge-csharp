@@ -401,6 +401,8 @@ Called by the VS SDK when `Enabled` is `true`. The sequence is:
    `QmlLanguageServerInstallException` is caught, logged with its typed `Error` kind, and
    a per-error-kind InfoBar error is shown via `IInfoBarNotificationService` (keyed so the same
    failure is not re-shown on restart). The method returns `null` on any install failure.
+   If the installer fell back to the installed version, its `UpdateError` is logged as a
+   warning and the server starts with that version.
 2. Collect import paths from three sources across all loaded Qt Bridge projects, deduplicated:
    - **Configured Qt**: `QtBridgeQtDirResolver` (Core) resolves the project's `QtDir` property,
      falling back to the `QTDIR` environment variable, and adds `<QtDir>/qml` if it exists.

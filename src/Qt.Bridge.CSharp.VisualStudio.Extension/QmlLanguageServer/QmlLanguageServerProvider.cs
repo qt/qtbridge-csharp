@@ -107,6 +107,12 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 return null;
             }
 
+            if (installation.UpdateError is { } updateError) {
+                var cause = updateError.InnerException?.Message ?? updateError.Message;
+                log.Warning($"QML Language Server: could not update ({updateError.Error}: {cause})"
+                    + $" - using the installed version {installation.Version}.");
+            }
+
             // Best-effort: read import paths from any loaded Qt Bridge project. These paths are
             // identical for all projects using the same NuGet package version, so the first project
             // with built metadata is a valid source even if the active project has none yet.

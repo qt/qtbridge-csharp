@@ -32,5 +32,6 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
         public string Sha256Digest { get; } = sha256Digest
             ?? throw new ArgumentNullException(nameof(sha256Digest));
         public DateTimeOffset InstalledAtUtc { get; } = installedAtUtc;
+        public QmlLanguageServerInstallException? UpdateError { get; internal set; }
     }
 }
