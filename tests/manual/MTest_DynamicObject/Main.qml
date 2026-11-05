@@ -11,8 +11,9 @@ ApplicationWindow {
     width: 1000
     height: 760
     visible: true
-    title: "Dynamic Object Test"
     color: "#f3f4f6"
+
+    property alias mainWindowTitle: mainWindow.title
 
     Action {
         id: openFileAction;

@@ -9,14 +9,19 @@ struct IQQmlEngine {};
 
 #include "qdotnetinterface.h"
 #include "qdotnetadapter.h"
+#include "qdotnetarray.h"
+#include "qdotnetconvert.h"
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wconversion"
 #endif
 #include <QDeadlineTimer>
+#include <QJSEngine>
 #include <QMutex>
+#include <QQmlComponent>
 #include <QQmlEngine>
+#include <QVariant>
 #include <QWaitCondition>
 #include <QtVersion>
 #ifdef __GNUC__
@@ -60,14 +65,39 @@ struct IQQmlEngine : public QDotNetNativeInterface<QQmlEngine>
 
         QObject::connect(engine, &QQmlEngine::exit, [this](int code) { setExited(code); });
         QObject::connect(engine, &QQmlEngine::quit, [this]() { setExited(0); });
-        setCallback<void, QString, QString>("LoadFromModule", [this](void *data,
-            const QString &uri, const QString &typeName)
+        setCallback<void, QString, QString, QDotNetArray<QString>, QDotNetArray<QDotNetRef>>(
+            "LoadFromModule", [this](void *data, const QString &uri, const QString &typeName,
+                       const QDotNetArray<QString> &initPropsNames,
+                       const QDotNetArray<QDotNetRef> &initPropsValues)
             {
                 auto *qmlEngine = reinterpret_cast<QQmlEngine *>(data);
                 if (!qmlEngine)
                     return;
-                QMetaObject::invokeMethod(qmlEngine, "loadFromModule", Qt::BlockingQueuedConnection,
-                    Q_ARG(QAnyStringView, uri), Q_ARG(QAnyStringView, typeName));
+
+                auto initPropsCount = initPropsValues.length();
+                if (initPropsNames.length() != initPropsCount) {
+                    qWarning() << "Property name/value mismatch";
+                    return;
+                }
+
+                QMetaObject::invokeMethod(qmlEngine, [=]
+                {
+                    QVariantMap initProps{ };
+                    for (int i = 0; i < initPropsCount; ++i) {
+                        auto name = initPropsNames.get(i);
+                        auto dotNetObj = initPropsValues.get(i);
+                        if (!dotNetObj.isValid()) {
+                            initProps[name] = QVariant::fromValue<QObject *>(nullptr);
+                            continue;
+                        }
+                        auto value = QDotNetConvert::toVariant(dotNetObj, nullptr);
+                        if (auto *qObj = qvariant_cast<QObject *>(value))
+                            QJSEngine::setObjectOwnership(qObj, QJSEngine::JavaScriptOwnership);
+                        initProps[name] = value;
+                    }
+                    componentloadFromModule(qmlEngine, uri, typeName, initProps);
+                },
+                Qt::QueuedConnection);
             });
         setCallback<bool, int>("WaitForExit", [this](void *data, int timeout)
             {
@@ -95,6 +125,36 @@ struct IQQmlEngine : public QDotNetNativeInterface<QQmlEngine>
         static IQQmlEngine qmlEngine;
         sta->setCallback<IQQmlEngine>("QQmlEngine_Get",
             [](void *) { return IQQmlEngine(qmlEngine); });
+    }
+
+private:
+    void componentloadFromModule(QQmlEngine *qmlEngine, const QString &uri, const QString &typeName,
+                                 QVariantMap initProps)
+    {
+        auto *component = new QQmlComponent(qmlEngine);
+        QObject::connect(component, &QQmlComponent::statusChanged, [=](QQmlComponent::Status status)
+        {
+            componentStatusChanged(component, status, initProps);
+        });
+        component->loadFromModule(uri, typeName, QQmlComponent::Asynchronous);
+    }
+
+    void componentStatusChanged(QQmlComponent *component, QQmlComponent::Status status,
+                                QVariantMap initProps)
+    {
+        switch (status) {
+        case QQmlComponent::Ready:
+            if (auto *object = component->createWithInitialProperties(initProps))
+                object->setParent(component->engine());
+            else
+                qWarning().noquote() << component->errorString();
+            component->deleteLater();
+            break;
+        case QQmlComponent::Error:
+            qWarning().noquote() << component->errorString();
+            component->deleteLater();
+            break;
+        }
     }
 };
 #endif

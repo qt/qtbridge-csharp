@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Qt.Bridge.Utils.Text;
 using Qt.DotNet;
 
 namespace Qt
@@ -105,7 +107,96 @@ namespace Qt
             /// </remarks>
             public static void LoadFromModule(string uri, string typeName)
             {
-                Instance.LoadFromModule(uri, typeName.NormalizeQmlTypeName());
+                Instance.LoadFromModule(uri, typeName.NormalizeQmlTypeName(), [], []);
+            }
+
+            /// <summary>
+            /// Loads a QML component.
+            /// </summary>
+            /// <param name="qmlLoadArgs">Object implementing the <see cref="IQmlLoadArgs"/>
+            /// interface and that specifies the module and name of the component type, as well as
+            /// any initial properties.</param>
+            /// <remarks>
+            /// The <paramref name="qmlLoadArgs"/> object is used to set the module and type name of
+            /// the component to load. Any public properties of the <paramref name="qmlLoadArgs"/>
+            /// object are used as initial properties of the component. Property names are adjusted
+            /// to match the camel-case name format of QML.
+            /// <para/>
+            /// By default, <see cref="Load{T}(T)"/> will use all public instance properties of
+            /// <c>T</c> as initial properties. To override this default behavior, implement
+            /// <see cref="IQmlLoadArgs.InitialProperties"/> in the definition of <c>T</c>.
+            /// <para/>
+            /// <b>Note:</b> instances of <c>T</c> cannot have any public properties hidden by
+            /// <see langword="new"/> properties with matching names but different types, otherwise
+            /// an <see cref="ArgumentException"/> is thrown.
+            /// <para/>
+            /// Example:
+            /// <example><code><![CDATA[
+            /// ```csharp
+            /// public sealed class MainPageArgs : IQmlLoadArgs
+            /// {
+            ///     public static string Name => "Main";
+            ///     public int Foo { get; init; }
+            ///     public string[] Bar { get; init; }
+            /// }
+            ///
+            /// public sealed class SplashScreenArgs : IQmlLoadArgs
+            /// {
+            ///     public static string Module => "Utils";
+            ///     public static string Name => "Splash";
+            ///     public Dictionary<string, object> InitialProperties { get; init; }
+            /// }
+            ///
+            /// public static void Main(string[] args)
+            /// {
+            ///     Qml.Load<MainPageArgs>(new()
+            ///     {
+            ///         Foo = 42,
+            ///         Bar = ["b", "a", "r"]
+            ///     });
+            ///     Qml.Load<SplashScreenArgs>(new()
+            ///     {
+            ///         InitialProperties = new()
+            ///         {
+            ///             ["Foo"] = 42,
+            ///             ["Bar"] = new[] { "b", "a", "r" },
+            ///         }
+            ///     });
+            ///     Qml.WaitForExit();
+            /// }
+            /// ```
+            /// ]]></code></example>
+            /// </remarks>
+            /// <exception cref="ArgumentNullException"/>
+            /// <exception cref="ArgumentException"/>
+            ///
+            public static void Load
+                <[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>
+                (T qmlLoadArgs) where T : IQmlLoadArgs
+            {
+                ArgumentNullException.ThrowIfNull(qmlLoadArgs, nameof(qmlLoadArgs));
+
+                var props = qmlLoadArgs.InitialProperties?.Select(prop => (prop.Key, prop.Value))
+                    ?? typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                        .Where(prop => prop.Name != nameof(IQmlLoadArgs.InitialProperties)
+                            && prop.GetMethod is { IsPublic: true }
+                            && prop.GetIndexParameters() is not { Length: > 0 })
+                        .Select(prop => (Key: prop.Name, Value: prop.GetValue(qmlLoadArgs)));
+
+                var normalizedProps = new Dictionary<string, object>();
+                foreach (var prop in props) {
+                    var normalizedName = prop.Key.ConvertCase(CaseStyle.Pascal, CaseStyle.Camel);
+                    if (!normalizedProps.TryAdd(normalizedName, prop.Value)) {
+                        throw new ArgumentException(
+                            $"Duplicate property names: {normalizedName} / {prop.Key}",
+                            nameof(qmlLoadArgs));
+                    }
+                }
+
+                Instance.LoadFromModule(
+                    !string.IsNullOrWhiteSpace(T.Module) ? T.Module : RootModule,
+                    T.Name.NormalizeQmlTypeName(),
+                    [.. normalizedProps.Keys], [.. normalizedProps.Values]);
             }
 
             /// <summary>

@@ -20,11 +20,20 @@ using System.Runtime.InteropServices;
 
 namespace MTest_DynamicObject
 {
+    public sealed class MainPageArgs : IQmlLoadArgs
+    {
+        public static string Name => "Main";
+        public string MainWindowTitle { get; init; }
+    }
+
     internal class Program
     {
         static void Main(string[] args)
         {
-            Qml.LoadFromRootModule("Main");
+            Qml.Load<MainPageArgs>(new()
+            {
+                MainWindowTitle = "Qt Bridge for C# - Test App"
+            });
             Qml.WaitForExit();
         }
     }

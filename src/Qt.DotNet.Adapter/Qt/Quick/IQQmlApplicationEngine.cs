@@ -20,7 +20,8 @@ namespace Qt
     {
         public interface IQQmlEngine
         {
-            void LoadFromModule(string uri, string typeName);
+            void LoadFromModule(string uri, string typeName,
+                string[] initialPropertyNames, object[] initialPropertyValues);
             bool WaitForExit(int timeout = -1);
             void ProcessEvents();
             string Version();
