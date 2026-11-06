@@ -63,14 +63,14 @@ body:
       label: .NET SDK version
       description: Output of `dotnet --version`.
     validations:
-      required: true
+      required: false
   - type: input
     id: os
     attributes:
       label: Operating system and architecture
       placeholder: e.g. Windows 11 arm64, Ubuntu 24.04 x64
     validations:
-      required: true
+      required: false
   - type: dropdown
     id: tooling
     attributes:
