@@ -27,6 +27,10 @@ fine-tune exactly what QML can see. The first build produces the bridge informat
 support needed by the QML side, so this surface is ready by the time your app runs &mdash; you do
 not write any of that glue yourself.
 
+By default, the bridge generates C++ wrappers for exported types. See
+[Metadata-based Exports (Experimental)](metadata-based-exports.md) to learn how to select the
+export mode for a project or individual types and when you can build without C++ compilation.
+
 Once a C# type is exposed, you can use it directly in QML: write its name with curly braces to
 create an instance, then read or set its properties and call its methods &mdash; the same way you
 would use one of QML's own built-in items, such as
