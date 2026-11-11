@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "App.Qml": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "QT_QPA_PLATFORM": "windows:darkmode=0"
+      }
+    }
+  }
+}

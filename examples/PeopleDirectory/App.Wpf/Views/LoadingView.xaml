@@ -1,0 +1,22 @@
+<!--
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
+-->
+<UserControl
+  x:Class="PeopleDirectory.Views.LoadingView"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+>
+  <Grid>
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+      <ProgressBar IsIndeterminate="True" Width="260" Height="6" />
+      <TextBlock
+        Text="Loading people..."
+        Margin="0,18,0,0"
+        HorizontalAlignment="Center"
+        FontSize="17"
+        Foreground="{DynamicResource MutedText}"
+      />
+    </StackPanel>
+  </Grid>
+</UserControl>

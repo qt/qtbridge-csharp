@@ -1,0 +1,29 @@
+﻿<!--
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>PeopleDirectory</RootNamespace>
+    <AssemblyName>$(RootNamespace)</AssemblyName>
+    <QtExportAs>metadata</QtExportAs>
+    <ApplicationIcon>../Assets/PeopleDirectory.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Core/Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="$(QtBridgePackageId)" Version="0.5.*" />
+  </ItemGroup>
+  <PropertyGroup>
+    <QtBridgePackagePrefix>QtGroup.Qt.Bridge.CSharp</QtBridgePackagePrefix>
+    <QtBridgeRuntimeId Condition="'$(QtBridgeRuntimeId)' == ''">$(RuntimeIdentifier)</QtBridgeRuntimeId>
+    <QtBridgeRuntimeId Condition="'$(QtBridgeRuntimeId)' == ''">$(NETCoreSdkPortableRuntimeIdentifier)</QtBridgeRuntimeId>
+    <QtBridgePackageId Condition="'$(QtBridgePackageId)' == ''">$(QtBridgePackagePrefix).$(QtBridgeRuntimeId)</QtBridgePackageId>
+  </PropertyGroup>
+</Project>

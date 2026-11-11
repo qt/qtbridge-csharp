@@ -1,0 +1,30 @@
+<!--
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
+-->
+<Application
+  x:Class="PeopleDirectory.AppWpf"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="clr-namespace:PeopleDirectory.Core.ViewModels;assembly=PeopleDirectory.Core"
+  xmlns:views="clr-namespace:PeopleDirectory.Views"
+  Startup="OnStartup"
+  Exit="OnExit"
+>
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Styles/Theme.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <DataTemplate DataType="{x:Type vm:LoadingViewModel}">
+        <views:LoadingView />
+      </DataTemplate>
+      <DataTemplate DataType="{x:Type vm:UsersViewModel}">
+        <views:UsersView />
+      </DataTemplate>
+      <DataTemplate DataType="{x:Type vm:UserDetailsViewModel}">
+        <views:UserDetailsView />
+      </DataTemplate>
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

@@ -1,0 +1,14 @@
+<!--
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
+-->
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="App.Qml/App.Qml.csproj" />
+  <Project Path="App.Wpf/App.Wpf.csproj" />
+  <Project Path="Core/Core.csproj" />
+</Solution>

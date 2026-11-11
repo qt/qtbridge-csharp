@@ -1,0 +1,85 @@
+<!--
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
+ -->
+<UserControl
+  x:Class="PeopleDirectory.Views.UserDetailsView"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+>
+  <ScrollViewer>
+    <Grid Margin="28" MaxWidth="900" HorizontalAlignment="Center">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <Button
+        Content="‹  Back to directory"
+        Command="{Binding BackCommand}"
+        HorizontalAlignment="Left"
+        Padding="14,8"
+      />
+      <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,22,0,0" Padding="34">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" /><ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Border
+            Width="170"
+            Height="170"
+            CornerRadius="85"
+            VerticalAlignment="Top"
+            Background="{Binding User.AvatarColorIndex,
+              Converter={StaticResource AvatarColorConverter}}"
+          >
+            <TextBlock
+              Text="{Binding User.Initials}"
+              Foreground="White"
+              FontSize="52"
+              FontWeight="SemiBold"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+            />
+          </Border>
+          <StackPanel Grid.Column="1">
+            <TextBlock
+              Text="{Binding User.FullName}"
+              FontSize="34"
+              FontWeight="SemiBold"
+            /><TextBlock
+              Text="{Binding User.Email}"
+              FontSize="16"
+              Foreground="{DynamicResource Accent}"
+              Margin="0,7,0,26"
+            />
+            <TextBlock
+              Text="Contact"
+              Style="{StaticResource SectionTitle}"
+            /><TextBlock Text="{Binding User.Phone, StringFormat=Phone: {0}}" /><TextBlock
+              Text="{Binding User.Cell, StringFormat=Mobile: {0}}"
+              Margin="0,6,0,22"
+            />
+            <TextBlock
+              Text="Personal"
+              Style="{StaticResource SectionTitle}"
+            /><TextBlock Text="{Binding User.Age, StringFormat=Age: {0}}" /><TextBlock
+              Text="{Binding User.Nationality, StringFormat=Nationality: {0}}"
+              Margin="0,6,0,22"
+            />
+            <TextBlock
+              Text="Address"
+              Style="{StaticResource SectionTitle}"
+            /><TextBlock Text="{Binding User.Street}" /><TextBlock>
+              <Run Text="{Binding User.Postcode}" />
+              <Run Text=" " />
+              <Run Text="{Binding User.City}" />
+            </TextBlock><TextBlock>
+              <Run Text="{Binding User.State}" />
+              <Run Text=", " />
+              <Run Text="{Binding User.Country}" />
+            </TextBlock>
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+  </ScrollViewer>
+</UserControl>
