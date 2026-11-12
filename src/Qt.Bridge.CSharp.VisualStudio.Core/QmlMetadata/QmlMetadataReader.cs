@@ -139,7 +139,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlMetadata
                         .Where(p => !string.IsNullOrWhiteSpace(p))
                         .ToArray() ?? [],
                     files: dto.Qml.Files?
-                        .Where(f => !string.IsNullOrWhiteSpace(f.SourcePath)
+                        .Where(f => f != null
+                            && !string.IsNullOrWhiteSpace(f.SourcePath)
                             && !string.IsNullOrWhiteSpace(f.Uri)
                             && !string.IsNullOrWhiteSpace(f.TypeName)
                             && !string.IsNullOrWhiteSpace(f.ModulePath))

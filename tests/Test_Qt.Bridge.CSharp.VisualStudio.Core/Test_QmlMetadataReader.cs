@@ -197,6 +197,32 @@ namespace Test_Qt.Bridge.CSharp.VisualStudio.Core
         }
 
         [TestMethod]
+        public async Task TryRead_Skips_Null_Files()
+        {
+            using var tempDir = new TempDir();
+            var metadataFilePath = Path.Combine(tempDir.Path, QmlMetadataReader.MetadataFileName);
+
+            await File.WriteAllTextAsync(metadataFilePath, """
+                {
+                  "version": 1,
+                  "projectFile": "C:\\App\\App.csproj",
+                  "configuration": "Debug",
+                  "qml": {
+                    "sourceDir": "C:\\App",
+                    "buildDirs": ["C:\\App\\build"],
+                    "files": [null]
+                  },
+                  "qmlLanguageServer": { "readyFile": "ready" }
+                }
+                """, CancellationToken);
+
+            var readResult = new QmlMetadataReader().TryRead(metadataFilePath, CancellationToken);
+
+            Assert.IsTrue(readResult.Success);
+            Assert.AreEqual(0, readResult.Metadata!.Qml.Files.Count);
+        }
+
+        [TestMethod]
         [DataRow("")]
         [DataRow(""" , "qmlLanguageServer": { "disableCMakeCalls": true } """)]
         [DataRow(""" , "qmlLanguageServer": { "readyFile": "  " } """)]
