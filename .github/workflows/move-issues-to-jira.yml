@@ -40,27 +40,60 @@ jobs:
             in_version && NF { print; exit }
           ' <<< "$BODY")
 
-          jira_label="github-qtbridge-csharp-${NUMBER}"
+          jira_label="github-${REPO//\//-}-${NUMBER}"
+          legacy_label="github-qtbridge-csharp-${NUMBER}"
+          # Legacy labels omit the repository identity, so the same issue number
+          # can collide across repositories. Verify the source URL as well.
+          matching_export_keys() {
+            jq -r --arg label "$jira_label" --arg legacy_label "$legacy_label" \
+              --arg url "$ISSUE_URL" '
+              (if has("issues") then .issues[] else . end)
+              | select(.fields.project.key == "QTBRIDGES")
+              | select((.fields.labels | index($label) != null)
+                       or (.fields.labels | index($legacy_label) != null))
+              | select((.fields.description // "" | split("\n")[0] | rtrimstr("\r")
+                        | sub("^Reported on GitHub( by @[^: ]+)?: "; "")) == $url)
+              | .key'
+          }
+
           comments=$(gh api --paginate "repos/$REPO/issues/$NUMBER/comments" --jq '.[].body')
           marker_key=$(printf '%s\n' "$comments" | \
             sed -nE 's/.*<!-- jira-export-key: ([A-Z][A-Z0-9]*-[0-9]+) -->.*/\1/p' | head -n1 || true)
 
           key=
           if [[ -n "$marker_key" ]]; then
-            marker_issue=$(curl -sS -u "$JIRA_USER:$JIRA_TOKEN" \
-              "$JIRA_URL/rest/api/2/issue/$marker_key?fields=labels")
-            if jq -e --arg label "$jira_label" \
-              '.fields.labels | index($label) != null' <<< "$marker_issue" >/dev/null; then
-              key=$marker_key
+            marker_issue=$(curl -sS --fail-with-body -u "$JIRA_USER:$JIRA_TOKEN" \
+              "$JIRA_URL/rest/api/2/issue/$marker_key?fields=project,labels,description")
+            key=$(matching_export_keys <<< "$marker_issue")
+            if [[ -z "$key" ]]; then
+              printf 'Ignoring Jira marker for a different source: %s\n' "$marker_key" >&2
             fi
           fi
 
           if [[ -z "$key" ]]; then
-            search=$(curl -sS --fail-with-body -u "$JIRA_USER:$JIRA_TOKEN" --get \
-              --data-urlencode "jql=project = QTBRIDGES AND labels = $jira_label" \
-              --data-urlencode 'fields=key' --data-urlencode 'maxResults=1' \
-              "$JIRA_URL/rest/api/2/search/jql")
-            key=$(jq -r '.issues[0].key // empty' <<< "$search")
+            next_page=
+            candidates=
+            while :; do
+              page_args=()
+              if [[ -n "$next_page" ]]; then
+                page_args+=(--data-urlencode "nextPageToken=$next_page")
+              fi
+              search=$(curl -sS --fail-with-body -u "$JIRA_USER:$JIRA_TOKEN" --get \
+                --data-urlencode "jql=project = QTBRIDGES AND labels in (\"$jira_label\", \"$legacy_label\")" \
+                --data-urlencode 'fields=project,labels,description' \
+                --data-urlencode 'maxResults=100' "${page_args[@]}" \
+                "$JIRA_URL/rest/api/2/search/jql")
+              jq -e '.issues | type == "array"' <<< "$search" >/dev/null
+              page_keys=$(matching_export_keys <<< "$search")
+              candidates+="$page_keys"$'\n'
+              next_page=$(jq -r '.nextPageToken // empty' <<< "$search")
+              [[ -n "$next_page" ]] || break
+            done
+            key=$(printf '%s' "$candidates" | sed '/^$/d' | sort -u)
+            if [[ "$key" == *$'\n'* ]]; then
+              printf 'Multiple Jira issues refer to %s: %s\n' "$ISSUE_URL" "$key" >&2
+              exit 1
+            fi
           fi
 
           description=$(printf 'Reported on GitHub by @%s: %s\n\n{noformat}\n%s\n{noformat}' \
@@ -85,8 +118,14 @@ jobs:
                             else {versions: [{name: $affects_version}]} end))}')
             key=$(curl -sS --fail-with-body -u "$JIRA_USER:$JIRA_TOKEN" \
               -H "Content-Type: application/json" -d "$payload" \
-              "$JIRA_URL/rest/api/2/issue" | jq -r .key)
+              "$JIRA_URL/rest/api/2/issue" | jq -er '.key | strings')
           fi
+
+          if [[ ! "$key" =~ ^QTBRIDGES-[0-9]+$ ]]; then
+            printf 'Invalid Jira issue key: %s\n' "$key" >&2
+            exit 1
+          fi
+          printf 'Exported %s as %s\n' "$ISSUE_URL" "$key"
 
           marker="<!-- jira-export-key: $key -->"
           if ! grep -Fq "$marker" <<< "$comments"; then
