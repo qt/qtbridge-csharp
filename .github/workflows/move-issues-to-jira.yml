@@ -108,10 +108,12 @@ jobs:
               printf 'Ignoring unknown affects version: %s\n' "$affects_version" >&2
               affects_version=
             fi
+            # assignee: null - override the default assignee (Unassigned)
             payload=$(jq -n --arg summary "$TITLE" --arg description "$description" \
               --arg affects_version "$affects_version" --arg jira_label "$jira_label" \
               '{fields: ({project: {key: "QTBRIDGES"}, issuetype: {name: "Bug"},
                           components: [{name: "C#"}],
+                          assignee: null,
                           labels: [$jira_label],
                           summary: $summary, description: $description}
                          + (if $affects_version == "" then {}
