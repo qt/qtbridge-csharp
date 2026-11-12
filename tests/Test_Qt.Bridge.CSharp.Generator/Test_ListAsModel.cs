@@ -32,6 +32,31 @@ namespace Test_Qt.Bridge.CSharp.Generator
             """;
 
         [TestMethod]
+        public async Task DelegateProperties_AreExcludedFromReadableItemRoles()
+        {
+            const string source = """
+                using System;
+                using System.Collections.Generic;
+                namespace Test
+                {
+                    public class Item
+                    {
+                        public string Name { get; set; }
+                        public Action Callback { get; set; }
+                    }
+                    public class Items : List<Item> { }
+                }
+                """;
+            using var result = await TestCodeGenerator.GenerateAsync([source],
+                defaultExportOptions: Qt.ExportAs.SourceCode,
+                ct: TestContext.CancellationTokenSource.Token);
+            var implementation = result.Sink.Files["source/cpp/test/items.cpp"];
+            Assert.Contains("it->name()", implementation);
+            Assert.DoesNotContain("it->callback()", implementation);
+            Assert.DoesNotContain("\"callback\"", implementation);
+        }
+
+        [TestMethod]
         public async Task ListAsModel()
         {
             using var result = await TestCodeGenerator.GenerateAsync([Source],

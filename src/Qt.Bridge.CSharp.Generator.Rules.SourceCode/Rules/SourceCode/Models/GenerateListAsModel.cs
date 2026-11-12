@@ -39,6 +39,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Models
                     .Where(p => p.GetIndexParameters().Length == 0) // no indexers
                     .Where(p => p.GetGetMethod() != null)
                     .Where(p => !p.IsIgnored())
+                    // Delegate properties expose an invoker rather than a readable Qt property.
+                    .Where(p => !p.PropertyType.IsAssignableTo(TypeOf<Delegate>()))
                     .ToArray();
             }
 

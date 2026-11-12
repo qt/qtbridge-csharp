@@ -9,6 +9,49 @@ namespace Test_Qt.Bridge.Project.DelegatesAndEvents
     [TestClass]
     public class Test_DelegatesAndEvents : ManagedTestBase
     {
+        // The observable collection brings in Action<T> alongside the item's Action property.
+        // Both collections must omit delegate properties from readable model roles.
+        [TestMethod]
+        [DataRow("ObservableCollection<ProblemClass>")]
+        [DataRow("ProblemClass[]")]
+        public async Task SourceCode_CollectionOfClassWithDelegateProperty_Builds(string collection)
+        {
+            using var temp = new TempProject();
+            temp.Create(new() {
+                PackageReferences = [Packages.QtBridge],
+                AfterSdkProps = """
+                    <PropertyGroup>
+                      <QtExportAs>source</QtExportAs>
+                    </PropertyGroup>
+                    """
+            });
+            temp.AddFile("Program.cs", $$"""
+                using System;
+                using System.Collections.ObjectModel;
+
+                namespace Test
+                {
+                    public static class Program
+                    {
+                        public static void Main() { }
+                    }
+
+                    public sealed class ReferencingClass
+                    {
+                        public {{collection}} Problems { get; set; }
+                    }
+
+                    public sealed class ProblemClass
+                    {
+                        public Action ProblemProperty { get; }
+                    }
+                }
+                """);
+            var build = await temp.BuildAsync();
+            temp.SaveLog();
+            Assert.IsTrue(build.Ok, build.Output);
+        }
+
         [TestMethod]
         public async Task Delegates_Events_And_SignalConverters()
         {

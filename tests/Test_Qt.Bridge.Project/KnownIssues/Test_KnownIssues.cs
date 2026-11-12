@@ -180,61 +180,6 @@ namespace Test_Qt.Bridge.Project.KnownIssues
                 affected);
         }
 
-        // From a user report; built on its own, since the native build fails. Each row names
-        // the identifiers its known compiler errors are about; other build failures are not the
-        // known issue. Which of Action and Action<T> loses the shared header varies by run.
-        [TestMethod]
-        [DataRow("ObservableCollection<ProblemClass>", new[] { "Action", "problemProperty" })]
-        [DataRow("ProblemClass[]", new[] { "problemProperty" })]
-        public async Task SourceCode_CollectionOfClassWithDelegateProperty_Builds(
-            string collection, string[] identifiers)
-        {
-            using var temp = new TempProject();
-            temp.Create(CreateOptions("source"));
-            temp.CopyFile("Program.cs", Path.Combine(RootPath, "Program.cs"));
-            temp.AddFile("ProblemTypes.cs", $$"""
-                using System;
-                using System.Collections.ObjectModel;
-
-                namespace Test_QtQuickTest
-                {
-                    public sealed class ReferencingClass
-                    {
-                        public {{collection}} Problems { get; set; }
-                    }
-
-                    public sealed class ProblemClass
-                    {
-                        public Action ProblemProperty { get; }
-                    }
-                }
-                """);
-            var build = await temp.BuildAsync();
-            temp.SaveLog();
-
-            var errors = build.Output.Split('\n').Select(line => line.Trim())
-                .Where(line => line.Contains("error") && identifiers.Any(line.Contains))
-                .Distinct()
-                .Take(5)
-                .ToArray();
-            if (!build.Ok && errors.Length == 0) {
-                Assert.Fail("The build fails, but not with errors about "
-                    + $"{string.Join(" or ", identifiers)}.\n{build.Output}");
-            }
-            KnownIssue.Check(build.Ok,
-                "The native build fails for a class that has an Action property and is used "
-                + "in an ObservableCollection<T> or an array; the class alone builds.",
-                string.Join(" | ", errors),
-                "Two causes. Both rows: GenerateListAsModel, used for arrays and for the "
-                + "List<T> that ObservableCollection<T> brings in, adds a role for every "
-                + "readable property of the item type and reads it through a C++ getter, but a "
-                + "delegate property has none, only Q_PROPERTY(QJSValue ...) and an invoke "
-                + "method. Build the roles from the properties the wrapper actually exports "
-                + "with a getter. ObservableCollection<T> only: Action and Action<T> share one "
-                + "header, so one of them is not declared; see the generator known issue "
-                + "SourceCode_GenericAndNonGenericDelegate_GetOwnHeaders.");
-        }
-
         // Built on its own, since the code generation stops at these events today, which would
         // fail the build of the other known issues.
         [TestMethod]
