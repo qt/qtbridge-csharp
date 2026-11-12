@@ -60,16 +60,16 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 ct: TestContext.CancellationTokenSource.Token);
 
             Assert.IsTrue(result.Sink.Files
-                .TryGetValue($"{PathPrefix}/observablecollection.h", out var oc),
-                "Missing 'observablecollection.h' in generated outputs.");
+                .TryGetValue($"{PathPrefix}/observablecollection_1.h", out var oc),
+                "Missing 'observablecollection_1.h' in generated outputs.");
 
             Assert.MatchesRegex(@"class\s+System::Collections::ObjectModel::ObservableCollection_1__"
                 + @"String\s*:\s*public\s+QAbstractListModel,",
                 oc, "ObservableCollection<T> should be generated as a QAbstractListModel");
 
             Assert.IsTrue(result.Sink.Files
-                    .TryGetValue($"{PathPrefix}/readonlyobservablecollection.h", out var roc),
-                "Missing 'readonlyobservablecollection.h' in generated outputs.");
+                    .TryGetValue($"{PathPrefix}/readonlyobservablecollection_1.h", out var roc),
+                "Missing 'readonlyobservablecollection_1.h' in generated outputs.");
 
             Assert.MatchesRegex(@"class\s+System::Collections::ObjectModel::"
                 + @"ReadOnlyObservableCollection_1__Int32\s*:\s*public\s+QAbstractListModel,",
@@ -90,8 +90,8 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 ct: TestContext.CancellationTokenSource.Token);
 
             Assert.IsTrue(result.Sink.Files
-                .TryGetValue($"{PathPrefix}/observablecollection.h", out var hpp),
-                "Missing 'observablecollection.h' in generated outputs.");
+                .TryGetValue($"{PathPrefix}/observablecollection_1.h", out var hpp),
+                "Missing 'observablecollection_1.h' in generated outputs.");
 
             Assert.Contains("class System::Collections::ObjectModel::ObservableCollection_1__", hpp,
                 "Generic ObservableCollection<T> class name was not found.");
@@ -119,11 +119,11 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 ct: TestContext.CancellationTokenSource.Token);
 
             Assert.IsTrue(result.Sink.Files.TryGetValue(
-                "source/cpp/system/collections/objectmodel/observablecollection.cpp", out var cpp),
-                "Missing 'observablecollection.cpp' in generated outputs.");
+                "source/cpp/system/collections/objectmodel/observablecollection_1.cpp", out var cpp),
+                "Missing 'observablecollection_1.cpp' in generated outputs.");
 
-            Assert.Contains("#include <system/collections/objectmodel/observablecollection.h>", cpp,
-                "Missing '#include <observablecollection.h>' in generated sources.");
+            Assert.Contains("#include <system/collections/objectmodel/observablecollection_1.h>", cpp,
+                "Missing '#include <observablecollection_1.h>' in generated sources.");
 
             Assert.Contains("#include <QMetaMethod>", cpp,
                 "Missing '#include <QMetaMethod>' in generated sources for ObservableCollection.");
@@ -206,12 +206,12 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 ct: TestContext.CancellationTokenSource.Token);
 
             Assert.IsTrue(result.Sink.Files
-                    .TryGetValue("source/hpp/test/observablelist.h", out var hpp),
-                "Missing 'observablelist.h' in generated outputs.");
+                    .TryGetValue("source/hpp/test/observablelist_1.h", out var hpp),
+                "Missing 'observablelist_1.h' in generated outputs.");
 
             Assert.IsTrue(result.Sink.Files.TryGetValue(
-                    "source/cpp/test/observablelist.cpp", out var cpp),
-                "Missing 'observablelist.cpp' in generated outputs.");
+                    "source/cpp/test/observablelist_1.cpp", out var cpp),
+                "Missing 'observablelist_1.cpp' in generated outputs.");
 
             Assert.Contains("public QAbstractListModel", hpp,
                 "ObservableList<T> should surface as QAbstractListModel.");

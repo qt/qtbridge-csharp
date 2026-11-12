@@ -40,10 +40,10 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 "source/hpp/system/collections/arraylist.h", out var x) && Regex.IsMatch(x,
                 @"class System::Collections::ArrayList\s+:\s+public\s+QAbstractListModel,"));
             Assert.IsTrue(result.Sink.Files.TryGetValue(
-                "source/hpp/system/collections/generic/list.h", out var y) && Regex.IsMatch(y,
+                "source/hpp/system/collections/generic/list_1.h", out var y) && Regex.IsMatch(y,
                 @"class System::Collections::Generic::List_1__String\s+:\s+public\s+QAbstractListModel,"));
             Assert.IsTrue(result.Sink.Files.TryGetValue(
-                "source/hpp/system/arraysegment.h", out var z) && Regex.IsMatch(z,
+                "source/hpp/system/arraysegment_1.h", out var z) && Regex.IsMatch(z,
                 @"class System::ArraySegment_1__Int32\s+:\s+public\s+QAbstractListModel,"));
             Assert.IsTrue(result.Sink.Files.TryGetValue(
                 "source/hpp/test/array_foo.h", out var w) && Regex.IsMatch(w,

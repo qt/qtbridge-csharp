@@ -353,59 +353,6 @@ namespace Test_Qt.Bridge.CSharp.Generator
                 + "of IgnoreTypeAttribute.");
         }
 
-        // From a user report. The property brings in Action; the collection type brings in
-        // Action<ProblemClass> through List<T> members such as ForEach. Either alone generates
-        // fine.
-        [TestMethod]
-        public async Task SourceCode_GenericAndNonGenericDelegate_GetOwnHeaders()
-        {
-            const string source = """
-                using System;
-                using System.Collections.ObjectModel;
-
-                namespace Test
-                {
-                    public sealed class ReferencingClass
-                    {
-                        public ObservableCollection<ProblemClass> Problems { get; set; }
-                    }
-
-                    public sealed class ProblemClass
-                    {
-                        public Action ProblemProperty { get; }
-                    }
-                }
-                """;
-
-            // A build overwrites the shared header, so one delegate is missing from the output.
-            // The test's memory sink rejects the second write instead, but only in debug builds.
-            string actual = null;
-            try {
-                using var result = await Generate(TestContext, Qt.ExportAs.SourceCode, source);
-                var missing = new[] { "Action", "Action_1__ProblemClass" }
-                    .Where(name => result.Sink.Files.Values
-                        .All(text => (text?.Contains($"struct System::{name} :") is not true)))
-                    .ToArray();
-                if (missing.Length > 0)
-                    actual = $"not declared: {string.Join(", ", missing)}";
-            } catch (InvalidOperationException e) when (e.Message.Contains("already generated")) {
-                actual = e.Message;
-            }
-
-            KnownIssue.Check(actual == null,
-                "A non-generic delegate and a generic delegate of the same name, such as Action "
-                + "and Action<T>, are generated into the same header. A build writes both, the "
-                + "last one wins, and the native build fails because the other delegate is not "
-                + "declared. A class with an Action property used in an ObservableCollection<T> "
-                + "is enough to bring in both.",
-                actual,
-                "GenerateDelegateHeader names the header of a generic delegate after its generic "
-                + "definition, and the File meta function leaves out the generic arity, so "
-                + "Action and Action`1 both map to system/action.h. Include the arity in the "
-                + "file name; this applies to every such pair, for example EventHandler and "
-                + "EventHandler<T>.");
-        }
-
         // A member function defined as App::Gui::Qt::ViewModel::f() looks names up in
         // App::Gui::Qt first, so Qt:: there names that namespace instead of ::Qt. The same
         // holds for App::Gui::Settings, where the lookup finds App::Gui::Qt in App::Gui.
