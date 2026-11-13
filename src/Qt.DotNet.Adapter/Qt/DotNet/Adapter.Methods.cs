@@ -226,7 +226,7 @@ namespace Qt.DotNet
         /// <see langword="null"/> in case no matching method was found.
         /// </returns>
         public static MethodInfo FindMethod(
-            this Type type, string name, BindingFlags flags, Type[] argTypes, bool strict = true)
+            this Type type, string name, BindingFlags flags, Type[] argTypes)
         {
             ArgumentNullException.ThrowIfNull(type);
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -244,11 +244,11 @@ namespace Qt.DotNet
                 var @interface = interfaces.FirstOrDefault(candidate =>
                     StableTypeNameBuilder.Build(candidate) == contract);
                 return @interface?.FindMethod(methodName,
-                    BindingFlags.Public | BindingFlags.Instance, argTypes, strict);
+                    BindingFlags.Public | BindingFlags.Instance, argTypes);
             }
 
             // Try strict param type binding using System.Type.GetMethod()
-            if (strict && type.GetMethod(name, flags, argTypes) is { } method)
+            if (type.GetMethod(name, flags, argTypes) is { } method)
                 return method;
 
             // Resolve a qualified explicit interface implementation through its public
@@ -269,9 +269,8 @@ namespace Qt.DotNet
             var candidates = type.GetMethods(flags)
                 .Where(candidate => !candidate.IsHiddenBy(type)
                     && candidate.Name == name && candidate.BindsTo(argTypes));
-            if (candidates.Count() != 1)
-                return null;
-            return candidates.Single();
+            var methodInfos = candidates as MethodInfo[] ?? [.. candidates];
+            return methodInfos.Count() != 1 ? null : methodInfos.Single();
         }
 
         /// <summary>
