@@ -199,6 +199,24 @@ namespace Test_Qt.Bridge.CSharp.Generator
             """;
 
         [TestMethod]
+        public async Task ObservableList_ExplicitCount_HasModelAccessorAndSignal()
+        {
+            var source = ObservableListSource.Replace("public int Count =>",
+                "int ICollection<T>.Count =>");
+            using var result = await TestCodeGenerator.GenerateAsync([source],
+                sourceRefs: [typeof(ObservableCollection<>).Assembly],
+                ct: TestContext.CancellationTokenSource.Token);
+
+            var header = result.Sink.Files["source/hpp/test/observablelist_1.h"];
+            var implementation = result.Sink.Files["source/cpp/test/observablelist_1.cpp"];
+            Assert.Contains("Q_PROPERTY(qint32 count READ count NOTIFY countChanged)", header);
+            Assert.Contains("qint32 count(bool cached = false) const;", header);
+            Assert.Contains("Q_SIGNAL void countChanged();", header);
+            Assert.Contains("System.Collections.Generic.ICollection`1[[Test.PersonName,", implementation);
+            Assert.Contains("::get_Count\", d->fnModelCount)", implementation);
+        }
+
+        [TestMethod]
         public async Task ObservableList_IsExposed_As_QAbstractListModel()
         {
             using var result = await TestCodeGenerator.GenerateAsync([ObservableListSource],

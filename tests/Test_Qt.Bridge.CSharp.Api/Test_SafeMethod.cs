@@ -83,6 +83,34 @@ namespace Test_Qt.Bridge.CSharp.Api
         }
 
         [TestMethod]
+        [DataRow(false)]
+        [DataRow(true)]
+        public unsafe void InterfaceCount_SafeProxyInvokesInheritedImplementation(bool inherited)
+        {
+            object collection = inherited ? new Test_MethodLookup.InheritedCounts()
+                : new Test_MethodLookup.MultipleCounts();
+            var contract = StableTypeNameBuilder.Build(
+                typeof(System.Collections.Generic.IReadOnlyCollection<int>));
+            var objectRef = ToPtr(collection);
+            try {
+                var method = Adapter.ResolveInstanceMethod(objectRef, $"{contract}::get_Count",
+                    0, [Param<int>()]);
+                var safe = Adapter.ResolveSafeMethod(method, 0, [Param<object>(), Param<object>()]);
+                var invoke = (delegate* unmanaged[Stdcall]<nint, nint>)safe;
+                var resultRef = invoke(objectRef);
+                try {
+                    var result = FromPtr<SafeReturn<int>>(resultRef);
+                    Assert.IsNull(result.Exception);
+                    Assert.AreEqual(42, result.Value);
+                } finally {
+                    Adapter.FreeObjectRef(resultRef);
+                }
+            } finally {
+                Adapter.FreeObjectRef(objectRef);
+            }
+        }
+
+        [TestMethod]
         public unsafe void ConstructorWithManyArguments()
         {
             var ptrCtor = Adapter.ResolveConstructor(0,

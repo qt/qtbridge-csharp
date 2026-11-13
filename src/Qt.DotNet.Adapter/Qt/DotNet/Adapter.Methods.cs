@@ -209,7 +209,10 @@ namespace Qt.DotNet
         /// with the relaxed enumeration type binding rules of <see cref="BindsTo(Type, Type)"/>.
         /// </summary>
         /// <param name="type"><see cref="Type"/> where the method is declared.</param>
-        /// <param name="name">Name of the method to find.</param>
+        /// <param name="name">
+        /// Name of the method to find, optionally qualified by a stable assembly-qualified interface
+        /// type name followed by ::. Interface qualification also supports inherited implementations.
+        /// </param>
         /// <param name="flags">
         /// Corresponds to the <see cref="BindingFlags"/> parameter of
         /// <see cref="Type.GetMethod(string, BindingFlags, Type[])"/>
@@ -228,9 +231,39 @@ namespace Qt.DotNet
             ArgumentNullException.ThrowIfNull(type);
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
+            // Generated models name the public interface contract rather than a private
+            // implementation method. Stable names omit assembly versions to allow roll-forward.
+            var separator = name.LastIndexOf("::", StringComparison.Ordinal);
+            if (separator > 0) {
+                if (!flags.HasFlag(BindingFlags.Public) || !flags.HasFlag(BindingFlags.Instance))
+                    return null;
+                var contract = name[..separator];
+                var methodName = name[(separator + 2)..];
+                var interfaces = type.IsInterface ? type.GetInterfaces().Prepend(type)
+                    : type.GetInterfaces();
+                var @interface = interfaces.FirstOrDefault(candidate =>
+                    StableTypeNameBuilder.Build(candidate) == contract);
+                return @interface?.FindMethod(methodName,
+                    BindingFlags.Public | BindingFlags.Instance, argTypes, strict);
+            }
+
             // Try strict param type binding using System.Type.GetMethod()
             if (strict && type.GetMethod(name, flags, argTypes) is { } method)
                 return method;
+
+            // Resolve a qualified explicit interface implementation through its public
+            // interface method, so the generated safe proxy can call it.
+            if (flags.HasFlag(BindingFlags.Instance) && name.Contains('.')) {
+                foreach (var @interface in type.GetInterfaces()) {
+                    var map = type.GetInterfaceMap(@interface);
+                    for (var i = 0; i < map.TargetMethods.Length; ++i) {
+                        if (map.TargetMethods[i].Name != name)
+                            continue;
+                        if (map.InterfaceMethods[i].BindsTo(argTypes))
+                            return map.InterfaceMethods[i];
+                    }
+                }
+            }
 
             // Fallback to relaxed param type matching
             var candidates = type.GetMethods(flags)

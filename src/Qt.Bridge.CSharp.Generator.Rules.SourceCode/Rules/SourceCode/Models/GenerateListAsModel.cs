@@ -111,6 +111,35 @@ QHash<int, QByteArray> roleNames() const override;
                 rolesInitializer.Append($", {{ Qt::UserRole + {i + 1}, \"{distinctRoleNames[i]}\" }}");
             rolesInitializer.Append(" }");
 
+            // Explicit interface implementations are not among the public properties that
+            // GenerateProperty wraps, but list models still need a count accessor.
+            if (!isArray && type.GetProperty("Count") == null) {
+                var countInterface = CollectionCountInterface(type, itemType);
+                if (countInterface == null)
+                    return Error();
+
+                type.GetPlaceholder(PropertyDeclarations).AddText(@"
+Q_PROPERTY(qint32 count READ count NOTIFY countChanged)
+qint32 count(bool cached = false) const;
+Q_SIGNAL void countChanged();");
+                privateMemberDeclaration += "mutable QDotNetSafeMethod<qint32> fnModelCount = nullptr;";
+                implementation += $@"
+qint32 {type.MFn(Ns | Name)}::count(bool cached) const
+{{ try {{
+    return method(""{countInterface.MFn(Src | Fqn)}::get_Count"", d->fnModelCount).invoke(*this);
+}} catch (const QDotNetException &e) {{
+    if (auto *js = qjsEngine(this); js)
+        js->throwError(e.toString());
+    qWarning() << e.toString();
+    return {{}};
+}} }}
+{Blank}";
+                if (type.Implements<System.ComponentModel.INotifyPropertyChanged>())
+                    type.GetPlaceholder(PropertyNotifiers).AddText(@"
+if (propertyName == QStringLiteral(""Count"") || propertyName.isEmpty())
+    Q_EMIT q->countChanged();");
+            }
+
             var itemAccessor = isArray ? "get" : "item";
             var sizeAccessor = isArray ? "length" : "count";
             var (propertyGuard, dataBranches) = EmitGuardAndBranches(distinctRoleNames,
@@ -144,6 +173,22 @@ QVariant {type.MFn(Ns | Name)}::data(const QModelIndex &index, int role) const
 }}
 {Blank}";
             return Ok;
+        }
+
+        private static Type CollectionCountInterface(Type type, Type itemType)
+        {
+            var interfaces = type.GetInterfaces();
+            // Match the model's item type and prefer the mutable list contract when both
+            // mutable and read-only lists are implemented. Other Count properties are unrelated.
+            foreach (var (list, collection) in new[] {
+                (typeof(IList<>), typeof(ICollection<>)),
+                (typeof(IReadOnlyList<>), typeof(IReadOnlyCollection<>))
+            }) {
+                if (interfaces.Contains(TypeOf(list).MakeGenericType(itemType)))
+                    return TypeOf(collection).MakeGenericType(itemType);
+            }
+            return interfaces.Contains(TypeOf<System.Collections.IList>())
+                ? TypeOf<System.Collections.ICollection>() : null;
         }
 
         private static (Type ItemType, bool IsTrueArray) ResolveListLike(Type t, Type currentItemType)
