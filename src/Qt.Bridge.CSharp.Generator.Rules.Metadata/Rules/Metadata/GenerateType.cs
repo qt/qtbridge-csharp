@@ -142,8 +142,10 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
                     .ToArray();
                 if (paramTypes.Any(p => p == null))
                     continue; // Method is incompatible; ignore.
+                // Match runtime lookup: prefer an exact overload before considering
+                // assignable parameters or enum-to-integer conversions.
                 var foundMethod = type.FindMethod(
-                    method.Name, BindingFlags.Public | BindingFlags.Instance, paramTypes, false);
+                    method.Name, BindingFlags.Public | BindingFlags.Instance, paramTypes);
                 if (foundMethod != method)
                     GenerateMethod.AmbiguousMethods.Add(method);
             }
