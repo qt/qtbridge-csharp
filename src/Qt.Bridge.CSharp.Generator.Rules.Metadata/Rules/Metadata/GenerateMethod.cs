@@ -46,6 +46,16 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
         internal static void Append(Placeholder jsonFuncs, MethodInfo func, string qtName = null)
         {
 
+            // Metadata tokens are only unique within a module, so only methods of the type's own
+            // module are resolved by token. Methods inherited from other modules, and methods
+            // the runtime provides for array types, have no usable token; they are looked up by
+            // name and parameter types.
+            var byToken = func.ReflectedType != null
+                && func.Module == func.ReflectedType.Module
+                && (func.MetadataToken & 0x00FFFFFF) != 0;
+            var dotNetParameterTypes = string.Join(", ", func.GetParameters()
+                .Select(p => $@"""{p.ParameterType}"""));
+
             var returnType = func.ReturnType.MetadataCompatibleType();
             var argTypes = (func.GetParameters() ?? [])
                 .Select(p => p.ParameterType.MetadataCompatibleType())
@@ -66,7 +76,9 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
                 Separator = ",",
                 Content = [
                     $@"""name"": ""{func.MFn(Src)}""",
-                    $@"""metadataToken"": {func.MetadataToken}"
+                    byToken
+                        ? $@"""metadataToken"": {func.MetadataToken}"
+                        : $@"""parameterTypes"": [{dotNetParameterTypes}]"
                 ]
             }]}
 }},

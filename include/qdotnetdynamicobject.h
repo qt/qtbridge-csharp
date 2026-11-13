@@ -161,8 +161,12 @@ public:
         return typeDef;
     }
 
+    // Methods with a metadata token are resolved in the module of the type. Methods without one,
+    // such as those inherited from other modules, are looked up by name and .NET parameter
+    // types (as returned by Type.ToString()).
     static bool addMethod(QMetaObjectBuilder *typeDef, const QString &methodName, int token,
-                          QMetaMethodBuilder &methodDef, QList<QDotNetParameter> params)
+                          QMetaMethodBuilder &methodDef, QList<QDotNetParameter> params,
+                          const QStringList &dotNetParamTypes = {})
     {
         Q_DOTNET_PROFILE_FUNC();
 
@@ -185,6 +189,7 @@ public:
         method->declaringType = type;
         method->name = methodName;
         method->token = token;
+        method->dotNetParamTypes = dotNetParamTypes.join('|');
         method->params = { params.begin(), params.end() };
 
         return true;
@@ -324,7 +329,8 @@ public:
 
         auto equals = typeDef->addMethod("equals(QVariant)", "bool");
         addMethod(typeDef, "Equals", 0, equals,
-                  { { QDotNetInbound<bool>::Parameter, QDotNetOutbound<QDotNetRef>::Parameter } });
+                  { { QDotNetInbound<bool>::Parameter, QDotNetOutbound<QDotNetRef>::Parameter } },
+                  { "System.Object" });
 
         auto asDotNetObject = typeDef->addMethod("asDotNetObject()", "const QDotNetObject *");
         asDotNetObject.setTag("QT_DOTNET_METHOD_AS_OBJECT");
@@ -928,7 +934,20 @@ private:
                     qWarning() << e.toString();
                 }
             } else {
-                method->methodInfo = method->declaringType->typeInfo.method(method->name);
+                if (!findMethod.isValid()) {
+                    findMethod = adapter().resolveStaticMethod(
+                        "Qt.Bridge.MethodLookup, Qt.Bridge.CSharp.Api", "Find",
+                        { QDotNetInbound<QDotNetRef>::Parameter,
+                          QDotNetOutbound<QDotNetType>::Parameter,
+                          QDotNetOutbound<QString>::Parameter,
+                          QDotNetOutbound<QString>::Parameter });
+                }
+                try {
+                    method->methodInfo = findMethod.invoke(nullptr,
+                        method->declaringType->typeInfo, method->name, method->dotNetParamTypes);
+                } catch (const QDotNetException &e) {
+                    qWarning() << e.toString();
+                }
             }
             if (!method->methodInfo.isValid()) {
                 qFatal() << "QDotNetDynamicObject: ERROR resolving method:" << method->name;
@@ -1875,6 +1894,7 @@ private:
     struct DynamicMethod : public DynamicMember
     {
         QDotNetMethodInfo methodInfo;
+        QString dotNetParamTypes;
     };
 
     struct DynamicProperty : public DynamicMember
@@ -1961,6 +1981,8 @@ private:
     //// BEGIN Data
 
     static inline QDotNetSafeMethod<QDotNetRef, QDotNetType> createInstance = nullptr;
+
+    static inline QDotNetSafeMethod<QDotNetRef, QDotNetType, QString, QString> findMethod = nullptr;
 
     static inline QMap<QString, DynamicType *> dynamicTypesByName{};
     static inline QMap<const QMetaObjectBuilder *, DynamicType *> dynamicTypesByDef{};

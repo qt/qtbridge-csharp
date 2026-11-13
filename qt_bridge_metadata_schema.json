@@ -320,6 +320,13 @@
                     "metadataToken": {
                       "type": "number",
                       "description": "Metadata token of the method"
+                    },
+                    "parameterTypes": {
+                      "type": "array",
+                      "description": "Ordered .NET parameter type names for lookup without a usable metadata token",
+                      "items": {
+                        "type": "string"
+                      }
                     }
                   },
                   "required": [

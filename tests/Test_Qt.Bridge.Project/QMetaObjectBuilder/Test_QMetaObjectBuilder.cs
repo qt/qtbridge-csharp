@@ -48,6 +48,9 @@ namespace Test_Qt.Bridge.Project.QMetaObjectBuilder
             const string fixture = "Test_QMetaObjectBuilder::tst_qmetaobjectbuilder";
             Assert.Contains($"PASS   : {fixture}::test_metadata_method_dispatch_with_signals()",
                 run.StdOut);
+            Assert.Contains($"PASS   : {fixture}::test_metadata_methods_from_other_modules()",
+                run.StdOut);
+            Assert.Contains($"PASS   : {fixture}::test_metadata_array_methods()", run.StdOut);
             Assert.Contains($"PASS   : {fixture}::test_metadata_event_delivery()", run.StdOut);
             Assert.IsEmpty(messages.Fail);
         }

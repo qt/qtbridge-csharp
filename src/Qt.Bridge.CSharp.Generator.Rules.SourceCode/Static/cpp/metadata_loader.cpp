@@ -126,6 +126,9 @@ bool loadMethod(QMetaObjectBuilder *typeDef, const QJsonObject &jsonMethod)
     int token = 0;
     if (const QJsonValue jsonToken = dotNet["metadataToken"]; jsonToken.isDouble())
         token = jsonToken.toInt();
+    QStringList dotNetParamTypes;
+    for (const QJsonValue jsonParamType : dotNet["parameterTypes"].toArray())
+        dotNetParamTypes << jsonParamType.toString();
 
     const auto qt = jsonMethod["qt"].toObject();
     auto methodName = dotNet["name"].toString();
@@ -151,8 +154,10 @@ bool loadMethod(QMetaObjectBuilder *typeDef, const QJsonObject &jsonMethod)
 
     auto methodDef = typeDef->addMethod(qtMethod.toUtf8(), qtReturnType.toUtf8());
 
-    if (!QDotNetDynamicObject::addMethod(typeDef, methodName, token, methodDef, paramTypes))
+    if (!QDotNetDynamicObject::addMethod(typeDef, methodName, token, methodDef, paramTypes,
+                                         dotNetParamTypes)) {
         return warn("Error calling 'addMethod'", jsonMethod);
+    }
 
     return true;
 }

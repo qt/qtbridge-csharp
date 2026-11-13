@@ -191,6 +191,7 @@ namespace Qt.Bridge
             {
                 public double MetadataToken { get; set; }
                 public string Name { get; set; }
+                public string[] ParameterTypes { get; set; }
             }
             public DotNetMetadata DotNet { get; set; }
 
