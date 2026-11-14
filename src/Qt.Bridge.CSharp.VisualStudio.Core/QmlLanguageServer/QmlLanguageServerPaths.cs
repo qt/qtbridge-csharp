@@ -7,7 +7,7 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core.QmlLanguageServer
 {
     /// <summary>
     /// Centralized per-user install path conventions for the QML Language Server under
-    /// <c>%LocalAppData%\QtBridge\QmlLanguageServer\</c>.
+    /// <c>%LocalAppData%\Qt\Bridge\QmlLanguageServer\</c>.
     /// </summary>
     internal static class QmlLanguageServerPaths
     {

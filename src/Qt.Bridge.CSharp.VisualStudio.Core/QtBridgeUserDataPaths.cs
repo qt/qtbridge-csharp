@@ -5,9 +5,13 @@ using static System.Environment.SpecialFolder;
 
 namespace Qt.Bridge.CSharp.VisualStudio.Core
 {
+    /// <summary>
+    /// The per-user data of the Qt Bridge extension, under <c>%LOCALAPPDATA%\Qt\Bridge</c>.
+    /// </summary>
     public static class QtBridgeUserDataPaths
     {
-        private const string ProductDirectoryName = "QtBridge";
+        private const string QtDirectoryName = "Qt";
+        private const string ProductDirectoryName = "Bridge";
         private const string VisualStudioDirectoryName = "VisualStudio";
         private const string NotificationsDirectoryName = "Notifications";
         private const string WhatsNewDirectoryName = "WhatsNew";
@@ -15,10 +19,11 @@ namespace Qt.Bridge.CSharp.VisualStudio.Core
         private const string LocalAppDataEnvironmentVariable = "%LocalAppData%";
 
         public static string RootDirectory =>
-            Path.Combine(Environment.GetFolderPath(LocalApplicationData), ProductDirectoryName);
+            Path.Combine(Environment.GetFolderPath(LocalApplicationData), QtDirectoryName,
+                ProductDirectoryName);
 
         public static string RootDirectoryDisplayPath =>
-            Path.Combine(LocalAppDataEnvironmentVariable, ProductDirectoryName);
+            Path.Combine(LocalAppDataEnvironmentVariable, QtDirectoryName, ProductDirectoryName);
 
         public static string VisualStudioDirectory =>
             Path.Combine(RootDirectory, VisualStudioDirectoryName);
