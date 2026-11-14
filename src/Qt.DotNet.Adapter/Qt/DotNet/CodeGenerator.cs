@@ -77,9 +77,21 @@ namespace Qt.DotNet
             MethodInfo unsafeMethod, Parameter[] parameters)
         {
             ArgumentNullException.ThrowIfNull(unsafeMethod);
+            ArgumentNullException.ThrowIfNull(parameters);
+
+            // Check if already in cache
+            if (ResolvedSafeMethods.TryGetValue((unsafeMethod, parameters), out var resolved))
+                return resolved;
+            ValidateParameters(unsafeMethod.ReturnType, [
+                typeof(object),
+                .. unsafeMethod.GetParameters().Select(param => param.ParameterType),
+                typeof(IntPtr)
+            ], parameters);
+
             var safeMethod = SafeMethodsByMethod.GetOrAdd(unsafeMethod, CreateSafeMethod);
             var delegateType = CreateDelegateTypeForMethod(safeMethod, parameters)
                 ?? throw new Exception("Error getting safe method delegate type");
+            ResolvedSafeMethods.TryAdd((unsafeMethod, parameters), (safeMethod, delegateType));
             return (safeMethod, delegateType);
         }
 
@@ -326,6 +338,21 @@ namespace Qt.DotNet
             return delegateType;
         }
 
+        internal static void ValidateParameters(Type retType, Type[] paraTypes, Parameter[] paras)
+        {
+            if (paras == null || paras.Length != paraTypes.Length + 1)
+                throw new ArgumentException("Incorrect parameter count", nameof(paras));
+
+            for (var i = 0; i < paras.Length; ++i) {
+                var actual = paras[i].GetParameterType();
+                if (actual == null)
+                    throw new ArgumentException($"Type not found at index {i}", nameof(paras));
+                var compatible = i == 0 ? actual.BindsTo(retType) : paraTypes[i - 1].BindsTo(actual);
+                if (!compatible)
+                    throw new ArgumentException($"Incompatible type at index {i}", nameof(paras));
+            }
+        }
+
         /// <summary>
         /// Generate a delegate type that matches the signature of a given method.
         /// </summary>
@@ -338,17 +365,16 @@ namespace Qt.DotNet
         /// <exception cref="TypeAccessException"/>
         public static Type CreateDelegateTypeForMethod(MethodInfo method, Parameter[] parameters)
         {
-            Debug.Assert(method.GetParameters().Length == parameters.Length - 1);
-            Debug.Assert(method.DeclaringType != null, "method.DeclaringType is null");
-            var returnTypeCompatible = parameters[0].GetParameterType().BindsTo(method.ReturnType);
-            Debug.Assert(returnTypeCompatible);
-            Debug.Assert(method.GetParameters()
-                .Select((param, idx) => (Formal: param.ParameterType, Actual: parameters[idx + 1]))
-                .All(param => param.Formal.BindsTo(param.Actual.GetParameterType())));
+            ArgumentNullException.ThrowIfNull(method);
+            ArgumentNullException.ThrowIfNull(parameters);
 
             // Check if already in cache
             if (DelegateTypes.TryGetValue((method, parameters), out Type delegateType))
                 return delegateType;
+            ValidateParameters(method.ReturnType,
+                [.. method.GetParameters().Select(param => param.ParameterType)], parameters);
+            if (method.DeclaringType == null)
+                throw new ArgumentException("Method has no declaring type", nameof(method));
 
             // Generate dynamic Delegate sub-type
             var typeGen = ModuleGen.DefineType(
@@ -739,6 +765,12 @@ namespace Qt.DotNet
         /// Delegate type cache.
         /// </summary>
         private static DelegateIndex DelegateTypes { get; } = new(new Indexer());
+
+        /// <summary>
+        /// Safe methods and their delegate types, by method and requested parameters.
+        /// </summary>
+        private static ConcurrentDictionary<(MemberInfo, Parameter[]), (MethodInfo, Type)>
+            ResolvedSafeMethods { get; } = new(new Indexer());
 
         private static ConcurrentDictionary<MethodInfo, MethodInfo> SafeMethodsByMethod
         { get; } = new();

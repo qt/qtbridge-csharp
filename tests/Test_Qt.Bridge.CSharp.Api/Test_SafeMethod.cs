@@ -33,6 +33,7 @@ namespace Test_Qt.Bridge.CSharp.Api
         public string Echo(object value) => value?.ToString();
         public string Text() => "safe return";
         public string OtherText() => "safe return";
+        public string ValidatedText() => "safe return";
     }
 
     [TestClass]
@@ -471,6 +472,49 @@ namespace Test_Qt.Bridge.CSharp.Api
                 .Count();
             Assert.IsLessThanOrEqualTo(1, allocated,
                 $"{allocated} handles of the safe delegate outlive the freed objects");
+        }
+
+        [TestMethod]
+        public void ResolveSafeMethod_RejectsInvalidSignatures()
+        {
+            var target = ToPtr(new SafeMethodEcho());
+            try {
+                var method = Adapter.ResolveInstanceMethod(target,
+                    nameof(SafeMethodEcho.ValidatedText), 0, [Param<string>()]);
+                Parameter[][] invalidSignatures = [
+                    [],
+                    [Param<string>(), Param<object>()],
+                    [Param<string>(), Param<object>(), Param<nint>(), Param<int>()],
+                    [new Parameter("Missing.ReturnType"), Param<object>(), Param<nint>()],
+                    [Param<int>(), Param<object>(), Param<nint>()],
+                    [Param<string>(), new Parameter("Missing.TargetType"), Param<nint>()],
+                    [Param<string>(), Param<object>(), Param<string>()],
+                    [new Parameter("Missing.Marshaler", (ulong)UnmanagedType.CustomMarshaler),
+                     Param<object>(), Param<nint>()],
+                    [Param<string>(), Param<object>(), new Parameter(typeof(int)
+                        .AssemblyQualifiedName, (ulong)UnmanagedType.CustomMarshaler)]
+                ];
+                foreach (var signature in invalidSignatures) {
+                    Assert.ThrowsExactly<ArgumentException>(() =>
+                        Adapter.ResolveSafeMethod(method, 0, signature));
+                }
+                Assert.ThrowsExactly<ArgumentNullException>(() =>
+                    Adapter.ResolveSafeMethod(method, 0, null));
+
+                var valid = Adapter
+                    .ResolveSafeMethod(method, 0, [Param<string>(), Param<object>(), Param<nint>()]);
+                Assert.AreNotEqual(nint.Zero, valid);
+
+                // Validation must also run when the method and its delegate are cached.
+                foreach (var signature in invalidSignatures) {
+                    Assert.ThrowsExactly<ArgumentException>(() =>
+                        Adapter.ResolveSafeMethod(method, 0, signature));
+                }
+                Assert.ThrowsExactly<ArgumentNullException>(() =>
+                    Adapter.ResolveSafeMethod(method, 0, null));
+            } finally {
+                Adapter.FreeObjectRef(target);
+            }
         }
 
         [TestMethod]

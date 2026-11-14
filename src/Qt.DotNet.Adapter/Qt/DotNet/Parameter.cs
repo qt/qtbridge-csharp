@@ -91,10 +91,13 @@ namespace Qt.DotNet
             if (IsVoid)
                 return typeof(void);
             if (MarshalAs == UnmanagedType.CustomMarshaler) {
-                Type customMarshalerType = Type.GetType(TypeName);
-#if TEST || DEBUG
-                Debug.Assert(customMarshalerType != null, nameof(customMarshalerType) + " is null");
-#endif
+                if (string.IsNullOrEmpty(TypeName))
+                    return null;
+                if (Type.GetType(TypeName) is not {} customMarshalerType)
+                    return null;
+                if (!customMarshalerType.IsAssignableTo(typeof(ICustomMarshaler)))
+                    return null;
+
                 if (customMarshalerType.IsAssignableTo(typeof(IAdapterCustomMarshaler))) {
                     var nativeType = customMarshalerType.GetProperty("NativeType",
                         BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
