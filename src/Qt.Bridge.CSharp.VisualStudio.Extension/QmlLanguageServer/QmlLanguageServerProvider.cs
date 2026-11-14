@@ -273,7 +273,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
 
                 log.Info($"QML Language Server: started process (pid {process.Id}) with: {args}");
 
-                return new QmlLanguageServerTransportPipe(process, log, options);
+                var pipe = new QmlLanguageServerTransportPipe(process, log, options);
+                _ = ReconnectDocumentsAsync(pipe);
+                return pipe;
             } catch (QmlLanguageServerLaunchException) {
                 throw;
             } catch (Exception ex) {
@@ -1107,5 +1109,19 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                 "Qt Bridge: Could not install the QML Language Server. "
                 + "See the Qt Bridge output pane for details."
         };
+
+        // Once the session is initialized, so that the documents find its client.
+        private async Task ReconnectDocumentsAsync(QmlLanguageServerTransportPipe pipe)
+        {
+            try {
+#pragma warning disable VSTHRD003 // Both tasks are owned by the pipe's relay.
+                if (await Task.WhenAny(pipe.Initialized, pipe.Closed) != pipe.Initialized)
+                    return;
+#pragma warning restore VSTHRD003
+                await QmlDocumentReconnector.ReconnectAsync(log, CancellationToken.None);
+            } catch (Exception ex) {
+                log.Error("QML Language Server: reconnecting the open documents failed.", ex);
+            }
+        }
     }
 }

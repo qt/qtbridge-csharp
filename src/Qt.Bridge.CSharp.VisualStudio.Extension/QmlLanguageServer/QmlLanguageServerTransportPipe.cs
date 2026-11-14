@@ -71,6 +71,9 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
         /// </summary>
         public Task Closed => relayToTask;
 
+        /// <summary> Completes once VS sent <c>initialized</c> for this session. </summary>
+        public Task Initialized => injectedMessages.ServerInitialized;
+
         /// <summary>
         /// Enqueues <paramref name="json"/> (a raw JSON notification body) for delivery to the QML
         /// Language Server. Framing is applied automatically. The notification is sent only after

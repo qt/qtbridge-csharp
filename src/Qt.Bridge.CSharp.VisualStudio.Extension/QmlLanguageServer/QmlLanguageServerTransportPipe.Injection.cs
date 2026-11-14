@@ -19,6 +19,8 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension.QmlLanguageServer
                     AllowSynchronousContinuations = false
                 });
 
+            public Task ServerInitialized => serverInitializedSource.Task;
+
             public bool IsServerInitialized => serverInitializedSource.Task.IsCompleted;
 
             public void EnqueueNotification(byte[] message)

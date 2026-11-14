@@ -14,8 +14,10 @@ namespace Qt.Bridge.CSharp.VisualStudio.Extension
     /// </summary>
     internal static class QmlDocumentTypes
     {
+        public const string QmlName = "qml";
+
         [VisualStudioContribution]
-        internal static DocumentTypeConfiguration Qml => new("qml")
+        internal static DocumentTypeConfiguration Qml => new(QmlName)
         {
             FileExtensions = [".qml"],
             BaseDocumentType = LanguageServerProvider.LanguageServerBaseDocumentType
