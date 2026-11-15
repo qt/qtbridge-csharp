@@ -7,7 +7,17 @@ namespace Qt.DotNet
 {
     internal class UriMarshaler : CustomMarshaler<Uri>
     {
+        static UriMarshaler()
+        {
+            SafeArgumentConversion = new SafeArgumentConversion(
+                new Parameter(typeof(StringMarshaler).AssemblyQualifiedName,
+                    (ulong)UnmanagedType.CustomMarshaler),
+                typeof(SafeMethodHelpers).GetMethod(nameof(SafeMethodHelpers.ParseUri)));
+        }
+
         private static UriMarshaler Instance { get; } = new();
+
+        public static new SafeArgumentConversion SafeArgumentConversion { get; }
 
         public static ICustomMarshaler GetInstance(string options) => Instance;
 
@@ -18,7 +28,7 @@ namespace Qt.DotNet
             // QUrl custom marshaling uses UTF-16 buffers on all platforms.
             var url = Marshal.PtrToStringUni(ptr);
             Marshal.FreeHGlobal(ptr);
-            return new Uri(url);
+            return SafeMethodHelpers.ParseUri(url);
         }
 
         public override nint MarshalOut(Uri uri)

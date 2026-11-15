@@ -103,6 +103,18 @@ private slots:
         QCOMPARE(stringBuilder.method<int>("get_Length").invoke(stringBuilder), 3);
     }
 
+    void safeUriArguments()
+    {
+        const auto newUri = QDotNetObject::constructor<QString>("System.Uri, System.Private.Uri");
+        const auto baseUri = newUri("https://example.org/base/");
+        QDotNetSafeMethod<bool, QUrl> equals;
+        baseUri.method("Equals", equals);
+
+        QVERIFY(equals.invoke(baseUri, QUrl("https://example.org/base/")));
+        QVERIFY(!equals.invoke(baseUri, QUrl("images/icon.png")));
+        QVERIFY(!equals.invoke(baseUri, QUrl()));
+    }
+
     void cleanupTestCase()
     {
         unloadHost();

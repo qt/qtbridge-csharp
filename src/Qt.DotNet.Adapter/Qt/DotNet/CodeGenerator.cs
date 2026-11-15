@@ -88,14 +88,29 @@ namespace Qt.DotNet
                 typeof(IntPtr)
             ], parameters);
 
-            var safeMethod = SafeMethodsByMethod.GetOrAdd(unsafeMethod, CreateSafeMethod);
-            var delegateType = CreateDelegateTypeForMethod(safeMethod, parameters)
+            var conversions = parameters.Skip(2).SkipLast(1)
+                .Select(parameter => parameter.GetSafeArgumentConversion()).ToArray();
+            var safeMethod = SafeMethodsByMethod.GetOrAdd(
+                (unsafeMethod, [.. conversions.Select(conversion => conversion?.Method)]),
+                _ => CreateSafeMethod(unsafeMethod, conversions));
+
+            var safeParameters = parameters;
+            if (conversions.Any(conversion => conversion != null)) {
+                safeParameters = (Parameter[])parameters.Clone();
+                for (var index = 0; index < conversions.Length; ++index) {
+                    if (conversions[index] is { } conversion)
+                        safeParameters[index + 2] = conversion.Transport;
+                }
+            }
+
+            var delegateType = CreateDelegateTypeForMethod(safeMethod, safeParameters)
                 ?? throw new Exception("Error getting safe method delegate type");
             ResolvedSafeMethods.TryAdd((unsafeMethod, parameters), (safeMethod, delegateType));
             return (safeMethod, delegateType);
         }
 
-        private static MethodInfo CreateSafeMethod(MethodInfo unsafeMethod)
+        private static MethodInfo CreateSafeMethod(
+            MethodInfo unsafeMethod, IReadOnlyList<SafeArgumentConversion> conversions)
         {
             ArgumentNullException.ThrowIfNull(unsafeMethod);
 
@@ -109,7 +124,8 @@ namespace Qt.DotNet
             var returnTypeIsVoid = returnType == typeof(void);
             // SafeInvoke(object target, [args...], IntPtr exceptionHandleAddress)
             var paramTypes = unsafeMethod.GetParameters()
-                .Select(x => x.ParameterType)
+                .Select((param, index) => conversions[index]?.Transport.GetParameterType()
+                    ?? param.ParameterType)
                 .Prepend(typeof(object))
                 .Append(typeof(IntPtr))
                 .ToArray();
@@ -141,8 +157,11 @@ namespace Qt.DotNet
                 }
 
                 // Load arguments into stack
-                for (int paramIdx = 1; paramIdx < exceptionHandleAddressIdx; ++paramIdx)
+                for (var paramIdx = 1; paramIdx < exceptionHandleAddressIdx; ++paramIdx) {
                     code.EmitLdarg(paramIdx);
+                    if (conversions[paramIdx - 1] is { } conversion)
+                        code.Emit(OpCodes.Call, conversion.Method);
+                }
 
                 // [{0} =] unsafeMethod([...]);
                 if (unsafeMethod.IsVirtual && !targetIsValueType)
@@ -772,8 +791,27 @@ namespace Qt.DotNet
         private static ConcurrentDictionary<(MemberInfo, Parameter[]), (MethodInfo, Type)>
             ResolvedSafeMethods { get; } = new(new Indexer());
 
-        private static ConcurrentDictionary<MethodInfo, MethodInfo> SafeMethodsByMethod
-        { get; } = new();
+        private static
+            ConcurrentDictionary<(MethodInfo Method, MethodInfo[] Conversions), MethodInfo>
+            SafeMethodsByMethod { get; } = new(new SafeMethodIndexer());
+
+        private sealed class SafeMethodIndexer
+            : IEqualityComparer<(MethodInfo Method, MethodInfo[] Conversions)>
+        {
+            public bool Equals((MethodInfo Method, MethodInfo[] Conversions) x,
+                (MethodInfo Method, MethodInfo[] Conversions) y)
+            {
+                return x.Method == y.Method && x.Conversions.SequenceEqual(y.Conversions);
+            }
+
+            public int GetHashCode((MethodInfo Method, MethodInfo[] Conversions) obj)
+            {
+                var hashCode = obj.Method.GetHashCode();
+                foreach (var conversion in obj.Conversions)
+                    hashCode = HashCode.Combine(hashCode, conversion);
+                return hashCode;
+            }
+        }
 
         /// <summary>
         /// Proxy method cache.

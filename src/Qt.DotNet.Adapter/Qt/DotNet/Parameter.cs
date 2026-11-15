@@ -12,10 +12,22 @@ namespace Qt.DotNet
         static Type NativeType { get; }
     }
 
+    /// <summary>
+    /// Describes a transport and a public static conversion from its managed type to the
+    /// marshaler's managed type. Safe methods run the conversion in their try block.
+    /// </summary>
+    public sealed record SafeArgumentConversion(Parameter Transport, MethodInfo Method);
+
     public abstract class CustomMarshaler<T> : IAdapterCustomMarshaler, ICustomMarshaler
         where T: class
     {
         public static Type NativeType => typeof(T);
+
+        /// <summary>
+        /// Optional conversion for safe calls. Derived marshalers can hide this property to
+        /// describe a transport whose conversion to T must run inside the generated try block.
+        /// </summary>
+        public static SafeArgumentConversion SafeArgumentConversion => null;
 
         public abstract int NativeSize { get; }
 
@@ -85,6 +97,32 @@ namespace Qt.DotNet
 
         private static ulong MASK(ulong value, int size) => value & ((((ulong)1) << size) - 1);
         private static bool FLAG(ulong value, int offset) => ((value >> offset) & 1) == 1;
+
+        internal SafeArgumentConversion GetSafeArgumentConversion()
+        {
+            if (MarshalAs != UnmanagedType.CustomMarshaler)
+                return null;
+            var property = Type.GetType(TypeName)?.GetProperty(nameof(SafeArgumentConversion),
+                BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+            if (property?.GetValue(null) is not SafeArgumentConversion conversion)
+                return null;
+
+            // Keep the caller's direction and array flags when replacing the transport.
+            var transport = new Parameter(conversion.Transport.TypeName,
+                conversion.Transport.ParamInfo | (ParamInfo & ~MASK(ulong.MaxValue, TYPE_SIZE)));
+            var method = conversion.Method;
+            if (method == null
+                || !method.IsStatic
+                || !method.IsPublic
+                || method.DeclaringType is not { IsVisible: true }
+                || method.ContainsGenericParameters
+                || method.GetParameters() is not { Length: 1 } arguments
+                || arguments[0].ParameterType != transport.GetParameterType()
+                || method.ReturnType != GetParameterType()) {
+                throw new ArgumentException("Invalid safe argument conversion", nameof(TypeName));
+            }
+            return conversion with { Transport = transport };
+        }
 
         public Type GetParameterType()
         {
