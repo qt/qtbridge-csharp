@@ -37,7 +37,7 @@ namespace Qt.Bridge.CodeGeneration.MetaFunctions
                 };
             }
 
-            if (traits.HasTraits(Star) && !type.IsEnum)
+            if (traits.HasTraits(Star))
                 return type.IsValue() ? "" : "*";
 
             if (traits.HasTraits(Arg))

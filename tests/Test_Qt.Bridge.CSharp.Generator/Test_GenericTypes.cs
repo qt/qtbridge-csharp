@@ -160,6 +160,25 @@ namespace Test_Qt.Bridge.CSharp.Generator
             }
         }
 
+        [TestMethod]
+        public async Task EnumsNestedInGenericTypes_HaveNoPointerSuffix()
+        {
+            const string source = """
+                namespace MyApp;
+                public class Outer<T> { public enum State { Off, On } }
+                public class Bar
+                {
+                    public Outer<int>.State Number { get; set; }
+                    public Outer<string>.State Text { get; set; }
+                }
+                """;
+            using var result = await Generate(source);
+            foreach (var property in result.SourceAssembly.GetType("MyApp.Bar").GetProperties()) {
+                Assert.AreEqual(string.Empty, property.PropertyType.MFn(TraitFlags.Star),
+                    $"Enum property {property.Name} must be passed by value.");
+            }
+        }
+
         private Task<TestCodeGenerator.Result> Generate(string source)
             => TestCodeGenerator.GenerateAsync([source], defaultExportOptions: Qt.ExportAs.SourceCode,
                 ct: TestContext.CancellationTokenSource.Token);
