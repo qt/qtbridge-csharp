@@ -154,6 +154,9 @@ private:
             qWarning().noquote() << component->errorString();
             component->deleteLater();
             break;
+        case QQmlComponent::Null:
+        case QQmlComponent::Loading:
+            break;
         }
     }
 };
