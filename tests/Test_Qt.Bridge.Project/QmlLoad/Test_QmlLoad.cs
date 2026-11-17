@@ -36,13 +36,7 @@ namespace Test_Qt.Bridge.Project.QmlLoad
             temp.Create(new()
             {
                 PackageReferences = [Packages.QtBridge],
-                OutputType = OutputType.Exe,
-                BeforeSdkProps = $$"""
-                  <PropertyGroup>
-                    <QtInstallRoot/>
-                    <QtDir/>
-                  </PropertyGroup>
-                """
+                OutputType = OutputType.Exe
             });
             temp.CopyFile("Program.cs", Path.Combine("QmlLoad", "Program.cs"));
             temp.CopyFile("Main.qml", Path.Combine("QmlLoad", "Main.qml"));
