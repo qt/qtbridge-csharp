@@ -233,6 +233,8 @@ namespace Test_Qt.Bridge.Project.KnownIssues
 
             var run = (await GetResultsAsync(exportAs)).Separate["tst_enumerateproperties.qml"];
             var stdOut = run.StdOut;
+            KnownIssueRunValidation.Validate(run.ExitCode, stdOut,
+                "Test_KnownIssues::EnumerateProperties", affected ? fatal : null);
 
             var fatalLine = stdOut.Split('\n').FirstOrDefault(line => line.Contains(fatal));
             if (fatalLine == null) {
@@ -314,7 +316,14 @@ namespace Test_Qt.Bridge.Project.KnownIssues
         private static async Task CheckSeparateAsync(string exportAs, string qmlFile,
             string function, string issue, string fix, bool affected = KnownIssue.Affected)
         {
-            var stdOut = (await GetResultsAsync(exportAs)).Separate[qmlFile].StdOut;
+            var run = (await GetResultsAsync(exportAs)).Separate[qmlFile];
+            var stdOut = run.StdOut;
+            var testCase = $"Test_KnownIssues::{function.Split("::")[0]}";
+            // Match the exception type, not the runtime's platform- or locale-specific message.
+            const string marshalFailure = "Unhandled exception. "
+                + "System.Runtime.InteropServices.MarshalDirectiveException:";
+            KnownIssueRunValidation.Validate(run.ExitCode, stdOut, testCase,
+                exportAs == "source" && affected ? marshalFailure : null);
             var name = $"Test_KnownIssues::{function}()";
             if (stdOut.Contains($"PASS   : {name}")) {
                 Assert.Contains("Totals: ", stdOut, stdOut);
@@ -323,21 +332,31 @@ namespace Test_Qt.Bridge.Project.KnownIssues
 
             var lines = stdOut.Split('\n').Select(line => line.Trim()).ToArray();
             var fail = Array.FindIndex(lines, line => line.StartsWith($"FAIL!  : {name}")
+                || line.StartsWith("Unhandled exception.")
                 || line.StartsWith("A crash occurred"));
+            Assert.IsGreaterThanOrEqualTo(0, fail, $"Missing result for {name}.\n{stdOut}");
             KnownIssue.Check(false, issue,
-                fail < 0 ? "no result" : string.Join(" ", lines.Skip(fail).Take(3)), fix,
+                string.Join(" ", lines.Skip(fail).Take(3)), fix,
                 affected);
         }
 
         private static Task<(int ExitCode, string StdOut, string StdErr)> RunQmlTestAsync(
             TempProject temp, string qmlFile)
         {
+            var envVars = new List<(string Name, string Value)> {
+                ("QT_FORCE_STDERR_LOGGING", "1"),
+                ("QML_DISABLE_DISK_CACHE", "1")
+            };
+            if (OperatingSystem.IsMacOS()) {
+                // suppress macOS crash-reporter dialog
+                envVars.Add(("QT_MAC_DISABLE_FOREGROUND_APPLICATION_TRANSFORM", "1"));
+            }
+            // Let the CLR report managed exceptions instead of Qt's native crash handler.
+            string[] args =
+                ["-nocrashhandler", "-input", Path.Combine(temp.ExeDir, "Application", qmlFile)];
             return temp.RunAsync(new() {
-                Args = ["-input", Path.Combine(temp.ExeDir, "Application", qmlFile)],
-                EnvVars = [
-                    ("QT_FORCE_STDERR_LOGGING", "1"),
-                    ("QML_DISABLE_DISK_CACHE", "1")
-                ],
+                Args = args,
+                EnvVars = [.. envVars],
                 StdErr = Redirect.StdOut
             });
         }
