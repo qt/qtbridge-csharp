@@ -71,7 +71,11 @@ namespace Qt.Bridge.CodeGeneration
             SourceFileNotFound,
             GraphBuildError,
             GenerationError,
-            OutputError
+            OutputError,
+            QtDirIsEmpty,
+            QtDirNotFound,
+            QtLibDirIsEmpty,
+            QtLibDirNotFound
         }
 
         private static void Info(string msg)
@@ -114,7 +118,7 @@ namespace Qt.Bridge.CodeGeneration
         public enum Options
         {
             Source, Ref, Exclude, Target, Rules, Clean, CleanIgnores, MetadataFileName,
-            ResourcePackaging, ExportAs
+            ResourcePackaging, ExportAs, QtDir, QtLibDir
         }
 
         private static RootCommand Command { get; }
@@ -172,6 +176,16 @@ namespace Qt.Bridge.CodeGeneration
                     "--export-as", "Default type export mode (metadata or source); explicit "
                     + "attributes take precedence")
                 { Arity = ArgumentArity.ExactlyOne, ArgumentHelpName = "mode" }
+            },
+            {
+                Options.QtDir, new Option<string>(
+                    "--qtdir", "Path to Qt installation")
+                { IsRequired = false, Arity = ArgumentArity.ExactlyOne, ArgumentHelpName = "path" }
+            },
+            {
+                Options.QtLibDir, new Option<string>(
+                    "--qtlibdir", "Path to Qt libraries")
+                { IsRequired = false, Arity = ArgumentArity.ExactlyOne, ArgumentHelpName = "path" }
             }
         };
 
@@ -249,6 +263,24 @@ namespace Qt.Bridge.CodeGeneration
 
             if (!ctx.TryGetValue(Options.Target, out string targetPath))
                 return ExitCode.Ok;
+
+            if (ctx.TryGetValue(Options.QtDir, out string qtDirPath)) {
+                if (qtDirPath is not { Length: > 0 })
+                    return Error(ctx, ExitCode.QtDirIsEmpty, "QtDir is empty");
+                var qtDir = new DirectoryInfo(qtDirPath);
+                if (!qtDir.Exists)
+                    return Error(ctx, ExitCode.QtDirNotFound, "QtDir not found");
+                Rules.QtDir = qtDir;
+            }
+
+            if (ctx.TryGetValue(Options.QtLibDir, out string qtLibDirPath)) {
+                if (qtLibDirPath is not { Length: > 0 })
+                    return Error(ctx, ExitCode.QtLibDirIsEmpty, "QtLibDir is empty");
+                var qtLibDir = new DirectoryInfo(qtLibDirPath);
+                if (!qtLibDir.Exists)
+                    return Error(ctx, ExitCode.QtLibDirNotFound, "QtLibDir not found");
+                Rules.QtLibDir = qtLibDir;
+            }
 
             ctx.TryGetValue(Options.Rules, out string[] ruleFiles);
             foreach (var ruleFile in ruleFiles) {

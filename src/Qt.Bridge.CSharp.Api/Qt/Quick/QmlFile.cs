@@ -13,5 +13,6 @@ namespace Qt.Quick
         public bool IsRoot { get; set; }
         public string Path { get; set; }
         public string ModulePath => System.IO.Path.GetDirectoryName(Path).Replace('\\', '/');
+        public string FilePath { get; set; }
     }
 }

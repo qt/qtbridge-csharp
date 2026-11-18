@@ -135,6 +135,7 @@
         <JsonSourcePath>$([System.String]::Copy('$(ProjectDir)%(RelativeDir)%(Filename)%(Extension)').Replace('\', '/'))</JsonSourcePath>
         <JsonModulePath>$([System.String]::Copy('%(SourceDir)').Replace('\', '/'))</JsonModulePath>
         <JsonResourceUrl>$([System.String]::Copy('qrc:/qt/qml/%(SourceDir)%(Filename)%(Extension)').Replace('\', '/'))</JsonResourceUrl>
+        <FilePath>$([System.IO.Path]::GetFullPath('$(ProjectDir)%(RelativeDir)%(Filename)%(Extension)'))</FilePath>
       </Qml>
     </ItemGroup>
     <ItemGroup>
@@ -168,6 +169,7 @@
     Uri = &quot;%(Identity)&quot;, IsRoot = %(IsRoot), Path = @&quot;%(SourceDir)&quot;)]');
 @(Qml->'[assembly: Qt.Quick.QmlFile(
     Uri = &quot;%(Uri)&quot;, TypeName = &quot;%(TypeName)&quot;, IsRoot = %(IsRoot),
+    FilePath = @&quot;$(_QtProjectNativeSourceDir)/qml/%(SourceDir)%(Filename)%(Extension)&quot;,
     Path = @&quot;%(SourceDir)%(Filename)%(Extension)&quot;)]');
 namespace Qt.Qml
 {
@@ -262,6 +264,10 @@ namespace Qt.Qml
       <ProjectQtNativeSourceDir>$(_QtProjectNativeSourceDir)</ProjectQtNativeSourceDir>
       <ProjectQtNativeRootDir
         >$([System.IO.Path]::GetFullPath('$(ProjectQtNativeSourceDir)/..'))</ProjectQtNativeRootDir>
+      <QtGenCmd
+        >$(QtGenCmd) --qtdir "$(QtDir.TrimEnd('\'))"</QtGenCmd>
+      <QtGenCmd Condition="'$(QtLibDir)' != ''"
+        >$(QtGenCmd) --qtlibdir "$(QtLibDir.TrimEnd('\'))"</QtGenCmd>
       <QtGenCmd
         >$(QtGenCmd) --source "$(ProjectIntermediateDir)$(TargetFileName)"</QtGenCmd>
       <QtGenCmd

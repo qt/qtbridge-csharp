@@ -11,7 +11,7 @@ ApplicationWindow {
     width: 1000
     height: 760
     visible: true
-    color: "#f3f4f6"
+    color: Theme.colors.windowBackground
 
     property alias mainWindowTitle: mainWindow.title
 

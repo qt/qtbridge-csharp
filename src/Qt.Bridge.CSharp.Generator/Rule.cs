@@ -12,7 +12,7 @@ using Qt.Bridge.Utils.Collections.Concurrent;
 
 namespace Qt.Bridge.CodeGeneration
 {
-    public abstract class Rule : IPrioritizable<int>
+    public abstract partial class Rule : IPrioritizable<int>
     {
         public virtual int Priority => 0;
 
@@ -105,6 +105,8 @@ namespace Qt.Bridge.CodeGeneration
                     rule.Reset();
                 AllRules.Clear();
                 TargetDir = null;
+                QtDir = null;
+                QtLibDir = null;
                 Results.Clear();
                 SourceTypes = null;
                 SourceMembers = null;
@@ -113,6 +115,9 @@ namespace Qt.Bridge.CodeGeneration
             }
 
             public static DirectoryInfo TargetDir { get; private set; }
+
+            public static DirectoryInfo QtDir { get; set; }
+            public static DirectoryInfo QtLibDir { get; set; }
 
             public static DependencyGraph SourceGraph
             {

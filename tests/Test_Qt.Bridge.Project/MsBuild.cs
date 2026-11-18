@@ -12,6 +12,8 @@ using System.Threading;
 
 namespace Test_Qt.Bridge.Project
 {
+    using Qt.Bridge.Utils.Concurrent;
+
     public static class MsBuild
     {
         public static string MsBuildPath { get; private set; }

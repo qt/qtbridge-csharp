@@ -90,6 +90,7 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
             Type[] extraRules = null,
             ResourcePackaging resourcePackaging = ResourcePackaging.Auto,
             Qt.Options? defaultExportOptions = null,
+            string qtDir = null,
             CancellationToken ct = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sources.ToString(), nameof(sources));
@@ -99,6 +100,10 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
             Rules.Reset();
             FilePlaceholder.All.Reset();
             GeneratorOptions.MetadataFileName = MetadataFileName;
+
+            // Set QtDir
+            if (qtDir is { Length: > 0 } && Directory.Exists(qtDir))
+                Rules.QtDir = new(qtDir);
 
             // Build up necessary dependencies infrastructure
             var refs = CreateDefaultFrameworkPaths()

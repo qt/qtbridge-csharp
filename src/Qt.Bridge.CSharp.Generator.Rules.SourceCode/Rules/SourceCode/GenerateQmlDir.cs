@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
 using System.Reflection;
+using static System.IO.File;
 
 namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
 {
@@ -28,8 +29,29 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
                     Sorted = false,
                     Content = [$"module {uri}"]
                 };
-                foreach (var qml in qmlModule)
-                    qmldir += $"{qml.TypeName} 1.0 {qml.TypeName}.qml";
+                foreach (var qml in qmlModule) {
+                    var isSingleton = false;
+                    if (!string.IsNullOrEmpty(qml.FilePath)) {
+                        if (!Exists(qml.FilePath))
+                            return Error($"QML file not found: \"{qml.FilePath}\"");
+                        try {
+                            var qmlText = ReadAllText(qml.FilePath);
+                            if (qmlText.Contains("Singleton", StringComparison.OrdinalIgnoreCase)) {
+                                var qmlDom = QmlDom.Exec(qml.FilePath, "objects", "imports");
+                                isSingleton = qmlDom.IsSingleton;
+                            }
+                        } catch (Exception e)
+                            when (e is IOException or InvalidDataException
+                                or UnauthorizedAccessException or InvalidOperationException
+                                or ArgumentException or TimeoutException
+                                or System.ComponentModel.Win32Exception) {
+                            var filePath = qml.FilePath;
+                            return Error($"Failed to inspect QML file '{filePath}': {e.Message}");
+                        }
+                    }
+                    qmldir +=
+                        $"{(isSingleton ? "singleton " : "")}{qml.TypeName} 1.0 {qml.TypeName}.qml";
+                }
             }
 
             return Ok;

@@ -17,6 +17,8 @@ using static System.IO.Path;
 
 namespace Test_Qt.Bridge.Project
 {
+    using Qt.Bridge.Utils.Concurrent;
+
     public enum OutputType { Empty, Exe, WinExe }
 
     public class CreationOptions

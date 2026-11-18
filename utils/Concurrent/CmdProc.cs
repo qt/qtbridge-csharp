@@ -1,12 +1,9 @@
 // Copyright (C) 2026 The Qt Company Ltd.
-// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only
 
-using System;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 
-namespace Test_Qt.Bridge.Project
+namespace Qt.Bridge.Utils.Concurrent
 {
     public static class CmdProc
     {
@@ -31,7 +28,7 @@ namespace Test_Qt.Bridge.Project
             return proc;
         }
 
-        internal static Process StartRaw(
+        public static Process StartRaw(
             string exePath, string workDir, string[] args, (string Name, string Value)[] envVars)
         {
             if (exePath == null)
@@ -54,9 +51,6 @@ namespace Test_Qt.Bridge.Project
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = exePath,
-                    Arguments = string.Join(" ", args
-                        .Where(arg => arg is { Length: > 0 })
-                        .Select(arg => arg.Contains(" ") ? $"\"{arg}\"" : arg)),
                     WorkingDirectory = workDir,
                     CreateNoWindow = true,
                     UseShellExecute = false,
@@ -64,6 +58,8 @@ namespace Test_Qt.Bridge.Project
                     RedirectStandardOutput = true
                 }
             };
+            foreach (var arg in args)
+                proc.StartInfo.ArgumentList.Add(arg);
             foreach (var envVar in envVars)
                 proc.StartInfo.Environment[envVar.Name] = envVar.Value;
             if (!proc.Start())

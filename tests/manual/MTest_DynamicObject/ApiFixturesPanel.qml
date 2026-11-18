@@ -19,22 +19,22 @@ ColumnLayout {
 
     function statusBackground(status) {
         if (status === "PASS")
-            return "#e3f5e8"
+            return Theme.colors.statusBackgroundPass
         if (status === "FAIL")
-            return "#fdeaea"
-        return "#e9eaec"
+            return Theme.colors.statusBackgroundFail
+        return Theme.colors.statusBackground
     }
 
     function statusColor(status) {
         if (status === "PASS")
-            return "#1e7d34"
+            return Theme.colors.statusColorPass
         if (status === "FAIL")
-            return "#c62828"
-        return "#5f6368"
+            return Theme.colors.statusColorFail
+        return Theme.colors.statusColor
     }
 
     function rowColor(index) {
-        return index % 2 === 0 ? "#ffffff" : "#f6f7f8"
+        return index % 2 === 0 ? Theme.colors.rowColor0 : Theme.colors.rowColor1
     }
 
     function cellColor(index, status) {

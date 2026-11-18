@@ -17,7 +17,8 @@ namespace Qt.Bridge.CodeGeneration.Extensions
                     Uri = x.Property<string>(nameof(QmlFileAttribute.Uri)),
                     TypeName = x.Property<string>(nameof(QmlFileAttribute.TypeName)),
                     IsRoot = x.Property<bool>(nameof(QmlFileAttribute.IsRoot), true),
-                    Path = x.Property<string>(nameof(QmlFileAttribute.Path))
+                    Path = x.Property<string>(nameof(QmlFileAttribute.Path)),
+                    FilePath = x.Property<string>(nameof(QmlFileAttribute.FilePath), "")
                 });
         }
 
