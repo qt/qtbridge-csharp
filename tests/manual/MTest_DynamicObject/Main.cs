@@ -20,6 +20,13 @@ using System.Runtime.InteropServices;
 
 namespace MTest_DynamicObject
 {
+    [QmlElement(Singleton = true)]
+    public sealed class Types
+    {
+        public string NameofBuildTimeType() => typeof(BuildTimeType).ToString();
+        public string NameofLoadTimeType() => typeof(LoadTimeType).ToString();
+    }
+
     public sealed class MainPageArgs : IQmlLoadArgs
     {
         public static string Name => "Main";

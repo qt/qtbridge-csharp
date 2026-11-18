@@ -25,6 +25,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
 
             if (src is not EventInfo ev)
                 return Error();
+            if (ev.MFn(Signal) == "getType")
+                return Warning($"Reserved name 'getType': {ev.DeclaringType.FullName}.{ev}; skipped");
             var type = src.ReflectedType;
             if (ev.EventHandlerType.DelegateSignature()?.ToArray() is not { Length: 3 } evTypes
                 || !evTypes[2].IsAssignableTo(TypeOf<EventArgs>())) {

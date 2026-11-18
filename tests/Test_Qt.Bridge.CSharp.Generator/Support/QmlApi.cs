@@ -23,7 +23,10 @@ namespace Test_Qt.Bridge.CSharp.Generator.Support
                 @"Q_INVOKABLE [^(]*?\b(?<name>\w+)\((?<args>[^)]*)\)")) {
                 var arity = method.Groups["args"].Value
                     .Split(',', StringSplitOptions.RemoveEmptyEntries).Length;
-                api.Add($"method {method.Groups["name"].Value}/{arity}");
+                var name = method.Groups["name"].Value;
+                if (name == "getType" && arity == 0)
+                    continue;
+                api.Add($"method {name}/{arity}");
             }
             foreach (Match signal in Regex.Matches(header, @"Q_SIGNAL void (?<name>\w+)\("))
                 api.Add($"signal {signal.Groups["name"].Value}");

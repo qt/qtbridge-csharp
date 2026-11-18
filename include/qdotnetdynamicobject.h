@@ -335,6 +335,9 @@ public:
         auto asDotNetObject = typeDef->addMethod("asDotNetObject()", "const QDotNetObject *");
         asDotNetObject.setTag("QT_DOTNET_METHOD_AS_OBJECT");
 
+        auto getType = typeDef->addMethod("getType()", "QString");
+        getType.setTag("QT_DOTNET_METHOD_GET_TYPE");
+
         const auto *metaObject = typeDef->toMetaObject();
         type->metaObject = metaObject;
         const auto qmlTypeId = type->baseClass == BaseClass::Object
@@ -357,6 +360,11 @@ public:
 
             if (methodTag == "QT_DOTNET_METHOD_AS_OBJECT") {
                 type->idxAsDotNetObject = method.methodIndex() - metaObject->methodOffset();
+                continue;
+            }
+
+            if (methodTag == "QT_DOTNET_METHOD_GET_TYPE") {
+                type->idxGetType = method.methodIndex() - metaObject->methodOffset();
                 continue;
             }
 
@@ -856,6 +864,8 @@ private:
         return _id;
     }
 
+    QString getType() const { return QDotNetObject::type().toString(); }
+
     static void staticMetacall(QObject *obj, QMetaObject::Call call, int id, void **args)
     {
         Q_DOTNET_PROFILE_FUNC();
@@ -881,6 +891,12 @@ private:
 
             if (id == type->idxAsDotNetObject) {
                 *reinterpret_cast<const QDotNetObject **>(args[0]) = dynObj;
+                return;
+            }
+            if (id == type->idxGetType) {
+                const auto result = dynObj->getType();
+                if (args[0])
+                    *reinterpret_cast<QString *>(args[0]) = result;
                 return;
             }
 
@@ -1875,6 +1891,7 @@ private:
         const QMetaObject *metaObject = nullptr;
         int idxAsDotNetObject = -1;
         int idxNestedQmlElements = -1;
+        int idxGetType = -1;
 
         // Use tags to cross-reference DynamicMethod's and meta-methods in the type building phase.
         // This is the sole purpose of this mapping. It is cleared during buildType(), given that

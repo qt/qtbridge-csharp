@@ -22,6 +22,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
         {
             if (src is not PropertyInfo prop || prop.ReflectedType is not { } type)
                 return Error();
+            if (prop.MFn(Name) == "getType")
+                return Warning($"Reserved name 'getType': {type.FullName}.{prop}; skipped");
 
             if (!prop.PropertyType.IsMetadataCompatible())
                 return Warning($"Incompatible: {type.FullName}.{prop}; skipped");

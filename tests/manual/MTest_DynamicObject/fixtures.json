@@ -4,6 +4,10 @@
         "expression": "typeof target.toString() === 'string'"
     },
     {
+        "name": "getType()",
+        "expression": "target.getType() === target.typeName"
+    },
+    {
         "name": "Integer property",
         "expression": "target.intProperty = 42; target.intProperty === 42"
     },

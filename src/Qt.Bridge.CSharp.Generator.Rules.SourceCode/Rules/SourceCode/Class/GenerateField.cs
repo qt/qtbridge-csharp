@@ -23,6 +23,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
 
             if (src is not FieldInfo field)
                 return Error();
+            if (field.MFn(Name) == "getType")
+                return Warning($"Reserved name 'getType': {field.DeclaringType.FullName}.{field}; skipped");
 
             var type = src.ReflectedType;
             var fieldType = field.FieldType;

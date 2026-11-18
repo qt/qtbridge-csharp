@@ -111,6 +111,7 @@ public:
     ~{type.MFn(Name)}() override;
 
     Q_INVOKABLE const QDotNetObject *asDotNetObject() const;
+    Q_INVOKABLE QString getType() const;
 
     {publicDecl[(Placeholder)new(PropertyDeclarations)]}
     {publicDecl[(Placeholder)new(MethodDeclarations)]}
@@ -199,6 +200,11 @@ namespace {src.MFn(Ns)}
 const QDotNetObject *{type.MFn(Ns | Name)}::asDotNetObject() const
 {{
     return this;
+}}
+
+QString {type.MFn(Ns | Name)}::getType() const
+{{
+    return QDotNetObject::type().toString();
 }}
 
 void {type.MFn(Ns | Name)}::connectNotify(const QMetaMethod &signal)

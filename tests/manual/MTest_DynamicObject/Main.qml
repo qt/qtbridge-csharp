@@ -279,9 +279,11 @@ ApplicationWindow {
 
     LoadTimeType {
         id: lt
+        readonly property string typeName: Types.nameofLoadTimeType()
 
         BuildTimeType {
             id: bt
+            readonly property string typeName: Types.nameofBuildTimeType()
         }
     }
 

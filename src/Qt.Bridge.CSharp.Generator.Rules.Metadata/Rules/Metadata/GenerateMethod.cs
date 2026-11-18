@@ -27,6 +27,9 @@ namespace Qt.Bridge.CodeGeneration.Rules.Metadata
             if (src is not MethodInfo func)
                 return Error();
 
+            if (func.MFn(Name) == "getType")
+                return Warning($"Reserved name 'getType': {func.DeclaringType.FullName}.{func}; skipped");
+
             if (AmbiguousMethods.Contains(func))
                 return Warning($"Ambiguous: {func.DeclaringType.FullName}.{func}; skipped");
 

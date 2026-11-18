@@ -25,6 +25,8 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
 
             if (src is not PropertyInfo prop)
                 return Error();
+            if (prop.MFn(Name) == "getType")
+                return Warning($"Reserved name 'getType': {prop.DeclaringType.FullName}.{prop}; skipped");
             var type = src.ReflectedType;
             var propType = prop.PropertyType;
             var cacheType = propType.IsValue() ? TypeOf<object>() : propType;

@@ -25,6 +25,9 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode.Class
             if (src is not MethodInfo func)
                 return Error();
 
+            if (func.MFn(Name) == "getType")
+                return Warning($"Reserved name 'getType': {func.DeclaringType.FullName}.{func}; skipped");
+
             var type = src.ReflectedType;
             var returnType = func.ReturnType;
             if (func.GetParameters() is not { } args)

@@ -182,6 +182,14 @@ namespace Qt.Bridge.CodeGeneration
                 return true;
             if (IsIgnored(type))
                 return true;
+
+            // Exclude if System.Object::GetType() is hidden
+            if (type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Any(method => method.Name == "GetType" && method.GetParameters().Length == 0
+                    && method.DeclaringType != TypeOf<object>())) {
+                return true;
+            }
+
             return false;
         }
 
