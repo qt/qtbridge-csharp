@@ -3,6 +3,7 @@
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <QFile>
 #include <QTest>
 
 #include <qdotnetobject.h>
@@ -21,6 +22,7 @@ private:
 private slots:
     void initTestCase()
     {
+        QVERIFY(QtDotNet::registerNativeHostResourcePackage(QCoreApplication::applicationDirPath()));
         initHost();
         QVERIFY2(locateAssembly(), "Managed test assembly not found");
         QVERIFY2(runAppSynchronous(), "Managed app entry point failed");
@@ -39,6 +41,17 @@ private slots:
     {
         QVERIFY2(QtDotNet::call<bool>(validatorType, "CheckContent"),
             "Qt.Resources.ReadAllText returned unexpected content");
+    }
+
+    void iconAliases()
+    {
+        QFile original(":/icons/application.png");
+        QFile defaultIcon(":/qt/gui/qguiapplication/windowIcon");
+        QVERIFY(original.open(QIODevice::ReadOnly));
+        QVERIFY(defaultIcon.open(QIODevice::ReadOnly));
+        const auto bytes = original.readAll();
+        QVERIFY(!bytes.isEmpty());
+        QCOMPARE(defaultIcon.readAll(), bytes);
     }
 
     void cleanupTestCase()

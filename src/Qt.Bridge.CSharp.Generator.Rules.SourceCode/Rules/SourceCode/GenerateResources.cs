@@ -25,17 +25,21 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
         public override Result Execute(MemberInfo src)
         {
             const StringComparison ordinalIgnoreCase = StringComparison.OrdinalIgnoreCase;
+            const string windowIconAlias = "qt/gui/qguiapplication/windowIcon";
+            var pathComparer = OperatingSystem.IsWindows()
+                ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+            var windowIcon = Root.Assembly.QtResources().FirstOrDefault(IsWindowIcon);
 
             // Resolve and validate both backends before deciding whether a native build is needed.
             var groups = Root.Assembly.QtResourcesWithReferences(SourceGraph)
+                // A referenced library cannot choose the startup application's default icon.
+                .Where(r => !IsWindowIcon(r) || (windowIcon != null
+                    && pathComparer.Equals(r.SourcePath, windowIcon.SourcePath)))
                 .Where(r => string.Equals(r.AccessMode, "Default", ordinalIgnoreCase)
                     || string.Equals(r.AccessMode, "ManagedAndNative", ordinalIgnoreCase))
                 .Where(r => r.SourcePath is { Length: > 0 } && r.Alias is { Length: > 0 })
                 .GroupBy(r => r.Alias.Replace('\\', '/').TrimStart('/'), StringComparer.Ordinal)
                 .OrderBy(g => g.Key, StringComparer.Ordinal).ToArray();
-
-            var pathComparer = OperatingSystem.IsWindows()
-                ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
             var newLine = Environment.NewLine;
             var collisions = groups.Where(g => g.Select(r => r.SourcePath)
@@ -64,16 +68,21 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
             Linked = SourceGraph.ResourcePackaging == ResourcePackaging.Linked
                 || (SourceGraph.ResourcePackaging == ResourcePackaging.Auto
                     && StatusFile.NativeTypes.Any());
-            if (Linked || Resources.Count == 0)
+            if (Resources.Count == 0)
                 return Ok;
 
             var qrc = new XElement("RCC", new XElement("qresource", new XAttribute("prefix", "/"),
                 Resources.Select(r => new XElement("file", new XAttribute("alias", r.Alias),
                     r.SourcePath.Replace('\\', '/')))));
-            _ = new FilePlaceholder("ExternalResources", Root, "qt_bridge_resources.qrc") {
+            var qrcPath = Linked ? $"{Root.MFn(Traits.Dir)}qt_bridge_resources.qrc"
+                : "qt_bridge_resources.qrc";
+            _ = new FilePlaceholder("Resources", Root, qrcPath) {
                 Content = [qrc.ToString()]
             };
             return Ok;
+
+            static bool IsWindowIcon(Qt.Bridge.QtResourceAttribute resource)
+                => resource.Alias?.Replace('\\', '/').TrimStart('/') == windowIconAlias;
         }
     }
 }

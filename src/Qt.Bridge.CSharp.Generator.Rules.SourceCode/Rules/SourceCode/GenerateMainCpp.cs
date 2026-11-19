@@ -35,6 +35,7 @@ namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
 "#include <QDir>",
 "#include <QFile>",
 "#include <QFileInfo>",
+"#include <QIcon>",
 "#include <QCoreApplication>",
 "#include <QGuiApplication>",
 "#include <QQmlApplicationEngine>",
@@ -98,6 +99,9 @@ int main(int argc, char *argv[])
     QString appDirPath;
     {{
         QGuiApplication app(argc, argv);
+
+        if (QFile::exists("":qt/gui/qguiapplication/windowIcon""))
+            QGuiApplication::setWindowIcon(QIcon("":qt/gui/qguiapplication/windowIcon""));
 
         appDirPath = QCoreApplication::applicationDirPath();
 

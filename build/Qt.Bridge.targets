@@ -9,6 +9,11 @@
     Condition="'$(QtDotNetPropsImported)' != 'true'"
     Project="$(MSBuildThisFileDirectory)Qt.Bridge.props"/>
 
+  <!-- $(QtDefaultIcon): Manage the default window icon (QGuiApplication::windowIcon)
+    Possible values:
+      * "" (empty): Use value of the $(ApplicationIcon) property.
+      * "disable" | "false": No default window icon (it can still be set later at runtime).
+      * Other values: Path of the file to set as default icon. -->
   <PropertyGroup>
     <QtQmlRootModule Condition="'$(QtQmlRootModule)' == ''">Application</QtQmlRootModule>
     <QtQmlRootModuleName>$([System.Text.RegularExpressions.Regex]::Replace(
@@ -61,6 +66,18 @@
   -->
   <Target Name="QtBridgeAddResources" BeforeTargets="CoreCompile"
     Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_QtDefaultIcon>$(QtDefaultIcon)</_QtDefaultIcon>
+      <_QtDefaultIcon Condition="'$(_QtDefaultIcon)' == ''">$(ApplicationIcon)</_QtDefaultIcon>
+    </PropertyGroup>
+    <ItemGroup>
+      <QtResource Include="$(_QtDefaultIcon)"
+        Condition="('$(OutputType)' == 'Exe' OR '$(OutputType)' == 'WinExe')
+          AND '$(_QtDefaultIcon)' != '' AND '$(_QtDefaultIcon)' != 'disable'
+          AND '$(_QtDefaultIcon)' != 'false'">
+        <Alias>qt/gui/qguiapplication/windowIcon</Alias>
+      </QtResource>
+    </ItemGroup>
     <ItemGroup Condition="'$(QtBridgeExcludeQtResxFromManagedResources)' == 'true'">
       <EmbeddedResource Remove="@(QtResx)" />
     </ItemGroup>

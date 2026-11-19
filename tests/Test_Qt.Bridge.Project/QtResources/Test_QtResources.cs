@@ -11,9 +11,14 @@ namespace Test_Qt.Bridge.Project.QtResources
     public class Test_QtResources : ManagedTestBase
     {
         [TestMethod]
-        public async Task ResourcePipeline()
+        [DataRow("Linked", "SourceCode")]
+        [DataRow("Linked", "Metadata")]
+        [DataRow("Linked", "Mixed")]
+        [DataRow("External", "SourceCode")]
+        public async Task ResourcePipeline(string packaging, string exportMode)
         {
             using var temp = new TempProject();
+            temp.ProjectRootDir = Path.Combine(temp.ProjectRootDir, packaging, exportMode);
 
             var options = new CreationOptions
             {
@@ -25,9 +30,15 @@ namespace Test_Qt.Bridge.Project.QtResources
                     (@"source\hpp\QtTestSetupBase.h", Path.Combine("Shared", "QtTestSetupBase.h")),
                 ],
                 AfterSdkTargets =
-                    """
+                    $$"""
+                      <PropertyGroup>
+                        <QtResourcePackaging>{{packaging}}</QtResourcePackaging>
+                        <QtExportAs>metadata</QtExportAs>
+                        <QtDefaultIcon>icon.png</QtDefaultIcon>
+                      </PropertyGroup>
                       <ItemGroup>
                         <QtResource Include="sample.txt" />
+                        <QtResource Include="icon.png"><Alias>icons/application.png</Alias></QtResource>
                       </ItemGroup>
                     """
                     + CMake.InjectQtSourcesTargets("hpp/QtTestSetupBase.h")
@@ -36,7 +47,20 @@ namespace Test_Qt.Bridge.Project.QtResources
             await InitializeAndBuildAsync(temp, options, project =>
             {
                 project.AddFile("sample.txt", "Hello from Qt Resources!\n");
+                File.WriteAllBytes(Path.Combine(project.ProjectDir, "icon.png"),
+                    Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwC"
+                        + "AAAAC0lEQVR42mP8/x8AAusB9Wl6ZbIAAAAASUVORK5CYII="));
                 project.CopyFile("Program.cs", Path.Combine("QtResources", "Program.cs"));
+                var firstExport = exportMode == "Mixed" ? "SourceCode" : exportMode;
+                var secondExport = exportMode == "Mixed" ? "Metadata" : exportMode;
+                project.AddFile("ExportedTypes.cs", $$"""
+                    namespace QtResources {
+                        [Qt.Export(Options = Qt.ExportAs.{{firstExport}})]
+                        public class First { public int Value { get; set; } }
+                        [Qt.Export(Options = Qt.ExportAs.{{secondExport}})]
+                        public class Second { public int Value { get; set; } }
+                    }
+                    """);
             });
 
             var run = await temp.RunAsync(new RunOptions {
@@ -44,10 +68,11 @@ namespace Test_Qt.Bridge.Project.QtResources
                 StdErr = Redirect.StdOut
             });
 
-            AssertQTestExitCode(run.ExitCode);
+            AssertQTestExitCode(run.ExitCode, run.StdOut);
             Assert.Contains("PASS   : Test_QtResources::initTestCase()", run.StdOut);
             Assert.Contains("PASS   : Test_QtResources::resourceExists()", run.StdOut);
             Assert.Contains("PASS   : Test_QtResources::resourceContent()", run.StdOut);
+            Assert.Contains("PASS   : Test_QtResources::iconAliases()", run.StdOut);
             Assert.Contains("PASS   : Test_QtResources::cleanupTestCase()", run.StdOut);
         }
     }

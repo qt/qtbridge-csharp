@@ -17,6 +17,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
+    <ApplicationIcon>ManualTests.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(SolutionName)' != 'qtbridge-csharp'">

@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Reflection;
-using System.Text;
 
 namespace Qt.Bridge.CodeGeneration.Rules.SourceCode
 {
@@ -124,33 +123,11 @@ add_custom_command(
             if (!GenerateResources.Linked || resources.Count == 0)
                 return string.Empty;
 
-            var builder = new StringBuilder();
-            foreach (var resource in resources) {
-                var sourcePath = CMakePath(resource.SourcePath);
-                var alias = CMakePath(resource.Alias.TrimStart('/', '\\'));
-                builder.AppendLine($"""
-set_source_files_properties("{sourcePath}" PROPERTIES
-    QT_RESOURCE_ALIAS "{alias}"
-)
-""");
-            }
-
-            builder.AppendLine($"""
-qt_add_resources({Root.MFn(Target)} qtbridge_resources
-    PREFIX "/"
-    FILES
-""");
-
-            foreach (var resource in resources)
-                builder.AppendLine($"        \"{CMakePath(resource.SourcePath)}\"");
-
-            builder.Append(')');
-            return builder.ToString();
-        }
-
-        private static string CMakePath(string path)
-        {
-            return path.Replace('\\', '/').Replace("\"", "\\\"");
+            // A .qrc supports multiple aliases for one file; QT_RESOURCE_ALIAS is per-file.
+            return $$"""
+qt_add_resources(qtbridge_resource_sources qt_bridge_resources.qrc)
+target_sources({{Root.MFn(Target)}} PRIVATE ${qtbridge_resource_sources})
+""";
         }
     }
 }
