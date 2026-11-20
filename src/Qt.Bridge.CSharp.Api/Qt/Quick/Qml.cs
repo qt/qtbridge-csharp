@@ -129,9 +129,8 @@ namespace Qt
             /// <b>Note:</b> instances of <c>T</c> cannot have any public properties hidden by
             /// <see langword="new"/> properties with matching names but different types, otherwise
             /// an <see cref="ArgumentException"/> is thrown.
-            /// <para/>
-            /// Example:
-            /// <example><code><![CDATA[
+            /// </remarks>
+            /// <example><![CDATA[
             /// ```csharp
             /// public sealed class MainPageArgs : IQmlLoadArgs
             /// {
@@ -165,8 +164,7 @@ namespace Qt
             ///     Qml.WaitForExit();
             /// }
             /// ```
-            /// ]]></code></example>
-            /// </remarks>
+            /// ]]></example>
             /// <exception cref="ArgumentNullException"/>
             /// <exception cref="ArgumentException"/>
             ///

@@ -16,9 +16,8 @@ namespace Qt.Quick
     /// <b>Note:</b> instances that implement <see cref="IQmlLoadArgs"/> are only used to initialize
     /// QML components during <see cref="Qml.Load{T}(T)"/>. Subsequent changes to the properties of
     /// these instances have no effect on the loaded QML components.
-    /// <para/>
-    /// Example:
-    /// <example><code><![CDATA[
+    /// </remarks>
+    /// <example><![CDATA[
     /// ```csharp
     /// public sealed class MainPageArgs : IQmlLoadArgs
     /// {
@@ -48,8 +47,7 @@ namespace Qt.Quick
     ///     Qml.WaitForExit();
     /// }
     /// ```
-    /// ]]></code></example>
-    /// </remarks>
+    /// ]]></example>
     public interface IQmlLoadArgs
     {
         /// <summary>
@@ -69,7 +67,8 @@ namespace Qt.Quick
         /// By default, <see cref="Qml.Load{T}(T)"/> will use all public instance properties of
         /// <c>T</c> as initial properties. To override this default behavior, implement
         /// <see cref="InitialProperties"/> in the definition of <c>T</c>.
-        /// <code><![CDATA[
+        /// </remarks>
+        /// <example><![CDATA[
         /// ```csharp
         /// internal sealed class MainPageArgs : IQmlLoadArgs
         /// {
@@ -89,8 +88,7 @@ namespace Qt.Quick
         ///     });
         /// }
         /// ```
-        /// ]]></code>
-        /// </remarks>
+        /// ]]></example>
         virtual Dictionary<string, object> InitialProperties => null;
     }
 }
