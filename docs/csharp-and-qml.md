@@ -64,6 +64,43 @@ Button {
 Notice that QML uses `camelCase` for the members that C# exposes as `PascalCase`. This follows QML's
 own naming convention, so the type feels native on the QML side.
 
+## Identify the runtime .NET type from QML
+
+Use `getType()` on a bridged .NET object to read its runtime type name as a string. The helper is
+available with both source-code and metadata-based exports:
+
+```qml
+console.log(viewModel.getType()) // For example: "MyApp.CustomerViewModel"
+```
+
+A typical use is choosing a view for a view model. C# creates the view models and passes a root
+view model to QML through [`IQmlLoadArgs`](api/Qt.Quick.IQmlLoadArgs.yml) and
+[`Qml.Load(...)`](api/Qt.Quick.Qml.yml). These arguments initialize the QML component once.
+Subsequent view-model changes reach QML through
+[property-change notifications](#keeping-the-ui-in-sync-properties-and-notifications).
+
+When a property exposes different view models during navigation, QML can use their runtime type
+names to select a view:
+
+```qml
+function viewSource(viewModel) {
+    if (!viewModel)
+        return ""
+
+    switch (viewModel.getType()) {
+    case "MyApp.CustomerViewModel":
+        return "CustomerView.qml"
+    case "MyApp.OrderViewModel":
+        return "OrderView.qml"
+    default:
+        return ""
+    }
+}
+```
+
+A `Loader` or view factory can use this URL. The application controls the mapping, loads the view
+and passes the view model to it. Keep the mapping in sync when C# type names or namespaces change.
+
 ## Keeping the UI in sync: properties and notifications
 
 A plain property like `Value` above is read once. If your C# code changes it later and you want the
