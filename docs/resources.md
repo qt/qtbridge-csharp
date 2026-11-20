@@ -122,8 +122,64 @@ for binary files such as images, fonts, or custom data.
 
 ## Set the application icon
 
-Package the icon with `<QtResource>`, then pass its `qrc:/` URL to
-[`Qt.Application.SetWindowIcon`](api/Qt.Application.yml). Set it before you load QML:
+Set `ApplicationIcon` in the executable project's `.csproj` file to use the same icon for the
+Windows executable and as the default Qt window icon:
+
+```xml
+<PropertyGroup>
+    <ApplicationIcon>icons/app.ico</ApplicationIcon>
+</PropertyGroup>
+```
+
+`ApplicationIcon` requires an ICO file. Qt Bridge automatically packages that file as a Qt resource
+and sets the default window icon before running your C# entry point. No additional `<QtResource>`
+item or `SetWindowIcon()` call is needed. Windows embeds the icon in the executable; other platforms
+can use it as the Qt window icon.
+
+### Override the default window icon
+
+Use `QtDefaultIcon` when the Qt window icon should differ from `ApplicationIcon`, or when you want
+to use another image format, such as PNG or SVG:
+
+```xml
+<PropertyGroup>
+    <QtDefaultIcon>icons/app.png</QtDefaultIcon>
+</PropertyGroup>
+```
+
+The value is a file path, relative to the project directory or absolute, rather than a `qrc:/` URL.
+The image format must be supported by your Qt deployment. SVG requires the corresponding Qt SVG
+icon/image support. `QtDefaultIcon` selects the Qt window icon; it does not embed a Windows
+executable icon.
+
+| `QtDefaultIcon` value | Behavior |
+|---|---|
+| Unset or empty | Uses `ApplicationIcon` if it is set; otherwise makes no automatic icon assignment. |
+| `false` or `disable` | Makes no automatic icon assignment, even if `ApplicationIcon` is set. |
+| A file path | Packages that file and uses it as the default Qt window icon. |
+
+For example, keep the Windows executable icon while disabling the automatic Qt assignment:
+
+```xml
+<PropertyGroup>
+    <ApplicationIcon>icons/app.ico</ApplicationIcon>
+    <QtDefaultIcon>false</QtDefaultIcon>
+</PropertyGroup>
+```
+
+Default-icon selection belongs to the executable project. An `ApplicationIcon` or `QtDefaultIcon`
+in a referenced library does not select the consuming application's default window icon. Other
+library resources are still available as usual.
+
+Automatic icon packaging works with both `Linked` and `External` resource packaging. If the icon
+is already included as a `<QtResource>` with another alias, that alias remains available. Individual
+windows can override the application's default icon.
+
+### Change the window icon at runtime
+
+To select a different default icon from C#, package it with `<QtResource>` and pass its `qrc:/` URL
+to [`Qt.Application.SetWindowIcon`](api/Qt.Application.yml). You can also use this method when
+automatic icon assignment is disabled. Set it before loading QML if the first window should use it:
 
 ```csharp
 static void Main(string[] args)
