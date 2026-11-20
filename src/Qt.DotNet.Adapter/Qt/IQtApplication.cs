@@ -23,6 +23,7 @@ namespace Qt
         void SetOrganizationName(string name);
         void SetOrganizationDomain(string domain);
         void SetDisplayName(string name);
+        void SetDesktopFileName(string name);
         void SetWindowIcon(string qrcUrl);
     }
 }

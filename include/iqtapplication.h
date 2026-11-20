@@ -34,6 +34,8 @@ struct IQtApplication : public QDotNetInterface
             { QCoreApplication::setOrganizationDomain(domain); });
         setCallback<void, QString>("SetDisplayName", [](void *, const QString &name)
             { QGuiApplication::setApplicationDisplayName(name); });
+        setCallback<void, QString>("SetDesktopFileName", [](void *, const QString &name) {
+            QGuiApplication::setDesktopFileName(name); });
         setCallback<void, QString>("SetWindowIcon", [](void *, const QString &url)
             { QGuiApplication::setWindowIcon(QIcon(IQtResources::toResourcePath(url))); });
     }

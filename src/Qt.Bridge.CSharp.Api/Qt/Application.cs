@@ -22,6 +22,7 @@ namespace Qt
     ///     Qt.Application.OrganizationName   = "Acme Corp";
     ///     Qt.Application.OrganizationDomain = "acme.com";
     ///     Qt.Application.DisplayName        = "My Application";
+    ///     Qt.Application.DesktopFileName    = "com.acme.MyApp";
     ///     Qt.Application.SetWindowIcon("qrc:/assemblies/MyApp/icons/app.svg");
     ///
     ///     Qml.LoadFromRootModule("Main");
@@ -88,6 +89,17 @@ namespace Qt
         public static string DisplayName
         {
             set => Instance.SetDisplayName(value ?? "");
+        }
+
+        /// <summary> Sets the desktop entry for the application. </summary>
+        /// <remarks>
+        /// This is the file name, without the full path or the trailing ".desktop" extension of
+        /// the desktop entry that represents this application according to the freedesktop desktop
+        /// entry specification.
+        /// </remarks>
+        public static string DesktopFileName
+        {
+            set => Instance.SetDesktopFileName(value ?? "");
         }
 
         /// <summary>Sets the default window icon from a packaged app resource.</summary>
