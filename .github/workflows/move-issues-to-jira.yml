@@ -32,27 +32,35 @@ jobs:
           BODY: ${{ github.event.issue.body }}
           ISSUE_URL: ${{ github.event.issue.html_url }}
           ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+          LABELS: ${{ join(github.event.issue.labels.*.name, ',') }}
         run: |
           set -euo pipefail
-          affects_version=$(awk '
-            /^### Qt Bridge for C# version$/ { in_version=1; next }
-            /^### / { if (in_version) exit }
-            in_version && NF { print; exit }
-          ' <<< "$BODY")
+          # Issue bodies edited in the browser may use CRLF line endings.
+          body=${BODY//$'\r'/}
+          # A "version:<x.y.z>" label set by the triager takes precedence over the issue form.
+          affects_version=$(tr ',' '\n' <<< "$LABELS" | sed -n 's/^version://p' | head -n1)
+          if [[ -z "$affects_version" ]]; then
+            affects_version=$(awk '
+              /^### Qt Bridge for C# version$/ { in_version=1; next }
+              /^### / { if (in_version) exit }
+              in_version && NF { print; exit }
+            ' <<< "$body")
+          fi
 
+          # The label holds owner, repository and issue number, so it identifies the source.
+          # Legacy labels omit the owner and can collide across repositories, so issues that
+          # only carry one must also name this issue in the first line of their description.
           jira_label="github-${REPO//\//-}-${NUMBER}"
           legacy_label="github-qtbridge-csharp-${NUMBER}"
-          # Legacy labels omit the repository identity, so the same issue number
-          # can collide across repositories. Verify the source URL as well.
           matching_export_keys() {
             jq -r --arg label "$jira_label" --arg legacy_label "$legacy_label" \
               --arg url "$ISSUE_URL" '
               (if has("issues") then .issues[] else . end)
               | select(.fields.project.key == "QTBRIDGES")
               | select((.fields.labels | index($label) != null)
-                       or (.fields.labels | index($legacy_label) != null))
-              | select((.fields.description // "" | split("\n")[0] | rtrimstr("\r")
-                        | sub("^Reported on GitHub( by @[^: ]+)?: "; "")) == $url)
+                       or ((.fields.labels | index($legacy_label) != null)
+                           and ((.fields.description // "" | split("\n")[0] | rtrimstr("\r")
+                                 | sub("^Reported on GitHub( by @[^: ]+)?: "; "")) == $url)))
               | .key'
           }
 
@@ -62,11 +70,15 @@ jobs:
 
           key=
           if [[ -n "$marker_key" ]]; then
-            marker_issue=$(curl -sS --fail-with-body -u "$JIRA_USER:$JIRA_TOKEN" \
-              "$JIRA_URL/rest/api/2/issue/$marker_key?fields=project,labels,description")
-            key=$(matching_export_keys <<< "$marker_issue")
-            if [[ -z "$key" ]]; then
-              printf 'Ignoring Jira marker for a different source: %s\n' "$marker_key" >&2
+            # A marker may point to a deleted issue or may have been written by hand.
+            if marker_issue=$(curl -sS --fail-with-body -u "$JIRA_USER:$JIRA_TOKEN" \
+              "$JIRA_URL/rest/api/2/issue/$marker_key?fields=project,labels,description"); then
+              key=$(matching_export_keys <<< "$marker_issue")
+              if [[ -z "$key" ]]; then
+                printf 'Ignoring Jira marker for a different source: %s\n' "$marker_key" >&2
+              fi
+            else
+              printf 'Ignoring Jira marker that cannot be read: %s\n' "$marker_key" >&2
             fi
           fi
 
@@ -97,7 +109,7 @@ jobs:
           fi
 
           description=$(printf 'Reported on GitHub by @%s: %s\n\n{noformat}\n%s\n{noformat}' \
-            "$ISSUE_AUTHOR" "$ISSUE_URL" "$BODY")
+            "$ISSUE_AUTHOR" "$ISSUE_URL" "$body")
           if [[ -z "$key" ]]; then
             # The body can be edited after submission, so the version may be empty or
             # unknown to Jira. Jira rejects the whole issue then, so leave the field out.
