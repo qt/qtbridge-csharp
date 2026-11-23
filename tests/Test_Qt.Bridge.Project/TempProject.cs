@@ -341,19 +341,7 @@ namespace Test_Qt.Bridge.Project
 
         private void Reset()
         {
-            var projectDir = ProjectDir;
-            var t = Stopwatch.StartNew();
-            while (Directory.Exists(projectDir)) {
-                try {
-                    Delete(projectDir, true);
-                } catch (IOException e) {
-                    if (!e.Message.Contains("being used by another process"))
-                        throw;
-                    if (t.ElapsedMilliseconds > 10000)
-                        Assert.Inconclusive(e.Message);
-                    Thread.Sleep(100);
-                }
-            }
+            DeleteDirectory(ProjectDir);
             ProjectFilename = GetRandomFileName();
             ProjectExtension = ".csproj";
         }
@@ -367,19 +355,28 @@ namespace Test_Qt.Bridge.Project
 
         internal static void CleanupProjectRoot()
         {
-            var projectRootDir = ResolveProjectRootDir();
+            DeleteDirectory(ResolveProjectRootDir());
+        }
+
+        // Windows can hold files of a process for a while after it ended: an exiting app, error
+        // reporting after a crash, a virus scanner. If they stay held, the directory is left
+        // behind for the next cleanup. Cleanup does not decide whether a test passed, and an
+        // exception from Dispose() would replace the test's own outcome.
+        internal static bool DeleteDirectory(string dir, int timeoutMs = 10000)
+        {
             var t = Stopwatch.StartNew();
-            while (Directory.Exists(projectRootDir)) {
+            while (Directory.Exists(dir)) {
                 try {
-                    Delete(projectRootDir, true);
-                } catch (IOException e) {
-                    if (!e.Message.Contains("being used by another process"))
-                        throw;
-                    if (t.ElapsedMilliseconds > 10000)
-                        Assert.Inconclusive(e.Message);
+                    Delete(dir, true);
+                } catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+                    if (t.ElapsedMilliseconds > timeoutMs) {
+                        Console.Error.WriteLine($"warning: left '{dir}' behind: {e.Message}");
+                        return false;
+                    }
                     Thread.Sleep(100);
                 }
             }
+            return true;
         }
 
         private (string Name, string Value)[] BuildEnvironment()
