@@ -19,6 +19,13 @@ instructions:
       Failed to change to csharp dir
 
   - type: ExecuteCommand
+    command: ["git", "fetch", "--tags", "--unshallow", "origin"]
+    maxTimeInSeconds: 120
+    maxTimeBetweenOutput: 120
+    userMessageOnFailure: >
+      Failed to fetch tags.
+
+  - type: ExecuteCommand
     command: ["dotnet", "build", "-c", "Debug"]
     maxTimeInSeconds: 6000
     maxTimeBetweenOutput: 1200
