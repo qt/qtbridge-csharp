@@ -1,5 +1,32 @@
 # Change Log
 
+## Version 0.5.1
+
+- Added support for **Qml.Load() initial properties**, allowing QML types to be instantiated with
+  strongly-typed startup arguments.
+
+- Added **`getType()` support in QML**, enabling retrieval of the underlying .NET type name from
+  exported objects.
+
+- Added automatic generation of **`qmldir` singleton declarations** from QML files marked with
+  `pragma Singleton`.
+
+- Added API to configure **`QGuiApplication::desktopFileName`**.
+
+- Introduced **`$(QtDefaultIcon)`**, a new MSBuild property for configuring the application's
+  default window icon, including integration with the existing `$(ApplicationIcon)` property.
+
+- Improved marshaling infrastructure with validation of marshaling signatures, safer URI conversion
+  handling, wrapper generation improvements, and conversion caching.
+
+- Reduced overhead for safe method invocations by simplifying result handling.
+
+- Fixed method resolution issues involving inherited methods, arrays, generic types, overload
+  selection, and collection models.
+
+- Resolved issues with delegate properties in collection models and nested enum handling in generic
+  types.
+
 ## Version 0.5.0
 
 ### Features
